@@ -15,13 +15,12 @@ pub fn main() !void {
     var tty = try Tty.init();
     defer tty.deinit();
 
-    const pipe = try std.os.pipe();
     // run our tty read loop in it's own thread
-    const read_thread = try std.Thread.spawn(.{}, Tty.run, .{ &tty, pipe[0] });
+    const read_thread = try std.Thread.spawn(.{}, Tty.run, .{ &tty, Event, eventCallback });
     try read_thread.setName("tty");
 
-    std.time.sleep(100_000_000_0);
-    _ = try std.os.write(pipe[1], "q");
+    std.time.sleep(100_000_000_00);
+    tty.stop();
     read_thread.join();
 
     try stdout.print("Run `zig build test` to run the tests.\n", .{});
@@ -29,9 +28,14 @@ pub fn main() !void {
     try bw.flush(); // don't forget to flush!
 }
 
+const Event = union(enum) {
+    key: u8,
+    mouse: u8,
+};
+
+fn eventCallback(_: Event) void {}
+
 test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
+    _ = @import("odditui.zig");
+    _ = @import("queue.zig");
 }

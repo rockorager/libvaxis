@@ -1,6 +1,5 @@
 const std = @import("std");
 const os = std.os;
-const xev = @import("xev");
 
 const log = std.log.scoped(.tty);
 
@@ -11,6 +10,9 @@ termios: os.termios,
 
 /// The file descriptor we are using for I/O
 fd: os.fd_t,
+
+/// the write end of a pipe to signal the tty should exit it's run loop
+quit_fd: ?os.fd_t = null,
 
 /// initializes a Tty instance by opening /dev/tty and "making it raw"
 pub fn init() !Tty {
@@ -34,23 +36,38 @@ pub fn deinit(self: *Tty) void {
     os.close(self.fd);
 }
 
+/// stops the run loop
+pub fn stop(self: *Tty) void {
+    if (self.quit_fd) |fd| {
+        _ = std.os.write(fd, "q") catch {};
+    }
+}
+
 /// read input from the tty
-pub fn run(self: *Tty, quit: os.fd_t) !void {
-    defer os.close(quit);
+pub fn run(self: *Tty, comptime T: type, comptime _: fn (ev: T) void) !void {
+    // create a pipe so we can signal to exit the run loop
+    const pipe = try os.pipe();
+    defer os.close(pipe[0]);
+    defer os.close(pipe[1]);
+
+    self.quit_fd = pipe[1];
+
+    var parser: Parser = .{};
+
     var buf: [1024]u8 = undefined;
     var pollfds: [2]std.os.pollfd = .{
         .{ .fd = self.fd, .events = std.os.POLL.IN, .revents = undefined },
-        .{ .fd = quit, .events = std.os.POLL.IN, .revents = undefined },
+        .{ .fd = pipe[0], .events = std.os.POLL.IN, .revents = undefined },
     };
     while (true) {
         _ = try std.os.poll(&pollfds, -1);
         if (pollfds[1].revents & std.os.POLL.IN != 0) {
-            log.info("read thread got quit signal", .{});
+            log.info("quitting read thread", .{});
             return;
         }
 
         const n = try os.read(self.fd, &buf);
-        log.err("{s}", .{buf[0..n]});
+        parser.parse(self, buf[0..n]);
     }
 }
 
@@ -93,3 +110,38 @@ pub fn makeRaw(fd: os.fd_t) !os.termios {
     try os.tcsetattr(fd, .FLUSH, raw);
     return state;
 }
+
+/// parses vt input. Retains some state so we need an object for it
+const Parser = struct {
+    const log = std.log.scoped(.parser);
+
+    // the state of the parser
+    const State = enum {
+        ground,
+        escape,
+        csi,
+        osc,
+        dcs,
+        sos,
+        pm,
+        apc,
+        ss2,
+        ss3,
+    };
+
+    state: State = .ground,
+
+    fn parse(self: *Parser, tty: *Tty, input: []u8) void {
+        _ = tty; // autofix
+        var i: usize = 0;
+        const start: usize = 0;
+        _ = start; // autofix
+        while (i < input.len) : (i += 1) {
+            const b = input[i];
+            switch (self.state) {
+                .ground => Parser.log.err("0x{x}\r", .{b}),
+                else => {},
+            }
+        }
+    }
+};
