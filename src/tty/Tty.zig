@@ -12,33 +12,17 @@ termios: os.termios,
 /// The file descriptor we are using for I/O
 fd: os.fd_t,
 
-/// Stream attached to our fd
-stream: xev.Stream,
-
-/// event loop
-loop: xev.Loop,
-
-read_buffer: [1024]u8 = undefined,
-
 /// initializes a Tty instance by opening /dev/tty and "making it raw"
 pub fn init() !Tty {
     // Open our tty
     const fd = try os.open("/dev/tty", os.system.O.RDWR, 0);
-
-    // Initialize the stream
-    const stream = xev.Stream.initFd(fd);
-
-    // Initialize event loop
-    const loop = try xev.Loop.init(.{});
 
     // Set the termios of the tty
     const termios = try makeRaw(fd);
 
     return Tty{
         .fd = fd,
-        .stream = stream,
         .termios = termios,
-        .loop = loop,
     };
 }
 
@@ -48,47 +32,26 @@ pub fn deinit(self: *Tty) void {
         log.err("couldn't restore terminal: {}", .{err});
     };
     os.close(self.fd);
-    self.stream.deinit();
-    self.loop.deinit();
 }
 
 /// read input from the tty
-pub fn run(self: *Tty) !void {
-    var c_stream: xev.Completion = undefined;
-
-    // Initialize our read event
-    self.stream.read(
-        &self.loop,
-        &c_stream,
-        .{ .slice = self.read_buffer[0..] },
-        Tty,
-        self,
-        readCallback,
-    );
-
-    try self.loop.run(.until_done);
-}
-
-fn readCallback(
-    ud: ?*Tty,
-    loop: *xev.Loop,
-    c: *xev.Completion,
-    stream: xev.Stream,
-    buf: xev.ReadBuffer,
-    r: xev.ReadError!usize,
-) xev.CallbackAction {
-    _ = stream; // autofix
-    _ = c; // autofix
-    _ = loop; // autofix
-    const tty = ud.?;
-    _ = tty; // autofix
-    const n = r catch |err| {
-        // Log the error and shutdown
-        log.err("read error: {}", .{err});
-        return .disarm;
+pub fn run(self: *Tty, quit: os.fd_t) !void {
+    defer os.close(quit);
+    var buf: [1024]u8 = undefined;
+    var pollfds: [2]std.os.pollfd = .{
+        .{ .fd = self.fd, .events = std.os.POLL.IN, .revents = undefined },
+        .{ .fd = quit, .events = std.os.POLL.IN, .revents = undefined },
     };
-    log.info("{s}\r", .{buf.slice[0..n]});
-    return .rearm;
+    while (true) {
+        _ = try std.os.poll(&pollfds, -1);
+        if (pollfds[1].revents & std.os.POLL.IN != 0) {
+            log.info("read thread got quit signal", .{});
+            return;
+        }
+
+        const n = try os.read(self.fd, &buf);
+        log.err("{s}", .{buf[0..n]});
+    }
 }
 
 /// makeRaw enters the raw state for the terminal.
