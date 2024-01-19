@@ -218,7 +218,14 @@ fn ior(inout: u32, group: usize, num: usize, len: usize) usize {
     return (inout | ((len & IOCPARM_MASK) << 16) | ((group) << 8) | (num));
 }
 
-fn getWinsize(fd: os.fd_t) !os.system.winsize {
+pub const Winsize = struct {
+    rows: usize,
+    cols: usize,
+    x_pixel: usize,
+    y_pixel: usize,
+};
+
+fn getWinsize(fd: os.fd_t) !Winsize {
     var winsize = os.system.winsize{
         .ws_row = 0,
         .ws_col = 0,
@@ -228,6 +235,11 @@ fn getWinsize(fd: os.fd_t) !os.system.winsize {
 
     const err = os.system.ioctl(fd, TIOCGWINSZ, @intFromPtr(&winsize));
     if (os.errno(err) == .SUCCESS)
-        return winsize;
+        return Winsize{
+            .rows = winsize.ws_row,
+            .cols = winsize.ws_col,
+            .x_pixel = winsize.ws_xpixel,
+            .y_pixel = winsize.ws_ypixel,
+        };
     return error.IoctlError;
 }

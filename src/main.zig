@@ -1,5 +1,6 @@
 pub const App = @import("app.zig").App;
 pub const Key = @import("Key.zig");
+pub const Winsize = @import("Tty.zig").Winsize;
 
 test {
     _ = @import("Key.zig");

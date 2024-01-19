@@ -3,11 +3,17 @@ const std = @import("std");
 const queue = @import("queue.zig");
 const Tty = @import("Tty.zig");
 const Key = @import("Key.zig");
+const Screen = @import("Screen.zig");
 
 /// App is the entrypoint for an odditui application. The provided type T should
 /// be a tagged union which contains all of the events the application will
 /// handle. Odditui will look for the following fields on the union and, if
 /// found, emit them via the "nextEvent" method
+///
+/// The following events *must* be in your enum
+/// - `key_press: Key`, for key press events
+/// - `winsize: std.os.system.winsize`, for resize events. Must call app.resize
+///   when receiving this event
 pub fn App(comptime T: type) type {
     return struct {
         const Self = @This();
@@ -23,6 +29,8 @@ pub fn App(comptime T: type) type {
 
         tty: ?Tty,
 
+        screen: Screen,
+
         /// Runtime options
         const Options = struct {};
 
@@ -31,14 +39,16 @@ pub fn App(comptime T: type) type {
             return Self{
                 .queue = .{},
                 .tty = null,
+                .screen = Screen.init(),
             };
         }
 
-        pub fn deinit(self: *Self) void {
+        pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
             if (self.tty) |_| {
                 var tty = &self.tty.?;
                 tty.deinit();
             }
+            self.screen.deinit(alloc);
         }
 
         /// spawns the input thread to start listening to the tty for input
@@ -65,6 +75,13 @@ pub fn App(comptime T: type) type {
         /// capacity for the event
         pub fn postEvent(self: *Self, event: T) void {
             self.queue.push(event);
+        }
+
+        /// resize allocates a slice of cellsequal to the number of cells
+        /// required to display the screen (ie width x height). Any previous screen is
+        /// freed when resizing
+        pub fn resize(self: *Self, alloc: std.mem.Allocator, w: usize, h: usize) !void {
+            try self.screen.resize(alloc, w, h);
         }
     };
 }
