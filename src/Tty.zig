@@ -121,6 +121,7 @@ pub fn run(
                         app.postEvent(.{ .key_press = k });
                     }
                 },
+                .escape => state = .ground,
                 else => {},
             }
         }

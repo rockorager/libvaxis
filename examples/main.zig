@@ -19,7 +19,7 @@ pub fn main() !void {
             },
             else => {},
         }
-        log.debug("event: {}", .{event});
+        log.debug("event: {}\r\n", .{event});
     }
 }
 
