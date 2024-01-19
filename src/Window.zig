@@ -3,6 +3,8 @@ const std = @import("std");
 const Screen = @import("Screen.zig");
 const Cell = @import("cell.zig").Cell;
 
+const log = std.log.scoped(.window);
+
 const Window = @This();
 
 pub const Size = union(enum) {
@@ -59,9 +61,10 @@ pub fn initChild(
 }
 
 /// writes a cell to the location in the window
-pub fn writeCell(self: Window, cell: Cell, row: usize, col: usize) void {
+pub fn writeCell(self: Window, col: usize, row: usize, cell: Cell) void {
+    if (self.height == 0 or self.width == 0) return;
     if (self.height < row or self.width < col) return;
-    self.screen.writeCell(cell, row + self.y_off, col + self.x_off);
+    self.screen.writeCell(col + self.x_off, row + self.y_off, cell);
 }
 
 test "Window size set" {

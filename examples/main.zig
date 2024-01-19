@@ -33,16 +33,16 @@ pub fn main() !void {
                 }
             },
             .winsize => |ws| {
-                try vx.resize(alloc, ws.rows, ws.cols);
+                try vx.resize(alloc, ws);
             },
             else => {},
         }
 
         const win = vx.window();
-        const child = win.initChild(20, 20, .expand, .expand);
+        const child = win.initChild(win.width / 2 - msg.len / 2, win.height / 2, .expand, .expand);
         for (msg, 0..) |_, i| {
             const cell: Cell = .{ .char = .{ .grapheme = msg[i .. i + 1] } };
-            child.writeCell(cell, i, 0);
+            child.writeCell(i, 0, cell);
         }
         try vx.render();
     }

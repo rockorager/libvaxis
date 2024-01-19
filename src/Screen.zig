@@ -3,6 +3,8 @@ const assert = std.debug.assert;
 
 const Cell = @import("cell.zig").Cell;
 
+const log = std.log.scoped(.screen);
+
 const Screen = @This();
 
 width: usize,
@@ -22,6 +24,7 @@ pub fn deinit(self: *Screen, alloc: std.mem.Allocator) void {
 }
 
 pub fn resize(self: *Screen, alloc: std.mem.Allocator, w: usize, h: usize) !void {
+    log.debug("resizing screen: width={d} height={d}", .{ w, h });
     alloc.free(self.buf);
     self.buf = try alloc.alloc(Cell, w * h);
     for (self.buf, 0..) |_, i| {
@@ -32,7 +35,7 @@ pub fn resize(self: *Screen, alloc: std.mem.Allocator, w: usize, h: usize) !void
 }
 
 /// writes a cell to a location. 0 indexed
-pub fn writeCell(self: *Screen, cell: Cell, row: usize, col: usize) void {
+pub fn writeCell(self: *Screen, col: usize, row: usize, cell: Cell) void {
     if (self.width < col) {
         // column out of bounds
         return;
@@ -41,7 +44,7 @@ pub fn writeCell(self: *Screen, cell: Cell, row: usize, col: usize) void {
         // height out of bounds
         return;
     }
-    const i = (col * self.width) + row;
+    const i = (row * self.width) + col;
     assert(i < self.buf.len);
     self.buf[i] = cell;
 }

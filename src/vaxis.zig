@@ -3,6 +3,7 @@ const std = @import("std");
 const Queue = @import("queue.zig").Queue;
 const ctlseqs = @import("ctlseqs.zig");
 const Tty = @import("Tty.zig");
+const Winsize = Tty.Winsize;
 const Key = @import("Key.zig");
 const Screen = @import("Screen.zig");
 const Window = @import("Window.zig");
@@ -91,8 +92,8 @@ pub fn Vaxis(comptime T: type) type {
         /// resize allocates a slice of cellsequal to the number of cells
         /// required to display the screen (ie width x height). Any previous screen is
         /// freed when resizing
-        pub fn resize(self: *Self, alloc: std.mem.Allocator, w: usize, h: usize) !void {
-            try self.screen.resize(alloc, w, h);
+        pub fn resize(self: *Self, alloc: std.mem.Allocator, winsize: Winsize) !void {
+            try self.screen.resize(alloc, winsize.cols, winsize.rows);
         }
 
         /// returns a Window comprising of the entire terminal screen
@@ -124,7 +125,6 @@ pub fn Vaxis(comptime T: type) type {
         }
 
         pub fn render(self: *Self) !void {
-            log.debug("HERE", .{});
             var tty = self.tty orelse return;
 
             _ = try tty.write(ctlseqs.home);
