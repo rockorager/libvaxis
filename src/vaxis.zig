@@ -106,7 +106,10 @@ pub fn Vaxis(comptime T: type) type {
             };
         }
 
+        /// enter the alternate screen. The alternate screen will automatically
+        /// be exited if calling deinit while in the alt screen
         pub fn enterAltScreen(self: *Self) !void {
+            if (self.alt_screen) return;
             if (self.tty) |_| {
                 var tty = &self.tty.?;
                 _ = try tty.write(ctlseqs.smcup);
@@ -114,10 +117,10 @@ pub fn Vaxis(comptime T: type) type {
             }
         }
 
+        /// exit the alternate screen
         pub fn exitaltScreen(self: *Self) !void {
+            if (!self.alt_screen) return;
             if (self.tty) |_| {
-                if (!self.alt_screen) return;
-
                 var tty = &self.tty.?;
                 _ = try tty.write(ctlseqs.rmcup);
                 self.alt_screen = false;
