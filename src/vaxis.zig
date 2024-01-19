@@ -117,7 +117,7 @@ pub fn Vaxis(comptime T: type) type {
         }
 
         /// exit the alternate screen
-        pub fn exitaltScreen(self: *Self) !void {
+        pub fn exitAltScreen(self: *Self) !void {
             if (!self.alt_screen) return;
             var tty = self.tty orelse return;
             _ = try tty.write(ctlseqs.rmcup);
