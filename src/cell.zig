@@ -1,11 +1,11 @@
 pub const Cell = struct {
-    char: Character,
+    char: Character = .{},
     style: Style = .{},
 };
 
 pub const Character = struct {
-    grapheme: []const u8,
-    width: usize,
+    grapheme: []const u8 = " ",
+    width: usize = 1,
 };
 
 pub const Style = struct {
