@@ -25,7 +25,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const lib = b.addStaticLibrary(.{
-        .name = "salmon",
+        .name = "odditui",
         // In this case the main source file is merely a path, however, in more
         // complicated build scripts, this could be a generated file.
         .root_source_file = .{ .path = "src/root.zig" },
@@ -39,7 +39,7 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(lib);
 
     const exe = b.addExecutable(.{
-        .name = "salmon",
+        .name = "odditui",
         .root_source_file = .{ .path = "src/main.zig" },
         .target = target,
         .optimize = optimize,

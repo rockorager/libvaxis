@@ -1,31 +1,19 @@
 const std = @import("std");
 const Tty = @import("tty/Tty.zig");
+const odditui = @import("odditui.zig");
 
+const log = std.log.scoped(.main);
 pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+    var app: odditui.App(Event) = try odditui.App(Event).init(.{});
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
+    try app.start();
 
-    var tty = try Tty.init();
-    defer tty.deinit();
+    while (true) {
+        const event = app.nextEvent();
+        log.debug("event: {}", .{event});
+    }
 
-    // run our tty read loop in it's own thread
-    const read_thread = try std.Thread.spawn(.{}, Tty.run, .{ &tty, Event, eventCallback });
-    try read_thread.setName("tty");
-
-    std.time.sleep(100_000_000_00);
-    tty.stop();
-    read_thread.join();
-
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
-
-    try bw.flush(); // don't forget to flush!
+    app.stop();
 }
 
 const Event = union(enum) {

@@ -3,6 +3,8 @@ const assert = std.debug.assert;
 const atomic = std.atomic;
 const Futex = std.Thread.Futex;
 
+const log = std.log.scoped(.queue);
+
 pub fn Queue(
     comptime T: type,
     comptime size: usize,

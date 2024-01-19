@@ -1,5 +1,6 @@
 const std = @import("std");
 const os = std.os;
+const App = @import("odditui.zig").App;
 
 const log = std.log.scoped(.tty);
 
@@ -44,21 +45,43 @@ pub fn stop(self: *Tty) void {
 }
 
 /// read input from the tty
-pub fn run(self: *Tty, comptime T: type, comptime _: fn (ev: T) void) !void {
+pub fn run(
+    self: *Tty,
+    comptime EventType: type,
+    app: *App(EventType),
+) !void {
     // create a pipe so we can signal to exit the run loop
     const pipe = try os.pipe();
     defer os.close(pipe[0]);
     defer os.close(pipe[1]);
 
+    // assign the write end of the pipe to our quit_fd
     self.quit_fd = pipe[1];
 
-    var parser: Parser = .{};
+    // the state of the parser
+    const State = enum {
+        ground,
+        escape,
+        csi,
+        osc,
+        dcs,
+        sos,
+        pm,
+        apc,
+        ss2,
+        ss3,
+    };
 
-    var buf: [1024]u8 = undefined;
+    const state: State = .ground;
+
+    // Set up fds for polling
     var pollfds: [2]std.os.pollfd = .{
         .{ .fd = self.fd, .events = std.os.POLL.IN, .revents = undefined },
         .{ .fd = pipe[0], .events = std.os.POLL.IN, .revents = undefined },
     };
+
+    // initialize the read buffer
+    var buf: [1024]u8 = undefined;
     while (true) {
         _ = try std.os.poll(&pollfds, -1);
         if (pollfds[1].revents & std.os.POLL.IN != 0) {
@@ -67,7 +90,16 @@ pub fn run(self: *Tty, comptime T: type, comptime _: fn (ev: T) void) !void {
         }
 
         const n = try os.read(self.fd, &buf);
-        parser.parse(self, buf[0..n]);
+        var i: usize = 0;
+        while (i < n) : (i += 1) {
+            const b = buf[i];
+            switch (state) {
+                .ground => {
+                    app.postEvent(.{ .key = b });
+                },
+                else => {},
+            }
+        }
     }
 }
 
@@ -110,38 +142,3 @@ pub fn makeRaw(fd: os.fd_t) !os.termios {
     try os.tcsetattr(fd, .FLUSH, raw);
     return state;
 }
-
-/// parses vt input. Retains some state so we need an object for it
-const Parser = struct {
-    const log = std.log.scoped(.parser);
-
-    // the state of the parser
-    const State = enum {
-        ground,
-        escape,
-        csi,
-        osc,
-        dcs,
-        sos,
-        pm,
-        apc,
-        ss2,
-        ss3,
-    };
-
-    state: State = .ground,
-
-    fn parse(self: *Parser, tty: *Tty, input: []u8) void {
-        _ = tty; // autofix
-        var i: usize = 0;
-        const start: usize = 0;
-        _ = start; // autofix
-        while (i < input.len) : (i += 1) {
-            const b = input[i];
-            switch (self.state) {
-                .ground => Parser.log.err("0x{x}\r", .{b}),
-                else => {},
-            }
-        }
-    }
-};
