@@ -60,7 +60,9 @@ pub fn run(
 
     // get our initial winsize
     const winsize = try getWinsize(self.fd);
-    vx.postEvent(.{ .winsize = winsize });
+    if (@hasField(EventType, "winsize")) {
+        vx.postEvent(.{ .winsize = winsize });
+    }
 
     // assign the write end of the pipe to our quit_fd
     self.quit_fd = pipe[1];
@@ -94,7 +96,9 @@ pub fn run(
             const ws = getWinsize(fd) catch {
                 return;
             };
-            vx_winch.postEvent(.{ .winsize = ws });
+            if (@hasField(EventType, "winsize")) {
+                vx_winch.postEvent(.{ .winsize = ws });
+            }
         }
     };
     try WinchHandler.init(vx, self.fd);
@@ -157,7 +161,9 @@ pub fn run(
                         else => Key{ .codepoint = b },
                     };
                     if (key) |k| {
-                        vx.postEvent(.{ .key_press = k });
+                        if (@hasField(EventType, "key_press")) {
+                            vx.postEvent(.{ .key_press = k });
+                        }
                     }
                 },
                 .escape => state = .ground,
