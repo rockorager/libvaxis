@@ -1,6 +1,8 @@
 const std = @import("std");
 const os = std.os;
-const App = @import("odditui.zig").App;
+const odditui = @import("main.zig");
+const App = odditui.App;
+const Key = odditui.Key;
 
 const log = std.log.scoped(.tty);
 
@@ -95,7 +97,29 @@ pub fn run(
             const b = buf[i];
             switch (state) {
                 .ground => {
-                    app.postEvent(.{ .key = b });
+                    switch (b) {
+                        0x00 => { // ctrl+@
+                            const event = Key{
+                                .codepoint = '@',
+                                .mods = .{ .ctrl = true },
+                            };
+                            app.postEvent(.{ .key_press = event });
+                        },
+                        0x01...0x1A => { // ctrl+[a-z]
+                            const event = Key{
+                                .codepoint = b + 0x60, // turn it lowercase
+                                .mods = .{ .ctrl = true },
+                            };
+                            app.postEvent(.{ .key_press = event });
+                        },
+                        0x20...0x7E => { // ascii
+                            const event = Key{
+                                .codepoint = @intCast(b),
+                            };
+                            app.postEvent(.{ .key_press = event });
+                        },
+                        else => {},
+                    }
                 },
                 else => {},
             }

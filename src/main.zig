@@ -1,29 +1,9 @@
-const std = @import("std");
-const Tty = @import("tty/Tty.zig");
-const odditui = @import("odditui.zig");
+pub const App = @import("app.zig").App;
+pub const Key = @import("Key.zig");
 
-const log = std.log.scoped(.main);
-pub fn main() !void {
-    var app: odditui.App(Event) = try odditui.App(Event).init(.{});
-
-    try app.start();
-
-    while (true) {
-        const event = app.nextEvent();
-        log.debug("event: {}", .{event});
-    }
-
-    app.stop();
-}
-
-const Event = union(enum) {
-    key: u8,
-    mouse: u8,
-};
-
-fn eventCallback(_: Event) void {}
-
-test "simple test" {
-    _ = @import("odditui.zig");
+test {
+    _ = @import("Key.zig");
+    _ = @import("Tty.zig");
+    _ = @import("app.zig");
     _ = @import("queue.zig");
 }

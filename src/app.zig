@@ -2,6 +2,7 @@ const std = @import("std");
 
 const queue = @import("queue.zig");
 const Tty = @import("Tty.zig");
+const Key = @import("Key.zig");
 
 /// App is the entrypoint for an odditui application. The provided type T should
 /// be a tagged union which contains all of the events the application will
