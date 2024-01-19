@@ -74,7 +74,7 @@ pub fn run(
         ss3,
     };
 
-    const state: State = .ground;
+    var state: State = .ground;
 
     // Set up fds for polling
     var pollfds: [2]std.os.pollfd = .{
@@ -97,28 +97,28 @@ pub fn run(
             const b = buf[i];
             switch (state) {
                 .ground => {
-                    switch (b) {
-                        0x00 => { // ctrl+@
-                            const event = Key{
-                                .codepoint = '@',
-                                .mods = .{ .ctrl = true },
-                            };
-                            app.postEvent(.{ .key_press = event });
+                    const key: ?Key = switch (b) {
+                        0x00 => Key{ .codepoint = '@', .mods = .{ .ctrl = true } },
+                        0x01...0x1A => Key{ .codepoint = b + 0x60, .mods = .{ .ctrl = true } },
+                        0x1B => escape: {
+                            // NOTE: This could be an errant escape at the end
+                            // of a large read. That is _incredibly_ unlikely
+                            // given the size of read inputs and our read buffer
+                            if (i == (n - 1)) {
+                                const event = Key{
+                                    .codepoint = Key.escape,
+                                };
+                                break :escape event;
+                            }
+                            state = .escape;
+                            break :escape null;
                         },
-                        0x01...0x1A => { // ctrl+[a-z]
-                            const event = Key{
-                                .codepoint = b + 0x60, // turn it lowercase
-                                .mods = .{ .ctrl = true },
-                            };
-                            app.postEvent(.{ .key_press = event });
-                        },
-                        0x20...0x7E => { // ascii
-                            const event = Key{
-                                .codepoint = @intCast(b),
-                            };
-                            app.postEvent(.{ .key_press = event });
-                        },
-                        else => {},
+                        0x20...0x7E => Key{ .codepoint = b },
+                        0x7F => Key{ .codepoint = Key.backspace },
+                        else => Key{ .codepoint = b },
+                    };
+                    if (key) |k| {
+                        app.postEvent(.{ .key_press = k });
                     }
                 },
                 else => {},
