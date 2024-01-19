@@ -167,6 +167,13 @@ pub fn run(
     }
 }
 
+/// write to the tty
+//
+// TODO: buffer the writes
+pub fn write(self: *Tty, bytes: []const u8) !usize {
+    return os.write(self.fd, bytes);
+}
+
 /// makeRaw enters the raw state for the terminal.
 pub fn makeRaw(fd: os.fd_t) !os.termios {
     const state = try os.tcgetattr(fd);
@@ -218,6 +225,7 @@ fn ior(inout: u32, group: usize, num: usize, len: usize) usize {
     return (inout | ((len & IOCPARM_MASK) << 16) | ((group) << 8) | (num));
 }
 
+/// The size of the terminal screen
 pub const Winsize = struct {
     rows: usize,
     cols: usize,

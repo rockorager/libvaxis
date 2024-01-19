@@ -19,6 +19,8 @@ pub fn main() !void {
     try vx.start();
     defer vx.stop();
 
+    try vx.enterAltScreen();
+
     outer: while (true) {
         const event = vx.nextEvent();
         log.debug("event: {}\r\n", .{event});

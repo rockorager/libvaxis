@@ -1,6 +1,7 @@
 const std = @import("std");
 
-const queue = @import("queue.zig");
+const Queue = @import("queue.zig").Queue;
+const ctlseqs = @import("ctlseqs.zig");
 const Tty = @import("Tty.zig");
 const Key = @import("Key.zig");
 const Screen = @import("Screen.zig");
@@ -27,11 +28,13 @@ pub fn Vaxis(comptime T: type) type {
         /// the event queue for Vaxis
         //
         // TODO: is 512 ok?
-        queue: queue.Queue(T, 512),
+        queue: Queue(T, 512),
 
         tty: ?Tty,
 
         screen: Screen,
+
+        alt_screen: bool,
 
         /// Initialize Vaxis with runtime options
         pub fn init(_: Options) !Self {
@@ -39,6 +42,7 @@ pub fn Vaxis(comptime T: type) type {
                 .queue = .{},
                 .tty = null,
                 .screen = Screen.init(),
+                .alt_screen = false,
             };
         }
 
@@ -49,6 +53,9 @@ pub fn Vaxis(comptime T: type) type {
         pub fn deinit(self: *Self, alloc: ?std.mem.Allocator) void {
             if (self.tty) |_| {
                 var tty = &self.tty.?;
+                if (self.alt_screen) {
+                    _ = tty.write(ctlseqs.rmcup) catch {};
+                }
                 tty.deinit();
             }
             if (alloc) |a| self.screen.deinit(a);
@@ -97,6 +104,24 @@ pub fn Vaxis(comptime T: type) type {
                 .height = self.screen.height,
                 .screen = &self.screen,
             };
+        }
+
+        pub fn enterAltScreen(self: *Self) !void {
+            if (self.tty) |_| {
+                var tty = &self.tty.?;
+                _ = try tty.write(ctlseqs.smcup);
+                self.alt_screen = true;
+            }
+        }
+
+        pub fn exitaltScreen(self: *Self) !void {
+            if (self.tty) |_| {
+                if (!self.alt_screen) return;
+
+                var tty = &self.tty.?;
+                _ = try tty.write(ctlseqs.rmcup);
+                self.alt_screen = false;
+            }
         }
     };
 }
