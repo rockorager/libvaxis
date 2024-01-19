@@ -39,6 +39,7 @@ pub fn main() !void {
         }
 
         const win = vx.window();
+        win.clear();
         const child = win.initChild(win.width / 2 - msg.len / 2, win.height / 2, .expand, .expand);
         for (msg, 0..) |_, i| {
             const cell: Cell = .{ .char = .{ .grapheme = msg[i .. i + 1] } };

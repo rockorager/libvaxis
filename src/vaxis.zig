@@ -34,6 +34,9 @@ pub fn Vaxis(comptime T: type) type {
         tty: ?Tty,
 
         screen: Screen,
+        // The last screen we drew. We keep this so we can efficiently update on
+        // the next render
+        screen_last: Screen,
 
         alt_screen: bool,
 
@@ -42,7 +45,8 @@ pub fn Vaxis(comptime T: type) type {
             return Self{
                 .queue = .{},
                 .tty = null,
-                .screen = Screen.init(),
+                .screen = .{},
+                .screen_last = .{},
                 .alt_screen = false,
             };
         }
@@ -59,7 +63,10 @@ pub fn Vaxis(comptime T: type) type {
                 }
                 tty.deinit();
             }
-            if (alloc) |a| self.screen.deinit(a);
+            if (alloc) |a| {
+                self.screen.deinit(a);
+                self.screen_last.deinit(a);
+            }
         }
 
         /// spawns the input thread to start listening to the tty for input
@@ -94,6 +101,10 @@ pub fn Vaxis(comptime T: type) type {
         /// freed when resizing
         pub fn resize(self: *Self, alloc: std.mem.Allocator, winsize: Winsize) !void {
             try self.screen.resize(alloc, winsize.cols, winsize.rows);
+            // we only init our current screen. This has the effect of redrawing
+            // every cell
+            self.screen.init();
+            try self.screen_last.resize(alloc, winsize.cols, winsize.rows);
         }
 
         /// returns a Window comprising of the entire terminal screen
@@ -127,8 +138,30 @@ pub fn Vaxis(comptime T: type) type {
         pub fn render(self: *Self) !void {
             var tty = self.tty orelse return;
 
+            // TODO: optimize writes
+
+            // Send the cursor to 0,0
             _ = try tty.write(ctlseqs.home);
-            for (self.screen.buf) |cell| {
+            var reposition: bool = false;
+            var row: usize = 0;
+            var col: usize = 0;
+            for (self.screen.buf, 0..) |cell, i| {
+                col += 1;
+                if (col == self.screen.width) {
+                    row += 1;
+                    col = 0;
+                }
+                // If cell is the same as our last frame, we don't need to do
+                // anything
+                if (std.meta.eql(cell, self.screen_last.buf[i])) {
+                    reposition = true;
+                    continue;
+                }
+                // Set this cell in the last frame
+                self.screen_last.buf[i] = cell;
+                if (reposition) {
+                    try std.fmt.format(tty.writer(), ctlseqs.cup, .{ row + 1, col + 1 });
+                }
                 _ = try tty.write(cell.char.grapheme);
             }
         }

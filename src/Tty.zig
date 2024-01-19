@@ -173,6 +173,11 @@ pub fn run(
     }
 }
 
+const Writer = std.io.Writer(os.fd_t, os.WriteError, os.write);
+
+pub fn writer(self: *Tty) Writer {
+    return .{ .context = self.fd };
+}
 /// write to the tty
 //
 // TODO: buffer the writes

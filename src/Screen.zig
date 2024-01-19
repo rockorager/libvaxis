@@ -7,16 +7,16 @@ const log = std.log.scoped(.screen);
 
 const Screen = @This();
 
-width: usize,
-height: usize,
+width: usize = 0,
+height: usize = 0,
 
 buf: []Cell = undefined,
 
-pub fn init() Screen {
-    return Screen{
-        .width = 0,
-        .height = 0,
-    };
+/// sets each cell to the default cell
+pub fn init(self: *Screen) void {
+    for (self.buf, 0..) |_, i| {
+        self.buf[i] = .{};
+    }
 }
 
 pub fn deinit(self: *Screen, alloc: std.mem.Allocator) void {
@@ -27,9 +27,6 @@ pub fn resize(self: *Screen, alloc: std.mem.Allocator, w: usize, h: usize) !void
     log.debug("resizing screen: width={d} height={d}", .{ w, h });
     alloc.free(self.buf);
     self.buf = try alloc.alloc(Cell, w * h);
-    for (self.buf, 0..) |_, i| {
-        self.buf[i] = .{};
-    }
     self.width = w;
     self.height = h;
 }

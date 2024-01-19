@@ -67,6 +67,16 @@ pub fn writeCell(self: Window, col: usize, row: usize, cell: Cell) void {
     self.screen.writeCell(col + self.x_off, row + self.y_off, cell);
 }
 
+pub fn clear(self: Window) void {
+    var row: usize = self.y_off;
+    while (row < (self.height + self.y_off)) : (row += 1) {
+        var col: usize = self.x_off;
+        while (col < (self.width + self.x_off)) : (col += 1) {
+            self.screen.writeCell(col, row, .{});
+        }
+    }
+}
+
 test "Window size set" {
     var parent = Window{
         .x_off = 0,
