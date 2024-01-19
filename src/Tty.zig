@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const os = std.os;
 const odditui = @import("main.zig");
 const App = odditui.App;
@@ -57,8 +58,46 @@ pub fn run(
     defer os.close(pipe[0]);
     defer os.close(pipe[1]);
 
+    // get our initial winsize
+    const winsize = try getWinsize(self.fd);
+    log.debug("{}", .{winsize});
+
     // assign the write end of the pipe to our quit_fd
     self.quit_fd = pipe[1];
+
+    // Build a winch handler. We need build this struct to get an anonymous
+    // function which can post the winsize event
+    // TODO: more signals, move this outside of this function?
+    const WinchHandler = struct {
+        const Self = @This();
+
+        var winchApp: *App(EventType) = undefined;
+        var fd: os.fd_t = undefined;
+
+        fn init(app_arg: *App(EventType), fd_arg: os.fd_t) !void {
+            winchApp = app_arg;
+            fd = fd_arg;
+            var act = os.Sigaction{
+                .handler = .{ .handler = Self.handleWinch },
+                .mask = switch (builtin.os.tag) {
+                    .macos => 0,
+                    .linux => std.os.empty_sigset,
+                    else => @compileError("os not supported"),
+                },
+                .flags = 0,
+            };
+
+            try os.sigaction(os.SIG.WINCH, &act, null);
+        }
+
+        fn handleWinch(_: c_int) callconv(.C) void {
+            const ws = getWinsize(fd) catch {
+                return;
+            };
+            winchApp.postEvent(.{ .winsize = ws });
+        }
+    };
+    try WinchHandler.init(app, self.fd);
 
     // the state of the parser
     const State = enum {
@@ -166,4 +205,29 @@ pub fn makeRaw(fd: os.fd_t) !os.termios {
     raw.cc[os.system.V.TIME] = 0;
     try os.tcsetattr(fd, .FLUSH, raw);
     return state;
+}
+
+const TIOCGWINSZ = switch (builtin.os.tag) {
+    .linux => 0x5413,
+    .macos => ior(0x40000000, 't', 104, @sizeOf(os.system.winsize)),
+    else => @compileError("Missing termiosbits for this target, sorry."),
+};
+
+const IOCPARM_MASK = 0x1fff;
+fn ior(inout: u32, group: usize, num: usize, len: usize) usize {
+    return (inout | ((len & IOCPARM_MASK) << 16) | ((group) << 8) | (num));
+}
+
+fn getWinsize(fd: os.fd_t) !os.system.winsize {
+    var winsize = os.system.winsize{
+        .ws_row = 0,
+        .ws_col = 0,
+        .ws_xpixel = 0,
+        .ws_ypixel = 0,
+    };
+
+    const err = os.system.ioctl(fd, TIOCGWINSZ, @intFromPtr(&winsize));
+    if (os.errno(err) == .SUCCESS)
+        return winsize;
+    return error.IoctlError;
 }

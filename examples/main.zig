@@ -17,6 +17,7 @@ pub fn main() !void {
                     break :outer;
                 }
             },
+            .winsize => {},
             else => {},
         }
         log.debug("event: {}\r\n", .{event});
@@ -25,5 +26,6 @@ pub fn main() !void {
 
 const Event = union(enum) {
     key_press: odditui.Key,
+    winsize: std.os.system.winsize,
     mouse: u8,
 };
