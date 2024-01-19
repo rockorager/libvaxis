@@ -4,6 +4,7 @@ const queue = @import("queue.zig");
 const Tty = @import("Tty.zig");
 const Key = @import("Key.zig");
 const Screen = @import("Screen.zig");
+const Window = @import("Window.zig");
 
 /// App is the entrypoint for an odditui application. The provided type T should
 /// be a tagged union which contains all of the events the application will
@@ -83,6 +84,17 @@ pub fn App(comptime T: type) type {
         pub fn resize(self: *Self, alloc: std.mem.Allocator, w: usize, h: usize) !void {
             try self.screen.resize(alloc, w, h);
         }
+
+        pub fn window(self: *Self) Window {
+            return Window{
+                .x_off = 0,
+                .y_off = 0,
+                .w = .{.expand},
+                .h = .{.expand},
+                .parent = null,
+                .screen = &self.screen,
+            };
+        }
     };
 }
 
@@ -90,8 +102,9 @@ test "App: event queueing" {
     const Event = union(enum) {
         key,
     };
+    const alloc = std.testing.allocator;
     var app: App(Event) = try App(Event).init(.{});
-    defer app.deinit();
+    defer app.deinit(alloc);
     app.postEvent(.key);
     const event = app.nextEvent();
     try std.testing.expect(event == .key);
