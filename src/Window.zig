@@ -15,7 +15,6 @@ y_off: usize,
 width: usize,
 height: usize,
 
-parent: ?*Window,
 screen: *Screen,
 
 /// Creates a new window with offset relative to parent and size clamped to the
@@ -46,11 +45,10 @@ pub fn initChild(
         },
     };
     return Window{
-        .x_off = x_off,
-        .y_off = y_off,
+        .x_off = x_off + self.x_off,
+        .y_off = y_off + self.y_off,
         .width = resolved_width,
         .height = resolved_height,
-        .parent = self,
         .screen = self.screen,
     };
 }
@@ -58,11 +56,7 @@ pub fn initChild(
 /// writes a cell to the location in the window
 pub fn writeCell(self: Window, cell: Cell, row: usize, col: usize) void {
     if (self.h < row or self.w < col) return;
-    if (self.parent) |p| {
-        p.writeCell(cell, row + self.y_off, col + self.x_off);
-    } else {
-        self.screen.writeCell(cell, row + self.y_off, col + self.x_off);
-    }
+    self.screen.writeCell(cell, row + self.y_off, col + self.x_off);
 }
 
 test "Window size set" {
@@ -71,7 +65,6 @@ test "Window size set" {
         .y_off = 0,
         .width = 20,
         .height = 20,
-        .parent = null,
         .screen = undefined,
     };
 
@@ -86,7 +79,6 @@ test "Window size set too big" {
         .y_off = 0,
         .width = 20,
         .height = 20,
-        .parent = null,
         .screen = undefined,
     };
 
@@ -101,11 +93,24 @@ test "Window size set too big with offset" {
         .y_off = 0,
         .width = 20,
         .height = 20,
-        .parent = null,
         .screen = undefined,
     };
 
     const child = parent.initChild(10, 10, .{ .limit = 21 }, .{ .limit = 21 });
     try std.testing.expectEqual(10, child.width);
     try std.testing.expectEqual(10, child.height);
+}
+
+test "Window size nested offsets" {
+    var parent = Window{
+        .x_off = 1,
+        .y_off = 1,
+        .width = 20,
+        .height = 20,
+        .screen = undefined,
+    };
+
+    const child = parent.initChild(10, 10, .{ .limit = 21 }, .{ .limit = 21 });
+    try std.testing.expectEqual(11, child.x_off);
+    try std.testing.expectEqual(11, child.y_off);
 }
