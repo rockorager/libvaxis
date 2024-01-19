@@ -67,12 +67,18 @@ pub fn writeCell(self: Window, col: usize, row: usize, cell: Cell) void {
     self.screen.writeCell(col + self.x_off, row + self.y_off, cell);
 }
 
+/// fills the window with the default cell
 pub fn clear(self: Window) void {
+    self.fill(.{});
+}
+
+/// fills the window with the provided cell
+pub fn fill(self: Window, cell: Cell) void {
     var row: usize = self.y_off;
     while (row < (self.height + self.y_off)) : (row += 1) {
         var col: usize = self.x_off;
         while (col < (self.width + self.x_off)) : (col += 1) {
-            self.screen.writeCell(col, row, .{});
+            self.screen.writeCell(col, row, cell);
         }
     }
 }
