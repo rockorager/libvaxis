@@ -4,21 +4,21 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const odditui = b.addModule("odditui", .{ .root_source_file = .{ .path = "src/main.zig" } });
+    const vaxis = b.addModule("vaxis", .{ .root_source_file = .{ .path = "src/main.zig" } });
 
     const ziglyph = b.dependency("ziglyph", .{
         .optimize = optimize,
         .target = target,
     });
-    odditui.addImport("ziglyph", ziglyph.module("ziglyph"));
+    vaxis.addImport("ziglyph", ziglyph.module("ziglyph"));
 
     const exe = b.addExecutable(.{
-        .name = "odditui",
+        .name = "vaxis",
         .root_source_file = .{ .path = "examples/main.zig" },
         .target = target,
         .optimize = optimize,
     });
-    exe.root_module.addImport("odditui", odditui);
+    exe.root_module.addImport("vaxis", vaxis);
 
     const run_cmd = b.addRunArtifact(exe);
 

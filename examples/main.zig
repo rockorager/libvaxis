@@ -1,5 +1,5 @@
 const std = @import("std");
-const odditui = @import("odditui");
+const vaxis = @import("vaxis");
 
 const log = std.log.scoped(.main);
 pub fn main() !void {
@@ -13,14 +13,14 @@ pub fn main() !void {
     }
     const alloc = gpa.allocator();
 
-    var app: odditui.App(Event) = try odditui.App(Event).init(.{});
-    defer app.deinit(alloc);
+    var vx = try vaxis.init(Event, .{});
+    defer vx.deinit(alloc);
 
-    try app.start();
-    defer app.stop();
+    try vx.start();
+    defer vx.stop();
 
     outer: while (true) {
-        const event = app.nextEvent();
+        const event = vx.nextEvent();
         log.debug("event: {}\r\n", .{event});
         switch (event) {
             .key_press => |key| {
@@ -29,7 +29,7 @@ pub fn main() !void {
                 }
             },
             .winsize => |ws| {
-                try app.resize(alloc, ws.rows, ws.cols);
+                try vx.resize(alloc, ws.rows, ws.cols);
             },
             else => {},
         }
@@ -37,7 +37,7 @@ pub fn main() !void {
 }
 
 const Event = union(enum) {
-    key_press: odditui.Key,
-    winsize: odditui.Winsize,
+    key_press: vaxis.Key,
+    winsize: vaxis.Winsize,
     mouse: u8,
 };

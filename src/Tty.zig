@@ -1,9 +1,9 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const os = std.os;
-const odditui = @import("main.zig");
-const App = odditui.App;
-const Key = odditui.Key;
+const vaxis = @import("main.zig");
+const Vaxis = vaxis.Vaxis;
+const Key = vaxis.Key;
 
 const log = std.log.scoped(.tty);
 
@@ -51,7 +51,7 @@ pub fn stop(self: *Tty) void {
 pub fn run(
     self: *Tty,
     comptime EventType: type,
-    app: *App(EventType),
+    vx: *Vaxis(EventType),
 ) !void {
     // create a pipe so we can signal to exit the run loop
     const pipe = try os.pipe();
@@ -71,11 +71,11 @@ pub fn run(
     const WinchHandler = struct {
         const Self = @This();
 
-        var winchApp: *App(EventType) = undefined;
+        var vx_winch: *Vaxis(EventType) = undefined;
         var fd: os.fd_t = undefined;
 
-        fn init(app_arg: *App(EventType), fd_arg: os.fd_t) !void {
-            winchApp = app_arg;
+        fn init(vx_arg: *Vaxis(EventType), fd_arg: os.fd_t) !void {
+            vx_winch = vx_arg;
             fd = fd_arg;
             var act = os.Sigaction{
                 .handler = .{ .handler = Self.handleWinch },
@@ -94,10 +94,10 @@ pub fn run(
             const ws = getWinsize(fd) catch {
                 return;
             };
-            winchApp.postEvent(.{ .winsize = ws });
+            vx_winch.postEvent(.{ .winsize = ws });
         }
     };
-    try WinchHandler.init(app, self.fd);
+    try WinchHandler.init(vx, self.fd);
 
     // the state of the parser
     const State = enum {
@@ -157,7 +157,7 @@ pub fn run(
                         else => Key{ .codepoint = b },
                     };
                     if (key) |k| {
-                        app.postEvent(.{ .key_press = k });
+                        vx.postEvent(.{ .key_press = k });
                     }
                 },
                 .escape => state = .ground,

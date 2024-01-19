@@ -5,25 +5,26 @@ const Tty = @import("Tty.zig");
 const Key = @import("Key.zig");
 const Screen = @import("Screen.zig");
 const Window = @import("Window.zig");
+const Options = @import("Options.zig");
 
-/// App is the entrypoint for an odditui application. The provided type T should
+/// Vaxis is the entrypoint for a Vaxis application. The provided type T should
 /// be a tagged union which contains all of the events the application will
-/// handle. Odditui will look for the following fields on the union and, if
+/// handle. Vaxis will look for the following fields on the union and, if
 /// found, emit them via the "nextEvent" method
 ///
-/// The following events *must* be in your enum
+/// The following events are available:
 /// - `key_press: Key`, for key press events
-/// - `winsize: std.os.system.winsize`, for resize events. Must call app.resize
-///   when receiving this event
-pub fn App(comptime T: type) type {
+/// - `winsize: Winsize`, for resize events. Must call app.resize when receiving
+///    this event
+pub fn Vaxis(comptime T: type) type {
     return struct {
         const Self = @This();
 
-        const log = std.log.scoped(.app);
+        const log = std.log.scoped(.vaxis);
 
         pub const EventType = T;
 
-        /// the event queue for this App
+        /// the event queue for Vaxis
         //
         // TODO: is 512 ok?
         queue: queue.Queue(T, 512),
@@ -32,10 +33,7 @@ pub fn App(comptime T: type) type {
 
         screen: Screen,
 
-        /// Runtime options
-        const Options = struct {};
-
-        /// Initialize an App with runtime options
+        /// Initialize Vaxis with runtime options
         pub fn init(_: Options) !Self {
             return Self{
                 .queue = .{},
@@ -44,12 +42,16 @@ pub fn App(comptime T: type) type {
             };
         }
 
-        pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
+        /// Resets the terminal to it's original state. If an allocator is
+        /// passed, this will free resources associated with Vaxis. This is left as an
+        /// optional so applications can choose to not free resources when the
+        /// application will be exiting anyways
+        pub fn deinit(self: *Self, alloc: ?std.mem.Allocator) void {
             if (self.tty) |_| {
                 var tty = &self.tty.?;
                 tty.deinit();
             }
-            self.screen.deinit(alloc);
+            if (alloc) |a| self.screen.deinit(a);
         }
 
         /// spawns the input thread to start listening to the tty for input
@@ -60,6 +62,7 @@ pub fn App(comptime T: type) type {
             try read_thread.setName("tty");
         }
 
+        /// stops reading from the tty
         pub fn stop(self: *Self) void {
             if (self.tty) |_| {
                 var tty = &self.tty.?;
@@ -85,6 +88,7 @@ pub fn App(comptime T: type) type {
             try self.screen.resize(alloc, w, h);
         }
 
+        /// returns a Window comprising of the entire terminal screen
         pub fn window(self: *Self) Window {
             return Window{
                 .x_off = 0,
@@ -98,14 +102,13 @@ pub fn App(comptime T: type) type {
     };
 }
 
-test "App: event queueing" {
+test "Vaxis: event queueing" {
     const Event = union(enum) {
         key,
     };
-    const alloc = std.testing.allocator;
-    var app: App(Event) = try App(Event).init(.{});
-    defer app.deinit(alloc);
-    app.postEvent(.key);
-    const event = app.nextEvent();
+    var vx: Vaxis(Event) = try Vaxis(Event).init(.{});
+    defer vx.deinit(null);
+    vx.postEvent(.key);
+    const event = vx.nextEvent();
     try std.testing.expect(event == .key);
 }
