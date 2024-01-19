@@ -5,6 +5,7 @@ const Futex = std.Thread.Futex;
 
 const log = std.log.scoped(.queue);
 
+/// Thread safe. Fixed size. Blocking push and pop.
 pub fn Queue(
     comptime T: type,
     comptime size: usize,
