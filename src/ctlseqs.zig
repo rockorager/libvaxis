@@ -9,6 +9,7 @@ pub const csi_u_push = "\x1b[>{d}u";
 pub const csi_u_pop = "\x1b[<u";
 
 // Cursor
+pub const home = "\x1b[H";
 pub const cup = "\x1b[{d};{d}H";
 
 // alt screen

@@ -1,5 +1,6 @@
 const std = @import("std");
 const vaxis = @import("vaxis");
+const Cell = vaxis.Cell;
 
 const log = std.log.scoped(.main);
 pub fn main() !void {
@@ -21,6 +22,7 @@ pub fn main() !void {
 
     try vx.enterAltScreen();
 
+    const msg = "Hello, world!";
     outer: while (true) {
         const event = vx.nextEvent();
         log.debug("event: {}\r\n", .{event});
@@ -37,12 +39,17 @@ pub fn main() !void {
         }
 
         const win = vx.window();
-        _ = win;
+        const child = win.initChild(20, 20, .expand, .expand);
+        for (msg, 0..) |_, i| {
+            const cell: Cell = .{ .char = .{ .grapheme = msg[i .. i + 1] } };
+            child.writeCell(cell, i, 0);
+        }
+        try vx.render();
     }
 }
 
 const Event = union(enum) {
     key_press: vaxis.Key,
     winsize: vaxis.Winsize,
-    mouse: u8,
+    foo: u8,
 };

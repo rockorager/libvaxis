@@ -60,7 +60,7 @@ pub fn run(
 
     // get our initial winsize
     const winsize = try getWinsize(self.fd);
-    log.debug("{}", .{winsize});
+    vx.postEvent(.{ .winsize = winsize });
 
     // assign the write end of the pipe to our quit_fd
     self.quit_fd = pipe[1];

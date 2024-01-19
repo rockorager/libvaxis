@@ -110,20 +110,26 @@ pub fn Vaxis(comptime T: type) type {
         /// be exited if calling deinit while in the alt screen
         pub fn enterAltScreen(self: *Self) !void {
             if (self.alt_screen) return;
-            if (self.tty) |_| {
-                var tty = &self.tty.?;
-                _ = try tty.write(ctlseqs.smcup);
-                self.alt_screen = true;
-            }
+            var tty = self.tty orelse return;
+            _ = try tty.write(ctlseqs.smcup);
+            self.alt_screen = true;
         }
 
         /// exit the alternate screen
         pub fn exitaltScreen(self: *Self) !void {
             if (!self.alt_screen) return;
-            if (self.tty) |_| {
-                var tty = &self.tty.?;
-                _ = try tty.write(ctlseqs.rmcup);
-                self.alt_screen = false;
+            var tty = self.tty orelse return;
+            _ = try tty.write(ctlseqs.rmcup);
+            self.alt_screen = false;
+        }
+
+        pub fn render(self: *Self) !void {
+            log.debug("HERE", .{});
+            var tty = self.tty orelse return;
+
+            _ = try tty.write(ctlseqs.home);
+            for (self.screen.buf) |cell| {
+                _ = try tty.write(cell.char.grapheme);
             }
         }
     };

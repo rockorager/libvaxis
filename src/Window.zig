@@ -25,7 +25,7 @@ screen: *Screen,
 /// parent's size. Windows do not retain a reference to their parent and are
 /// unaware of resizes.
 pub fn initChild(
-    self: *Window,
+    self: Window,
     x_off: usize,
     y_off: usize,
     width: Size,
@@ -60,7 +60,7 @@ pub fn initChild(
 
 /// writes a cell to the location in the window
 pub fn writeCell(self: Window, cell: Cell, row: usize, col: usize) void {
-    if (self.h < row or self.w < col) return;
+    if (self.height < row or self.width < col) return;
     self.screen.writeCell(cell, row + self.y_off, col + self.x_off);
 }
 
