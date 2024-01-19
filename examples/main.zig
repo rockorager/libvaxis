@@ -33,6 +33,9 @@ pub fn main() !void {
             },
             else => {},
         }
+
+        const win = vx.window();
+        _ = win;
     }
 }
 

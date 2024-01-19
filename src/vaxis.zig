@@ -93,9 +93,8 @@ pub fn Vaxis(comptime T: type) type {
             return Window{
                 .x_off = 0,
                 .y_off = 0,
-                .w = .{.expand},
-                .h = .{.expand},
-                .parent = null,
+                .width = self.screen.width,
+                .height = self.screen.height,
                 .screen = &self.screen,
             };
         }
