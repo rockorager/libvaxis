@@ -10,15 +10,20 @@ pub const Size = union(enum) {
     limit: usize,
 };
 
+/// horizontal offset from the screen
 x_off: usize,
+/// vertical offset from the screen
 y_off: usize,
+/// width of the window. This can't be larger than the terminal screen
 width: usize,
+/// height of the window. This can't be larger than the terminal screen
 height: usize,
 
 screen: *Screen,
 
 /// Creates a new window with offset relative to parent and size clamped to the
-/// parents' size
+/// parent's size. Windows do not retain a reference to their parent and are
+/// unaware of resizes.
 pub fn initChild(
     self: *Window,
     x_off: usize,

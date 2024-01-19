@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 
 const Cell = @import("cell.zig").Cell;
 
@@ -38,6 +39,6 @@ pub fn writeCell(self: *Screen, cell: Cell, row: usize, col: usize) void {
         return;
     }
     const i = (col * self.width) + row;
-    std.debug.assert(i < self.buf.len);
+    assert(i < self.buf.len);
     self.buf[i] = cell;
 }
