@@ -8,6 +8,7 @@ const Key = @import("Key.zig");
 const Screen = @import("Screen.zig");
 const Window = @import("Window.zig");
 const Options = @import("Options.zig");
+const Style = @import("cell.zig").Style;
 
 /// Vaxis is the entrypoint for a Vaxis application. The provided type T should
 /// be a tagged union which contains all of the events the application will
@@ -135,18 +136,30 @@ pub fn Vaxis(comptime T: type) type {
             self.alt_screen = false;
         }
 
+        /// draws the screen to the terminal
         pub fn render(self: *Self) !void {
             var tty = self.tty orelse return;
 
             // TODO: optimize writes
 
             // Send the cursor to 0,0
+            // TODO: this needs to move after we optimize writes. We only do
+            // this if we have an update to make. We also need to hide cursor
+            // and then reshow it if needed
+            _ = try tty.write(ctlseqs.hide_cursor);
             _ = try tty.write(ctlseqs.home);
+
+            // initialize some variables
             var reposition: bool = false;
             var row: usize = 0;
             var col: usize = 0;
-            for (self.screen.buf, 0..) |cell, i| {
-                col += 1;
+            var cursor: Style = .{};
+
+            var i: usize = 0;
+            while (i < self.screen.buf.len) : (i += 1) {
+                const cell = self.screen.buf[i];
+                defer col += 1;
+                defer cursor = cell.style;
                 if (col == self.screen.width) {
                     row += 1;
                     col = 0;
@@ -155,12 +168,153 @@ pub fn Vaxis(comptime T: type) type {
                 // anything
                 if (std.meta.eql(cell, self.screen_last.buf[i])) {
                     reposition = true;
+                    // Close any osc8 sequence we might be in before
+                    // repositioning
+                    if (cursor.url) |_| {
+                        _ = try tty.write(ctlseqs.osc8_clear);
+                    }
                     continue;
                 }
                 // Set this cell in the last frame
                 self.screen_last.buf[i] = cell;
+
+                // reposition the cursor, if needed
                 if (reposition) {
                     try std.fmt.format(tty.writer(), ctlseqs.cup, .{ row + 1, col + 1 });
+                }
+
+                // something is different, so let's loop throuugh everything and
+                // find out what
+
+                // foreground
+                if (!std.meta.eql(cursor.fg, cell.style.fg)) {
+                    switch (cell.style.fg) {
+                        .default => _ = try tty.write(ctlseqs.fg_reset),
+                        .index => |idx| {
+                            switch (idx) {
+                                0...7 => try std.fmt.format(tty.writer(), ctlseqs.fg_base, .{idx}),
+                                8...15 => try std.fmt.format(tty.writer(), ctlseqs.fg_bright, .{idx}),
+                                else => try std.fmt.format(tty.writer(), ctlseqs.fg_indexed, .{idx}),
+                            }
+                        },
+                        .rgb => |rgb| {
+                            try std.fmt.format(tty.writer(), ctlseqs.fg_rgb, .{ rgb[0], rgb[1], rgb[2] });
+                        },
+                    }
+                }
+                // background
+                if (!std.meta.eql(cursor.bg, cell.style.bg)) {
+                    switch (cell.style.bg) {
+                        .default => _ = try tty.write(ctlseqs.bg_reset),
+                        .index => |idx| {
+                            switch (idx) {
+                                0...7 => try std.fmt.format(tty.writer(), ctlseqs.bg_base, .{idx}),
+                                8...15 => try std.fmt.format(tty.writer(), ctlseqs.bg_bright, .{idx}),
+                                else => try std.fmt.format(tty.writer(), ctlseqs.bg_indexed, .{idx}),
+                            }
+                        },
+                        .rgb => |rgb| {
+                            try std.fmt.format(tty.writer(), ctlseqs.bg_rgb, .{ rgb[0], rgb[1], rgb[2] });
+                        },
+                    }
+                }
+                // underline color
+                if (!std.meta.eql(cursor.ul, cell.style.ul)) {
+                    switch (cell.style.bg) {
+                        .default => _ = try tty.write(ctlseqs.ul_reset),
+                        .index => |idx| {
+                            try std.fmt.format(tty.writer(), ctlseqs.ul_indexed, .{idx});
+                        },
+                        .rgb => |rgb| {
+                            try std.fmt.format(tty.writer(), ctlseqs.ul_rgb, .{ rgb[0], rgb[1], rgb[2] });
+                        },
+                    }
+                }
+                // underline style
+                if (!std.meta.eql(cursor.ul_style, cell.style.ul_style)) {
+                    const seq = switch (cell.style.ul_style) {
+                        .off => ctlseqs.ul_off,
+                        .single => ctlseqs.ul_single,
+                        .double => ctlseqs.ul_double,
+                        .curly => ctlseqs.ul_curly,
+                        .dotted => ctlseqs.ul_dotted,
+                        .dashed => ctlseqs.ul_dashed,
+                    };
+                    _ = try tty.write(seq);
+                }
+                // bold
+                if (cursor.bold != cell.style.bold) {
+                    const seq = switch (cell.style.bold) {
+                        true => ctlseqs.bold_set,
+                        false => ctlseqs.bold_dim_reset,
+                    };
+                    _ = try tty.write(seq);
+                    if (cell.style.dim) {
+                        _ = try tty.write(ctlseqs.dim_set);
+                    }
+                }
+                // dim
+                if (cursor.dim != cell.style.dim) {
+                    const seq = switch (cell.style.dim) {
+                        true => ctlseqs.dim_set,
+                        false => ctlseqs.bold_dim_reset,
+                    };
+                    _ = try tty.write(seq);
+                    if (cell.style.bold) {
+                        _ = try tty.write(ctlseqs.bold_set);
+                    }
+                }
+                // dim
+                if (cursor.italic != cell.style.italic) {
+                    const seq = switch (cell.style.italic) {
+                        true => ctlseqs.italic_set,
+                        false => ctlseqs.italic_reset,
+                    };
+                    _ = try tty.write(seq);
+                }
+                // dim
+                if (cursor.blink != cell.style.blink) {
+                    const seq = switch (cell.style.blink) {
+                        true => ctlseqs.blink_set,
+                        false => ctlseqs.blink_reset,
+                    };
+                    _ = try tty.write(seq);
+                }
+                // reverse
+                if (cursor.reverse != cell.style.reverse) {
+                    const seq = switch (cell.style.reverse) {
+                        true => ctlseqs.reverse_set,
+                        false => ctlseqs.reverse_reset,
+                    };
+                    _ = try tty.write(seq);
+                }
+                // invisible
+                if (cursor.invisible != cell.style.invisible) {
+                    const seq = switch (cell.style.invisible) {
+                        true => ctlseqs.invisible_set,
+                        false => ctlseqs.invisible_reset,
+                    };
+                    _ = try tty.write(seq);
+                }
+                // strikethrough
+                if (cursor.strikethrough != cell.style.strikethrough) {
+                    const seq = switch (cell.style.strikethrough) {
+                        true => ctlseqs.strikethrough_set,
+                        false => ctlseqs.strikethrough_reset,
+                    };
+                    _ = try tty.write(seq);
+                }
+
+                // url
+                if (!std.meta.eql(cursor.url, cell.style.url)) {
+                    const url = cell.style.url orelse "";
+                    var ps = cell.style.url_params orelse "";
+                    if (url.len == 0) {
+                        // Empty out the params no matter what if we don't have
+                        // a url
+                        ps = "";
+                    }
+                    try std.fmt.format(tty.writer(), ctlseqs.osc8, .{ ps, url });
                 }
                 _ = try tty.write(cell.char.grapheme);
             }

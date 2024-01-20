@@ -24,6 +24,14 @@ pub const Style = struct {
     ul_style: Underline = .off,
     url: ?[]const u8 = null,
     url_params: ?[]const u8 = null,
+
+    bold: bool = false,
+    dim: bool = false,
+    italic: bool = false,
+    blink: bool = false,
+    reverse: bool = false,
+    invisible: bool = false,
+    strikethrough: bool = false,
 };
 
 pub const Color = union(enum) {

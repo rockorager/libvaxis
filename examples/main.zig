@@ -22,12 +22,18 @@ pub fn main() !void {
 
     try vx.enterAltScreen();
 
+    var color_idx: u8 = 0;
     const msg = "Hello, world!";
     outer: while (true) {
         const event = vx.nextEvent();
         log.debug("event: {}\r\n", .{event});
         switch (event) {
             .key_press => |key| {
+                if (color_idx == 255) {
+                    color_idx = 0;
+                } else {
+                    color_idx += 1;
+                }
                 if (key.codepoint == 'c' and key.mods.ctrl) {
                     break :outer;
                 }
@@ -42,7 +48,10 @@ pub fn main() !void {
         win.clear();
         const child = win.initChild(win.width / 2 - msg.len / 2, win.height / 2, .expand, .expand);
         for (msg, 0..) |_, i| {
-            const cell: Cell = .{ .char = .{ .grapheme = msg[i .. i + 1] } };
+            const cell: Cell = .{
+                .char = .{ .grapheme = msg[i .. i + 1] },
+                .style = .{ .fg = .{ .index = color_idx } },
+            };
             child.writeCell(i, 0, cell);
         }
         try vx.render();
