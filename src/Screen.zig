@@ -24,7 +24,6 @@ pub fn deinit(self: *Screen, alloc: std.mem.Allocator) void {
 }
 
 pub fn resize(self: *Screen, alloc: std.mem.Allocator, w: usize, h: usize) !void {
-    log.debug("resizing screen: width={d} height={d}", .{ w, h });
     alloc.free(self.buf);
     self.buf = try alloc.alloc(Cell, w * h);
     self.width = w;

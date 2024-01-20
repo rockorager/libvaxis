@@ -101,6 +101,7 @@ pub fn Vaxis(comptime T: type) type {
         /// required to display the screen (ie width x height). Any previous screen is
         /// freed when resizing
         pub fn resize(self: *Self, alloc: std.mem.Allocator, winsize: Winsize) !void {
+            log.debug("resizing screen: width={d} height={d}", .{ winsize.cols, winsize.rows });
             try self.screen.resize(alloc, winsize.cols, winsize.rows);
             // we only init our current screen. This has the effect of redrawing
             // every cell
