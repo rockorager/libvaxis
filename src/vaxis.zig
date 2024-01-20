@@ -41,6 +41,10 @@ pub fn Vaxis(comptime T: type) type {
 
         alt_screen: bool,
 
+        // statistics
+        renders: usize = 0,
+        render_dur: i128 = 0,
+
         /// Initialize Vaxis with runtime options
         pub fn init(_: Options) !Self {
             return Self{
@@ -61,12 +65,18 @@ pub fn Vaxis(comptime T: type) type {
                 var tty = &self.tty.?;
                 if (self.alt_screen) {
                     _ = tty.write(ctlseqs.rmcup) catch {};
+                    tty.flush() catch {};
                 }
                 tty.deinit();
             }
             if (alloc) |a| {
                 self.screen.deinit(a);
                 self.screen_last.deinit(a);
+            }
+            if (self.renders > 0) {
+                const tpr = @divTrunc(self.render_dur, self.renders);
+                log.info("total renders = {d}", .{self.renders});
+                log.info("microseconds per render = {d}", .{tpr});
             }
         }
 
@@ -126,6 +136,7 @@ pub fn Vaxis(comptime T: type) type {
             if (self.alt_screen) return;
             var tty = self.tty orelse return;
             _ = try tty.write(ctlseqs.smcup);
+            try tty.flush();
             self.alt_screen = true;
         }
 
@@ -134,14 +145,20 @@ pub fn Vaxis(comptime T: type) type {
             if (!self.alt_screen) return;
             var tty = self.tty orelse return;
             _ = try tty.write(ctlseqs.rmcup);
+            try tty.flush();
             self.alt_screen = false;
         }
 
         /// draws the screen to the terminal
         pub fn render(self: *Self) !void {
             var tty = self.tty orelse return;
+            self.renders += 1;
+            const timer_start = std.time.microTimestamp();
+            defer {
+                self.render_dur += std.time.microTimestamp() - timer_start;
+            }
 
-            // TODO: optimize writes
+            defer tty.flush() catch {};
 
             // Send the cursor to 0,0
             // TODO: this needs to move after we optimize writes. We only do
@@ -181,7 +198,7 @@ pub fn Vaxis(comptime T: type) type {
 
                 // reposition the cursor, if needed
                 if (reposition) {
-                    try std.fmt.format(tty.writer(), ctlseqs.cup, .{ row + 1, col + 1 });
+                    try std.fmt.format(tty.buffered_writer.writer(), ctlseqs.cup, .{ row + 1, col + 1 });
                 }
 
                 // something is different, so let's loop throuugh everything and
@@ -189,45 +206,48 @@ pub fn Vaxis(comptime T: type) type {
 
                 // foreground
                 if (!std.meta.eql(cursor.fg, cell.style.fg)) {
+                    const writer = tty.buffered_writer.writer();
                     switch (cell.style.fg) {
                         .default => _ = try tty.write(ctlseqs.fg_reset),
                         .index => |idx| {
                             switch (idx) {
-                                0...7 => try std.fmt.format(tty.writer(), ctlseqs.fg_base, .{idx}),
-                                8...15 => try std.fmt.format(tty.writer(), ctlseqs.fg_bright, .{idx}),
-                                else => try std.fmt.format(tty.writer(), ctlseqs.fg_indexed, .{idx}),
+                                0...7 => try std.fmt.format(writer, ctlseqs.fg_base, .{idx}),
+                                8...15 => try std.fmt.format(writer, ctlseqs.fg_bright, .{idx}),
+                                else => try std.fmt.format(writer, ctlseqs.fg_indexed, .{idx}),
                             }
                         },
                         .rgb => |rgb| {
-                            try std.fmt.format(tty.writer(), ctlseqs.fg_rgb, .{ rgb[0], rgb[1], rgb[2] });
+                            try std.fmt.format(writer, ctlseqs.fg_rgb, .{ rgb[0], rgb[1], rgb[2] });
                         },
                     }
                 }
                 // background
                 if (!std.meta.eql(cursor.bg, cell.style.bg)) {
+                    const writer = tty.buffered_writer.writer();
                     switch (cell.style.bg) {
                         .default => _ = try tty.write(ctlseqs.bg_reset),
                         .index => |idx| {
                             switch (idx) {
-                                0...7 => try std.fmt.format(tty.writer(), ctlseqs.bg_base, .{idx}),
-                                8...15 => try std.fmt.format(tty.writer(), ctlseqs.bg_bright, .{idx}),
-                                else => try std.fmt.format(tty.writer(), ctlseqs.bg_indexed, .{idx}),
+                                0...7 => try std.fmt.format(writer, ctlseqs.bg_base, .{idx}),
+                                8...15 => try std.fmt.format(writer, ctlseqs.bg_bright, .{idx}),
+                                else => try std.fmt.format(writer, ctlseqs.bg_indexed, .{idx}),
                             }
                         },
                         .rgb => |rgb| {
-                            try std.fmt.format(tty.writer(), ctlseqs.bg_rgb, .{ rgb[0], rgb[1], rgb[2] });
+                            try std.fmt.format(writer, ctlseqs.bg_rgb, .{ rgb[0], rgb[1], rgb[2] });
                         },
                     }
                 }
                 // underline color
                 if (!std.meta.eql(cursor.ul, cell.style.ul)) {
+                    const writer = tty.buffered_writer.writer();
                     switch (cell.style.bg) {
                         .default => _ = try tty.write(ctlseqs.ul_reset),
                         .index => |idx| {
-                            try std.fmt.format(tty.writer(), ctlseqs.ul_indexed, .{idx});
+                            try std.fmt.format(writer, ctlseqs.ul_indexed, .{idx});
                         },
                         .rgb => |rgb| {
-                            try std.fmt.format(tty.writer(), ctlseqs.ul_rgb, .{ rgb[0], rgb[1], rgb[2] });
+                            try std.fmt.format(writer, ctlseqs.ul_rgb, .{ rgb[0], rgb[1], rgb[2] });
                         },
                     }
                 }
@@ -315,7 +335,8 @@ pub fn Vaxis(comptime T: type) type {
                         // a url
                         ps = "";
                     }
-                    try std.fmt.format(tty.writer(), ctlseqs.osc8, .{ ps, url });
+                    const writer = tty.buffered_writer.writer();
+                    try std.fmt.format(writer, ctlseqs.osc8, .{ ps, url });
                 }
                 _ = try tty.write(cell.char.grapheme);
             }

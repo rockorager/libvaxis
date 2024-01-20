@@ -9,6 +9,10 @@ const log = std.log.scoped(.tty);
 
 const Tty = @This();
 
+const Writer = std.io.Writer(os.fd_t, os.WriteError, os.write);
+
+const BufferedWriter = std.io.BufferedWriter(4096, Writer);
+
 /// the original state of the terminal, prior to calling makeRaw
 termios: os.termios,
 
@@ -17,6 +21,8 @@ fd: os.fd_t,
 
 /// the write end of a pipe to signal the tty should exit it's run loop
 quit_fd: ?os.fd_t = null,
+
+buffered_writer: BufferedWriter,
 
 /// initializes a Tty instance by opening /dev/tty and "making it raw"
 pub fn init() !Tty {
@@ -29,6 +35,7 @@ pub fn init() !Tty {
     return Tty{
         .fd = fd,
         .termios = termios,
+        .buffered_writer = std.io.bufferedWriter(Writer{ .context = fd }),
     };
 }
 
@@ -173,16 +180,15 @@ pub fn run(
     }
 }
 
-const Writer = std.io.Writer(os.fd_t, os.WriteError, os.write);
-
-pub fn writer(self: *Tty) Writer {
-    return .{ .context = self.fd };
-}
-/// write to the tty
-//
-// TODO: buffer the writes
+/// write to the tty. These writes are buffered and require calling flush to
+/// flush writes to the tty
 pub fn write(self: *Tty, bytes: []const u8) !usize {
-    return os.write(self.fd, bytes);
+    return self.buffered_writer.write(bytes);
+}
+
+/// flushes the write buffer to the tty
+pub fn flush(self: *Tty) !void {
+    try self.buffered_writer.flush();
 }
 
 /// makeRaw enters the raw state for the terminal.
