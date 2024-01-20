@@ -76,6 +76,7 @@ pub const kp_6: u21 = 57405;
 pub const kp_7: u21 = 57406;
 pub const kp_8: u21 = 57407;
 pub const kp_9: u21 = 57408;
+pub const kp_begin: u21 = 57427;
 // TODO: Finish the kitty keys
 
 const MAX_UNICODE: u21 = 1_114_112;
@@ -91,3 +92,13 @@ pub const f9: u21 = MAX_UNICODE + 9;
 pub const f10: u21 = MAX_UNICODE + 10;
 pub const f11: u21 = MAX_UNICODE + 11;
 pub const f12: u21 = MAX_UNICODE + 12;
+pub const up: u21 = MAX_UNICODE + 13;
+pub const down: u21 = MAX_UNICODE + 14;
+pub const right: u21 = MAX_UNICODE + 15;
+pub const left: u21 = MAX_UNICODE + 16;
+pub const page_up: u21 = MAX_UNICODE + 17;
+pub const page_down: u21 = MAX_UNICODE + 18;
+pub const home: u21 = MAX_UNICODE + 19;
+pub const end: u21 = MAX_UNICODE + 20;
+pub const insert: u21 = MAX_UNICODE + 21;
+pub const delete: u21 = MAX_UNICODE + 22;

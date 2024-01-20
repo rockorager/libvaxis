@@ -2,9 +2,15 @@
 pub const primary_device_attrs = "\x1b[c";
 pub const tertiary_device_attrs = "\x1b[=c";
 pub const xtversion = "\x1b[>0q";
+pub const decrqm_focus = "\x1b[?1004$p";
+pub const decrqm_sync = "\x1b[?2026$p";
+pub const decrqm_unicode = "\x1b[?2027$p";
+pub const decrqm_color_theme = "\x1b[?2031$p";
+pub const csi_u_query = "\x1b[?u";
+pub const kitty_graphics_query = "\x1b_Gi=1,a=q\x1b\\";
+pub const sixel_geometry_query = "\x1b[?2;1;0S";
 
 // Key encoding
-pub const csi_u = "\x1b[?u";
 pub const csi_u_push = "\x1b[>{d}u";
 pub const csi_u_pop = "\x1b[<u";
 

@@ -19,6 +19,7 @@ const Style = @import("cell.zig").Style;
 /// - `key_press: Key`, for key press events
 /// - `winsize: Winsize`, for resize events. Must call app.resize when receiving
 ///    this event
+/// - `focus_in` and `focus_out` for focus events
 pub fn Vaxis(comptime T: type) type {
     return struct {
         const Self = @This();
@@ -147,6 +148,35 @@ pub fn Vaxis(comptime T: type) type {
             _ = try tty.write(ctlseqs.rmcup);
             try tty.flush();
             self.alt_screen = false;
+        }
+
+        /// write queries to the terminal to determine capabilities. Individual
+        /// capabilities will be delivered to the client and possibly intercepted by
+        /// Vaxis to enable features
+        pub fn queryTerminal(self: *Self) !void {
+            var tty = self.tty orelse return;
+
+            const colorterm = std.os.getenv("COLORTERM") orelse "";
+            if (std.mem.eql(u8, colorterm, "truecolor" or
+                std.mem.eql(u8, colorterm, "24bit")))
+            {
+                // TODO: Notify rgb support
+            }
+
+            const writer = tty.buffered_writer.writer();
+            _ = try writer.write(ctlseqs.decrqm_focus);
+            _ = try writer.write(ctlseqs.decrqm_sync);
+            _ = try writer.write(ctlseqs.decrqm_unicode);
+            _ = try writer.write(ctlseqs.decrqm_color_theme);
+            _ = try writer.write(ctlseqs.xtversion);
+            _ = try writer.write(ctlseqs.csi_u_query);
+            _ = try writer.write(ctlseqs.kitty_graphics_query);
+            _ = try writer.write(ctlseqs.sixel_geometry_query);
+
+            // TODO: XTGETTCAP queries ("RGB", "Smulx")
+
+            _ = try writer.write(ctlseqs.primary_device_attrs);
+            try writer.flush();
         }
 
         /// draws the screen to the terminal

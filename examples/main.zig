@@ -93,5 +93,6 @@ pub fn main() !void {
 const Event = union(enum) {
     key_press: vaxis.Key,
     winsize: vaxis.Winsize,
+    focus_in,
     foo: u8,
 };
