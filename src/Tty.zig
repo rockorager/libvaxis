@@ -139,6 +139,7 @@ pub fn run(
         param_buf: [8]u8 = undefined,
         param_buf_idx: usize = 0,
         sub_state: std.StaticBitSet(16) = std.StaticBitSet(16).initEmpty(),
+        empty_state: std.StaticBitSet(16) = std.StaticBitSet(16).initEmpty(),
     };
 
     var seq: Sequence = .{};
@@ -151,6 +152,7 @@ pub fn run(
 
     // initialize the read buffer
     var buf: [1024]u8 = undefined;
+    // read loop
     while (true) {
         _ = try std.os.poll(&pollfds, -1);
         if (pollfds[1].revents & std.os.POLL.IN != 0) {
@@ -161,6 +163,8 @@ pub fn run(
         const n = try os.read(self.fd, &buf);
         var i: usize = 0;
         var start: usize = 0;
+        // parse the read into events. This parser is bespoke for input parsing
+        // and is not suitable for reuse as a generic vt parser
         while (i < n) : (i += 1) {
             const b = buf[i];
             switch (state) {
@@ -169,9 +173,9 @@ pub fn run(
                     // generally get ascii characters, but anything less than
                     // 0x20 is a Ctrl+<c> keypress. We map these to lowercase
                     // ascii characters when we can
-                    const key: ?Key = switch (b) {
-                        0x00 => Key{ .codepoint = '@', .mods = .{ .ctrl = true } },
-                        0x01...0x1A => Key{ .codepoint = b + 0x60, .mods = .{ .ctrl = true } },
+                    const key: Key = switch (b) {
+                        0x00 => .{ .codepoint = '@', .mods = .{ .ctrl = true } },
+                        0x01...0x1A => .{ .codepoint = b + 0x60, .mods = .{ .ctrl = true } },
                         0x1B => escape: {
                             // NOTE: This could be an errant escape at the end
                             // of a large read. That is _incredibly_ unlikely
@@ -183,16 +187,15 @@ pub fn run(
                                 break :escape event;
                             }
                             state = .escape;
-                            break :escape null;
+                            continue;
                         },
-                        0x20...0x7E => Key{ .codepoint = b },
-                        0x7F => Key{ .codepoint = Key.backspace },
-                        else => Key{ .codepoint = b },
+                        0x20...0x7E => .{ .codepoint = b },
+                        0x7F => .{ .codepoint = Key.backspace },
+                        // TODO: graphemes
+                        else => .{ .codepoint = b },
                     };
-                    if (key) |k| {
-                        if (@hasField(EventType, "key_press")) {
-                            vx.postEvent(.{ .key_press = k });
-                        }
+                    if (@hasField(EventType, "key_press")) {
+                        vx.postEvent(.{ .key_press = key });
                     }
                 },
                 .escape => {
@@ -221,7 +224,8 @@ pub fn run(
                     }
                 },
                 .ss3 => {
-                    const key: ?Key = switch (b) {
+                    state = .ground;
+                    const key: Key = switch (b) {
                         'A' => .{ .codepoint = Key.up },
                         'B' => .{ .codepoint = Key.down },
                         'C' => .{ .codepoint = Key.right },
@@ -232,17 +236,15 @@ pub fn run(
                         'Q' => .{ .codepoint = Key.f2 },
                         'R' => .{ .codepoint = Key.f3 },
                         'S' => .{ .codepoint = Key.f4 },
-                        else => blk: {
+                        else => {
                             log.warn("unhandled ss3: {x}", .{b});
-                            break :blk null;
+                            continue;
                         },
                     };
-                    if (key) |k| {
-                        if (@hasField(EventType, "key_press")) {
-                            vx.postEvent(.{ .key_press = k });
-                        }
+
+                    if (@hasField(EventType, "key_press")) {
+                        vx.postEvent(.{ .key_press = key });
                     }
-                    state = .ground;
                 },
                 .csi => {
                     switch (b) {
@@ -260,8 +262,10 @@ pub fn run(
                         0x3C...0x3F => seq.private_indicator = b,
                         ';' => {
                             if (seq.param_buf_idx == 0) {
-                                // empty param. default it to 1
-                                seq.params[seq.param_idx] = 1;
+                                // empty param. default it to 0 and set the
+                                // empty state
+                                seq.params[seq.param_idx] = 0;
+                                seq.empty_state.set(seq.param_idx);
                                 seq.param_idx += 1;
                             } else {
                                 const p = try std.fmt.parseUnsigned(u16, seq.param_buf[0..seq.param_buf_idx], 10);
@@ -272,8 +276,10 @@ pub fn run(
                         },
                         ':' => {
                             if (seq.param_buf_idx == 0) {
-                                // empty param. default it to 1
-                                seq.params[seq.param_idx] = 1;
+                                // empty param. default it to 0 and set the
+                                // empty state
+                                seq.params[seq.param_idx] = 0;
+                                seq.empty_state.set(seq.param_idx);
                                 seq.param_idx += 1;
                                 // Set the *next* param as a subparam
                                 seq.sub_state.set(seq.param_idx);
@@ -287,7 +293,13 @@ pub fn run(
                             }
                         },
                         0x40...0xFF => {
-                            // dispatch our sequence
+                            if (seq.param_buf_idx > 0) {
+                                const p = try std.fmt.parseUnsigned(u16, seq.param_buf[0..seq.param_buf_idx], 10);
+                                seq.param_buf_idx = 0;
+                                seq.params[seq.param_idx] = p;
+                                seq.param_idx += 1;
+                            }
+                            // dispatch the sequence
                             state = .ground;
                             const codepoint: u21 = switch (b) {
                                 'A' => Key.up,
@@ -376,7 +388,47 @@ pub fn run(
                                 },
                             };
 
-                            const key: Key = .{ .codepoint = codepoint };
+                            var key: Key = .{ .codepoint = codepoint };
+
+                            var idx: usize = 0;
+                            var field: u8 = 0;
+                            // parse the parameters
+                            while (idx < seq.param_idx) : (idx += 1) {
+                                switch (field) {
+                                    0 => {
+                                        defer field += 1;
+                                        // field 0 contains our codepoint. Any
+                                        // subparameters shifted key code and
+                                        // alternate keycode (csi u encoding)
+
+                                        // We already handled our codepoint so
+                                        // we just need to check for subs
+                                        if (!seq.sub_state.isSet(idx + 1)) {
+                                            continue;
+                                        }
+                                        idx += 1;
+                                        // The first one is a shifted code if it
+                                        // isn't empty
+                                        if (!seq.empty_state.isSet(idx)) {
+                                            key.shifted_codepoint = seq.params[idx];
+                                        }
+                                        // check the next one for base layout
+                                        // code
+                                        if (!seq.sub_state.isSet(idx + 1)) {
+                                            continue;
+                                        }
+                                        idx += 1;
+                                        key.base_layout_codepoint = seq.params[idx];
+                                    },
+                                    1 => {
+                                        // field 1 is modifiers and optionally
+                                        // the event type (csiu)
+                                        const mod_mask: u8 = @truncate(seq.params[idx] - 1);
+                                        key.mods = @bitCast(mod_mask);
+                                    },
+                                    else => {},
+                                }
+                            }
                             if (@hasField(EventType, "key_press")) {
                                 vx.postEvent(.{ .key_press = key });
                             }
