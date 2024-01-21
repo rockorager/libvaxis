@@ -133,7 +133,9 @@ pub fn run(
         while (start < n) {
             const result = try parser.parse(buf[start..n]);
             start = result.n;
-            log.debug("something {}", .{result});
+            // TODO: if we get 0 byte read, copy the remaining bytes to the
+            // beginning of the buffer and read mmore?
+
             const event = result.event orelse continue;
             switch (event) {
                 .key_press => |key| {
