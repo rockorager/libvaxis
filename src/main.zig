@@ -20,6 +20,8 @@ test {
     _ = @import("Window.zig");
     _ = @import("cell.zig");
     _ = @import("ctlseqs.zig");
+    _ = @import("event.zig");
     _ = @import("queue.zig");
+    _ = @import("parser.zig");
     _ = @import("vaxis.zig");
 }
