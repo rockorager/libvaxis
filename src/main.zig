@@ -13,6 +13,7 @@ pub fn init(comptime EventType: type, opts: Options) !Vaxis(EventType) {
 }
 
 test {
+    _ = @import("GraphemeCache.zig");
     _ = @import("Key.zig");
     _ = @import("Options.zig");
     _ = @import("Screen.zig");

@@ -4,6 +4,7 @@ const Event = @import("event.zig").Event;
 const Key = @import("Key.zig");
 const CodePointIterator = @import("ziglyph").CodePointIterator;
 const graphemeBreak = @import("ziglyph").graphemeBreak;
+const UNICODE_MAX = @import("GraphemeCache.zig").UNICODE_MAX;
 
 const log = std.log.scoped(.parser);
 
@@ -82,23 +83,31 @@ pub fn parse(input: []const u8) !Result {
                     // 0x20...0x7E => .{ .codepoint = b },
                     0x7F => .{ .codepoint = Key.backspace },
                     else => blk: {
-                        // TODO: iterate codepoints to find a complete grapheme.
-                        // For now we are just taking the first codepoint and
-                        // throwing a warning. I think we'll end up mapping a
-                        // u21 to a look-aside table of graphemes, I just need
-                        // to implement that table somewhere and give access to
-                        // it here.
                         var iter: CodePointIterator = .{ .bytes = input[i..] };
                         // return null if we don't have a valid codepoint
-                        const cp = iter.next() orelse return .{ .event = null, .n = 0 };
-                        if (iter.next()) |next_cp| {
-                            var break_state: u3 = 0;
-                            if (!graphemeBreak(cp.code, next_cp.code, &break_state)) {
-                                log.warn("grapheme support not implemented yet", .{});
+                        var cp = iter.next() orelse return .{ .event = null, .n = 0 };
+
+                        var code = cp.code;
+                        const g_start = i;
+                        i += cp.len - 1; // subtract one for the loop iter
+                        var g_state: u3 = 0;
+                        while (iter.next()) |next_cp| {
+                            if (graphemeBreak(cp.code, next_cp.code, &g_state)) {
+                                break;
                             }
+                            code = UNICODE_MAX + 1;
+                            i += next_cp.len;
+                            cp = next_cp;
                         }
-                        i += cp.len - 1;
-                        break :blk .{ .codepoint = cp.code };
+                        const text: ?[]const u8 = multi: {
+                            if (code > UNICODE_MAX) {
+                                break :multi input[g_start .. i + 1];
+                            } else {
+                                break :multi null;
+                            }
+                        };
+
+                        break :blk .{ .codepoint = code, .text = text };
                     },
                 };
                 return .{
@@ -562,10 +571,27 @@ test "parse: multiple codepoint grapheme" {
     const input = "👩‍🚀";
     const result = try parse(input);
     const expected_key: Key = .{
-        .codepoint = 0x1F469,
+        .codepoint = UNICODE_MAX + 1,
+        .text = input,
     };
     const expected_event: Event = .{ .key_press = expected_key };
 
-    try testing.expectEqual(4, result.n);
+    try testing.expectEqual(input.len, result.n);
     try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: multiple codepoint grapheme with more after" {
+    // TODO: this test is passing but throws a warning. Not sure how we'll
+    // handle graphemes yet
+    const input = "👩‍🚀abc";
+    const result = try parse(input);
+    const expected_key: Key = .{
+        .codepoint = UNICODE_MAX + 1,
+        .text = "👩‍🚀",
+    };
+
+    try testing.expectEqual(expected_key.text.?.len, result.n);
+    const actual = result.event.?.key_press;
+    try testing.expectEqualStrings(expected_key.text.?, actual.text.?);
+    try testing.expectEqual(expected_key.codepoint, actual.codepoint);
 }

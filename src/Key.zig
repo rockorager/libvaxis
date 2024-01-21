@@ -11,8 +11,7 @@ pub const Modifiers = packed struct(u8) {
     num_lock: bool = false,
 };
 
-/// the unicode codepoint of the key event. This can be greater than the maximum
-/// allowable unicode codepoint for special keys
+/// the unicode codepoint of the key event.
 codepoint: u21,
 
 /// the text generated from the key event, if any

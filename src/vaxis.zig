@@ -9,6 +9,7 @@ const Screen = @import("Screen.zig");
 const Window = @import("Window.zig");
 const Options = @import("Options.zig");
 const Style = @import("cell.zig").Style;
+const GraphemeCache = @import("GraphemeCache.zig");
 
 /// Vaxis is the entrypoint for a Vaxis application. The provided type T should
 /// be a tagged union which contains all of the events the application will
@@ -46,6 +47,9 @@ pub fn Vaxis(comptime T: type) type {
         renders: usize = 0,
         render_dur: i128 = 0,
 
+        // grapheme cache
+        g_cache: GraphemeCache = .{},
+
         /// Initialize Vaxis with runtime options
         pub fn init(_: Options) !Self {
             return Self{
@@ -78,6 +82,12 @@ pub fn Vaxis(comptime T: type) type {
                 const tpr = @divTrunc(self.render_dur, self.renders);
                 log.info("total renders = {d}", .{self.renders});
                 log.info("microseconds per render = {d}", .{tpr});
+                log.info("cached graphemes n = {d} / {d}, bytes = {d} / {d}", .{
+                    self.g_cache.g_idx,
+                    self.g_cache.grapheme_buf.len,
+                    self.g_cache.idx,
+                    self.g_cache.buf.len,
+                });
             }
         }
 
