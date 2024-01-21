@@ -106,13 +106,12 @@ pub fn parse(input: []const u8) !Result {
                         };
                         return .{
                             .event = .{ .key_press = key },
-                            .n = i,
+                            .n = i + 1,
                         };
                     },
                 }
             },
             .ss3 => {
-                state = .ground;
                 const key: Key = switch (b) {
                     'A' => .{ .codepoint = Key.up },
                     'B' => .{ .codepoint = Key.down },
@@ -128,13 +127,13 @@ pub fn parse(input: []const u8) !Result {
                         log.warn("unhandled ss3: {x}", .{b});
                         return .{
                             .event = null,
-                            .n = i,
+                            .n = i + 1,
                         };
                     },
                 };
                 return .{
                     .event = .{ .key_press = key },
-                    .n = i,
+                    .n = i + 1,
                 };
             },
             .csi => {
@@ -231,12 +230,16 @@ pub fn parse(input: []const u8) !Result {
                                     23 => break :blk Key.f11,
                                     24 => break :blk Key.f12,
                                     200 => {
-                                        // TODO: bracketed paste
-                                        continue;
+                                        return .{
+                                            .event = .paste_start,
+                                            .n = i + 1,
+                                        };
                                     },
                                     201 => {
-                                        // TODO: bracketed paste
-                                        continue;
+                                        return .{
+                                            .event = .paste_end,
+                                            .n = i + 1,
+                                        };
                                     },
                                     57427 => break :blk Key.kp_begin,
                                     else => {
@@ -262,10 +265,10 @@ pub fn parse(input: []const u8) !Result {
                             },
 
                             'I' => { // focus in
-                                return .{ .event = .focus_in, .n = i };
+                                return .{ .event = .focus_in, .n = i + 1 };
                             },
                             'O' => { // focus out
-                                return .{ .event = .focus_out, .n = i };
+                                return .{ .event = .focus_out, .n = i + 1 };
                             },
                             else => {
                                 log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
@@ -316,7 +319,7 @@ pub fn parse(input: []const u8) !Result {
                         }
                         return .{
                             .event = .{ .key_press = key },
-                            .n = i,
+                            .n = i + 1,
                         };
                     },
                 }
@@ -332,7 +335,7 @@ pub fn parse(input: []const u8) !Result {
     };
 }
 
-test "parse: single legacy keypress" {
+test "parse: single xterm keypress" {
     const input = "a";
     const result = try parse(input);
     const expected_key: Key = .{ .codepoint = 'a' };
@@ -342,12 +345,170 @@ test "parse: single legacy keypress" {
     try testing.expectEqual(expected_event, result.event);
 }
 
-test "parse: single legacy keypress with more buffer" {
+test "parse: single xterm keypress with more buffer" {
     const input = "ab";
     const result = try parse(input);
     const expected_key: Key = .{ .codepoint = 'a' };
     const expected_event: Event = .{ .key_press = expected_key };
 
     try testing.expectEqual(1, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: xterm escape keypress" {
+    const input = "\x1b";
+    const result = try parse(input);
+    const expected_key: Key = .{ .codepoint = Key.escape };
+    const expected_event: Event = .{ .key_press = expected_key };
+
+    try testing.expectEqual(1, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: xterm ctrl+a" {
+    const input = "\x01";
+    const result = try parse(input);
+    const expected_key: Key = .{ .codepoint = 'a', .mods = .{ .ctrl = true } };
+    const expected_event: Event = .{ .key_press = expected_key };
+
+    try testing.expectEqual(1, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: xterm alt+a" {
+    const input = "\x1ba";
+    const result = try parse(input);
+    const expected_key: Key = .{ .codepoint = 'a', .mods = .{ .alt = true } };
+    const expected_event: Event = .{ .key_press = expected_key };
+
+    try testing.expectEqual(2, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: xterm invalid ss3" {
+    const input = "\x1bOZ";
+    const result = try parse(input);
+
+    try testing.expectEqual(3, result.n);
+    try testing.expectEqual(null, result.event);
+}
+
+test "parse: xterm key up" {
+    {
+        // normal version
+        const input = "\x1bOA";
+        const result = try parse(input);
+        const expected_key: Key = .{ .codepoint = Key.up };
+        const expected_event: Event = .{ .key_press = expected_key };
+
+        try testing.expectEqual(3, result.n);
+        try testing.expectEqual(expected_event, result.event);
+    }
+
+    {
+        // application keys version
+        const input = "\x1b[2~";
+        const result = try parse(input);
+        const expected_key: Key = .{ .codepoint = Key.insert };
+        const expected_event: Event = .{ .key_press = expected_key };
+
+        try testing.expectEqual(4, result.n);
+        try testing.expectEqual(expected_event, result.event);
+    }
+}
+
+test "parse: xterm shift+up" {
+    const input = "\x1b[1;2A";
+    const result = try parse(input);
+    const expected_key: Key = .{ .codepoint = Key.up, .mods = .{ .shift = true } };
+    const expected_event: Event = .{ .key_press = expected_key };
+
+    try testing.expectEqual(6, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: xterm insert" {
+    const input = "\x1b[1;2A";
+    const result = try parse(input);
+    const expected_key: Key = .{ .codepoint = Key.up, .mods = .{ .shift = true } };
+    const expected_event: Event = .{ .key_press = expected_key };
+
+    try testing.expectEqual(6, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: paste_start" {
+    const input = "\x1b[200~";
+    const result = try parse(input);
+    const expected_event: Event = .paste_start;
+
+    try testing.expectEqual(6, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: paste_end" {
+    const input = "\x1b[201~";
+    const result = try parse(input);
+    const expected_event: Event = .paste_end;
+
+    try testing.expectEqual(6, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: focus_in" {
+    const input = "\x1b[I";
+    const result = try parse(input);
+    const expected_event: Event = .focus_in;
+
+    try testing.expectEqual(3, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: focus_out" {
+    const input = "\x1b[O";
+    const result = try parse(input);
+    const expected_event: Event = .focus_out;
+
+    try testing.expectEqual(3, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: kitty: shift+a without text reporting" {
+    const input = "\x1b[97:65;2u";
+    const result = try parse(input);
+    const expected_key: Key = .{
+        .codepoint = 'a',
+        .shifted_codepoint = 'A',
+        .mods = .{ .shift = true },
+    };
+    const expected_event: Event = .{ .key_press = expected_key };
+
+    try testing.expectEqual(10, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: kitty: alt+shift+a without text reporting" {
+    const input = "\x1b[97:65;4u";
+    const result = try parse(input);
+    const expected_key: Key = .{
+        .codepoint = 'a',
+        .shifted_codepoint = 'A',
+        .mods = .{ .shift = true, .alt = true },
+    };
+    const expected_event: Event = .{ .key_press = expected_key };
+
+    try testing.expectEqual(10, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: kitty: a without text reporting" {
+    const input = "\x1b[97u";
+    const result = try parse(input);
+    const expected_key: Key = .{
+        .codepoint = 'a',
+    };
+    const expected_event: Event = .{ .key_press = expected_key };
+
+    try testing.expectEqual(5, result.n);
     try testing.expectEqual(expected_event, result.event);
 }

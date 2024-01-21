@@ -6,4 +6,6 @@ pub const Event = union(enum) {
     key_press: Key,
     focus_in,
     focus_out,
+    paste_start,
+    paste_end,
 };
