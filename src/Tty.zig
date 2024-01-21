@@ -134,7 +134,10 @@ pub fn run(
             const result = try parser.parse(buf[start..n]);
             start = result.n;
             // TODO: if we get 0 byte read, copy the remaining bytes to the
-            // beginning of the buffer and read mmore?
+            // beginning of the buffer and read mmore? this should only happen
+            // if we are in the middle of a grapheme at and filled our
+            // buffer. Probably can happen on large pastes so needs to be
+            // implemented but low priority
 
             const event = result.event orelse continue;
             switch (event) {
@@ -143,8 +146,26 @@ pub fn run(
                         vx.postEvent(.{ .key_press = key });
                     }
                 },
-                .focus_in => {},
-                .focus_out => {},
+                .focus_in => {
+                    if (@hasField(EventType, "focus_in")) {
+                        vx.postEvent(.focus_in);
+                    }
+                },
+                .focus_out => {
+                    if (@hasField(EventType, "focus_out")) {
+                        vx.postEvent(.focus_out);
+                    }
+                },
+                .paste_start => {
+                    if (@hasField(EventType, "paste_start")) {
+                        vx.postEvent(.paste_start);
+                    }
+                },
+                .paste_end => {
+                    if (@hasField(EventType, "paste_end")) {
+                        vx.postEvent(.paste_end);
+                    }
+                },
             }
         }
     }
