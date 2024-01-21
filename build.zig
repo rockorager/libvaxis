@@ -38,6 +38,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    lib_unit_tests.root_module.addImport("ziglyph", ziglyph.module("ziglyph"));
 
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
 

@@ -2,6 +2,8 @@ const std = @import("std");
 const testing = std.testing;
 const Event = @import("event.zig").Event;
 const Key = @import("Key.zig");
+const CodePointIterator = @import("ziglyph").CodePointIterator;
+const graphemeBreak = @import("ziglyph").graphemeBreak;
 
 const log = std.log.scoped(.parser);
 
@@ -77,10 +79,27 @@ pub fn parse(input: []const u8) !Result {
                         state = .escape;
                         continue;
                     },
-                    0x20...0x7E => .{ .codepoint = b },
+                    // 0x20...0x7E => .{ .codepoint = b },
                     0x7F => .{ .codepoint = Key.backspace },
-                    // TODO: graphemes
-                    else => .{ .codepoint = b },
+                    else => blk: {
+                        // TODO: iterate codepoints to find a complete grapheme.
+                        // For now we are just taking the first codepoint and
+                        // throwing a warning. I think we'll end up mapping a
+                        // u21 to a look-aside table of graphemes, I just need
+                        // to implement that table somewhere and give access to
+                        // it here.
+                        var iter: CodePointIterator = .{ .bytes = input[i..] };
+                        // return null if we don't have a valid codepoint
+                        const cp = iter.next() orelse return .{ .event = null, .n = 0 };
+                        if (iter.next()) |next_cp| {
+                            var break_state: u3 = 0;
+                            if (!graphemeBreak(cp.code, next_cp.code, &break_state)) {
+                                log.warn("grapheme support not implemented yet", .{});
+                            }
+                        }
+                        i += cp.len - 1;
+                        break :blk .{ .codepoint = cp.code };
+                    },
                 };
                 return .{
                     .event = .{ .key_press = key },
@@ -510,5 +529,43 @@ test "parse: kitty: a without text reporting" {
     const expected_event: Event = .{ .key_press = expected_key };
 
     try testing.expectEqual(5, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: single codepoint" {
+    const input = "🙂";
+    const result = try parse(input);
+    const expected_key: Key = .{
+        .codepoint = 0x1F642,
+    };
+    const expected_event: Event = .{ .key_press = expected_key };
+
+    try testing.expectEqual(4, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: single codepoint with more in buffer" {
+    const input = "🙂a";
+    const result = try parse(input);
+    const expected_key: Key = .{
+        .codepoint = 0x1F642,
+    };
+    const expected_event: Event = .{ .key_press = expected_key };
+
+    try testing.expectEqual(4, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: multiple codepoint grapheme" {
+    // TODO: this test is passing but throws a warning. Not sure how we'll
+    // handle graphemes yet
+    const input = "👩‍🚀";
+    const result = try parse(input);
+    const expected_key: Key = .{
+        .codepoint = 0x1F469,
+    };
+    const expected_event: Event = .{ .key_press = expected_key };
+
+    try testing.expectEqual(4, result.n);
     try testing.expectEqual(expected_event, result.event);
 }
