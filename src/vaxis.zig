@@ -82,12 +82,6 @@ pub fn Vaxis(comptime T: type) type {
                 const tpr = @divTrunc(self.render_dur, self.renders);
                 log.info("total renders = {d}", .{self.renders});
                 log.info("microseconds per render = {d}", .{tpr});
-                log.info("cached graphemes n = {d} / {d}, bytes = {d} / {d}", .{
-                    self.g_cache.g_idx,
-                    self.g_cache.grapheme_buf.len,
-                    self.g_cache.idx,
-                    self.g_cache.buf.len,
-                });
             }
         }
 

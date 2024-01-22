@@ -143,12 +143,7 @@ pub fn run(
             switch (event) {
                 .key_press => |key| {
                     if (@hasField(EventType, "key_press")) {
-                        // HACK: yuck. there has to be a better way
-                        var mut_key = key;
-                        if (key.text) |text| {
-                            mut_key.codepoint = try vx.g_cache.put(text);
-                        }
-                        vx.postEvent(.{ .key_press = mut_key });
+                        vx.postEvent(.{ .key_press = key });
                     }
                 },
                 .focus_in => {

@@ -14,9 +14,10 @@ pub const Modifiers = packed struct(u8) {
 /// the unicode codepoint of the key event.
 codepoint: u21,
 
-/// the text generated from the key event. This will only contain a value if the
-/// event generated a multi-codepoint grapheme. If there was only a single
-/// codepoint, library users can encode the codepoint directly
+/// the text generated from the key event. The underlying slice has a limited
+/// lifetime. Vaxis maintains an internal ring buffer to temporarily store text.
+/// If the application needs these values longer than the lifetime of the event
+/// it must copy the data.
 text: ?[]const u8 = null,
 
 /// the shifted codepoint of this key event. This will only be present if the
@@ -35,6 +36,10 @@ pub const tab: u21 = 0x09;
 pub const escape: u21 = 0x1B;
 pub const space: u21 = 0x20;
 pub const backspace: u21 = 0x7F;
+
+// multicodepoint is a key which generated text but cannot be expressed as a
+// single codepoint. The value is the maximum unicode codepoint + 1
+pub const multicodepoint: u21 = 1_114_112 + 1;
 
 // kitty encodes these keys directly in the private use area. We reuse those
 // mappings

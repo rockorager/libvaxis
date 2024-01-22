@@ -4,7 +4,6 @@ const Event = @import("event.zig").Event;
 const Key = @import("Key.zig");
 const CodePointIterator = @import("ziglyph").CodePointIterator;
 const graphemeBreak = @import("ziglyph").graphemeBreak;
-const UNICODE_MAX = @import("GraphemeCache.zig").UNICODE_MAX;
 
 const log = std.log.scoped(.parser);
 
@@ -88,26 +87,18 @@ pub fn parse(input: []const u8) !Result {
                         var cp = iter.next() orelse return .{ .event = null, .n = 0 };
 
                         var code = cp.code;
-                        const g_start = i;
                         i += cp.len - 1; // subtract one for the loop iter
                         var g_state: u3 = 0;
                         while (iter.next()) |next_cp| {
                             if (graphemeBreak(cp.code, next_cp.code, &g_state)) {
                                 break;
                             }
-                            code = UNICODE_MAX + 1;
+                            code = Key.multicodepoint;
                             i += next_cp.len;
                             cp = next_cp;
                         }
-                        const text: ?[]const u8 = multi: {
-                            if (code > UNICODE_MAX) {
-                                break :multi input[g_start .. i + 1];
-                            } else {
-                                break :multi null;
-                            }
-                        };
 
-                        break :blk .{ .codepoint = code, .text = text };
+                        break :blk .{ .codepoint = code, .text = input[start .. i + 1] };
                     },
                 };
                 return .{
@@ -366,7 +357,10 @@ pub fn parse(input: []const u8) !Result {
 test "parse: single xterm keypress" {
     const input = "a";
     const result = try parse(input);
-    const expected_key: Key = .{ .codepoint = 'a' };
+    const expected_key: Key = .{
+        .codepoint = 'a',
+        .text = "a",
+    };
     const expected_event: Event = .{ .key_press = expected_key };
 
     try testing.expectEqual(1, result.n);
@@ -376,11 +370,15 @@ test "parse: single xterm keypress" {
 test "parse: single xterm keypress with more buffer" {
     const input = "ab";
     const result = try parse(input);
-    const expected_key: Key = .{ .codepoint = 'a' };
+    const expected_key: Key = .{
+        .codepoint = 'a',
+        .text = "a",
+    };
     const expected_event: Event = .{ .key_press = expected_key };
 
     try testing.expectEqual(1, result.n);
-    try testing.expectEqual(expected_event, result.event);
+    try testing.expectEqualStrings(expected_key.text.?, result.event.?.key_press.text.?);
+    try testing.expectEqualDeep(expected_event, result.event);
 }
 
 test "parse: xterm escape keypress" {
@@ -546,6 +544,7 @@ test "parse: single codepoint" {
     const result = try parse(input);
     const expected_key: Key = .{
         .codepoint = 0x1F642,
+        .text = input,
     };
     const expected_event: Event = .{ .key_press = expected_key };
 
@@ -558,11 +557,12 @@ test "parse: single codepoint with more in buffer" {
     const result = try parse(input);
     const expected_key: Key = .{
         .codepoint = 0x1F642,
+        .text = "🙂",
     };
     const expected_event: Event = .{ .key_press = expected_key };
 
     try testing.expectEqual(4, result.n);
-    try testing.expectEqual(expected_event, result.event);
+    try testing.expectEqualDeep(expected_event, result.event);
 }
 
 test "parse: multiple codepoint grapheme" {
@@ -571,7 +571,7 @@ test "parse: multiple codepoint grapheme" {
     const input = "👩‍🚀";
     const result = try parse(input);
     const expected_key: Key = .{
-        .codepoint = UNICODE_MAX + 1,
+        .codepoint = Key.multicodepoint,
         .text = input,
     };
     const expected_event: Event = .{ .key_press = expected_key };
@@ -586,7 +586,7 @@ test "parse: multiple codepoint grapheme with more after" {
     const input = "👩‍🚀abc";
     const result = try parse(input);
     const expected_key: Key = .{
-        .codepoint = UNICODE_MAX + 1,
+        .codepoint = Key.multicodepoint,
         .text = "👩‍🚀",
     };
 
