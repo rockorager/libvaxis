@@ -3,15 +3,15 @@ const testing = std.testing;
 
 const GraphemeCache = @This();
 
-/// the underlying storage for graphemes
-buf: [1024 * 4]u8 = undefined,
+/// the underlying storage for graphemes. Right now 8kb
+buf: [1024 * 8]u8 = undefined,
 
 // the start index of the next grapheme
 idx: usize = 0,
 
-/// the cache of graphemes. This allows up to 1024 graphemes with 4 codepoints
+/// the cache of graphemes. This allows up to 2048 graphemes with 4 codepoints
 /// each
-grapheme_buf: [1024]Grapheme = undefined,
+grapheme_buf: [1024 * 8 / 4]Grapheme = undefined,
 
 // index of our next grapheme
 g_idx: u21 = 0,
