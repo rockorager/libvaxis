@@ -42,6 +42,8 @@ pub fn Queue(
             return self.buf[i];
         }
 
+        /// push an item into the queue. Blocks until the message has been put
+        /// in the queue
         pub fn push(self: *Self, item: T) void {
             self.mutex.lock();
             defer self.mutex.unlock();
@@ -59,30 +61,43 @@ pub fn Queue(
             self.buf[i] = item;
         }
 
+        /// push an item into the queue. If the queue is full, this returns
+        /// immediately and the item has not been place in the queue
+        pub fn tryPush(self: *Self, item: T) bool {
+            self.mutex.lock();
+            if (self.isFull()) {
+                self.mutex.unlock();
+                return false;
+            }
+            self.mutex.unlock();
+            self.push(item);
+            return true;
+        }
+
         /// Returns `true` if the ring buffer is empty and `false` otherwise.
-        pub fn isEmpty(self: Self) bool {
+        fn isEmpty(self: Self) bool {
             return self.write_index == self.read_index;
         }
 
         /// Returns `true` if the ring buffer is full and `false` otherwise.
-        pub fn isFull(self: Self) bool {
+        fn isFull(self: Self) bool {
             return self.mask2(self.write_index + self.buf.len) == self.read_index;
         }
 
         /// Returns the length
-        pub fn len(self: Self) usize {
+        fn len(self: Self) usize {
             const wrap_offset = 2 * self.buf.len * @intFromBool(self.write_index < self.read_index);
             const adjusted_write_index = self.write_index + wrap_offset;
             return adjusted_write_index - self.read_index;
         }
 
         /// Returns `index` modulo the length of the backing slice.
-        pub fn mask(self: Self, index: usize) usize {
+        fn mask(self: Self, index: usize) usize {
             return index % self.buf.len;
         }
 
         /// Returns `index` modulo twice the length of the backing slice.
-        pub fn mask2(self: Self, index: usize) usize {
+        fn mask2(self: Self, index: usize) usize {
             return index % (2 * self.buf.len);
         }
     };
