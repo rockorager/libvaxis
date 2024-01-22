@@ -370,6 +370,17 @@ pub fn Vaxis(comptime T: type) type {
                 }
                 _ = try tty.write(cell.char.grapheme);
             }
+            if (self.screen.cursor_vis) {
+                try std.fmt.format(
+                    tty.buffered_writer.writer(),
+                    ctlseqs.cup,
+                    .{
+                        self.screen.cursor_row + 1,
+                        self.screen.cursor_col + 1,
+                    },
+                );
+                _ = try tty.write(ctlseqs.show_cursor);
+            }
         }
     };
 }

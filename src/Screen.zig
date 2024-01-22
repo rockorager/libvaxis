@@ -12,6 +12,10 @@ height: usize = 0,
 
 buf: []Cell = undefined,
 
+cursor_row: usize = 0,
+cursor_col: usize = 0,
+cursor_vis: bool = false,
+
 /// sets each cell to the default cell
 pub fn init(self: *Screen) void {
     for (self.buf, 0..) |_, i| {

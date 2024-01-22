@@ -63,7 +63,7 @@ pub fn initChild(
 /// writes a cell to the location in the window
 pub fn writeCell(self: Window, col: usize, row: usize, cell: Cell) void {
     if (self.height == 0 or self.width == 0) return;
-    if (self.height < row or self.width < col) return;
+    if (self.height <= row or self.width <= col) return;
     self.screen.writeCell(col + self.x_off, row + self.y_off, cell);
 }
 
@@ -81,6 +81,20 @@ pub fn fill(self: Window, cell: Cell) void {
             self.screen.writeCell(col, row, cell);
         }
     }
+}
+
+/// hide the cursor
+pub fn hideCursor(self: Window) void {
+    self.screen.cursor_vis = false;
+}
+
+/// show the cursor at the given coordinates, 0 indexed
+pub fn showCursor(self: Window, col: usize, row: usize) void {
+    if (self.height == 0 or self.width == 0) return;
+    if (self.height <= row or self.width <= col) return;
+    self.screen.cursor_vis = true;
+    self.screen.cursor_row = row + self.y_off;
+    self.screen.cursor_col = col + self.x_off;
 }
 
 test "Window size set" {
