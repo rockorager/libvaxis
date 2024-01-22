@@ -7,6 +7,8 @@ pub const Cell = cell.Cell;
 pub const Key = @import("Key.zig");
 pub const Winsize = @import("Tty.zig").Winsize;
 
+pub const widgets = @import("widgets/main.zig");
+
 /// Initialize a Vaxis application.
 pub fn init(comptime EventType: type, opts: Options) !Vaxis(EventType) {
     return Vaxis(EventType).init(opts);

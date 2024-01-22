@@ -14,7 +14,9 @@ pub const Modifiers = packed struct(u8) {
 /// the unicode codepoint of the key event.
 codepoint: u21,
 
-/// the text generated from the key event, if any
+/// the text generated from the key event. This will only contain a value if the
+/// event generated a multi-codepoint grapheme. If there was only a single
+/// codepoint, library users can encode the codepoint directly
 text: ?[]const u8 = null,
 
 /// the shifted codepoint of this key event. This will only be present if the

@@ -14,7 +14,7 @@ pub fn build(b: *std.Build) void {
 
     const exe = b.addExecutable(.{
         .name = "vaxis",
-        .root_source_file = .{ .path = "examples/main.zig" },
+        .root_source_file = .{ .path = "examples/text_input.zig" },
         .target = target,
         .optimize = optimize,
     });
