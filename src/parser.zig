@@ -79,7 +79,6 @@ pub fn parse(input: []const u8) !Result {
                         state = .escape;
                         continue;
                     },
-                    // 0x20...0x7E => .{ .codepoint = b },
                     0x7F => .{ .codepoint = Key.backspace },
                     else => blk: {
                         var iter: CodePointIterator = .{ .bytes = input[i..] };

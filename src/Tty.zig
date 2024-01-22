@@ -6,6 +6,7 @@ const Vaxis = vaxis.Vaxis;
 const Event = @import("event.zig").Event;
 const parser = @import("parser.zig");
 const Key = vaxis.Key;
+const GraphemeCache = @import("GraphemeCache.zig");
 
 const log = std.log.scoped(.tty);
 
@@ -112,6 +113,9 @@ pub fn run(
     };
     try WinchHandler.init(vx, self.fd);
 
+    // initialize a grapheme cache
+    var cache: GraphemeCache = .{};
+
     // Set up fds for polling
     var pollfds: [2]std.os.pollfd = .{
         .{ .fd = self.fd, .events = std.os.POLL.IN, .revents = undefined },
@@ -132,7 +136,7 @@ pub fn run(
         var start: usize = 0;
         while (start < n) {
             const result = try parser.parse(buf[start..n]);
-            start = result.n;
+            start += result.n;
             // TODO: if we get 0 byte read, copy the remaining bytes to the
             // beginning of the buffer and read mmore? this should only happen
             // if we are in the middle of a grapheme at and filled our
@@ -143,7 +147,12 @@ pub fn run(
             switch (event) {
                 .key_press => |key| {
                     if (@hasField(EventType, "key_press")) {
-                        vx.postEvent(.{ .key_press = key });
+                        // HACK: yuck. there has to be a better way
+                        var mut_key = key;
+                        if (key.text) |text| {
+                            mut_key.text = cache.put(text);
+                        }
+                        vx.postEvent(.{ .key_press = mut_key });
                     }
                 },
                 .focus_in => {
