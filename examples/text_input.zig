@@ -43,7 +43,10 @@ pub fn main() !void {
         // enum has the fields for those events (ie "key_press", "winsize")
         switch (event) {
             .key_press => |key| {
-                color_idx += 1;
+                color_idx = switch (color_idx) {
+                    255 => 0,
+                    else => color_idx + 1,
+                };
                 text_input.update(.{ .key_press = key });
                 if (key.codepoint == 'c' and key.mods.ctrl) {
                     break :outer;
@@ -63,7 +66,12 @@ pub fn main() !void {
         // vaxis double buffers the screen. This new frame will be compared to
         // the old and only updated cells will be drawn
         win.clear();
-        const child = win.initChild(win.width / 2 - 20, win.height / 2 - 3, .{ .limit = 40 }, .{ .limit = 3 });
+        const child = win.initChild(
+            win.width / 2 - 20,
+            win.height / 2 - 3,
+            .{ .limit = 40 },
+            .{ .limit = 3 },
+        );
         // draw the text_input using a bordered window
         const style: vaxis.Style = .{
             .fg = .{ .index = color_idx },
