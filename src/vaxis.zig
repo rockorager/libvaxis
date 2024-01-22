@@ -196,6 +196,7 @@ pub fn Vaxis(comptime T: type) type {
             // and then reshow it if needed
             _ = try tty.write(ctlseqs.hide_cursor);
             _ = try tty.write(ctlseqs.home);
+            _ = try tty.write(ctlseqs.sgr_reset);
 
             // initialize some variables
             var reposition: bool = false;
@@ -207,7 +208,6 @@ pub fn Vaxis(comptime T: type) type {
             while (i < self.screen.buf.len) : (i += 1) {
                 const cell = self.screen.buf[i];
                 defer col += 1;
-                defer cursor = cell.style;
                 if (col == self.screen.width) {
                     row += 1;
                     col = 0;
@@ -223,6 +223,7 @@ pub fn Vaxis(comptime T: type) type {
                     }
                     continue;
                 }
+                defer cursor = cell.style;
                 // Set this cell in the last frame
                 self.screen_last.buf[i] = cell;
 

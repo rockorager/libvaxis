@@ -3,6 +3,7 @@ pub const Options = @import("Options.zig");
 
 const cell = @import("cell.zig");
 pub const Cell = cell.Cell;
+pub const Style = cell.Style;
 
 pub const Key = @import("Key.zig");
 pub const Winsize = @import("Tty.zig").Winsize;

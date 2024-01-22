@@ -24,6 +24,9 @@ pub const show_cursor = "\x1b[?25h";
 pub const smcup = "\x1b[?1049h";
 pub const rmcup = "\x1b[?1049l";
 
+// sgr reset all
+pub const sgr_reset = "\x1b[m";
+
 // colors
 pub const fg_base = "\x1b[3{d}m";
 pub const fg_bright = "\x1b[9{d}m";
@@ -33,7 +36,7 @@ pub const bg_bright = "\x1b[10{d}m";
 pub const fg_reset = "\x1b[39m";
 pub const bg_reset = "\x1b[49m";
 pub const ul_reset = "\x1b[59m";
-pub const fg_indexed = "\x1b[38;5;{d}m";
+pub const fg_indexed = "\x1b[38:5:{d}m";
 pub const bg_indexed = "\x1b[48:5:{d}m";
 pub const ul_indexed = "\x1b[58:5:{d}m";
 pub const fg_rgb = "\x1b[38:2:{d}:{d}:{d}m";

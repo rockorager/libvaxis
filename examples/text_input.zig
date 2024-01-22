@@ -28,6 +28,9 @@ pub fn main() !void {
     // Optionally enter the alternate screen
     try vx.enterAltScreen();
 
+    // We'll adjust the color index every keypress for the border
+    var color_idx: u8 = 0;
+
     var text_input: TextInput = .{};
 
     // The main event loop. Vaxis provides a thread safe, blocking, buffered
@@ -40,6 +43,7 @@ pub fn main() !void {
         // enum has the fields for those events (ie "key_press", "winsize")
         switch (event) {
             .key_press => |key| {
+                color_idx += 1;
                 text_input.update(.{ .key_press = key });
                 if (key.codepoint == 'c' and key.mods.ctrl) {
                     break :outer;
@@ -61,7 +65,10 @@ pub fn main() !void {
         win.clear();
         const child = win.initChild(win.width / 2 - 20, win.height / 2 - 3, .{ .limit = 40 }, .{ .limit = 3 });
         // draw the text_input using a bordered window
-        text_input.draw(border.all(child, .{}));
+        const style: vaxis.Style = .{
+            .fg = .{ .index = color_idx },
+        };
+        text_input.draw(border.all(child, style));
 
         // Render the screen
         try vx.render();

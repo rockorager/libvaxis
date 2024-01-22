@@ -24,17 +24,19 @@ buffer_idx: usize = 0,
 pub fn update(self: *TextInput, event: Event) void {
     switch (event) {
         .key_press => |key| {
-            log.info("key : {}", .{key});
             if (key.text) |text| {
                 @memcpy(self.buffer[self.buffer_idx .. self.buffer_idx + text.len], text);
                 self.buffer_idx += text.len;
+                self.cursor_idx += strWidth(text, .full) catch 1;
             }
             switch (key.codepoint) {
                 Key.backspace => {
                     // TODO: this only works at the end of the array. Then
                     // again, we don't have any means to move  the cursor yet
+                    // This also doesn't work with graphemes yet
                     if (self.buffer_idx == 0) return;
                     self.buffer_idx -= 1;
+                    self.cursor_idx -= 1;
                 },
                 else => {},
             }
@@ -57,4 +59,5 @@ pub fn draw(self: *TextInput, win: Window) void {
         });
         col += w;
     }
+    win.showCursor(self.cursor_idx, 0);
 }
