@@ -18,6 +18,9 @@ const Event = union(enum) {
 cursor_idx: usize = 0,
 grapheme_count: usize = 0,
 
+// TODO: an ArrayList is not great for this. orderedRemove is O(n) and we can
+// only remove one byte at a time. Make a bespoke ArrayList which allows removal
+// of a slice at a time, or truncating even would be nice
 buf: std.ArrayList(u8),
 
 pub fn init(alloc: std.mem.Allocator) TextInput {
