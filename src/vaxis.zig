@@ -6,6 +6,7 @@ const Tty = @import("Tty.zig");
 const Winsize = Tty.Winsize;
 const Key = @import("Key.zig");
 const Screen = @import("Screen.zig");
+const InternalScreen = @import("InternalScreen.zig");
 const Window = @import("Window.zig");
 const Options = @import("Options.zig");
 const Style = @import("cell.zig").Style;
@@ -38,7 +39,7 @@ pub fn Vaxis(comptime T: type) type {
         screen: Screen,
         // The last screen we drew. We keep this so we can efficiently update on
         // the next render
-        screen_last: Screen,
+        screen_last: InternalScreen = undefined,
 
         alt_screen: bool,
 
@@ -113,11 +114,14 @@ pub fn Vaxis(comptime T: type) type {
         /// freed when resizing
         pub fn resize(self: *Self, alloc: std.mem.Allocator, winsize: Winsize) !void {
             log.debug("resizing screen: width={d} height={d}", .{ winsize.cols, winsize.rows });
-            try self.screen.resize(alloc, winsize.cols, winsize.rows);
+            self.screen.deinit(alloc);
+            self.screen = try Screen.init(alloc, winsize.cols, winsize.rows);
+            // try self.screen.int(alloc, winsize.cols, winsize.rows);
             // we only init our current screen. This has the effect of redrawing
             // every cell
-            self.screen.init();
-            try self.screen_last.resize(alloc, winsize.cols, winsize.rows);
+            self.screen_last.deinit(alloc);
+            self.screen_last = try InternalScreen.init(alloc, winsize.cols, winsize.rows);
+            // try self.screen_last.resize(alloc, winsize.cols, winsize.rows);
         }
 
         /// returns a Window comprising of the entire terminal screen
@@ -214,7 +218,7 @@ pub fn Vaxis(comptime T: type) type {
                 }
                 // If cell is the same as our last frame, we don't need to do
                 // anything
-                if (std.meta.eql(cell, self.screen_last.buf[i])) {
+                if (self.screen_last.buf[i].eql(cell)) {
                     reposition = true;
                     // Close any osc8 sequence we might be in before
                     // repositioning
@@ -225,7 +229,7 @@ pub fn Vaxis(comptime T: type) type {
                 }
                 defer cursor = cell.style;
                 // Set this cell in the last frame
-                self.screen_last.buf[i] = cell;
+                self.screen_last.writeCell(col, row, cell.char.grapheme, cell.style);
 
                 // reposition the cursor, if needed
                 if (reposition) {

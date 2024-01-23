@@ -31,7 +31,8 @@ pub fn main() !void {
     // We'll adjust the color index every keypress for the border
     var color_idx: u8 = 0;
 
-    var text_input: TextInput = .{};
+    var text_input = TextInput.init(alloc);
+    defer text_input.deinit();
 
     // The main event loop. Vaxis provides a thread safe, blocking, buffered
     // queue which can serve as the primary event queue for an application
@@ -47,7 +48,7 @@ pub fn main() !void {
                     255 => 0,
                     else => color_idx + 1,
                 };
-                text_input.update(.{ .key_press = key });
+                try text_input.update(.{ .key_press = key });
                 if (key.codepoint == 'c' and key.mods.ctrl) {
                     break :outer;
                 }

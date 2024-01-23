@@ -16,22 +16,19 @@ cursor_row: usize = 0,
 cursor_col: usize = 0,
 cursor_vis: bool = false,
 
-/// sets each cell to the default cell
-pub fn init(self: *Screen) void {
+pub fn init(alloc: std.mem.Allocator, w: usize, h: usize) !Screen {
+    var self = Screen{
+        .buf = try alloc.alloc(Cell, w * h),
+        .width = w,
+        .height = h,
+    };
     for (self.buf, 0..) |_, i| {
         self.buf[i] = .{};
     }
+    return self;
 }
-
 pub fn deinit(self: *Screen, alloc: std.mem.Allocator) void {
     alloc.free(self.buf);
-}
-
-pub fn resize(self: *Screen, alloc: std.mem.Allocator, w: usize, h: usize) !void {
-    alloc.free(self.buf);
-    self.buf = try alloc.alloc(Cell, w * h);
-    self.width = w;
-    self.height = h;
 }
 
 /// writes a cell to a location. 0 indexed

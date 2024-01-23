@@ -16,27 +16,43 @@ const Event = union(enum) {
 
 // Index of our cursor
 cursor_idx: usize = 0,
+grapheme_count: usize = 0,
 
-// the actual line of input
-buffer: [4096]u8 = undefined,
-buffer_idx: usize = 0,
+buf: std.ArrayList(u8),
 
-pub fn update(self: *TextInput, event: Event) void {
+pub fn init(alloc: std.mem.Allocator) TextInput {
+    return TextInput{
+        .buf = std.ArrayList(u8).init(alloc),
+    };
+}
+
+pub fn deinit(self: *TextInput) void {
+    self.buf.deinit();
+}
+
+pub fn update(self: *TextInput, event: Event) !void {
     switch (event) {
         .key_press => |key| {
             if (key.text) |text| {
-                @memcpy(self.buffer[self.buffer_idx .. self.buffer_idx + text.len], text);
-                self.buffer_idx += text.len;
-                self.cursor_idx += strWidth(text, .full) catch 1;
+                try self.buf.insertSlice(self.byteOffsetToCursor(), text);
+                self.cursor_idx += 1;
+                self.grapheme_count += 1;
             }
             switch (key.codepoint) {
                 Key.backspace => {
-                    // TODO: this only works at the end of the array. Then
-                    // again, we don't have any means to move  the cursor yet
-                    // This also doesn't work with graphemes yet
-                    if (self.buffer_idx == 0) return;
-                    self.buffer_idx -= 1;
-                    self.cursor_idx -= 1;
+                    if (self.cursor_idx == 0) return;
+                    // Get the grapheme behind our cursor
+                    self.deleteBeforeCursor();
+                },
+                Key.delete => {
+                    if (self.cursor_idx == self.grapheme_count) return;
+                    self.deleteAtCursor();
+                },
+                Key.left => {
+                    if (self.cursor_idx > 0) self.cursor_idx -= 1;
+                },
+                Key.right => {
+                    if (self.cursor_idx < self.grapheme_count) self.cursor_idx += 1;
                 },
                 else => {},
             }
@@ -45,11 +61,12 @@ pub fn update(self: *TextInput, event: Event) void {
 }
 
 pub fn draw(self: *TextInput, win: Window) void {
-    const input = self.buffer[0..self.buffer_idx];
-    var iter = GraphemeIterator.init(input);
+    var iter = GraphemeIterator.init(self.buf.items);
     var col: usize = 0;
+    var i: usize = 0;
+    var cursor_idx: usize = 0;
     while (iter.next()) |grapheme| {
-        const g = grapheme.slice(input);
+        const g = grapheme.slice(self.buf.items);
         const w = strWidth(g, .full) catch 1;
         win.writeCell(col, 0, .{
             .char = .{
@@ -58,6 +75,58 @@ pub fn draw(self: *TextInput, win: Window) void {
             },
         });
         col += w;
+        i += 1;
+        if (i == self.cursor_idx) cursor_idx = col;
     }
-    win.showCursor(self.cursor_idx, 0);
+    win.showCursor(cursor_idx, 0);
+}
+
+// returns the number of bytes before the cursor
+fn byteOffsetToCursor(self: TextInput) usize {
+    var iter = GraphemeIterator.init(self.buf.items);
+    var offset: usize = 0;
+    var i: usize = 0;
+    while (iter.next()) |grapheme| {
+        if (i == self.cursor_idx) break;
+        offset += grapheme.len;
+        i += 1;
+    }
+    return offset;
+}
+
+fn deleteBeforeCursor(self: *TextInput) void {
+    var iter = GraphemeIterator.init(self.buf.items);
+    var offset: usize = 0;
+    var i: usize = 1;
+    while (iter.next()) |grapheme| {
+        if (i == self.cursor_idx) {
+            var j: usize = 0;
+            while (j < grapheme.len) : (j += 1) {
+                _ = self.buf.orderedRemove(offset);
+            }
+            self.cursor_idx -= 1;
+            self.grapheme_count -= 1;
+            return;
+        }
+        offset += grapheme.len;
+        i += 1;
+    }
+}
+
+fn deleteAtCursor(self: *TextInput) void {
+    var iter = GraphemeIterator.init(self.buf.items);
+    var offset: usize = 0;
+    var i: usize = 1;
+    while (iter.next()) |grapheme| {
+        if (i == self.cursor_idx + 1) {
+            var j: usize = 0;
+            while (j < grapheme.len) : (j += 1) {
+                _ = self.buf.orderedRemove(offset);
+            }
+            self.grapheme_count -= 1;
+            return;
+        }
+        offset += grapheme.len;
+        i += 1;
+    }
 }
