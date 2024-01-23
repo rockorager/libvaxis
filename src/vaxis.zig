@@ -10,6 +10,7 @@ const InternalScreen = @import("InternalScreen.zig");
 const Window = @import("Window.zig");
 const Options = @import("Options.zig");
 const Style = @import("cell.zig").Style;
+const strWidth = @import("ziglyph").display_width.strWidth;
 
 /// Vaxis is the entrypoint for a Vaxis application. The provided type T should
 /// be a tagged union which contains all of the events the application will
@@ -73,14 +74,13 @@ pub fn Vaxis(comptime T: type) type {
         pub fn deinit(self: *Self, alloc: ?std.mem.Allocator) void {
             if (self.tty) |_| {
                 var tty = &self.tty.?;
-                if (self.alt_screen) {
-                    _ = tty.write(ctlseqs.rmcup) catch {};
-                    tty.flush() catch {};
-                }
                 if (self.kitty_keyboard) {
                     _ = tty.write(ctlseqs.csi_u_pop) catch {};
-                    tty.flush() catch {};
                 }
+                if (self.alt_screen) {
+                    _ = tty.write(ctlseqs.rmcup) catch {};
+                }
+                tty.flush() catch {};
                 tty.deinit();
             }
             if (alloc) |a| {
@@ -242,10 +242,18 @@ pub fn Vaxis(comptime T: type) type {
             var cursor: Style = .{};
 
             var i: usize = 0;
-            while (i < self.screen.buf.len) : (i += 1) {
+            while (i < self.screen.buf.len) {
                 const cell = self.screen.buf[i];
-                defer col += 1;
-                if (col == self.screen.width) {
+                defer {
+                    // advance by the width of this char mod 1
+                    const width = blk: {
+                        if (cell.char.width > 0) break :blk cell.char.width;
+                        break :blk strWidth(cell.char.grapheme, .half) catch 1;
+                    };
+                    col += width;
+                    i += width;
+                }
+                if (col >= self.screen.width) {
                     row += 1;
                     col = 0;
                 }
@@ -422,6 +430,7 @@ pub fn Vaxis(comptime T: type) type {
         }
 
         pub fn enableKittyKeyboard(self: *Self, flags: Key.KittyFlags) !void {
+            self.kitty_keyboard = true;
             const flag_int: u5 = @bitCast(flags);
             try std.fmt.format(
                 self.tty.?.buffered_writer.writer(),
@@ -430,6 +439,7 @@ pub fn Vaxis(comptime T: type) type {
                     flag_int,
                 },
             );
+            try self.tty.?.flush();
         }
     };
 }
