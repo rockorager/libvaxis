@@ -226,7 +226,10 @@ pub fn parse(input: []const u8) !Result {
                                 // codepoint
                                 if (seq.param_idx < 1) {
                                     log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                    continue;
+                                    return .{
+                                        .event = null,
+                                        .n = i + 1,
+                                    };
                                 }
                                 switch (seq.params[0]) {
                                     2 => break :blk Key.insert,
@@ -262,7 +265,10 @@ pub fn parse(input: []const u8) !Result {
                                     57427 => break :blk Key.kp_begin,
                                     else => {
                                         log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                        continue;
+                                        return .{
+                                            .event = null,
+                                            .n = i + 1,
+                                        };
                                     },
                                 }
                             },
@@ -271,11 +277,17 @@ pub fn parse(input: []const u8) !Result {
                                     // response to our kitty query
                                     // TODO: kitty query handling
                                     log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                    continue;
+                                    return .{
+                                        .event = null,
+                                        .n = i + 1,
+                                    };
                                 }
                                 if (seq.param_idx == 0) {
                                     log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                    continue;
+                                    return .{
+                                        .event = null,
+                                        .n = i + 1,
+                                    };
                                 }
                                 // In any csi u encoding, the codepoint
                                 // directly maps to our keypoint definitions
@@ -290,7 +302,10 @@ pub fn parse(input: []const u8) !Result {
                             },
                             else => {
                                 log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                continue;
+                                return .{
+                                    .event = null,
+                                    .n = i + 1,
+                                };
                             },
                         };
 
