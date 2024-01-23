@@ -36,12 +36,17 @@ pub fn Vaxis(comptime T: type) type {
 
         tty: ?Tty,
 
+        /// the screen we write to
         screen: Screen,
-        // The last screen we drew. We keep this so we can efficiently update on
-        // the next render
+        /// The last screen we drew. We keep this so we can efficiently update on
+        /// the next render
         screen_last: InternalScreen = undefined,
 
+        /// alt_screen state. We track so we can exit on deinit
         alt_screen: bool,
+
+        /// if we should redraw the entire screen on the next render
+        refresh: bool = false,
 
         // statistics
         renders: usize = 0,
@@ -161,26 +166,37 @@ pub fn Vaxis(comptime T: type) type {
             var tty = self.tty orelse return;
 
             const colorterm = std.os.getenv("COLORTERM") orelse "";
-            if (std.mem.eql(u8, colorterm, "truecolor" or
-                std.mem.eql(u8, colorterm, "24bit")))
+            if (std.mem.eql(u8, colorterm, "truecolor") or
+                std.mem.eql(u8, colorterm, "24bit"))
             {
                 // TODO: Notify rgb support
             }
 
-            const writer = tty.buffered_writer.writer();
-            _ = try writer.write(ctlseqs.decrqm_focus);
-            _ = try writer.write(ctlseqs.decrqm_sync);
-            _ = try writer.write(ctlseqs.decrqm_unicode);
-            _ = try writer.write(ctlseqs.decrqm_color_theme);
-            _ = try writer.write(ctlseqs.xtversion);
-            _ = try writer.write(ctlseqs.csi_u_query);
-            _ = try writer.write(ctlseqs.kitty_graphics_query);
-            _ = try writer.write(ctlseqs.sixel_geometry_query);
+            // TODO: decide if we actually want to query for focus and sync. It
+            // doesn't hurt to blindly use them
+            // _ = try tty.write(ctlseqs.decrqm_focus);
+            // _ = try tty.write(ctlseqs.decrqm_sync);
+            _ = try tty.write(ctlseqs.decrqm_unicode);
+            _ = try tty.write(ctlseqs.decrqm_color_theme);
+            // TODO: XTVERSION has a DCS response. uncomment when we can parse
+            // that
+            // _ = try tty.write(ctlseqs.xtversion);
+            _ = try tty.write(ctlseqs.csi_u_query);
+            // TODO: KITTY_GRAPHICS has an APC response. uncomment when we can
+            // parse that
+            // that
+            // _ = try tty.write(ctlseqs.kitty_graphics_query);
+            _ = try tty.write(ctlseqs.sixel_geometry_query);
 
             // TODO: XTGETTCAP queries ("RGB", "Smulx")
 
-            _ = try writer.write(ctlseqs.primary_device_attrs);
-            try writer.flush();
+            _ = try tty.write(ctlseqs.primary_device_attrs);
+            try tty.flush();
+        }
+
+        // the next render call will refresh the entire screen
+        pub fn queueRefresh(self: *Self) void {
+            self.refresh = true;
         }
 
         /// draws the screen to the terminal
@@ -192,7 +208,15 @@ pub fn Vaxis(comptime T: type) type {
                 self.render_dur += std.time.microTimestamp() - timer_start;
             }
 
+            defer self.refresh = false;
             defer tty.flush() catch {};
+
+            // Set up sync before we write anything
+            // TODO: optimize sync so we only sync _when we have changes_. This
+            // requires a smarter buffered writer, we'll probably have to write
+            // our own
+            _ = try tty.write(ctlseqs.sync_set);
+            defer _ = tty.write(ctlseqs.sync_reset) catch {};
 
             // Send the cursor to 0,0
             // TODO: this needs to move after we optimize writes. We only do
@@ -218,7 +242,7 @@ pub fn Vaxis(comptime T: type) type {
                 }
                 // If cell is the same as our last frame, we don't need to do
                 // anything
-                if (self.screen_last.buf[i].eql(cell)) {
+                if (!self.refresh and self.screen_last.buf[i].eql(cell)) {
                     reposition = true;
                     // Close any osc8 sequence we might be in before
                     // repositioning

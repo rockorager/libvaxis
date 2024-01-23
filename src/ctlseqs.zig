@@ -10,6 +10,10 @@ pub const csi_u_query = "\x1b[?u";
 pub const kitty_graphics_query = "\x1b_Gi=1,a=q\x1b\\";
 pub const sixel_geometry_query = "\x1b[?2;1;0S";
 
+// sync
+pub const sync_set = "\x1b[?2026h";
+pub const sync_reset = "\x1b[?2026l";
+
 // Key encoding
 pub const csi_u_push = "\x1b[>{d}u";
 pub const csi_u_pop = "\x1b[<u";

@@ -34,6 +34,8 @@ pub fn main() !void {
     var text_input = TextInput.init(alloc);
     defer text_input.deinit();
 
+    try vx.queryTerminal();
+
     // The main event loop. Vaxis provides a thread safe, blocking, buffered
     // queue which can serve as the primary event queue for an application
     outer: while (true) {
@@ -49,8 +51,11 @@ pub fn main() !void {
                     else => color_idx + 1,
                 };
                 try text_input.update(.{ .key_press = key });
-                if (key.codepoint == 'c' and key.mods.ctrl) {
+                if (key.matches('c', .{ .ctrl = true })) {
                     break :outer;
+                }
+                if (key.matches('l', .{ .ctrl = true })) {
+                    vx.queueRefresh();
                 }
             },
             .winsize => |ws| {
