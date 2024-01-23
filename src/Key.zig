@@ -1,3 +1,7 @@
+const std = @import("std");
+const testing = std.testing;
+const ziglyph = @import("ziglyph");
+
 const Key = @This();
 
 pub const Modifiers = packed struct(u8) {
@@ -29,6 +33,81 @@ shifted_codepoint: ?u21 = null,
 base_layout_codepoint: ?u21 = null,
 
 mods: Modifiers = .{},
+
+// matches follows a loose matching algorithm for key matches.
+// 1. If the codepoint and modifiers are exact matches
+// 2. If the utf8 encoding of the codepoint matches the text
+// 3. If there is a shifted codepoint and it matches after removing the shift
+//    modifier from self
+pub fn matches(self: Key, cp: u21, mods: Modifiers) bool {
+    // rule 1
+    if (self.matchExact(cp, mods)) return true;
+
+    // rule 2
+    if (self.matchText(cp, mods)) return true;
+
+    // rule 3
+    if (self.matchShiftedCodepoint(cp, mods)) return true;
+
+    // rule 4
+    if (self.matchShiftedCodepoint(cp, mods)) return true;
+
+    return false;
+}
+
+// matches base layout codes, useful for shortcut matching when an alternate key
+// layout is used
+pub fn matchShortcut(self: Key, cp: u21, mods: Modifiers) bool {
+    if (self.base_layout_codepoint == null) return false;
+    return cp == self.base_layout_codepoint.? and std.meta.eql(self.mods, mods);
+}
+
+// matches keys that aren't upper case versions when shifted. For example, shift
+// + semicolon produces a colon. The key can be matched against shift +
+// semicolon or just colon...or shift + ctrl + ; or just ctrl + :
+pub fn matchShiftedCodepoint(self: Key, cp: u21, mods: Modifiers) bool {
+    if (self.shifted_codepoint == null) return false;
+    if (!self.mods.shift) return false;
+    var self_mods = self.mods;
+    self_mods.shift = false;
+    return cp == self.shifted_codepoint.? and std.meta.eql(self_mods, mods);
+}
+
+// matches when the utf8 encoding of the codepoint and relevant mods matches the
+// text of the key. This function will consume Shift and Caps Lock when matching
+pub fn matchText(self: Key, cp: u21, mods: Modifiers) bool {
+    // return early if we have no text
+    if (self.text == null) return false;
+
+    var self_mods = self.mods;
+    var arg_mods = mods;
+    var code = cp;
+    // if the passed codepoint is upper, we consume all shift and caps mods for
+    // checking
+    if (ziglyph.isUpper(cp)) {
+        // consume mods
+        self_mods.shift = false;
+        self_mods.caps_lock = false;
+        arg_mods.shift = false;
+        arg_mods.caps_lock = false;
+    } else if (mods.shift or mods.caps_lock) {
+        // uppercase the cp and consume all mods
+        code = ziglyph.toUpper(cp);
+        self_mods.shift = false;
+        self_mods.caps_lock = false;
+        arg_mods.shift = false;
+        arg_mods.caps_lock = false;
+    }
+
+    var buf: [4]u8 = undefined;
+    const n = std.unicode.utf8Encode(cp, buf[0..]) catch return false;
+    return std.mem.eql(u8, self.text.?, buf[0..n]) and std.meta.eql(self_mods, arg_mods);
+}
+
+// The key must exactly match the codepoint and modifiers
+pub fn matchExact(self: Key, cp: u21, mods: Modifiers) bool {
+    return self.codepoint == cp and std.meta.eql(self.mods, mods);
+}
 
 // a few special keys that we encode as their actual ascii value
 pub const enter: u21 = 0x0D;
@@ -106,3 +185,47 @@ pub const kp_8: u21 = 57407;
 pub const kp_9: u21 = 57408;
 pub const kp_begin: u21 = 57427;
 // TODO: Finish the kitty keys
+
+test "matches 'a'" {
+    const key: Key = .{
+        .codepoint = 'a',
+    };
+    try testing.expect(key.matches('a', .{}));
+}
+
+test "matches 'shift+a'" {
+    const key: Key = .{
+        .codepoint = 'a',
+        .mods = .{ .shift = true },
+        .text = "A",
+    };
+    try testing.expect(key.matches('a', .{ .shift = true }));
+    try testing.expect(key.matches('A', .{}));
+    try testing.expect(!key.matches('A', .{ .ctrl = true }));
+}
+
+test "matches 'shift+tab'" {
+    const key: Key = .{
+        .codepoint = Key.tab,
+        .mods = .{ .shift = true },
+    };
+    try testing.expect(key.matches(Key.tab, .{ .shift = true }));
+    try testing.expect(!key.matches(Key.tab, .{}));
+}
+
+test "matches 'shift+;'" {
+    const key: Key = .{
+        .codepoint = ';',
+        .shifted_codepoint = ':',
+        .mods = .{ .shift = true },
+        .text = ":",
+    };
+    try testing.expect(key.matches(';', .{ .shift = true }));
+    try testing.expect(key.matches(':', .{}));
+
+    const colon: Key = .{
+        .codepoint = ':',
+        .mods = .{},
+    };
+    try testing.expect(colon.matches(':', .{}));
+}

@@ -41,24 +41,21 @@ pub fn update(self: *TextInput, event: Event) !void {
                 self.cursor_idx += 1;
                 self.grapheme_count += 1;
             }
-            switch (key.codepoint) {
-                Key.backspace => {
-                    if (self.cursor_idx == 0) return;
-                    // Get the grapheme behind our cursor
-                    self.deleteBeforeCursor();
-                },
-                Key.delete => {
-                    if (self.cursor_idx == self.grapheme_count) return;
-                    self.deleteAtCursor();
-                },
-                Key.left => {
-                    if (self.cursor_idx > 0) self.cursor_idx -= 1;
-                },
-                Key.right => {
-                    if (self.cursor_idx < self.grapheme_count) self.cursor_idx += 1;
-                },
-                else => {},
+            if (key.matches(Key.backspace, .{})) {
+                if (self.cursor_idx == 0) return;
+                self.deleteBeforeCursor();
             }
+            if (key.matches(Key.delete, .{})) {
+                if (self.cursor_idx == self.grapheme_count) return;
+                self.deleteAtCursor();
+            }
+            if (key.matches(Key.left, .{})) {
+                if (self.cursor_idx > 0) self.cursor_idx -= 1;
+            }
+            if (key.matches(Key.right, .{})) {
+                if (self.cursor_idx < self.grapheme_count) self.cursor_idx += 1;
+            }
+            // TODO: readline bindings
         },
     }
 }
