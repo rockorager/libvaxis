@@ -7,6 +7,8 @@ const graphemeBreak = @import("ziglyph").graphemeBreak;
 
 const log = std.log.scoped(.parser);
 
+const Parser = @This();
+
 /// The return type of our parse method. Contains an Event and the number of
 /// bytes read from the buffer.
 pub const Result = struct {
@@ -44,7 +46,11 @@ const State = enum {
     ss3,
 };
 
-pub fn parse(input: []const u8) !Result {
+// a buffer to temporarily store text in. We need this to encode
+// text-as-codepoints
+buf: [128]u8 = undefined,
+
+pub fn parse(self: *Parser, input: []const u8) !Result {
     const n = input.len;
 
     var seq: Sequence = .{};
@@ -349,10 +355,26 @@ pub fn parse(input: []const u8) !Result {
                                     key.base_layout_codepoint = seq.params[idx];
                                 },
                                 1 => {
+                                    defer field += 1;
                                     // field 1 is modifiers and optionally
-                                    // the event type (csiu)
-                                    const mod_mask: u8 = @truncate(seq.params[idx] - 1);
-                                    key.mods = @bitCast(mod_mask);
+                                    // the event type (csiu). It can be empty
+                                    if (seq.empty_state.isSet(idx)) {
+                                        continue;
+                                    }
+                                    // default of 1
+                                    const ps: u8 = blk: {
+                                        if (seq.params[idx] == 0) break :blk 1;
+                                        break :blk @truncate(seq.params[idx]);
+                                    };
+                                    key.mods = @bitCast(ps - 1);
+                                },
+                                2 => {
+                                    // field 2 is text, as codepoints
+                                    var total: usize = 0;
+                                    while (idx < seq.param_idx) : (idx += 1) {
+                                        total += try std.unicode.utf8Encode(seq.params[idx], self.buf[total..]);
+                                    }
+                                    key.text = self.buf[0..total];
                                 },
                                 else => {},
                             }
@@ -377,7 +399,8 @@ pub fn parse(input: []const u8) !Result {
 
 test "parse: single xterm keypress" {
     const input = "a";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = 'a',
         .text = "a",
@@ -390,7 +413,8 @@ test "parse: single xterm keypress" {
 
 test "parse: single xterm keypress with more buffer" {
     const input = "ab";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = 'a',
         .text = "a",
@@ -404,7 +428,8 @@ test "parse: single xterm keypress with more buffer" {
 
 test "parse: xterm escape keypress" {
     const input = "\x1b";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_key: Key = .{ .codepoint = Key.escape };
     const expected_event: Event = .{ .key_press = expected_key };
 
@@ -414,7 +439,8 @@ test "parse: xterm escape keypress" {
 
 test "parse: xterm ctrl+a" {
     const input = "\x01";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_key: Key = .{ .codepoint = 'a', .mods = .{ .ctrl = true } };
     const expected_event: Event = .{ .key_press = expected_key };
 
@@ -424,7 +450,8 @@ test "parse: xterm ctrl+a" {
 
 test "parse: xterm alt+a" {
     const input = "\x1ba";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_key: Key = .{ .codepoint = 'a', .mods = .{ .alt = true } };
     const expected_event: Event = .{ .key_press = expected_key };
 
@@ -434,7 +461,8 @@ test "parse: xterm alt+a" {
 
 test "parse: xterm invalid ss3" {
     const input = "\x1bOZ";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
 
     try testing.expectEqual(3, result.n);
     try testing.expectEqual(null, result.event);
@@ -444,7 +472,8 @@ test "parse: xterm key up" {
     {
         // normal version
         const input = "\x1bOA";
-        const result = try parse(input);
+        var parser: Parser = .{};
+        const result = try parser.parse(input);
         const expected_key: Key = .{ .codepoint = Key.up };
         const expected_event: Event = .{ .key_press = expected_key };
 
@@ -455,7 +484,8 @@ test "parse: xterm key up" {
     {
         // application keys version
         const input = "\x1b[2~";
-        const result = try parse(input);
+        var parser: Parser = .{};
+        const result = try parser.parse(input);
         const expected_key: Key = .{ .codepoint = Key.insert };
         const expected_event: Event = .{ .key_press = expected_key };
 
@@ -466,7 +496,8 @@ test "parse: xterm key up" {
 
 test "parse: xterm shift+up" {
     const input = "\x1b[1;2A";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_key: Key = .{ .codepoint = Key.up, .mods = .{ .shift = true } };
     const expected_event: Event = .{ .key_press = expected_key };
 
@@ -476,7 +507,8 @@ test "parse: xterm shift+up" {
 
 test "parse: xterm insert" {
     const input = "\x1b[1;2A";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_key: Key = .{ .codepoint = Key.up, .mods = .{ .shift = true } };
     const expected_event: Event = .{ .key_press = expected_key };
 
@@ -486,7 +518,8 @@ test "parse: xterm insert" {
 
 test "parse: paste_start" {
     const input = "\x1b[200~";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_event: Event = .paste_start;
 
     try testing.expectEqual(6, result.n);
@@ -495,7 +528,8 @@ test "parse: paste_start" {
 
 test "parse: paste_end" {
     const input = "\x1b[201~";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_event: Event = .paste_end;
 
     try testing.expectEqual(6, result.n);
@@ -504,7 +538,8 @@ test "parse: paste_end" {
 
 test "parse: focus_in" {
     const input = "\x1b[I";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_event: Event = .focus_in;
 
     try testing.expectEqual(3, result.n);
@@ -513,7 +548,8 @@ test "parse: focus_in" {
 
 test "parse: focus_out" {
     const input = "\x1b[O";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_event: Event = .focus_out;
 
     try testing.expectEqual(3, result.n);
@@ -522,7 +558,8 @@ test "parse: focus_out" {
 
 test "parse: kitty: shift+a without text reporting" {
     const input = "\x1b[97:65;2u";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = 'a',
         .shifted_codepoint = 'A',
@@ -536,7 +573,8 @@ test "parse: kitty: shift+a without text reporting" {
 
 test "parse: kitty: alt+shift+a without text reporting" {
     const input = "\x1b[97:65;4u";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = 'a',
         .shifted_codepoint = 'A',
@@ -550,7 +588,8 @@ test "parse: kitty: alt+shift+a without text reporting" {
 
 test "parse: kitty: a without text reporting" {
     const input = "\x1b[97u";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = 'a',
     };
@@ -562,7 +601,8 @@ test "parse: kitty: a without text reporting" {
 
 test "parse: single codepoint" {
     const input = "🙂";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = 0x1F642,
         .text = input,
@@ -575,7 +615,8 @@ test "parse: single codepoint" {
 
 test "parse: single codepoint with more in buffer" {
     const input = "🙂a";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = 0x1F642,
         .text = "🙂",
@@ -590,7 +631,8 @@ test "parse: multiple codepoint grapheme" {
     // TODO: this test is passing but throws a warning. Not sure how we'll
     // handle graphemes yet
     const input = "👩‍🚀";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = Key.multicodepoint,
         .text = input,
@@ -605,7 +647,8 @@ test "parse: multiple codepoint grapheme with more after" {
     // TODO: this test is passing but throws a warning. Not sure how we'll
     // handle graphemes yet
     const input = "👩‍🚀abc";
-    const result = try parse(input);
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = Key.multicodepoint,
         .text = "👩‍🚀",

@@ -4,7 +4,7 @@ const os = std.os;
 const vaxis = @import("main.zig");
 const Vaxis = vaxis.Vaxis;
 const Event = @import("event.zig").Event;
-const parser = @import("parser.zig");
+const Parser = @import("Parser.zig");
 const Key = vaxis.Key;
 const GraphemeCache = @import("GraphemeCache.zig");
 
@@ -122,6 +122,8 @@ pub fn run(
         .{ .fd = pipe[0], .events = std.os.POLL.IN, .revents = undefined },
     };
 
+    var parser: Parser = .{};
+
     // initialize the read buffer
     var buf: [1024]u8 = undefined;
     // read loop
@@ -178,6 +180,11 @@ pub fn run(
                 .cap_kitty_keyboard => {
                     if (@hasField(EventType, "cap_kitty_keyboard")) {
                         vx.postEvent(.cap_kitty_keyboard);
+                    }
+                },
+                .cap_rgb => {
+                    if (@hasField(EventType, "cap_rgb")) {
+                        vx.postEvent(.cap_rgb);
                     }
                 },
             }

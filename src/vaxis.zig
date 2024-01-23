@@ -45,6 +45,9 @@ pub fn Vaxis(comptime T: type) type {
         /// alt_screen state. We track so we can exit on deinit
         alt_screen: bool,
 
+        /// if we have entered kitty keyboard
+        kitty_keyboard: bool = false,
+
         /// if we should redraw the entire screen on the next render
         refresh: bool = false,
 
@@ -72,6 +75,10 @@ pub fn Vaxis(comptime T: type) type {
                 var tty = &self.tty.?;
                 if (self.alt_screen) {
                     _ = tty.write(ctlseqs.rmcup) catch {};
+                    tty.flush() catch {};
+                }
+                if (self.kitty_keyboard) {
+                    _ = tty.write(ctlseqs.csi_u_pop) catch {};
                     tty.flush() catch {};
                 }
                 tty.deinit();
@@ -169,7 +176,9 @@ pub fn Vaxis(comptime T: type) type {
             if (std.mem.eql(u8, colorterm, "truecolor") or
                 std.mem.eql(u8, colorterm, "24bit"))
             {
-                // TODO: Notify rgb support
+                if (@hasField(EventType, "cap_rgb")) {
+                    self.postEvent(.cap_rgb);
+                }
             }
 
             // TODO: decide if we actually want to query for focus and sync. It
@@ -410,6 +419,17 @@ pub fn Vaxis(comptime T: type) type {
                 );
                 _ = try tty.write(ctlseqs.show_cursor);
             }
+        }
+
+        pub fn enableKittyKeyboard(self: *Self, flags: Key.KittyFlags) !void {
+            const flag_int: u5 = @bitCast(flags);
+            try std.fmt.format(
+                self.tty.?.buffered_writer.writer(),
+                ctlseqs.csi_u_push,
+                .{
+                    flag_int,
+                },
+            );
         }
     };
 }

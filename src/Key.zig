@@ -15,6 +15,14 @@ pub const Modifiers = packed struct(u8) {
     num_lock: bool = false,
 };
 
+pub const KittyFlags = packed struct(u5) {
+    disambiguate: bool = true,
+    report_events: bool = false,
+    report_alternate_keys: bool = true,
+    report_all_as_ctl_seqs: bool = true,
+    report_text: bool = true,
+};
+
 /// the unicode codepoint of the key event.
 codepoint: u21,
 

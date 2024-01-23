@@ -20,6 +20,7 @@ test {
     _ = @import("GraphemeCache.zig");
     _ = @import("Key.zig");
     _ = @import("Options.zig");
+    _ = @import("Parser.zig");
     _ = @import("Screen.zig");
     _ = @import("Tty.zig");
     _ = @import("Window.zig");
@@ -27,6 +28,5 @@ test {
     _ = @import("ctlseqs.zig");
     _ = @import("event.zig");
     _ = @import("queue.zig");
-    _ = @import("parser.zig");
     _ = @import("vaxis.zig");
 }

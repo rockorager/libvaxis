@@ -8,5 +8,8 @@ pub const Event = union(enum) {
     focus_out,
     paste_start,
     paste_end,
+
+    // these are delivered as discovered terminal capabilities
     cap_kitty_keyboard,
+    cap_rgb,
 };

@@ -67,7 +67,7 @@ pub fn draw(self: *TextInput, win: Window) void {
     var cursor_idx: usize = 0;
     while (iter.next()) |grapheme| {
         const g = grapheme.slice(self.buf.items);
-        const w = strWidth(g, .full) catch 1;
+        const w = strWidth(g, .half) catch 1;
         win.writeCell(col, 0, .{
             .char = .{
                 .grapheme = g,
