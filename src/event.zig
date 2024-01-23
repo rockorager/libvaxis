@@ -8,4 +8,5 @@ pub const Event = union(enum) {
     focus_out,
     paste_start,
     paste_end,
+    cap_kitty_keyboard,
 };

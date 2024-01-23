@@ -7,6 +7,7 @@ pub const Style = cell.Style;
 
 pub const Key = @import("Key.zig");
 pub const Winsize = @import("Tty.zig").Winsize;
+pub const Event = @import("event.zig").Event;
 
 pub const widgets = @import("widgets/main.zig");
 

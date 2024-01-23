@@ -273,9 +273,16 @@ pub fn parse(input: []const u8) !Result {
                                 }
                             },
                             'u' => blk: {
-                                if (seq.private_indicator) |_| {
+                                if (seq.private_indicator) |priv| {
                                     // response to our kitty query
                                     // TODO: kitty query handling
+                                    if (priv == '?') {
+                                        return .{
+                                            .event = .cap_kitty_keyboard,
+                                            .n = i + 1,
+                                        };
+                                    }
+
                                     log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
                                     return .{
                                         .event = null,

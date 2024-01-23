@@ -175,6 +175,11 @@ pub fn run(
                         vx.postEvent(.paste_end);
                     }
                 },
+                .cap_kitty_keyboard => {
+                    if (@hasField(EventType, "cap_kitty_keyboard")) {
+                        vx.postEvent(.cap_kitty_keyboard);
+                    }
+                },
             }
         }
     }
