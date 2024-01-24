@@ -472,6 +472,24 @@ pub fn Vaxis(comptime T: type) type {
             );
             try self.tty.?.flush();
         }
+
+        /// send a system notification
+        pub fn notify(self: *Self, title: ?[]const u8, body: []const u8) !void {
+            if (self.tty == null) return;
+            if (title) |t| {
+                try std.fmt.format(
+                    self.tty.?.buffered_writer.writer(),
+                    ctlseqs.osc777_notify,
+                    .{ t, body },
+                );
+            } else {
+                try std.fmt.format(
+                    self.tty.?.buffered_writer.writer(),
+                    ctlseqs.osc9_notify,
+                    .{body},
+                );
+            }
+        }
     };
 }
 

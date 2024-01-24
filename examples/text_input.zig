@@ -71,6 +71,8 @@ pub fn main() !void {
                     break :outer;
                 } else if (key.matches('l', .{ .ctrl = true })) {
                     vx.queueRefresh();
+                } else if (key.matches('n', .{ .ctrl = true })) {
+                    try vx.notify("vaxis", "hello from vaxis");
                 } else {
                     try text_input.update(.{ .key_press = key });
                 }
