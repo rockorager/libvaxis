@@ -76,7 +76,6 @@ pub fn clear(self: Window) void {
 /// returns the width of the grapheme. This depends on the terminal capabilities
 pub fn gwidth(self: Window, str: []const u8) usize {
     const m: gw.Method = if (self.screen.unicode) .unicode else .wcwidth;
-    log.info("using method {any}", .{m});
     return gw.gwidth(str, m) catch 1;
 }
 

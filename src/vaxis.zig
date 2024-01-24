@@ -210,7 +210,8 @@ pub fn Vaxis(comptime T: type) type {
             // parse that
             // that
             // _ = try tty.write(ctlseqs.kitty_graphics_query);
-            _ = try tty.write(ctlseqs.sixel_geometry_query);
+            // TODO: sixel geometry query interferes with F4 keys.
+            // _ = try tty.write(ctlseqs.sixel_geometry_query);
 
             // TODO: XTGETTCAP queries ("RGB", "Smulx")
 
