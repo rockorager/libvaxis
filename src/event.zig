@@ -12,4 +12,5 @@ pub const Event = union(enum) {
     // these are delivered as discovered terminal capabilities
     cap_kitty_keyboard,
     cap_rgb,
+    cap_unicode,
 };

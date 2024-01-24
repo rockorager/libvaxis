@@ -281,19 +281,18 @@ pub fn parse(self: *Parser, input: []const u8) !Result {
                             'u' => blk: {
                                 if (seq.private_indicator) |priv| {
                                     // response to our kitty query
-                                    // TODO: kitty query handling
                                     if (priv == '?') {
                                         return .{
                                             .event = .cap_kitty_keyboard,
                                             .n = i + 1,
                                         };
+                                    } else {
+                                        log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
+                                        return .{
+                                            .event = null,
+                                            .n = i + 1,
+                                        };
                                     }
-
-                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                    return .{
-                                        .event = null,
-                                        .n = i + 1,
-                                    };
                                 }
                                 if (seq.param_idx == 0) {
                                     log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
@@ -312,6 +311,51 @@ pub fn parse(self: *Parser, input: []const u8) !Result {
                             },
                             'O' => { // focus out
                                 return .{ .event = .focus_out, .n = i + 1 };
+                            },
+                            'y' => { // DECRQM response
+                                const priv = seq.private_indicator orelse {
+                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
+                                    return .{ .event = null, .n = i + 1 };
+                                };
+                                if (priv != '?') {
+                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
+                                    return .{ .event = null, .n = i + 1 };
+                                }
+                                const intm = seq.intermediate orelse {
+                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
+                                    return .{ .event = null, .n = i + 1 };
+                                };
+                                if (intm != '$') {
+                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
+                                    return .{ .event = null, .n = i + 1 };
+                                }
+                                if (seq.param_idx != 2) {
+                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
+                                    return .{ .event = null, .n = i + 1 };
+                                }
+                                // We'll get two fields, the first is the mode
+                                // we requested, the second is the status of the
+                                // mode
+                                // 0: not recognize
+                                // 1: set
+                                // 2: reset
+                                // 3: permanently set
+                                // 4: permanently reset
+                                switch (seq.params[0]) {
+                                    2027 => {
+                                        switch (seq.params[1]) {
+                                            0, 4 => return .{ .event = null, .n = i + 1 },
+                                            else => return .{ .event = .cap_unicode, .n = i + 1 },
+                                        }
+                                    },
+                                    2031 => {},
+                                    else => {
+                                        log.warn("unhandled DECRPM: CSI {s}", .{input[start + 1 .. i + 1]});
+                                        return .{ .event = null, .n = i + 1 };
+                                    },
+                                }
+                                log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
+                                return .{ .event = null, .n = i + 1 };
                             },
                             else => {
                                 log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});

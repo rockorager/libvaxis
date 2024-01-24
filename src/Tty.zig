@@ -187,6 +187,11 @@ pub fn run(
                         vx.postEvent(.cap_rgb);
                     }
                 },
+                .cap_unicode => {
+                    if (@hasField(EventType, "cap_unicode")) {
+                        vx.postEvent(.cap_unicode);
+                    }
+                },
             }
         }
     }

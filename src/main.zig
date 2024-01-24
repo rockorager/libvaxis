@@ -27,6 +27,7 @@ test {
     _ = @import("cell.zig");
     _ = @import("ctlseqs.zig");
     _ = @import("event.zig");
+    _ = @import("gwidth.zig");
     _ = @import("queue.zig");
     _ = @import("vaxis.zig");
 }
