@@ -178,13 +178,17 @@ pub fn run(
                     }
                 },
                 .cap_kitty_keyboard => {
+                    log.info("kitty capability detected", .{});
                     vx.caps.kitty_keyboard = true;
                 },
                 .cap_rgb => {
+                    log.info("rgb capability detected", .{});
                     vx.caps.rgb = true;
                 },
                 .cap_unicode => {
+                    log.info("unicode capability detected", .{});
                     vx.caps.unicode = true;
+                    vx.screen.unicode = true;
                 },
                 .cap_da1 => {
                     std.Thread.Futex.wake(&vx.query_futex, 10);

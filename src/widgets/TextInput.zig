@@ -3,7 +3,6 @@ const Cell = @import("../cell.zig").Cell;
 const Key = @import("../Key.zig");
 const Window = @import("../Window.zig");
 const GraphemeIterator = @import("ziglyph").GraphemeIterator;
-const strWidth = @import("ziglyph").display_width.strWidth;
 
 const log = std.log.scoped(.text_input);
 
@@ -67,7 +66,7 @@ pub fn draw(self: *TextInput, win: Window) void {
     var cursor_idx: usize = 0;
     while (iter.next()) |grapheme| {
         const g = grapheme.slice(self.buf.items);
-        const w = strWidth(g, .half) catch 1;
+        const w = win.gwidth(g);
         win.writeCell(col, 0, .{
             .char = .{
                 .grapheme = g,

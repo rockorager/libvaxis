@@ -10,6 +10,8 @@ const InternalScreen = @This();
 pub const InternalCell = struct {
     char: std.ArrayList(u8) = undefined,
     style: Style = .{},
+    // if we got skipped because of a wide character
+    skipped: bool = false,
 
     pub fn eql(self: InternalCell, cell: Cell) bool {
         return std.mem.eql(u8, self.char.items, cell.char.grapheme) and std.meta.eql(self.style, cell.style);

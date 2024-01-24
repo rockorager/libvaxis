@@ -12,6 +12,7 @@ const Window = @import("Window.zig");
 const Options = @import("Options.zig");
 const Style = @import("cell.zig").Style;
 const strWidth = @import("ziglyph").display_width.strWidth;
+const gwidth = @import("gwidth.zig");
 
 /// Vaxis is the entrypoint for a Vaxis application. The provided type T should
 /// be a tagged union which contains all of the events the application will
@@ -141,6 +142,7 @@ pub fn Vaxis(comptime T: type) type {
             log.debug("resizing screen: width={d} height={d}", .{ winsize.cols, winsize.rows });
             self.screen.deinit(alloc);
             self.screen = try Screen.init(alloc, winsize.cols, winsize.rows);
+            self.screen.unicode = self.caps.unicode;
             // try self.screen.int(alloc, winsize.cols, winsize.rows);
             // we only init our current screen. This has the effect of redrawing
             // every cell
@@ -270,12 +272,14 @@ pub fn Vaxis(comptime T: type) type {
                 const cell = self.screen.buf[i];
                 defer {
                     // advance by the width of this char mod 1
-                    const width = blk: {
-                        if (cell.char.width > 0) break :blk cell.char.width;
-                        break :blk strWidth(cell.char.grapheme, .half) catch 1;
-                    };
-                    col += width;
-                    i += width;
+                    const method: gwidth.Method = if (self.caps.unicode) .unicode else .wcwidth;
+                    const w = gwidth.gwidth(cell.char.grapheme, method) catch 1;
+                    var j = i + 1;
+                    while (j < i + w) : (j += 1) {
+                        self.screen_last.buf[j].skipped = true;
+                    }
+                    col += w;
+                    i += w;
                 }
                 if (col >= self.screen.width) {
                     row += 1;
@@ -283,7 +287,8 @@ pub fn Vaxis(comptime T: type) type {
                 }
                 // If cell is the same as our last frame, we don't need to do
                 // anything
-                if (!self.refresh and self.screen_last.buf[i].eql(cell)) {
+                const last = self.screen_last.buf[i];
+                if (!self.refresh and last.eql(cell) and !last.skipped) {
                     reposition = true;
                     // Close any osc8 sequence we might be in before
                     // repositioning
@@ -292,6 +297,7 @@ pub fn Vaxis(comptime T: type) type {
                     }
                     continue;
                 }
+                self.screen_last.buf[i].skipped = false;
                 defer cursor = cell.style;
                 // Set this cell in the last frame
                 self.screen_last.writeCell(col, row, cell.char.grapheme, cell.style);

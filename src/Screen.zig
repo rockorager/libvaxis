@@ -16,6 +16,8 @@ cursor_row: usize = 0,
 cursor_col: usize = 0,
 cursor_vis: bool = false,
 
+unicode: bool = false,
+
 pub fn init(alloc: std.mem.Allocator, w: usize, h: usize) !Screen {
     var self = Screen{
         .buf = try alloc.alloc(Cell, w * h),

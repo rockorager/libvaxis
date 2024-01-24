@@ -2,6 +2,7 @@ const std = @import("std");
 
 const Screen = @import("Screen.zig");
 const Cell = @import("cell.zig").Cell;
+const gw = @import("gwidth.zig");
 
 const log = std.log.scoped(.window);
 
@@ -70,6 +71,13 @@ pub fn writeCell(self: Window, col: usize, row: usize, cell: Cell) void {
 /// fills the window with the default cell
 pub fn clear(self: Window) void {
     self.fill(.{});
+}
+
+/// returns the width of the grapheme. This depends on the terminal capabilities
+pub fn gwidth(self: Window, str: []const u8) usize {
+    const m: gw.Method = if (self.screen.unicode) .unicode else .wcwidth;
+    log.info("using method {any}", .{m});
+    return gw.gwidth(str, m) catch 1;
 }
 
 /// fills the window with the provided cell
