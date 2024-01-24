@@ -14,8 +14,13 @@ pub const sixel_geometry_query = "\x1b[?2;1;0S";
 pub const sync_set = "\x1b[?2026h";
 pub const sync_reset = "\x1b[?2026l";
 
+// unicode
 pub const unicode_set = "\x1b[?2027h";
 pub const unicode_reset = "\x1b[?2027l";
+
+// bracketed paste
+pub const bp_set = "\x1b[?2004h";
+pub const bp_reset = "\x1b[?2004l";
 
 // Key encoding
 pub const csi_u_push = "\x1b[>{d}u";

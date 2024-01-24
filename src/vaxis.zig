@@ -500,6 +500,16 @@ pub fn Vaxis(comptime T: type) type {
                 .{title},
             );
         }
+
+        // turn bracketed paste on or off. An event will be sent at the
+        // beginning and end of a detected paste. All keystrokes between these
+        // events were pasted
+        pub fn bracketedPaste(self: *Self, enable: bool) !void {
+            if (self.tty == null) return;
+            const seq = if (enable) ctlseqs.bp_set else ctlseqs.bp_reset;
+            _ = try self.tty.?.write(seq);
+            try self.tty.?.flush();
+        }
     };
 }
 
