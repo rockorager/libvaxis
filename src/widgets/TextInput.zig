@@ -35,24 +35,20 @@ pub fn deinit(self: *TextInput) void {
 pub fn update(self: *TextInput, event: Event) !void {
     switch (event) {
         .key_press => |key| {
-            if (key.text) |text| {
-                try self.buf.insertSlice(self.byteOffsetToCursor(), text);
-                self.cursor_idx += 1;
-                self.grapheme_count += 1;
-            }
             if (key.matches(Key.backspace, .{})) {
                 if (self.cursor_idx == 0) return;
                 self.deleteBeforeCursor();
-            }
-            if (key.matches(Key.delete, .{})) {
+            } else if (key.matches(Key.delete, .{})) {
                 if (self.cursor_idx == self.grapheme_count) return;
                 self.deleteAtCursor();
-            }
-            if (key.matches(Key.left, .{})) {
+            } else if (key.matches(Key.left, .{})) {
                 if (self.cursor_idx > 0) self.cursor_idx -= 1;
-            }
-            if (key.matches(Key.right, .{})) {
+            } else if (key.matches(Key.right, .{})) {
                 if (self.cursor_idx < self.grapheme_count) self.cursor_idx += 1;
+            } else if (key.text) |text| {
+                try self.buf.insertSlice(self.byteOffsetToCursor(), text);
+                self.cursor_idx += 1;
+                self.grapheme_count += 1;
             }
             // TODO: readline bindings
         },
