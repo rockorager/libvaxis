@@ -109,7 +109,7 @@ pub fn Vaxis(comptime T: type) type {
         }
 
         /// spawns the input thread to start listening to the tty for input
-        pub fn start(self: *Self) !void {
+        pub fn startReadThread(self: *Self) !void {
             self.tty = try Tty.init();
             // run our tty read loop in it's own thread
             const read_thread = try std.Thread.spawn(.{}, Tty.run, .{ &self.tty.?, T, self });
@@ -117,7 +117,7 @@ pub fn Vaxis(comptime T: type) type {
         }
 
         /// stops reading from the tty
-        pub fn stop(self: *Self) void {
+        pub fn stopReadThread(self: *Self) void {
             if (self.tty) |_| {
                 var tty = &self.tty.?;
                 tty.stop();
