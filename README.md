@@ -22,7 +22,7 @@ Contributions are welcome.
 | Bracketed Paste                |  ✅   |    ✅    |    ❌     |
 | Kitty Keyboard                 |  ✅   |    ✅    |    ✅     |
 | Styled Underlines              |  ✅   |    ✅    |    ✅     |
-| Mouse Shapes (OSC 22)          |  ✅   | planned  |    ❌     |
+| Mouse Shapes (OSC 22)          |  ✅   |    ✅    |    ❌     |
 | System Clipboard (OSC 52)      |  ✅   | planned  |    ❌     |
 | System Notifications (OSC 9)   |  ✅   |    ✅    |    ❌     |
 | System Notifications (OSC 777) |  ✅   |    ✅    |    ❌     |

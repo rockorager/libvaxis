@@ -2,6 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 
 const Cell = @import("cell.zig").Cell;
+const Shape = @import("Mouse.zig").Shape;
 
 const log = std.log.scoped(.screen);
 
@@ -17,6 +18,8 @@ cursor_col: usize = 0,
 cursor_vis: bool = false,
 
 unicode: bool = false,
+
+mouse_shape: Shape = .default,
 
 pub fn init(alloc: std.mem.Allocator, w: usize, h: usize) !Screen {
     var self = Screen{

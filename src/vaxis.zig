@@ -11,8 +11,8 @@ const InternalScreen = @import("InternalScreen.zig");
 const Window = @import("Window.zig");
 const Options = @import("Options.zig");
 const Style = @import("cell.zig").Style;
-const strWidth = @import("ziglyph").display_width.strWidth;
 const gwidth = @import("gwidth.zig");
+const Shape = @import("Mouse.zig").Shape;
 
 /// Vaxis is the entrypoint for a Vaxis application. The provided type T should
 /// be a tagged union which contains all of the events the application will
@@ -458,6 +458,13 @@ pub fn Vaxis(comptime T: type) type {
                 );
                 _ = try tty.write(ctlseqs.show_cursor);
             }
+            if (self.screen.mouse_shape != self.screen_last.mouse_shape) {
+                try std.fmt.format(
+                    tty.buffered_writer.writer(),
+                    ctlseqs.osc22_mouse_shape,
+                    .{@tagName(self.screen.mouse_shape)},
+                );
+            }
         }
 
         fn enableKittyKeyboard(self: *Self, flags: Key.KittyFlags) !void {
@@ -509,6 +516,11 @@ pub fn Vaxis(comptime T: type) type {
             const seq = if (enable) ctlseqs.bp_set else ctlseqs.bp_reset;
             _ = try self.tty.?.write(seq);
             try self.tty.?.flush();
+        }
+
+        /// set the mouse shape
+        pub fn setMouseShape(self: *Self, shape: Shape) void {
+            self.screen.mouse_shape = shape;
         }
     };
 }
