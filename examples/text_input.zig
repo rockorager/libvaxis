@@ -50,14 +50,15 @@ pub fn main() !void {
                     255 => 0,
                     else => color_idx + 1,
                 };
-                try text_input.update(.{ .key_press = key });
                 if (key.matches('c', .{ .ctrl = true })) {
                     break :outer;
-                }
-                if (key.matches('l', .{ .ctrl = true })) {
+                } else if (key.matches('l', .{ .ctrl = true })) {
                     vx.queueRefresh();
+                } else {
+                    try text_input.update(.{ .key_press = key });
                 }
             },
+
             .winsize => |ws| {
                 try vx.resize(alloc, ws);
             },

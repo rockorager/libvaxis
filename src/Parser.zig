@@ -71,7 +71,10 @@ pub fn parse(self: *Parser, input: []const u8) !Result {
                 // ascii characters when we can
                 const key: Key = switch (b) {
                     0x00 => .{ .codepoint = '@', .mods = .{ .ctrl = true } },
-                    0x01...0x1A => .{ .codepoint = b + 0x60, .mods = .{ .ctrl = true } },
+                    0x08 => .{ .codepoint = Key.backspace },
+                    0x01...0x07,
+                    0x09...0x1A,
+                    => .{ .codepoint = b + 0x60, .mods = .{ .ctrl = true } },
                     0x1B => escape: {
                         // NOTE: This could be an errant escape at the end
                         // of a large read. That is _incredibly_ unlikely
@@ -459,6 +462,19 @@ test "parse: single xterm keypress" {
     const expected_key: Key = .{
         .codepoint = 'a',
         .text = "a",
+    };
+    const expected_event: Event = .{ .key_press = expected_key };
+
+    try testing.expectEqual(1, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: single xterm keypress backspace" {
+    const input = "\x08";
+    var parser: Parser = .{};
+    const result = try parser.parse(input);
+    const expected_key: Key = .{
+        .codepoint = Key.backspace,
     };
     const expected_event: Event = .{ .key_press = expected_key };
 
