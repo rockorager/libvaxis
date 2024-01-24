@@ -10,10 +10,6 @@
     //.minimum_zig_version = "0.11.0",
 
     .dependencies = .{
-        .libxev = .{
-            .url = "https://github.com/mitchellh/libxev/archive/4e6781895e4e6c477597c8c2713d36cd82b57d07.tar.gz",
-            .hash = "12203f87e00caa6c07c02a748f234a5c0ee2ca5c334ec464e88810d93e7b5495a56f",
-        },
         .ziglyph = .{
             .url = "https://codeberg.org/dude_the_builder/ziglyph/archive/main.tar.gz",
 	    .hash = "12208553f3f47e51494e187f4c0e6f6b3844e3993436cad4a0e8c4db4e99645967b5",
