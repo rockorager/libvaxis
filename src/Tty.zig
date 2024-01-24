@@ -178,19 +178,16 @@ pub fn run(
                     }
                 },
                 .cap_kitty_keyboard => {
-                    if (@hasField(EventType, "cap_kitty_keyboard")) {
-                        vx.postEvent(.cap_kitty_keyboard);
-                    }
+                    vx.caps.kitty_keyboard = true;
                 },
                 .cap_rgb => {
-                    if (@hasField(EventType, "cap_rgb")) {
-                        vx.postEvent(.cap_rgb);
-                    }
+                    vx.caps.rgb = true;
                 },
                 .cap_unicode => {
-                    if (@hasField(EventType, "cap_unicode")) {
-                        vx.postEvent(.cap_unicode);
-                    }
+                    vx.caps.unicode = true;
+                },
+                .cap_da1 => {
+                    std.Thread.Futex.wake(&vx.query_futex, 10);
                 },
             }
         }

@@ -1,7 +1,6 @@
 pub const Key = @import("Key.zig");
 
-/// The events that Vaxis emits. This can be used as the generic EventType if
-/// there are no internal events
+/// The events that Vaxis emits internally
 pub const Event = union(enum) {
     key_press: Key,
     focus_in,
@@ -13,4 +12,5 @@ pub const Event = union(enum) {
     cap_kitty_keyboard,
     cap_rgb,
     cap_unicode,
+    cap_da1,
 };

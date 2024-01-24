@@ -1,4 +1,5 @@
 const std = @import("std");
+const atomic = std.atomic;
 
 const Queue = @import("queue.zig").Queue;
 const ctlseqs = @import("ctlseqs.zig");
@@ -30,6 +31,12 @@ pub fn Vaxis(comptime T: type) type {
 
         pub const EventType = T;
 
+        pub const Capabilities = struct {
+            kitty_keyboard: bool = false,
+            rgb: bool = false,
+            unicode: bool = false,
+        };
+
         /// the event queue for Vaxis
         //
         // TODO: is 512 ok?
@@ -49,8 +56,14 @@ pub fn Vaxis(comptime T: type) type {
         /// if we have entered kitty keyboard
         kitty_keyboard: bool = false,
 
+        caps: Capabilities = .{},
+
         /// if we should redraw the entire screen on the next render
         refresh: bool = false,
+
+        /// blocks the main thread until a DA1 query has been received, or the
+        /// futex times out
+        query_futex: atomic.Value(u32) = atomic.Value(u32).init(0),
 
         // statistics
         renders: usize = 0,
@@ -201,6 +214,17 @@ pub fn Vaxis(comptime T: type) type {
 
             _ = try tty.write(ctlseqs.primary_device_attrs);
             try tty.flush();
+
+            // 1 second timeout
+            std.Thread.Futex.timedWait(&self.query_futex, 0, 1 * std.time.ns_per_s) catch {};
+
+            // enable detected features
+            if (self.caps.kitty_keyboard) {
+                try self.enableKittyKeyboard(.{});
+            }
+            if (self.caps.unicode) {
+                _ = try tty.write(ctlseqs.unicode_set);
+            }
         }
 
         // the next render call will refresh the entire screen
@@ -429,7 +453,7 @@ pub fn Vaxis(comptime T: type) type {
             }
         }
 
-        pub fn enableKittyKeyboard(self: *Self, flags: Key.KittyFlags) !void {
+        fn enableKittyKeyboard(self: *Self, flags: Key.KittyFlags) !void {
             self.kitty_keyboard = true;
             const flag_int: u5 = @bitCast(flags);
             try std.fmt.format(

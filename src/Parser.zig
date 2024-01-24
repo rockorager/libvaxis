@@ -357,6 +357,17 @@ pub fn parse(self: *Parser, input: []const u8) !Result {
                                 log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
                                 return .{ .event = null, .n = i + 1 };
                             },
+                            'c' => { // DA1 response
+                                const priv = seq.private_indicator orelse {
+                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
+                                    return .{ .event = null, .n = i + 1 };
+                                };
+                                if (priv != '?') {
+                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
+                                    return .{ .event = null, .n = i + 1 };
+                                }
+                                return .{ .event = .cap_da1, .n = i + 1 };
+                            },
                             else => {
                                 log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
                                 return .{

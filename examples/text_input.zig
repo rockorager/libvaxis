@@ -61,8 +61,6 @@ pub fn main() !void {
             .winsize => |ws| {
                 try vx.resize(alloc, ws);
             },
-            .cap_rgb => continue,
-            .cap_kitty_keyboard => try vx.enableKittyKeyboard(.{}),
             else => {},
         }
 
@@ -98,7 +96,5 @@ const Event = union(enum) {
     key_press: vaxis.Key,
     winsize: vaxis.Winsize,
     focus_in,
-    cap_rgb,
-    cap_kitty_keyboard,
     foo: u8,
 };
