@@ -74,6 +74,7 @@ pub const invisible_reset = "\x1b[28m";
 pub const strikethrough_reset = "\x1b[29m";
 
 // OSC sequences
+pub const osc2_set_title = "\x1b]2;{s}\x1b\\";
 pub const osc8 = "\x1b]8;{s};{s}\x1b\\";
 pub const osc8_clear = "\x1b]8;;\x1b\\";
 pub const osc9_notify = "\x1b]9;{s}\x1b\\";

@@ -490,6 +490,16 @@ pub fn Vaxis(comptime T: type) type {
                 );
             }
         }
+
+        /// sets the window title
+        pub fn setTitle(self: *Self, title: []const u8) !void {
+            if (self.tty == null) return;
+            try std.fmt.format(
+                self.tty.?.buffered_writer.writer(),
+                ctlseqs.osc2_set_title,
+                .{title},
+            );
+        }
     };
 }
 
