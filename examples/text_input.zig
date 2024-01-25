@@ -13,6 +13,7 @@ const Event = union(enum) {
     key_press: vaxis.Key,
     winsize: vaxis.Winsize,
     focus_in,
+    focus_out,
     foo: u8,
 };
 
@@ -52,6 +53,8 @@ pub fn main() !void {
     // Sends queries to terminal to detect certain features. This should
     // _always_ be called, but is left to the application to decide when
     try vx.queryTerminal();
+
+    try vx.setMouseMode(true);
 
     // The main event loop. Vaxis provides a thread safe, blocking, buffered
     // queue which can serve as the primary event queue for an application
