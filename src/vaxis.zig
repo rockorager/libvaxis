@@ -14,6 +14,7 @@ const Style = @import("cell.zig").Style;
 const Hyperlink = @import("cell.zig").Hyperlink;
 const gwidth = @import("gwidth.zig");
 const Shape = @import("Mouse.zig").Shape;
+const Placement = Screen.Placement;
 
 /// Vaxis is the entrypoint for a Vaxis application. The provided type T should
 /// be a tagged union which contains all of the events the application will
@@ -242,6 +243,7 @@ pub fn Vaxis(comptime T: type) type {
         // the next render call will refresh the entire screen
         pub fn queueRefresh(self: *Self) void {
             self.refresh = true;
+            self.screen_last.images.clearRetainingCapacity();
         }
 
         /// draws the screen to the terminal
@@ -277,6 +279,15 @@ pub fn Vaxis(comptime T: type) type {
             var col: usize = 0;
             var cursor: Style = .{};
             var link: Hyperlink = .{};
+
+            // delete remove images from the screen by looping through the
+            // current state and comparing to the next state
+            for (self.screen_last.images.items) |last_img| {
+                const keep: bool = for (self.screen.images.items) |next_img| {
+                    if (std.meta.eql(last_img, next_img)) break true;
+                } else false;
+                if (keep) continue;
+            }
 
             var i: usize = 0;
             while (i < self.screen.buf.len) {

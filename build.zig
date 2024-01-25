@@ -12,6 +12,12 @@ pub fn build(b: *std.Build) void {
     });
     vaxis.addImport("ziglyph", ziglyph.module("ziglyph"));
 
+    const zigimg = b.dependency("zigimg", .{
+        .optimize = optimize,
+        .target = target,
+    });
+    vaxis.addImport("zigimg", zigimg.module("zigimg"));
+
     const exe = b.addExecutable(.{
         .name = "vaxis",
         .root_source_file = .{ .path = "examples/text_input.zig" },
@@ -39,6 +45,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     lib_unit_tests.root_module.addImport("ziglyph", ziglyph.module("ziglyph"));
+    lib_unit_tests.root_module.addImport("zigimg", zigimg.module("zigimg"));
 
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
 

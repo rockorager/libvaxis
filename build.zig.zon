@@ -14,6 +14,10 @@
             .url = "https://codeberg.org/dude_the_builder/ziglyph/archive/main.tar.gz",
 	    .hash = "12208553f3f47e51494e187f4c0e6f6b3844e3993436cad4a0e8c4db4e99645967b5",
         },
+	.zigimg = .{
+	    .url = "https://github.com/zigimg/zigimg/archive/f6998808f283f8d3c2ef34e8b4af423bc1786f32.tar.gz",
+	    .hash = "12202ee5d22ade0c300e9e7eae4c1951bda3d5f236fe1a139eb3613b43e2f12a88db",
+	  }
     },
 
     .paths = .{

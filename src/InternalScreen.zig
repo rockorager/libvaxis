@@ -3,6 +3,8 @@ const assert = std.debug.assert;
 const Style = @import("cell.zig").Style;
 const Cell = @import("cell.zig").Cell;
 const Shape = @import("Mouse.zig").Shape;
+const Image = @import("Image.zig").Placement;
+const Placement = @import("Screen.zig").Placement;
 
 const log = std.log.scoped(.internal_screen);
 
@@ -35,10 +37,14 @@ cursor_vis: bool = false,
 
 mouse_shape: Shape = .default,
 
+images: std.ArrayList(Placement) = undefined,
+
 /// sets each cell to the default cell
 pub fn init(alloc: std.mem.Allocator, w: usize, h: usize) !InternalScreen {
-    var screen = InternalScreen{};
-    screen.buf = try alloc.alloc(InternalCell, w * h);
+    var screen = InternalScreen{
+        .buf = try alloc.alloc(InternalCell, w * h),
+        .images = std.ArrayList(Placement).init(alloc),
+    };
     for (screen.buf, 0..) |_, i| {
         screen.buf[i] = .{
             .char = try std.ArrayList(u8).initCapacity(alloc, 1),
@@ -52,6 +58,7 @@ pub fn init(alloc: std.mem.Allocator, w: usize, h: usize) !InternalScreen {
 }
 
 pub fn deinit(self: *InternalScreen, alloc: std.mem.Allocator) void {
+    self.images.deinit();
     for (self.buf, 0..) |_, i| {
         self.buf[i].char.deinit();
         self.buf[i].uri.deinit();
