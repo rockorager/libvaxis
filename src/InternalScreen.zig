@@ -11,11 +11,16 @@ const InternalScreen = @This();
 pub const InternalCell = struct {
     char: std.ArrayList(u8) = undefined,
     style: Style = .{},
+    uri: std.ArrayList(u8) = undefined,
+    uri_id: std.ArrayList(u8) = undefined,
     // if we got skipped because of a wide character
     skipped: bool = false,
 
     pub fn eql(self: InternalCell, cell: Cell) bool {
-        return std.mem.eql(u8, self.char.items, cell.char.grapheme) and std.meta.eql(self.style, cell.style);
+        return std.mem.eql(u8, self.char.items, cell.char.grapheme) and
+            std.meta.eql(self.style, cell.style) and
+            std.mem.eql(u8, self.uri.items, cell.link.uri) and
+            std.mem.eql(u8, self.uri_id.items, cell.link.params);
     }
 };
 
@@ -37,6 +42,8 @@ pub fn init(alloc: std.mem.Allocator, w: usize, h: usize) !InternalScreen {
     for (screen.buf, 0..) |_, i| {
         screen.buf[i] = .{
             .char = try std.ArrayList(u8).initCapacity(alloc, 1),
+            .uri = std.ArrayList(u8).init(alloc),
+            .uri_id = std.ArrayList(u8).init(alloc),
         };
     }
     screen.width = w;
@@ -47,6 +54,8 @@ pub fn init(alloc: std.mem.Allocator, w: usize, h: usize) !InternalScreen {
 pub fn deinit(self: *InternalScreen, alloc: std.mem.Allocator) void {
     for (self.buf, 0..) |_, i| {
         self.buf[i].char.deinit();
+        self.buf[i].uri.deinit();
+        self.buf[i].uri_id.deinit();
     }
 
     alloc.free(self.buf);
@@ -57,8 +66,7 @@ pub fn writeCell(
     self: *InternalScreen,
     col: usize,
     row: usize,
-    char: []const u8,
-    style: Style,
+    cell: Cell,
 ) void {
     if (self.width < col) {
         // column out of bounds
@@ -71,8 +79,16 @@ pub fn writeCell(
     const i = (row * self.width) + col;
     assert(i < self.buf.len);
     self.buf[i].char.clearRetainingCapacity();
-    self.buf[i].char.appendSlice(char) catch {
+    self.buf[i].char.appendSlice(cell.char.grapheme) catch {
         log.warn("couldn't write grapheme", .{});
     };
-    self.buf[i].style = style;
+    self.buf[i].uri.clearRetainingCapacity();
+    self.buf[i].uri.appendSlice(cell.link.uri) catch {
+        log.warn("couldn't write uri", .{});
+    };
+    self.buf[i].uri.clearRetainingCapacity();
+    self.buf[i].uri_id.appendSlice(cell.link.params) catch {
+        log.warn("couldn't write uri_id", .{});
+    };
+    self.buf[i].style = cell.style;
 }

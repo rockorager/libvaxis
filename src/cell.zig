@@ -1,11 +1,18 @@
 pub const Cell = struct {
     char: Character = .{},
     style: Style = .{},
+    link: Hyperlink = .{},
 };
 
 pub const Character = struct {
     grapheme: []const u8 = " ",
     width: usize = 1,
+};
+
+pub const Hyperlink = struct {
+    uri: []const u8 = "",
+    /// ie "id=app-1234"
+    params: []const u8 = "",
 };
 
 pub const Style = struct {
@@ -24,8 +31,6 @@ pub const Style = struct {
     ul_style: Underline = .off,
     // TODO: url should maybe go outside of style. We'll need to allocate these
     // in the internal screen
-    url: ?[]const u8 = null,
-    url_params: ?[]const u8 = null,
 
     bold: bool = false,
     dim: bool = false,

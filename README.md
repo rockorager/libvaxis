@@ -18,7 +18,7 @@ Contributions are welcome.
 | Feature                        | Vaxis | libvaxis | notcurses |
 | ------------------------------ | :---: | :------: | :-------: |
 | RGB                            |  ✅   |    ✅    |    ✅     |
-| Hyperlinks                     |  ✅   | planned  |    ❌     |
+| Hyperlinks                     |  ✅   |    ✅    |    ❌     |
 | Bracketed Paste                |  ✅   |    ✅    |    ❌     |
 | Kitty Keyboard                 |  ✅   |    ✅    |    ✅     |
 | Styled Underlines              |  ✅   |    ✅    |    ✅     |

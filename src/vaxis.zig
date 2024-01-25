@@ -11,6 +11,7 @@ const InternalScreen = @import("InternalScreen.zig");
 const Window = @import("Window.zig");
 const Options = @import("Options.zig");
 const Style = @import("cell.zig").Style;
+const Hyperlink = @import("cell.zig").Hyperlink;
 const gwidth = @import("gwidth.zig");
 const Shape = @import("Mouse.zig").Shape;
 
@@ -275,6 +276,7 @@ pub fn Vaxis(comptime T: type) type {
             var row: usize = 0;
             var col: usize = 0;
             var cursor: Style = .{};
+            var link: Hyperlink = .{};
 
             var i: usize = 0;
             while (i < self.screen.buf.len) {
@@ -301,15 +303,18 @@ pub fn Vaxis(comptime T: type) type {
                     reposition = true;
                     // Close any osc8 sequence we might be in before
                     // repositioning
-                    if (cursor.url) |_| {
+                    if (link.uri.len > 0) {
                         _ = try tty.write(ctlseqs.osc8_clear);
                     }
                     continue;
                 }
                 self.screen_last.buf[i].skipped = false;
-                defer cursor = cell.style;
+                defer {
+                    cursor = cell.style;
+                    link = cell.link;
+                }
                 // Set this cell in the last frame
-                self.screen_last.writeCell(col, row, cell.char.grapheme, cell.style);
+                self.screen_last.writeCell(col, row, cell);
 
                 // reposition the cursor, if needed
                 if (reposition) {
@@ -442,16 +447,15 @@ pub fn Vaxis(comptime T: type) type {
                 }
 
                 // url
-                if (!std.meta.eql(cursor.url, cell.style.url)) {
-                    const url = cell.style.url orelse "";
-                    var ps = cell.style.url_params orelse "";
-                    if (url.len == 0) {
+                if (!std.meta.eql(link.uri, cell.link.uri)) {
+                    var ps = cell.link.params;
+                    if (cell.link.uri.len == 0) {
                         // Empty out the params no matter what if we don't have
                         // a url
                         ps = "";
                     }
                     const writer = tty.buffered_writer.writer();
-                    try std.fmt.format(writer, ctlseqs.osc8, .{ ps, url });
+                    try std.fmt.format(writer, ctlseqs.osc8, .{ ps, cell.link.uri });
                 }
                 _ = try tty.write(cell.char.grapheme);
             }
