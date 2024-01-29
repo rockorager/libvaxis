@@ -33,8 +33,6 @@ pub const Style = struct {
     bg: Color = .default,
     ul: Color = .default,
     ul_style: Underline = .off,
-    // TODO: url should maybe go outside of style. We'll need to allocate these
-    // in the internal screen
 
     bold: bool = false,
     dim: bool = false,
