@@ -2,23 +2,12 @@ const std = @import("std");
 const math = std.math;
 const testing = std.testing;
 const zigimg = @import("zigimg");
+const png = zigimg.png;
 
-const Window = @import("Window.zig");
-const Winsize = @import("Tty.zig").Winsize;
+const Window = @import("../Window.zig");
+const Winsize = @import("../Tty.zig").Winsize;
 
-const Image = @This();
-
-pub const Source = union(enum) {
-    /// loads an image from a path. path can be relative to cwd, or absolute
-    path: []const u8,
-    /// loads an image from raw bytes
-    mem: []const u8,
-};
-
-pub const Protocol = enum {
-    kitty,
-    // TODO: sixel, full block, half block, quad block
-};
+const Kitty = @This();
 
 /// the decoded image
 img: zigimg.Image,
@@ -35,9 +24,9 @@ cell_height: usize,
 pub fn init(
     alloc: std.mem.Allocator,
     winsize: Winsize,
-    src: Source,
+    src: []const u8,
     id: u32,
-) !Image {
+) !Kitty {
     const img = switch (src) {
         .path => |path| try zigimg.Image.fromFilePath(alloc, path),
         .mem => |bytes| try zigimg.Image.fromMemory(alloc, bytes),
@@ -76,7 +65,8 @@ test "image" {
             .y_pixel = 1,
         },
         .{ .path = "vaxis.png" },
-        1,
+        0,
+        .kitty,
     );
     defer img.deinit();
     try testing.expectEqual(200, img.cell_width);
