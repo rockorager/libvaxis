@@ -40,6 +40,11 @@ test "gwidth: emoji with ZWJ" {
     try testing.expectEqual(4, try gwidth("👩‍🚀", .wcwidth));
 }
 
+test "gwidth: emoji with VS16 selector" {
+    try testing.expectEqual(2, try gwidth("\xE2\x9D\xA4\xEF\xB8\x8F", .unicode));
+    try testing.expectEqual(1, try gwidth("\xE2\x9D\xA4\xEF\xB8\x8F", .wcwidth));
+}
+
 test "gwidth: emoji with skin tone selector" {
     try testing.expectEqual(2, try gwidth("👋🏿", .unicode));
     try testing.expectEqual(4, try gwidth("👋🏿", .wcwidth));
