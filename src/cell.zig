@@ -6,6 +6,10 @@ pub const Cell = struct {
 
 pub const Character = struct {
     grapheme: []const u8 = " ",
+    /// width should only be provided when the application is sure the terminal
+    /// will meeasure the same width. This can be ensure by using the gwidth method
+    /// included in libvaxis. If width is 0, libvaxis will measure the glyph at
+    /// render time
     width: usize = 1,
 };
 

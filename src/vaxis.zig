@@ -294,8 +294,12 @@ pub fn Vaxis(comptime T: type) type {
                 const cell = self.screen.buf[i];
                 defer {
                     // advance by the width of this char mod 1
-                    const method: gwidth.Method = if (self.caps.unicode) .unicode else .wcwidth;
-                    const w = gwidth.gwidth(cell.char.grapheme, method) catch 1;
+                    const w = blk: {
+                        if (cell.char.width != 0) break :blk cell.char.width;
+
+                        const method: gwidth.Method = if (self.caps.unicode) .unicode else .wcwidth;
+                        break :blk gwidth.gwidth(cell.char.grapheme, method) catch 1;
+                    };
                     var j = i + 1;
                     while (j < i + w) : (j += 1) {
                         self.screen_last.buf[j].skipped = true;
