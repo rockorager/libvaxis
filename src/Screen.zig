@@ -3,29 +3,18 @@ const assert = std.debug.assert;
 
 const Cell = @import("cell.zig").Cell;
 const Shape = @import("Mouse.zig").Shape;
-const Image = @import("image/image.zig").Image;
+const Image = @import("Image.zig");
+const Winsize = @import("Tty.zig").Winsize;
 
 const log = std.log.scoped(.screen);
 
 const Screen = @This();
 
-pub const Placement = struct {
-    img: Image,
-    placement_id: u32,
-    col: usize,
-    row: usize,
-
-    /// two placements are considered equal if their image id and their
-    /// placement id are equal
-    pub fn eql(self: Placement, tgt: Placement) bool {
-        if (self.img.getId() != tgt.img.getId()) return false;
-        if (self.placement_id != tgt.placement_id) return false;
-        return true;
-    }
-};
-
 width: usize = 0,
 height: usize = 0,
+
+width_pix: usize = 0,
+height_pix: usize = 0,
 
 buf: []Cell = undefined,
 
@@ -37,14 +26,15 @@ unicode: bool = false,
 
 mouse_shape: Shape = .default,
 
-images: std.ArrayList(Placement) = undefined,
-
-pub fn init(alloc: std.mem.Allocator, w: usize, h: usize) !Screen {
+pub fn init(alloc: std.mem.Allocator, winsize: Winsize) !Screen {
+    const w = winsize.cols;
+    const h = winsize.rows;
     var self = Screen{
         .buf = try alloc.alloc(Cell, w * h),
         .width = w,
         .height = h,
-        .images = std.ArrayList(Placement).init(alloc),
+        .width_pix = winsize.x_pixel,
+        .height_pix = winsize.y_pixel,
     };
     for (self.buf, 0..) |_, i| {
         self.buf[i] = .{};
@@ -53,7 +43,6 @@ pub fn init(alloc: std.mem.Allocator, w: usize, h: usize) !Screen {
 }
 pub fn deinit(self: *Screen, alloc: std.mem.Allocator) void {
     alloc.free(self.buf);
-    self.images.deinit();
 }
 
 /// writes a cell to a location. 0 indexed
@@ -69,20 +58,4 @@ pub fn writeCell(self: *Screen, col: usize, row: usize, cell: Cell) void {
     const i = (row * self.width) + col;
     assert(i < self.buf.len);
     self.buf[i] = cell;
-}
-
-pub fn writeImage(
-    self: *Screen,
-    col: usize,
-    row: usize,
-    img: Image,
-    placement_id: u32,
-) !void {
-    const p = Placement{
-        .img = img,
-        .placement_id = placement_id,
-        .col = col,
-        .row = row,
-    };
-    try self.images.append(p);
 }

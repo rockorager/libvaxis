@@ -1,7 +1,10 @@
+const Image = @import("Image.zig");
+
 pub const Cell = struct {
     char: Character = .{},
     style: Style = .{},
     link: Hyperlink = .{},
+    image: ?Image.Placement = null,
 };
 
 pub const Character = struct {

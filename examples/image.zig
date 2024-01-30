@@ -43,8 +43,9 @@ pub fn main() !void {
     // _always_ be called, but is left to the application to decide when
     try vx.queryTerminal();
 
-    var img = try vaxis.Image.init(alloc, .{ .path = "vaxis.png" }, 1, .kitty);
-    defer img.deinit();
+    const img = try vx.loadImage(alloc, .{ .path = "vaxis.png" });
+
+    var n: usize = 0;
 
     // The main event loop. Vaxis provides a thread safe, blocking, buffered
     // queue which can serve as the primary event queue for an application
@@ -56,6 +57,7 @@ pub fn main() !void {
         // enum has the fields for those events (ie "key_press", "winsize")
         switch (event) {
             .key_press => |key| {
+                n += 1;
                 if (key.matches('c', .{ .ctrl = true })) {
                     break :outer;
                 } else if (key.matches('l', .{ .ctrl = true })) {
@@ -79,7 +81,9 @@ pub fn main() !void {
         // the old and only updated cells will be drawn
         win.clear();
 
-        try img.draw(win);
+        const child = win.initChild(n, n, .expand, .expand);
+
+        img.draw(child, false, 0);
 
         // Render the screen
         try vx.render();

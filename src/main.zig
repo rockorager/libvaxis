@@ -10,7 +10,7 @@ pub const Winsize = @import("Tty.zig").Winsize;
 
 pub const widgets = @import("widgets/main.zig");
 
-pub const Image = @import("image/image.zig").Image;
+pub const Image = @import("Image.zig");
 
 /// Initialize a Vaxis application.
 pub fn init(comptime EventType: type, opts: Options) !Vaxis(EventType) {

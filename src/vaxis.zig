@@ -1,5 +1,6 @@
 const std = @import("std");
 const atomic = std.atomic;
+const base64 = std.base64.standard.Encoder;
 
 const Queue = @import("queue.zig").Queue;
 const ctlseqs = @import("ctlseqs.zig");
@@ -14,7 +15,8 @@ const Style = @import("cell.zig").Style;
 const Hyperlink = @import("cell.zig").Hyperlink;
 const gwidth = @import("gwidth.zig");
 const Shape = @import("Mouse.zig").Shape;
-const Placement = Screen.Placement;
+const Image = @import("Image.zig");
+const zigimg = @import("zigimg");
 
 /// Vaxis is the entrypoint for a Vaxis application. The provided type T should
 /// be a tagged union which contains all of the events the application will
@@ -58,6 +60,8 @@ pub fn Vaxis(comptime T: type) type {
             alt_screen: bool = false,
             /// if we have entered kitty keyboard
             kitty_keyboard: bool = false,
+            // TODO: should be false but we aren't querying yet
+            kitty_graphics: bool = true,
             bracketed_paste: bool = false,
             mouse: bool = false,
         } = .{},
@@ -70,6 +74,9 @@ pub fn Vaxis(comptime T: type) type {
         /// blocks the main thread until a DA1 query has been received, or the
         /// futex times out
         query_futex: atomic.Value(u32) = atomic.Value(u32).init(0),
+
+        // images
+        next_img_id: u32 = 1,
 
         // statistics
         renders: usize = 0,
@@ -151,7 +158,7 @@ pub fn Vaxis(comptime T: type) type {
         pub fn resize(self: *Self, alloc: std.mem.Allocator, winsize: Winsize) !void {
             log.debug("resizing screen: width={d} height={d}", .{ winsize.cols, winsize.rows });
             self.screen.deinit(alloc);
-            self.screen = try Screen.init(alloc, winsize.cols, winsize.rows);
+            self.screen = try Screen.init(alloc, winsize);
             self.screen.unicode = self.caps.unicode;
             // try self.screen.int(alloc, winsize.cols, winsize.rows);
             // we only init our current screen. This has the effect of redrawing
@@ -243,7 +250,6 @@ pub fn Vaxis(comptime T: type) type {
         // the next render call will refresh the entire screen
         pub fn queueRefresh(self: *Self) void {
             self.refresh = true;
-            self.screen_last.images.clearRetainingCapacity();
         }
 
         /// draws the screen to the terminal
@@ -280,26 +286,8 @@ pub fn Vaxis(comptime T: type) type {
             var cursor: Style = .{};
             var link: Hyperlink = .{};
 
-            // remove images from the screen by looping through the last state
-            // and comparing to the next state
-            for (self.screen_last.images.items) |last_img| {
-                const keep: bool = for (self.screen.images.items) |next_img| {
-                    if (last_img.eql(next_img)) break true;
-                } else false;
-                if (keep) continue;
-                // TODO: remove image placements
-            }
-
-            // add new images. Could slightly optimize by knowing which images
-            // we need to keep from the remove loop
-            for (self.screen.images.items) |img| {
-                const transmit: bool = for (self.screen_last.images.items) |last_img| {
-                    if (last_img.eql(img)) break false;
-                } else true;
-                if (!transmit) continue;
-                // TODO: transmit the new image to the screen
-                try img.img.transmit(tty.buffered_writer.writer());
-            }
+            // Clear all images
+            _ = try tty.write(ctlseqs.kitty_graphics_clear);
 
             var i: usize = 0;
             while (i < self.screen.buf.len) {
@@ -326,7 +314,7 @@ pub fn Vaxis(comptime T: type) type {
                 // If cell is the same as our last frame, we don't need to do
                 // anything
                 const last = self.screen_last.buf[i];
-                if (!self.refresh and last.eql(cell) and !last.skipped) {
+                if (!self.refresh and last.eql(cell) and !last.skipped and cell.image == null) {
                     reposition = true;
                     // Close any osc8 sequence we might be in before
                     // repositioning
@@ -346,6 +334,10 @@ pub fn Vaxis(comptime T: type) type {
                 // reposition the cursor, if needed
                 if (reposition) {
                     try std.fmt.format(tty.buffered_writer.writer(), ctlseqs.cup, .{ row + 1, col + 1 });
+                }
+
+                if (cell.image) |img| {
+                    try std.fmt.format(tty.buffered_writer.writer(), ctlseqs.kitty_graphics_place, .{ img.img_id, img.z_index });
                 }
 
                 // something is different, so let's loop throuugh everything and
@@ -580,6 +572,70 @@ pub fn Vaxis(comptime T: type) type {
                 _ = try tty.write(ctlseqs.mouse_reset);
                 try tty.flush();
             }
+        }
+
+        pub fn loadImage(
+            self: *Self,
+            alloc: std.mem.Allocator,
+            src: Image.Source,
+        ) !Image {
+            var tty = self.tty orelse return error.NoTTY;
+            defer self.next_img_id += 1;
+
+            const writer = tty.buffered_writer.writer();
+
+            var img = switch (src) {
+                .path => |path| try zigimg.Image.fromFilePath(alloc, path),
+                .mem => |bytes| try zigimg.Image.fromMemory(alloc, bytes),
+            };
+            defer img.deinit();
+            const png_buf = try alloc.alloc(u8, img.imageByteSize());
+            defer alloc.free(png_buf);
+            const png = try img.writeToMemory(png_buf, .{ .png = .{} });
+            const b64_buf = try alloc.alloc(u8, base64.calcSize(png.len));
+            const encoded = base64.encode(b64_buf, png);
+            defer alloc.free(b64_buf);
+
+            const id = self.next_img_id;
+
+            log.debug("transmitting kitty image: id={d}, len={d}", .{ id, encoded.len });
+
+            if (encoded.len < 4096) {
+                try std.fmt.format(
+                    writer,
+                    "\x1b_Gf=100,i={d};{s}\x1b\\",
+                    .{
+                        id,
+                        encoded,
+                    },
+                );
+            } else {
+                var n: usize = 4096;
+
+                try std.fmt.format(
+                    writer,
+                    "\x1b_Gf=100,i={d},m=1;{s}\x1b\\",
+                    .{ id, encoded[0..n] },
+                );
+                while (n < encoded.len) : (n += 4096) {
+                    const end: usize = @min(n + 4096, encoded.len);
+                    const m: u2 = if (end == encoded.len) 0 else 1;
+                    try std.fmt.format(
+                        writer,
+                        "\x1b_Gm={d};{s}\x1b\\",
+                        .{
+                            m,
+                            encoded[n..end],
+                        },
+                    );
+                }
+            }
+            try tty.buffered_writer.flush();
+            return Image{
+                .id = id,
+                .width = img.width,
+                .height = img.height,
+            };
         }
     };
 }

@@ -69,27 +69,9 @@ pub fn writeCell(self: Window, col: usize, row: usize, cell: Cell) void {
     self.screen.writeCell(col + self.x_off, row + self.y_off, cell);
 }
 
-/// writes an image to the location in the window
-pub fn writeImage(
-    self: Window,
-    img: Image,
-    placement_id: u32,
-) !void {
-    if (self.height == 0 or self.width == 0) return;
-    try self.screen.writeImage(self.x_off, self.y_off, img, placement_id);
-}
-
 /// fills the window with the default cell
 pub fn clear(self: Window) void {
     self.fill(.{});
-    // we clear any image with it's first cell within this window
-    for (self.screen.images.items, 0..) |p, i| {
-        if (p.col >= self.x_off and p.col < self.width and
-            p.row >= self.y_off and p.row < self.height)
-        {
-            _ = self.screen.images.swapRemove(i);
-        }
-    }
 }
 
 /// returns the width of the grapheme. This depends on the terminal capabilities
