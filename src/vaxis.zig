@@ -298,6 +298,7 @@ pub fn Vaxis(comptime T: type) type {
                 } else true;
                 if (!transmit) continue;
                 // TODO: transmit the new image to the screen
+                try img.img.transmit(tty.buffered_writer.writer());
             }
 
             var i: usize = 0;

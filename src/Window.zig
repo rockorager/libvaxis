@@ -72,11 +72,11 @@ pub fn writeCell(self: Window, col: usize, row: usize, cell: Cell) void {
 /// writes an image to the location in the window
 pub fn writeImage(
     self: Window,
-    img: *Image,
+    img: Image,
     placement_id: u32,
 ) !void {
     if (self.height == 0 or self.width == 0) return;
-    self.screen.writeImage(self.x_off, self.y_off, img, placement_id);
+    try self.screen.writeImage(self.x_off, self.y_off, img, placement_id);
 }
 
 /// fills the window with the default cell

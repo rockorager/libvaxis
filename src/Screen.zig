@@ -10,7 +10,7 @@ const log = std.log.scoped(.screen);
 const Screen = @This();
 
 pub const Placement = struct {
-    img: *Image,
+    img: Image,
     placement_id: u32,
     col: usize,
     row: usize,
@@ -75,7 +75,7 @@ pub fn writeImage(
     self: *Screen,
     col: usize,
     row: usize,
-    img: *Image,
+    img: Image,
     placement_id: u32,
 ) !void {
     const p = Placement{
