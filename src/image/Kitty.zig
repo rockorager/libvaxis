@@ -12,63 +12,25 @@ const Kitty = @This();
 /// the decoded image
 img: zigimg.Image,
 
-/// unique identifier for this image
-id: u32,
+/// unique identifier for this image. This will be managed by the screen. The ID
+/// is only null for images which have not been transmitted to the screen
+id: ?u32 = null,
 
 /// width of the image, in cells
 cell_width: usize,
 /// height of the image, in cells
 cell_height: usize,
 
-/// initialize a new image
-pub fn init(
-    alloc: std.mem.Allocator,
-    winsize: Winsize,
-    src: []const u8,
-    id: u32,
-) !Kitty {
-    const img = switch (src) {
-        .path => |path| try zigimg.Image.fromFilePath(alloc, path),
-        .mem => |bytes| try zigimg.Image.fromMemory(alloc, bytes),
-    };
-    // cell geometry
-    const pix_per_col = try math.divCeil(usize, winsize.x_pixel, winsize.cols);
-    const pix_per_row = try math.divCeil(usize, winsize.y_pixel, winsize.rows);
-
-    const cell_width = math.divCeil(usize, img.width, pix_per_col) catch 0;
-    const cell_height = math.divCeil(usize, img.height, pix_per_row) catch 0;
-
-    return Image{
-        .img = img,
-        .cell_width = cell_width,
-        .cell_height = cell_height,
-        .id = id,
-    };
-}
-
-pub fn deinit(self: *Image) void {
+pub fn deinit(self: *Kitty) void {
     self.img.deinit();
 }
 
-pub fn draw(self: *Image, win: Window, placement_id: u32) !void {
-    try win.writeImage(win.x_off, win.y_off, self, placement_id);
-}
-
-test "image" {
-    const alloc = testing.allocator;
-    var img = try init(
-        alloc,
-        .{
-            .rows = 1,
-            .cols = 1,
-            .x_pixel = 1,
-            .y_pixel = 1,
-        },
-        .{ .path = "vaxis.png" },
-        0,
-        .kitty,
-    );
-    defer img.deinit();
-    try testing.expectEqual(200, img.cell_width);
-    try testing.expectEqual(197, img.cell_height);
+pub fn draw(self: *Kitty, win: Window) !void {
+    const row: u16 = @truncate(win.y_off);
+    const col: u16 = @truncate(win.x_off);
+    // the placement id has the high 16 bits as the column and the low 16
+    // bits as the row. This means we can only place this image one time at
+    // the same location - which is completely sane
+    const pid: u32 = col << 16 | row;
+    try win.writeImage(win.x_off, win.y_off, self, pid);
 }

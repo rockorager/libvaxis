@@ -3,7 +3,7 @@ const assert = std.debug.assert;
 
 const Cell = @import("cell.zig").Cell;
 const Shape = @import("Mouse.zig").Shape;
-const Image = @import("Image.zig");
+const Image = @import("image/image.zig").Image;
 
 const log = std.log.scoped(.screen);
 
@@ -14,6 +14,14 @@ pub const Placement = struct {
     placement_id: u32,
     col: usize,
     row: usize,
+
+    /// two placements are considered equal if their image id and their
+    /// placement id are equal
+    pub fn eql(self: Placement, tgt: Placement) bool {
+        if (self.img.getId() != tgt.img.getId()) return false;
+        if (self.placement_id != tgt.placement_id) return false;
+        return true;
+    }
 };
 
 width: usize = 0,

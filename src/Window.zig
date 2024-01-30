@@ -2,7 +2,7 @@ const std = @import("std");
 
 const Screen = @import("Screen.zig");
 const Cell = @import("cell.zig").Cell;
-const Image = @import("Image.zig");
+const Image = @import("image/image.zig").Image;
 const gw = @import("gwidth.zig");
 
 const log = std.log.scoped(.window);
@@ -69,17 +69,14 @@ pub fn writeCell(self: Window, col: usize, row: usize, cell: Cell) void {
     self.screen.writeCell(col + self.x_off, row + self.y_off, cell);
 }
 
-/// writes a cell to the location in the window
+/// writes an image to the location in the window
 pub fn writeImage(
     self: Window,
-    col: usize,
-    row: usize,
     img: *Image,
     placement_id: u32,
 ) !void {
     if (self.height == 0 or self.width == 0) return;
-    if (self.height <= row or self.width <= col) return;
-    self.screen.writeImage(col, row, img, placement_id);
+    self.screen.writeImage(self.x_off, self.y_off, img, placement_id);
 }
 
 /// fills the window with the default cell

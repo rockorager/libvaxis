@@ -17,7 +17,6 @@ pub fn init(comptime EventType: type, opts: Options) !Vaxis(EventType) {
 
 test {
     _ = @import("GraphemeCache.zig");
-    _ = @import("Image.zig");
     _ = @import("Key.zig");
     _ = @import("Mouse.zig");
     _ = @import("Options.zig");
@@ -29,6 +28,7 @@ test {
     _ = @import("ctlseqs.zig");
     _ = @import("event.zig");
     _ = @import("gwidth.zig");
+    _ = @import("image/image.zig");
     _ = @import("queue.zig");
     _ = @import("vaxis.zig");
 }

@@ -280,13 +280,24 @@ pub fn Vaxis(comptime T: type) type {
             var cursor: Style = .{};
             var link: Hyperlink = .{};
 
-            // delete remove images from the screen by looping through the
-            // current state and comparing to the next state
+            // remove images from the screen by looping through the last state
+            // and comparing to the next state
             for (self.screen_last.images.items) |last_img| {
                 const keep: bool = for (self.screen.images.items) |next_img| {
-                    if (std.meta.eql(last_img, next_img)) break true;
+                    if (last_img.eql(next_img)) break true;
                 } else false;
                 if (keep) continue;
+                // TODO: remove image placements
+            }
+
+            // add new images. Could slightly optimize by knowing which images
+            // we need to keep from the remove loop
+            for (self.screen.images.items) |img| {
+                const transmit: bool = for (self.screen_last.images.items) |last_img| {
+                    if (last_img.eql(img)) break false;
+                } else true;
+                if (!transmit) continue;
+                // TODO: transmit the new image to the screen
             }
 
             var i: usize = 0;

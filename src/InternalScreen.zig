@@ -3,7 +3,7 @@ const assert = std.debug.assert;
 const Style = @import("cell.zig").Style;
 const Cell = @import("cell.zig").Cell;
 const Shape = @import("Mouse.zig").Shape;
-const Image = @import("Image.zig").Placement;
+const Image = @import("image/image.zig").Image;
 const Placement = @import("Screen.zig").Placement;
 
 const log = std.log.scoped(.internal_screen);
