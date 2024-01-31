@@ -2,7 +2,6 @@ const std = @import("std");
 
 const Screen = @import("Screen.zig");
 const Cell = @import("cell.zig").Cell;
-const Image = @import("image/image.zig").Image;
 const gw = @import("gwidth.zig");
 
 const log = std.log.scoped(.window);
