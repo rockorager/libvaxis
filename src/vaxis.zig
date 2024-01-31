@@ -222,10 +222,7 @@ pub fn Vaxis(comptime T: type) type {
             // that
             // _ = try tty.write(ctlseqs.xtversion);
             _ = try tty.write(ctlseqs.csi_u_query);
-            // TODO: KITTY_GRAPHICS has an APC response. uncomment when we can
-            // parse that
-            // that
-            // _ = try tty.write(ctlseqs.kitty_graphics_query);
+            _ = try tty.write(ctlseqs.kitty_graphics_query);
             // TODO: sixel geometry query interferes with F4 keys.
             // _ = try tty.write(ctlseqs.sixel_geometry_query);
 
@@ -590,6 +587,7 @@ pub fn Vaxis(comptime T: type) type {
             alloc: std.mem.Allocator,
             src: Image.Source,
         ) !Image {
+            if (!self.caps.kitty_graphics) return error.NoGraphicsCapability;
             var tty = self.tty orelse return error.NoTTY;
             defer self.next_img_id += 1;
 

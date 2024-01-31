@@ -178,8 +178,14 @@ pub fn run(
                     }
                 },
                 .cap_kitty_keyboard => {
-                    log.info("kitty capability detected", .{});
+                    log.info("kitty keyboard capability detected", .{});
                     vx.caps.kitty_keyboard = true;
+                },
+                .cap_kitty_graphics => {
+                    if (!vx.caps.kitty_graphics) {
+                        log.info("kitty graphics capability detected", .{});
+                        vx.caps.kitty_graphics = true;
+                    }
                 },
                 .cap_rgb => {
                     log.info("rgb capability detected", .{});

@@ -444,6 +444,46 @@ pub fn parse(self: *Parser, input: []const u8) !Result {
                     },
                 }
             },
+            .apc => {
+                switch (b) {
+                    0x1B => {
+                        state = .ground;
+                        // advance one more for the backslash
+                        i += 1;
+                        switch (input[start + 1]) {
+                            'G' => {
+                                return .{
+                                    .event = .cap_kitty_graphics,
+                                    .n = i + 1,
+                                };
+                            },
+                            else => {
+                                log.warn("unhandled apc: APC {s}", .{input[start + 1 .. i + 1]});
+                                return .{
+                                    .event = null,
+                                    .n = i + 1,
+                                };
+                            },
+                        }
+                    },
+                    else => {},
+                }
+            },
+            .sos, .pm => {
+                switch (b) {
+                    0x1B => {
+                        state = .ground;
+                        // advance one more for the backslash
+                        i += 1;
+                        log.warn("unhandled sos/pm: SOS/PM {s}", .{input[start + 1 .. i + 1]});
+                        return .{
+                            .event = null,
+                            .n = i + 1,
+                        };
+                    },
+                    else => {},
+                }
+            },
             else => {},
         }
     }
