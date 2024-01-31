@@ -1,8 +1,10 @@
 pub const Key = @import("Key.zig");
+pub const Mouse = @import("Mouse.zig");
 
 /// The events that Vaxis emits internally
 pub const Event = union(enum) {
     key_press: Key,
+    mouse: Mouse,
     focus_in,
     focus_out,
     paste_start,

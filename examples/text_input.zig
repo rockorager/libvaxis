@@ -11,6 +11,7 @@ const log = std.log.scoped(.main);
 // for a single event loop with exhaustive switching. Booya
 const Event = union(enum) {
     key_press: vaxis.Key,
+    mouse: vaxis.Mouse,
     winsize: vaxis.Winsize,
     focus_in,
     focus_out,

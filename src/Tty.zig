@@ -157,6 +157,11 @@ pub fn run(
                         vx.postEvent(.{ .key_press = mut_key });
                     }
                 },
+                .mouse => |mouse| {
+                    if (@hasField(EventType, "mouse")) {
+                        vx.postEvent(.{ .mouse = mouse });
+                    }
+                },
                 .focus_in => {
                     if (@hasField(EventType, "focus_in")) {
                         vx.postEvent(.focus_in);

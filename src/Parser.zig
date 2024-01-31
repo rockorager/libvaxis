@@ -2,6 +2,7 @@ const std = @import("std");
 const testing = std.testing;
 const Event = @import("event.zig").Event;
 const Key = @import("Key.zig");
+const Mouse = @import("Mouse.zig");
 const CodePointIterator = @import("ziglyph").CodePointIterator;
 const graphemeBreak = @import("ziglyph").graphemeBreak;
 
@@ -30,6 +31,14 @@ const Sequence = struct {
     param_buf_idx: usize = 0,
     sub_state: std.StaticBitSet(16) = std.StaticBitSet(16).initEmpty(),
     empty_state: std.StaticBitSet(16) = std.StaticBitSet(16).initEmpty(),
+};
+
+const mouse_bits = struct {
+    const motion: u8 = 0b00100000;
+    const buttons: u8 = 0b11000011;
+    const shift: u8 = 0b00000100;
+    const alt: u8 = 0b00001000;
+    const ctrl: u8 = 0b00010000;
 };
 
 // the state of the parser
@@ -226,6 +235,49 @@ pub fn parse(self: *Parser, input: []const u8) !Result {
                             'E' => Key.kp_begin,
                             'F' => Key.end,
                             'H' => Key.home,
+                            'M', 'm' => { // mouse event
+                                const priv = seq.private_indicator orelse {
+                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
+                                    return .{ .event = null, .n = i + 1 };
+                                };
+                                if (priv != '<') {
+                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
+                                    return .{ .event = null, .n = i + 1 };
+                                }
+                                if (seq.param_idx != 3) {
+                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
+                                    return .{ .event = null, .n = i + 1 };
+                                }
+                                const button: Mouse.Button = @enumFromInt(seq.params[0] & mouse_bits.buttons);
+                                const motion = seq.params[0] & mouse_bits.motion > 0;
+                                const shift = seq.params[0] & mouse_bits.shift > 0;
+                                const alt = seq.params[0] & mouse_bits.alt > 0;
+                                const ctrl = seq.params[0] & mouse_bits.ctrl > 0;
+                                const col: usize = seq.params[1] - 1;
+                                const row: usize = seq.params[2] - 1;
+
+                                const mouse = Mouse{
+                                    .button = button,
+                                    .mods = .{
+                                        .shift = shift,
+                                        .alt = alt,
+                                        .ctrl = ctrl,
+                                    },
+                                    .col = col,
+                                    .row = row,
+                                    .type = blk: {
+                                        if (motion and button != Mouse.Button.none) {
+                                            break :blk .drag;
+                                        }
+                                        if (motion and button == Mouse.Button.none) {
+                                            break :blk .motion;
+                                        }
+                                        if (b == 'm') break :blk .release;
+                                        break :blk .press;
+                                    },
+                                };
+                                return .{ .event = .{ .mouse = mouse }, .n = i + 1 };
+                            },
                             'P' => Key.f1,
                             'Q' => Key.f2,
                             'R' => Key.f3,

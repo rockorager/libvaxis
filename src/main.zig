@@ -6,6 +6,7 @@ pub const Cell = cell.Cell;
 pub const Style = cell.Style;
 
 pub const Key = @import("Key.zig");
+pub const Mouse = @import("Mouse.zig");
 pub const Winsize = @import("Tty.zig").Winsize;
 
 pub const widgets = @import("widgets/main.zig");
