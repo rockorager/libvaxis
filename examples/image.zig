@@ -32,6 +32,8 @@ pub fn main() !void {
         try vx.loadImage(alloc, .{ .path = "examples/zig.png" }),
         try vx.loadImage(alloc, .{ .path = "examples/vaxis.png" }),
     };
+    defer vx.freeImage(imgs[0].id);
+    defer vx.freeImage(imgs[1].id);
 
     var n: usize = 0;
 

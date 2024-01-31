@@ -646,6 +646,19 @@ pub fn Vaxis(comptime T: type) type {
                 .height = img.height,
             };
         }
+
+        /// deletes an image from the terminal's memory
+        pub fn freeImage(self: Self, id: u32) void {
+            var tty = self.tty orelse return;
+            const writer = tty.buffered_writer.writer();
+            std.fmt.format(writer, "\x1b_Ga=d,d=I,i={d};\x1b\\", .{id}) catch |err| {
+                log.err("couldn't delete image {d}: {}", .{ id, err });
+                return;
+            };
+            tty.buffered_writer.flush() catch |err| {
+                log.err("couldn't flush writer: {}", .{err});
+            };
+        }
     };
 }
 
