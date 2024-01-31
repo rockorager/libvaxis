@@ -9,6 +9,8 @@ pub const Key = @import("Key.zig");
 pub const Winsize = @import("Tty.zig").Winsize;
 
 pub const widgets = @import("widgets/main.zig");
+pub const alignment = widgets.alignment;
+pub const border = widgets.border;
 
 pub const Image = @import("Image.zig");
 
@@ -30,7 +32,6 @@ test {
     _ = @import("ctlseqs.zig");
     _ = @import("event.zig");
     _ = @import("gwidth.zig");
-    _ = @import("image/image.zig");
     _ = @import("queue.zig");
     _ = @import("vaxis.zig");
 }

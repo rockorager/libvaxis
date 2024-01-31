@@ -38,6 +38,7 @@ pub fn Vaxis(comptime T: type) type {
 
         pub const Capabilities = struct {
             kitty_keyboard: bool = false,
+            kitty_graphics: bool = false,
             rgb: bool = false,
             unicode: bool = false,
         };
@@ -60,8 +61,6 @@ pub fn Vaxis(comptime T: type) type {
             alt_screen: bool = false,
             /// if we have entered kitty keyboard
             kitty_keyboard: bool = false,
-            // TODO: should be false but we aren't querying yet
-            kitty_graphics: bool = true,
             bracketed_paste: bool = false,
             mouse: bool = false,
         } = .{},
@@ -337,7 +336,19 @@ pub fn Vaxis(comptime T: type) type {
                 }
 
                 if (cell.image) |img| {
-                    try std.fmt.format(tty.buffered_writer.writer(), ctlseqs.kitty_graphics_place, .{ img.img_id, img.z_index });
+                    if (img.size) |size| {
+                        try std.fmt.format(
+                            tty.buffered_writer.writer(),
+                            ctlseqs.kitty_graphics_scale,
+                            .{ img.img_id, img.z_index, size.cols, size.rows },
+                        );
+                    } else {
+                        try std.fmt.format(
+                            tty.buffered_writer.writer(),
+                            ctlseqs.kitty_graphics_place,
+                            .{ img.img_id, img.z_index },
+                        );
+                    }
                 }
 
                 // something is different, so let's loop throuugh everything and

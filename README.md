@@ -33,8 +33,8 @@ Contributions are welcome.
 | Images (half block)            |  ✅   | planned  |    ✅     |
 | Images (quadrant)              |  ✅   | planned  |    ✅     |
 | Images (sextant)               |  ❌   |    ❌    |    ✅     |
-| Images (sixel)                 |  ✅   | planned  |    ✅     |
-| Images (kitty)                 |  ✅   | planned  |    ✅     |
+| Images (sixel)                 |  ✅   | debating |    ✅     |
+| Images (kitty)                 |  ✅   |    ✅    |    ✅     |
 | Images (iterm2)                |  ❌   |    ❌    |    ✅     |
 | Video                          |  ❌   |    ❌    |    ✅     |
 | Dank                           |  🆗   |    🆗    |    ✅     |

@@ -6,7 +6,6 @@ const base64 = std.base64.standard.Encoder;
 const zigimg = @import("zigimg");
 
 const Window = @import("Window.zig");
-const Winsize = @import("Tty.zig").Winsize;
 
 const log = std.log.scoped(.image);
 
@@ -22,7 +21,7 @@ pub const Source = union(enum) {
 pub const Placement = struct {
     img_id: u32,
     z_index: i32,
-    scale: bool,
+    size: ?CellSize = null,
 };
 
 pub const CellSize = struct {
@@ -42,15 +41,26 @@ pub fn draw(self: Image, win: Window, scale: bool, z_index: i32) void {
     const p = Placement{
         .img_id = self.id,
         .z_index = z_index,
-        .scale = scale,
+        .size = sz: {
+            if (!scale) break :sz null;
+            break :sz CellSize{
+                .rows = win.height,
+                .cols = win.width,
+            };
+        },
     };
     win.writeCell(0, 0, .{ .image = p });
 }
 
-pub fn cellSize(self: Image, winsize: Winsize) !CellSize {
+pub fn cellSize(self: Image, win: Window) !CellSize {
     // cell geometry
-    const pix_per_col = try std.math.divCeil(usize, winsize.x_pixel, winsize.cols);
-    const pix_per_row = try std.math.divCeil(usize, winsize.y_pixel, winsize.rows);
+    const x_pix = win.screen.width_pix;
+    const y_pix = win.screen.height_pix;
+    const w = win.screen.width;
+    const h = win.screen.height;
+
+    const pix_per_col = try std.math.divCeil(usize, x_pix, w);
+    const pix_per_row = try std.math.divCeil(usize, y_pix, h);
 
     const cell_width = std.math.divCeil(usize, self.width, pix_per_col) catch 0;
     const cell_height = std.math.divCeil(usize, self.height, pix_per_row) catch 0;
