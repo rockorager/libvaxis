@@ -12,3 +12,5 @@ pub const Shape = enum {
     @"ns-resize",
     cell,
 };
+
+// TODO: mouse support
