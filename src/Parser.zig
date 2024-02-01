@@ -791,8 +791,6 @@ test "parse: single codepoint with more in buffer" {
 }
 
 test "parse: multiple codepoint grapheme" {
-    // TODO: this test is passing but throws a warning. Not sure how we'll
-    // handle graphemes yet
     const input = "👩‍🚀";
     var parser: Parser = .{};
     const result = try parser.parse(input);
@@ -807,8 +805,6 @@ test "parse: multiple codepoint grapheme" {
 }
 
 test "parse: multiple codepoint grapheme with more after" {
-    // TODO: this test is passing but throws a warning. Not sure how we'll
-    // handle graphemes yet
     const input = "👩‍🚀abc";
     var parser: Parser = .{};
     const result = try parser.parse(input);
