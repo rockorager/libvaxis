@@ -22,6 +22,7 @@ cursor_row: usize = 0,
 cursor_col: usize = 0,
 cursor_vis: bool = false,
 
+/// true when we measure cells with unicode
 unicode: bool = false,
 
 mouse_shape: Shape = .default,

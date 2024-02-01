@@ -1,7 +1,11 @@
 const std = @import("std");
+const ziglyph = @import("ziglyph");
+const WordIterator = ziglyph.WordIterator;
+const GraphemeIterator = ziglyph.GraphemeIterator;
 
 const Screen = @import("Screen.zig");
 const Cell = @import("cell.zig").Cell;
+const Segment = @import("cell.zig").Segment;
 const gw = @import("gwidth.zig");
 
 const log = std.log.scoped(.window);
@@ -102,6 +106,68 @@ pub fn showCursor(self: Window, col: usize, row: usize) void {
     self.screen.cursor_vis = true;
     self.screen.cursor_row = row + self.y_off;
     self.screen.cursor_col = col + self.x_off;
+}
+
+/// prints text in the window with simple word wrapping.
+pub fn wrap(self: Window, segments: []Segment) !void {
+    // pub fn wrap(self: Window, str: []const u8) !void {
+    var row: usize = 0;
+    var col: usize = 0;
+    var wrapped: bool = false;
+    for (segments) |segment| {
+        var word_iter = try WordIterator.init(segment.text);
+        while (word_iter.next()) |word| {
+            // break lines when we need
+            if (isLineBreak(word.bytes)) {
+                row += 1;
+                col = 0;
+                wrapped = false;
+                continue;
+            }
+            // break lines when we can't fit this word, and the word isn't longer
+            // than our width
+            const word_width = self.gwidth(word.bytes);
+            if (word_width + col >= self.width and word_width < self.width) {
+                row += 1;
+                col = 0;
+                wrapped = true;
+            }
+            // don't print whitespace in the first column, unless we had a hard
+            // break
+            if (col == 0 and std.mem.eql(u8, word.bytes, " ") and wrapped) continue;
+            var iter = GraphemeIterator.init(word.bytes);
+            while (iter.next()) |grapheme| {
+                if (col >= self.width) {
+                    row += 1;
+                    col = 0;
+                    wrapped = true;
+                }
+                const s = grapheme.slice(word.bytes);
+                const w = self.gwidth(s);
+                self.writeCell(col, row, .{
+                    .char = .{
+                        .grapheme = s,
+                        .width = w,
+                    },
+                    .style = segment.style,
+                    .link = segment.link,
+                });
+                col += w;
+            }
+        }
+    }
+}
+
+fn isLineBreak(str: []const u8) bool {
+    if (std.mem.eql(u8, str, "\r\n")) {
+        return true;
+    } else if (std.mem.eql(u8, str, "\r")) {
+        return true;
+    } else if (std.mem.eql(u8, str, "\n")) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 test "Window size set" {

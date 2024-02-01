@@ -7,6 +7,13 @@ pub const Cell = struct {
     image: ?Image.Placement = null,
 };
 
+/// Segment is a contiguous run of text that has a constant style
+pub const Segment = struct {
+    text: []const u8,
+    style: Style = .{},
+    link: Hyperlink = .{},
+};
+
 pub const Character = struct {
     grapheme: []const u8 = " ",
     /// width should only be provided when the application is sure the terminal
