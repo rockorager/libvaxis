@@ -16,6 +16,14 @@ const Writer = std.io.Writer(os.fd_t, os.WriteError, os.write);
 
 const BufferedWriter = std.io.BufferedWriter(4096, Writer);
 
+const system = switch (builtin.os.tag) {
+    .linux => os.linux,
+    .plan9 => os.plan9,
+    .wasi => os.wasi,
+    .uefi => os.uefi,
+    else => std.c,
+};
+
 /// the original state of the terminal, prior to calling makeRaw
 termios: os.termios,
 
@@ -227,42 +235,42 @@ pub fn makeRaw(fd: os.fd_t) !os.termios {
     // see termios(3)
     raw.iflag &= ~@as(
         os.tcflag_t,
-        os.system.IGNBRK |
-            os.system.BRKINT |
-            os.system.PARMRK |
-            os.system.ISTRIP |
-            os.system.INLCR |
-            os.system.IGNCR |
-            os.system.ICRNL |
-            os.system.IXON,
+        system.IGNBRK |
+            system.BRKINT |
+            system.PARMRK |
+            system.ISTRIP |
+            system.INLCR |
+            system.IGNCR |
+            system.ICRNL |
+            system.IXON,
     );
-    raw.oflag &= ~@as(os.tcflag_t, os.system.OPOST);
+    raw.oflag &= ~@as(os.tcflag_t, system.OPOST);
     raw.lflag &= ~@as(
         os.tcflag_t,
-        os.system.ECHO |
-            os.system.ECHONL |
-            os.system.ICANON |
-            os.system.ISIG |
-            os.system.IEXTEN,
+        system.ECHO |
+            system.ECHONL |
+            system.ICANON |
+            system.ISIG |
+            system.IEXTEN,
     );
     raw.cflag &= ~@as(
         os.tcflag_t,
-        os.system.CSIZE |
-            os.system.PARENB,
+        system.CSIZE |
+            system.PARENB,
     );
     raw.cflag |= @as(
         os.tcflag_t,
-        os.system.CS8,
+        system.CS8,
     );
-    raw.cc[os.system.V.MIN] = 1;
-    raw.cc[os.system.V.TIME] = 0;
+    raw.cc[system.V.MIN] = 1;
+    raw.cc[system.V.TIME] = 0;
     try os.tcsetattr(fd, .FLUSH, raw);
     return state;
 }
 
 const TIOCGWINSZ = switch (builtin.os.tag) {
     .linux => 0x5413,
-    .macos => ior(0x40000000, 't', 104, @sizeOf(os.system.winsize)),
+    .macos => ior(0x40000000, 't', 104, @sizeOf(system.winsize)),
     else => @compileError("Missing termiosbits for this target, sorry."),
 };
 
@@ -280,7 +288,7 @@ pub const Winsize = struct {
 };
 
 fn getWinsize(fd: os.fd_t) !Winsize {
-    var winsize = os.system.winsize{
+    var winsize = system.winsize{
         .ws_row = 0,
         .ws_col = 0,
         .ws_xpixel = 0,
