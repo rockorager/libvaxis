@@ -359,7 +359,7 @@ pub fn Vaxis(comptime T: type) type {
                         .index => |idx| {
                             switch (idx) {
                                 0...7 => try std.fmt.format(writer, ctlseqs.fg_base, .{idx}),
-                                8...15 => try std.fmt.format(writer, ctlseqs.fg_bright, .{idx}),
+                                8...15 => try std.fmt.format(writer, ctlseqs.fg_bright, .{idx - 8}),
                                 else => try std.fmt.format(writer, ctlseqs.fg_indexed, .{idx}),
                             }
                         },
@@ -376,7 +376,7 @@ pub fn Vaxis(comptime T: type) type {
                         .index => |idx| {
                             switch (idx) {
                                 0...7 => try std.fmt.format(writer, ctlseqs.bg_base, .{idx}),
-                                8...15 => try std.fmt.format(writer, ctlseqs.bg_bright, .{idx}),
+                                8...15 => try std.fmt.format(writer, ctlseqs.bg_bright, .{idx - 8}),
                                 else => try std.fmt.format(writer, ctlseqs.bg_indexed, .{idx}),
                             }
                         },

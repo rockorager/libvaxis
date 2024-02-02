@@ -5,6 +5,7 @@ const cell = @import("cell.zig");
 pub const Cell = cell.Cell;
 pub const Style = cell.Style;
 pub const Segment = cell.Segment;
+pub const Color = cell.Color;
 
 pub const Key = @import("Key.zig");
 pub const Mouse = @import("Mouse.zig");
