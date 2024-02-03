@@ -34,7 +34,7 @@ pub fn Queue(
             }
             if (self.isFull()) {
                 // If we are full, wake up the push
-                defer Futex.wake(&self.futex, 1);
+                Futex.wake(&self.futex, 1);
             }
             const i = self.read_index;
             self.read_index += 1;
@@ -53,7 +53,7 @@ pub fn Queue(
                 self.mutex.lock();
             }
             if (self.isEmpty()) {
-                defer Futex.wake(&self.futex, 1);
+                Futex.wake(&self.futex, 1);
             }
             const i = self.write_index;
             self.write_index += 1;
