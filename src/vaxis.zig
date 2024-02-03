@@ -535,6 +535,7 @@ pub fn Vaxis(comptime T: type) type {
                     .{body},
                 );
             }
+            try self.tty.?.flush();
         }
 
         /// sets the window title
@@ -545,6 +546,7 @@ pub fn Vaxis(comptime T: type) type {
                 ctlseqs.osc2_set_title,
                 .{title},
             );
+            try self.tty.?.flush();
         }
 
         // turn bracketed paste on or off. An event will be sent at the
