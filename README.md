@@ -16,28 +16,28 @@ Contributions are welcome.
 ## Feature comparison
 
 | Feature                        | Vaxis | libvaxis | notcurses |
-|--------------------------------|:-----:|:--------:|:---------:|
-| RGB                            |   ✅   |    ✅     |     ✅     |
-| Hyperlinks                     |   ✅   |    ✅     |     ❌     |
-| Bracketed Paste                |   ✅   |    ✅     |     ❌     |
-| Kitty Keyboard                 |   ✅   |    ✅     |     ✅     |
-| Styled Underlines              |   ✅   |    ✅     |     ✅     |
-| Mouse Shapes (OSC 22)          |   ✅   |    ✅     |     ❌     |
-| System Clipboard (OSC 52)      |   ✅   | planned  |     ❌     |
-| System Notifications (OSC 9)   |   ✅   |    ✅     |     ❌     |
-| System Notifications (OSC 777) |   ✅   |    ✅     |     ❌     |
-| Synchronized Output (DEC 2026) |   ✅   |    ✅     |     ✅     |
-| Unicode Core (DEC 2027)        |   ✅   |    ✅     |     ❌     |
-| Color Mode Updates (DEC 2031)  |   ✅   | planned  |     ❌     |
-| Images (full/space)            |   ✅   | planned  |     ✅     |
-| Images (half block)            |   ✅   | planned  |     ✅     |
-| Images (quadrant)              |   ✅   | planned  |     ✅     |
-| Images (sextant)               |   ❌   |    ❌     |     ✅     |
-| Images (sixel)                 |   ✅   | debating |     ✅     |
-| Images (kitty)                 |   ✅   |    ✅     |     ✅     |
-| Images (iterm2)                |   ❌   |    ❌     |     ✅     |
-| Video                          |   ❌   |    ❌     |     ✅     |
-| Dank                           |  🆗   |    🆗    |     ✅     |
+| ------------------------------ | :---: | :------: | :-------: |
+| RGB                            |  ✅   |    ✅    |    ✅     |
+| Hyperlinks                     |  ✅   |    ✅    |    ❌     |
+| Bracketed Paste                |  ✅   |    ✅    |    ❌     |
+| Kitty Keyboard                 |  ✅   |    ✅    |    ✅     |
+| Styled Underlines              |  ✅   |    ✅    |    ✅     |
+| Mouse Shapes (OSC 22)          |  ✅   |    ✅    |    ❌     |
+| System Clipboard (OSC 52)      |  ✅   | planned  |    ❌     |
+| System Notifications (OSC 9)   |  ✅   |    ✅    |    ❌     |
+| System Notifications (OSC 777) |  ✅   |    ✅    |    ❌     |
+| Synchronized Output (DEC 2026) |  ✅   |    ✅    |    ✅     |
+| Unicode Core (DEC 2027)        |  ✅   |    ✅    |    ❌     |
+| Color Mode Updates (DEC 2031)  |  ✅   | planned  |    ❌     |
+| Images (full/space)            |  ✅   | planned  |    ✅     |
+| Images (half block)            |  ✅   | planned  |    ✅     |
+| Images (quadrant)              |  ✅   | planned  |    ✅     |
+| Images (sextant)               |  ❌   |    ❌    |    ✅     |
+| Images (sixel)                 |  ✅   | debating |    ✅     |
+| Images (kitty)                 |  ✅   |    ✅    |    ✅     |
+| Images (iterm2)                |  ❌   |    ❌    |    ✅     |
+| Video                          |  ❌   |    ❌    |    ✅     |
+| Dank                           |  🆗   |    🆗    |    ✅     |
 
 ## Usage
 
