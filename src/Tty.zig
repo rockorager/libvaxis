@@ -65,8 +65,8 @@ pub fn stop(self: *Tty) void {
 /// read input from the tty
 pub fn run(
     self: *Tty,
-    comptime T: type,
-    vx: *Vaxis(T),
+    comptime Event: type,
+    vx: *Vaxis(Event),
 ) !void {
     // create a pipe so we can signal to exit the run loop
     const pipe = try os.pipe();
@@ -75,7 +75,7 @@ pub fn run(
 
     // get our initial winsize
     const winsize = try getWinsize(self.fd);
-    if (@hasField(T, "winsize")) {
+    if (@hasField(Event, "winsize")) {
         vx.postEvent(.{ .winsize = winsize });
     }
 
@@ -88,10 +88,10 @@ pub fn run(
     const WinchHandler = struct {
         const Self = @This();
 
-        var vx_winch: *Vaxis(T) = undefined;
+        var vx_winch: *Vaxis(Event) = undefined;
         var fd: os.fd_t = undefined;
 
-        fn init(vx_arg: *Vaxis(T), fd_arg: os.fd_t) !void {
+        fn init(vx_arg: *Vaxis(Event), fd_arg: os.fd_t) !void {
             vx_winch = vx_arg;
             fd = fd_arg;
             var act = os.Sigaction{
@@ -111,7 +111,7 @@ pub fn run(
             const ws = getWinsize(fd) catch {
                 return;
             };
-            if (@hasField(T, "winsize")) {
+            if (@hasField(Event, "winsize")) {
                 vx_winch.postEvent(.{ .winsize = ws });
             }
         }
@@ -153,7 +153,7 @@ pub fn run(
             const event = result.event orelse continue;
             switch (event) {
                 .key_press => |key| {
-                    if (@hasField(T, "key_press")) {
+                    if (@hasField(Event, "key_press")) {
                         // HACK: yuck. there has to be a better way
                         var mut_key = key;
                         if (key.text) |text| {
@@ -163,27 +163,27 @@ pub fn run(
                     }
                 },
                 .mouse => |mouse| {
-                    if (@hasField(T, "mouse")) {
+                    if (@hasField(Event, "mouse")) {
                         vx.postEvent(.{ .mouse = mouse });
                     }
                 },
                 .focus_in => {
-                    if (@hasField(T, "focus_in")) {
+                    if (@hasField(Event, "focus_in")) {
                         vx.postEvent(.focus_in);
                     }
                 },
                 .focus_out => {
-                    if (@hasField(T, "focus_out")) {
+                    if (@hasField(Event, "focus_out")) {
                         vx.postEvent(.focus_out);
                     }
                 },
                 .paste_start => {
-                    if (@hasField(T, "paste_start")) {
+                    if (@hasField(Event, "paste_start")) {
                         vx.postEvent(.paste_start);
                     }
                 },
                 .paste_end => {
-                    if (@hasField(T, "paste_end")) {
+                    if (@hasField(Event, "paste_end")) {
                         vx.postEvent(.paste_end);
                     }
                 },
