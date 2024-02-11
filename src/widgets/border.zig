@@ -1,7 +1,8 @@
+const Cell = @import("../Cell.zig");
 const Window = @import("../Window.zig");
-const cell = @import("../cell.zig");
-const Character = cell.Character;
-const Style = cell.Style;
+
+const Style = Cell.Style;
+const Character = Cell.Character;
 
 const horizontal = Character{ .grapheme = "─", .width = 1 };
 const vertical = Character{ .grapheme = "│", .width = 1 };

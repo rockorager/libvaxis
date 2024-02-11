@@ -4,8 +4,8 @@ const WordIterator = ziglyph.WordIterator;
 const GraphemeIterator = ziglyph.GraphemeIterator;
 
 const Screen = @import("Screen.zig");
-const Cell = @import("cell.zig").Cell;
-const Segment = @import("cell.zig").Segment;
+const Cell = @import("Cell.zig");
+const Segment = @import("Cell.zig").Segment;
 const gw = @import("gwidth.zig");
 
 const log = std.log.scoped(.window);
@@ -118,7 +118,7 @@ pub fn wrap(self: Window, segments: []Segment) !void {
         var word_iter = try WordIterator.init(segment.text);
         while (word_iter.next()) |word| {
             // break lines when we need
-            if (isLineBreak(word.bytes)) {
+            if (word.bytes[0] == '\r' or word.bytes[0] == '\n') {
                 row += 1;
                 col = 0;
                 wrapped = false;
@@ -155,18 +155,6 @@ pub fn wrap(self: Window, segments: []Segment) !void {
                 col += w;
             }
         }
-    }
-}
-
-fn isLineBreak(str: []const u8) bool {
-    if (std.mem.eql(u8, str, "\r\n")) {
-        return true;
-    } else if (std.mem.eql(u8, str, "\r")) {
-        return true;
-    } else if (std.mem.eql(u8, str, "\n")) {
-        return true;
-    } else {
-        return false;
     }
 }
 

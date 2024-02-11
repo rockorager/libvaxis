@@ -56,7 +56,7 @@ pub fn main() !void {
 
         const img = imgs[n];
         const dims = try img.cellSize(win);
-        const center = vaxis.alignment.center(win, dims.cols, dims.rows);
+        const center = vaxis.widgets.alignment.center(win, dims.cols, dims.rows);
         const scale = false;
         const z_index = 0;
         img.draw(center, scale, z_index);

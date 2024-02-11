@@ -32,11 +32,11 @@ pub fn main() !void {
 
     // The main event loop. Vaxis provides a thread safe, blocking, buffered
     // queue which can serve as the primary event queue for an application
-    outer: while (true) {
+    while (true) {
         // nextEvent blocks until an event is in the queue
         const event = vx.nextEvent();
-        log.debug("event: {}\r\n", .{event});
-        // exhaustive switching ftw. Vaxis will send events if your EventType
+        log.debug("event: {}", .{event});
+        // exhaustive switching ftw. Vaxis will send events if your Event
         // enum has the fields for those events (ie "key_press", "winsize")
         switch (event) {
             .key_press => |key| {
@@ -45,7 +45,7 @@ pub fn main() !void {
                     else => color_idx + 1,
                 };
                 if (key.codepoint == 'c' and key.mods.ctrl) {
-                    break :outer;
+                    break;
                 }
             },
             .winsize => |ws| {
@@ -87,7 +87,7 @@ pub fn main() !void {
     }
 }
 
-// Our EventType. This can contain internal events as well as Vaxis events.
+// Our Event. This can contain internal events as well as Vaxis events.
 // Internal events can be posted into the same queue as vaxis events to allow
 // for a single event loop with exhaustive switching. Booya
 const Event = union(enum) {

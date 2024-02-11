@@ -11,8 +11,8 @@ const Screen = @import("Screen.zig");
 const InternalScreen = @import("InternalScreen.zig");
 const Window = @import("Window.zig");
 const Options = @import("Options.zig");
-const Style = @import("cell.zig").Style;
-const Hyperlink = @import("cell.zig").Hyperlink;
+const Style = @import("Cell.zig").Style;
+const Hyperlink = @import("Cell.zig").Hyperlink;
 const gwidth = @import("gwidth.zig");
 const Shape = @import("Mouse.zig").Shape;
 const Image = @import("Image.zig");
@@ -34,7 +34,7 @@ pub fn Vaxis(comptime T: type) type {
 
         const log = std.log.scoped(.vaxis);
 
-        pub const EventType = T;
+        pub const Event = T;
 
         pub const Capabilities = struct {
             kitty_keyboard: bool = false,
@@ -83,7 +83,7 @@ pub fn Vaxis(comptime T: type) type {
 
         /// Initialize Vaxis with runtime options
         pub fn init(_: Options) !Self {
-            return Self{
+            return .{
                 .queue = .{},
                 .tty = null,
                 .screen = .{},
@@ -151,7 +151,7 @@ pub fn Vaxis(comptime T: type) type {
             self.queue.push(event);
         }
 
-        /// resize allocates a slice of cellsequal to the number of cells
+        /// resize allocates a slice of cells equal to the number of cells
         /// required to display the screen (ie width x height). Any previous screen is
         /// freed when resizing
         pub fn resize(self: *Self, alloc: std.mem.Allocator, winsize: Winsize) !void {
@@ -169,7 +169,7 @@ pub fn Vaxis(comptime T: type) type {
 
         /// returns a Window comprising of the entire terminal screen
         pub fn window(self: *Self) Window {
-            return Window{
+            return .{
                 .x_off = 0,
                 .y_off = 0,
                 .width = self.screen.width,
@@ -207,7 +207,7 @@ pub fn Vaxis(comptime T: type) type {
             if (std.mem.eql(u8, colorterm, "truecolor") or
                 std.mem.eql(u8, colorterm, "24bit"))
             {
-                if (@hasField(EventType, "cap_rgb")) {
+                if (@hasField(Event, "cap_rgb")) {
                     self.postEvent(.cap_rgb);
                 }
             }
@@ -348,7 +348,7 @@ pub fn Vaxis(comptime T: type) type {
                     }
                 }
 
-                // something is different, so let's loop throuugh everything and
+                // something is different, so let's loop through everything and
                 // find out what
 
                 // foreground
@@ -642,7 +642,7 @@ pub fn Vaxis(comptime T: type) type {
                 }
             }
             try tty.buffered_writer.flush();
-            return Image{
+            return .{
                 .id = id,
                 .width = img.width,
                 .height = img.height,

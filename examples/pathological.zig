@@ -19,12 +19,12 @@ pub fn main() !void {
     try vx.enterAltScreen();
     try vx.queryTerminal();
 
-    outer: while (true) {
+    while (true) {
         const event = vx.nextEvent();
         switch (event) {
             .winsize => |ws| {
                 try vx.resize(alloc, ws);
-                break :outer;
+                break;
             },
         }
     }

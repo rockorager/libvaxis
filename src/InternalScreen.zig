@@ -1,7 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
-const Style = @import("cell.zig").Style;
-const Cell = @import("cell.zig").Cell;
+const Style = @import("Cell.zig").Style;
+const Cell = @import("Cell.zig");
 const Shape = @import("Mouse.zig").Shape;
 
 const log = std.log.scoped(.internal_screen);

@@ -16,28 +16,28 @@ Contributions are welcome.
 ## Feature comparison
 
 | Feature                        | Vaxis | libvaxis | notcurses |
-| ------------------------------ | :---: | :------: | :-------: |
-| RGB                            |  ✅   |    ✅    |    ✅     |
-| Hyperlinks                     |  ✅   |    ✅    |    ❌     |
-| Bracketed Paste                |  ✅   |    ✅    |    ❌     |
-| Kitty Keyboard                 |  ✅   |    ✅    |    ✅     |
-| Styled Underlines              |  ✅   |    ✅    |    ✅     |
-| Mouse Shapes (OSC 22)          |  ✅   |    ✅    |    ❌     |
-| System Clipboard (OSC 52)      |  ✅   | planned  |    ❌     |
-| System Notifications (OSC 9)   |  ✅   |    ✅    |    ❌     |
-| System Notifications (OSC 777) |  ✅   |    ✅    |    ❌     |
-| Synchronized Output (DEC 2026) |  ✅   |    ✅    |    ✅     |
-| Unicode Core (DEC 2027)        |  ✅   |    ✅    |    ❌     |
-| Color Mode Updates (DEC 2031)  |  ✅   | planned  |    ❌     |
-| Images (full/space)            |  ✅   | planned  |    ✅     |
-| Images (half block)            |  ✅   | planned  |    ✅     |
-| Images (quadrant)              |  ✅   | planned  |    ✅     |
-| Images (sextant)               |  ❌   |    ❌    |    ✅     |
-| Images (sixel)                 |  ✅   | debating |    ✅     |
-| Images (kitty)                 |  ✅   |    ✅    |    ✅     |
-| Images (iterm2)                |  ❌   |    ❌    |    ✅     |
-| Video                          |  ❌   |    ❌    |    ✅     |
-| Dank                           |  🆗   |    🆗    |    ✅     |
+|--------------------------------|:-----:|:--------:|:---------:|
+| RGB                            |   ✅   |    ✅     |     ✅     |
+| Hyperlinks                     |   ✅   |    ✅     |     ❌     |
+| Bracketed Paste                |   ✅   |    ✅     |     ❌     |
+| Kitty Keyboard                 |   ✅   |    ✅     |     ✅     |
+| Styled Underlines              |   ✅   |    ✅     |     ✅     |
+| Mouse Shapes (OSC 22)          |   ✅   |    ✅     |     ❌     |
+| System Clipboard (OSC 52)      |   ✅   | planned  |     ❌     |
+| System Notifications (OSC 9)   |   ✅   |    ✅     |     ❌     |
+| System Notifications (OSC 777) |   ✅   |    ✅     |     ❌     |
+| Synchronized Output (DEC 2026) |   ✅   |    ✅     |     ✅     |
+| Unicode Core (DEC 2027)        |   ✅   |    ✅     |     ❌     |
+| Color Mode Updates (DEC 2031)  |   ✅   | planned  |     ❌     |
+| Images (full/space)            |   ✅   | planned  |     ✅     |
+| Images (half block)            |   ✅   | planned  |     ✅     |
+| Images (quadrant)              |   ✅   | planned  |     ✅     |
+| Images (sextant)               |   ❌   |    ❌     |     ✅     |
+| Images (sixel)                 |   ✅   | debating |     ✅     |
+| Images (kitty)                 |   ✅   |    ✅     |     ✅     |
+| Images (iterm2)                |   ❌   |    ❌     |     ✅     |
+| Video                          |   ❌   |    ❌     |     ✅     |
+| Dank                           |  🆗   |    🆗    |     ✅     |
 
 ## Usage
 
@@ -53,7 +53,7 @@ const border = vaxis.widgets.border;
 
 const log = std.log.scoped(.main);
 
-// Our EventType. This can contain internal events as well as Vaxis events.
+// This can contain internal events as well as Vaxis events.
 // Internal events can be posted into the same queue as vaxis events to allow
 // for a single event loop with exhaustive switching. Booya
 const Event = union(enum) {
@@ -102,12 +102,12 @@ pub fn main() !void {
 
     // The main event loop. Vaxis provides a thread safe, blocking, buffered
     // queue which can serve as the primary event queue for an application
-    outer: while (true) {
+    while (true) {
         // nextEvent blocks until an event is in the queue
         const event = vx.nextEvent();
-        log.debug("event: {}\r\n", .{event});
-        // exhaustive switching ftw. Vaxis will send events if your EventType
-        // enum has the fields for those events (ie "key_press", "winsize")
+        log.debug("event: {}", .{event});
+        // exhaustive switching ftw. Vaxis will send events if your Event enum
+        // has the fields for those events (ie "key_press", "winsize")
         switch (event) {
             .key_press => |key| {
                 color_idx = switch (color_idx) {
@@ -115,7 +115,7 @@ pub fn main() !void {
                     else => color_idx + 1,
                 };
                 if (key.matches('c', .{ .ctrl = true })) {
-                    break :outer;
+                    break;
                 } else if (key.matches('l', .{ .ctrl = true })) {
                     vx.queueRefresh();
                 } else {

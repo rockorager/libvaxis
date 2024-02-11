@@ -1,7 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 
-const Cell = @import("cell.zig").Cell;
+const Cell = @import("Cell.zig");
 const Shape = @import("Mouse.zig").Shape;
 const Image = @import("Image.zig");
 const Winsize = @import("Tty.zig").Winsize;

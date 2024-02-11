@@ -1,36 +1,15 @@
 .{
     .name = "vaxis",
-    // This is a [Semantic Version](https://semver.org/).
-    // In a future version of Zig it will be used for package deduplication.
     .version = "0.1.0",
-
-    // This field is optional.
-    // This is currently advisory only; Zig does not yet do anything
-    // with this value.
-    //.minimum_zig_version = "0.11.0",
-
+    .paths = .{""},
     .dependencies = .{
         .ziglyph = .{
-            .url = "https://codeberg.org/dude_the_builder/ziglyph/archive/ac50ab06c91d2dd632ff4573c035dafe3b374aba.tar.gz",
-	    .hash = "1220e097fbfb3a15a6f3484cf507f1f10ab571d1bcf519c3b5447ca727782b7a5264",
+            .url = "https://codeberg.org/dude_the_builder/ziglyph/archive/ac50ab06c9.tar.gz",
+            .hash = "1220e097fbfb3a15a6f3484cf507f1f10ab571d1bcf519c3b5447ca727782b7a5264",
         },
-	.zigimg = .{
-	    .url = "https://github.com/zigimg/zigimg/archive/f6998808f283f8d3c2ef34e8b4af423bc1786f32.tar.gz",
-	    .hash = "12202ee5d22ade0c300e9e7eae4c1951bda3d5f236fe1a139eb3613b43e2f12a88db",
-	  }
-    },
-
-    .paths = .{
-        // This makes *all* files, recursively, included in this package. It is generally
-        // better to explicitly list the files and directories instead, to insure that
-        // fetching from tarballs, file system paths, and version control all result
-        // in the same contents hash.
-        "",
-        // For example...
-        //"build.zig",
-        //"build.zig.zon",
-        //"src",
-        //"LICENSE",
-        //"README.md",
+        .zigimg = .{
+            .url = "https://github.com/zigimg/zigimg/archive/2224f91.tar.gz",
+            .hash = "12207067e4892c48369415268648380859baa89c324748ae5bfda414a12868c9fc8b",
+        },
     },
 }

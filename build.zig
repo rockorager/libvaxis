@@ -3,52 +3,61 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const root_source_file = std.Build.LazyPath.relative("src/main.zig");
 
-    const vaxis = b.addModule("vaxis", .{ .root_source_file = .{ .path = "src/main.zig" } });
-
-    const ziglyph = b.dependency("ziglyph", .{
+    // Dependencies
+    const ziglyph_dep = b.dependency("ziglyph", .{
         .optimize = optimize,
         .target = target,
     });
-    vaxis.addImport("ziglyph", ziglyph.module("ziglyph"));
-
-    const zigimg = b.dependency("zigimg", .{
+    const zigimg_dep = b.dependency("zigimg", .{
         .optimize = optimize,
         .target = target,
     });
-    vaxis.addImport("zigimg", zigimg.module("zigimg"));
 
-    const exe = b.addExecutable(.{
-        .name = "vaxis",
-        .root_source_file = .{ .path = "examples/pathological.zig" },
+    // Module
+    const vaxis_mod = b.addModule("vaxis", .{ .root_source_file = root_source_file });
+    vaxis_mod.addImport("ziglyph", ziglyph_dep.module("ziglyph"));
+    vaxis_mod.addImport("zigimg", zigimg_dep.module("zigimg"));
+
+    // Examples
+    const example_step = b.step("example", "Run examples");
+
+    const example = b.addExecutable(.{
+        .name = "vaxis_pathological_example",
+        .root_source_file = std.Build.LazyPath.relative("examples/pathological.zig"),
         .target = target,
         .optimize = optimize,
     });
-    exe.root_module.addImport("vaxis", vaxis);
+    example.root_module.addImport("vaxis", vaxis_mod);
 
-    const run_cmd = b.addRunArtifact(exe);
+    const example_run = b.addRunArtifact(example);
+    example_step.dependOn(&example_run.step);
+    b.default_step.dependOn(example_step);
 
-    run_cmd.step.dependOn(b.getInstallStep());
+    // Tests
+    const tests_step = b.step("test", "Run tests");
 
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
-    }
-
-    const run_step = b.step("run", "Run the app");
-    run_step.dependOn(&run_cmd.step);
-
-    // Creates a step for unit testing. This only builds the test executable
-    // but does not run it.
-    const lib_unit_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/main.zig" },
+    const tests = b.addTest(.{
+        .root_source_file = root_source_file,
         .target = target,
         .optimize = optimize,
     });
-    lib_unit_tests.root_module.addImport("ziglyph", ziglyph.module("ziglyph"));
-    lib_unit_tests.root_module.addImport("zigimg", zigimg.module("zigimg"));
+    tests.root_module.addImport("ziglyph", ziglyph_dep.module("ziglyph"));
+    tests.root_module.addImport("zigimg", zigimg_dep.module("zigimg"));
 
-    const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
+    const tests_run = b.addRunArtifact(tests);
+    tests_step.dependOn(&tests_run.step);
+    b.default_step.dependOn(tests_step);
 
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_lib_unit_tests.step);
+    // Lints
+    const lints_step = b.step("lint", "Run lints");
+
+    const lints = b.addFmt(.{
+        .paths = &.{ "src", "build.zig" },
+        .check = true,
+    });
+
+    lints_step.dependOn(&lints.step);
+    b.default_step.dependOn(lints_step);
 }
