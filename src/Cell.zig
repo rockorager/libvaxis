@@ -1,11 +1,9 @@
 const Image = @import("Image.zig");
 
-pub const Cell = struct {
-    char: Character = .{},
-    style: Style = .{},
-    link: Hyperlink = .{},
-    image: ?Image.Placement = null,
-};
+char: Character = .{},
+style: Style = .{},
+link: Hyperlink = .{},
+image: ?Image.Placement = null,
 
 /// Segment is a contiguous run of text that has a constant style
 pub const Segment = struct {
@@ -17,7 +15,7 @@ pub const Segment = struct {
 pub const Character = struct {
     grapheme: []const u8 = " ",
     /// width should only be provided when the application is sure the terminal
-    /// will meeasure the same width. This can be ensure by using the gwidth method
+    /// will measure the same width. This can be ensure by using the gwidth method
     /// included in libvaxis. If width is 0, libvaxis will measure the glyph at
     /// render time
     width: usize = 1,

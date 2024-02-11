@@ -1,6 +1,6 @@
 const std = @import("std");
-const Cell = @import("../cell.zig").Cell;
 const Key = @import("../Key.zig");
+const Cell = @import("../Cell.zig");
 const Window = @import("../Window.zig");
 const GraphemeIterator = @import("ziglyph").GraphemeIterator;
 

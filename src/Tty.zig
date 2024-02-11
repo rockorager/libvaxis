@@ -1,11 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const os = std.os;
-const vaxis = @import("main.zig");
-const Vaxis = vaxis.Vaxis;
-const Event = @import("event.zig").Event;
+const Vaxis = @import("vaxis.zig").Vaxis;
 const Parser = @import("Parser.zig");
-const Key = vaxis.Key;
 const GraphemeCache = @import("GraphemeCache.zig");
 
 const log = std.log.scoped(.tty);
@@ -68,8 +65,8 @@ pub fn stop(self: *Tty) void {
 /// read input from the tty
 pub fn run(
     self: *Tty,
-    comptime EventType: type,
-    vx: *Vaxis(EventType),
+    comptime Event: type,
+    vx: *Vaxis(Event),
 ) !void {
     // create a pipe so we can signal to exit the run loop
     const pipe = try os.pipe();
@@ -78,7 +75,7 @@ pub fn run(
 
     // get our initial winsize
     const winsize = try getWinsize(self.fd);
-    if (@hasField(EventType, "winsize")) {
+    if (@hasField(Event, "winsize")) {
         vx.postEvent(.{ .winsize = winsize });
     }
 
@@ -91,10 +88,10 @@ pub fn run(
     const WinchHandler = struct {
         const Self = @This();
 
-        var vx_winch: *Vaxis(EventType) = undefined;
+        var vx_winch: *Vaxis(Event) = undefined;
         var fd: os.fd_t = undefined;
 
-        fn init(vx_arg: *Vaxis(EventType), fd_arg: os.fd_t) !void {
+        fn init(vx_arg: *Vaxis(Event), fd_arg: os.fd_t) !void {
             vx_winch = vx_arg;
             fd = fd_arg;
             var act = os.Sigaction{
@@ -114,7 +111,7 @@ pub fn run(
             const ws = getWinsize(fd) catch {
                 return;
             };
-            if (@hasField(EventType, "winsize")) {
+            if (@hasField(Event, "winsize")) {
                 vx_winch.postEvent(.{ .winsize = ws });
             }
         }
@@ -156,7 +153,7 @@ pub fn run(
             const event = result.event orelse continue;
             switch (event) {
                 .key_press => |key| {
-                    if (@hasField(EventType, "key_press")) {
+                    if (@hasField(Event, "key_press")) {
                         // HACK: yuck. there has to be a better way
                         var mut_key = key;
                         if (key.text) |text| {
@@ -166,27 +163,27 @@ pub fn run(
                     }
                 },
                 .mouse => |mouse| {
-                    if (@hasField(EventType, "mouse")) {
+                    if (@hasField(Event, "mouse")) {
                         vx.postEvent(.{ .mouse = mouse });
                     }
                 },
                 .focus_in => {
-                    if (@hasField(EventType, "focus_in")) {
+                    if (@hasField(Event, "focus_in")) {
                         vx.postEvent(.focus_in);
                     }
                 },
                 .focus_out => {
-                    if (@hasField(EventType, "focus_out")) {
+                    if (@hasField(Event, "focus_out")) {
                         vx.postEvent(.focus_out);
                     }
                 },
                 .paste_start => {
-                    if (@hasField(EventType, "paste_start")) {
+                    if (@hasField(Event, "paste_start")) {
                         vx.postEvent(.paste_start);
                     }
                 },
                 .paste_end => {
-                    if (@hasField(EventType, "paste_end")) {
+                    if (@hasField(Event, "paste_end")) {
                         vx.postEvent(.paste_end);
                     }
                 },
