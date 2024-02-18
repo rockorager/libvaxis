@@ -7,6 +7,7 @@ const ziglyph = @import("ziglyph");
 pub const Method = enum {
     unicode,
     wcwidth,
+    no_zwj,
 };
 
 /// returns the width of the provided string, as measured by the method chosen
@@ -27,30 +28,41 @@ pub fn gwidth(str: []const u8, method: Method) !usize {
             }
             return total;
         },
+        .no_zwj => {
+            var out: [256]u8 = undefined;
+            if (str.len > out) return error.OutOfMemory;
+            const n = std.mem.replace(u8, str, "\u{200D}", "", &out);
+            return gwidth(out[0..n], .unicode);
+        },
     }
 }
 
 test "gwidth: a" {
     try testing.expectEqual(1, try gwidth("a", .unicode));
     try testing.expectEqual(1, try gwidth("a", .wcwidth));
+    try testing.expectEqual(1, try gwidth("a", .no_zwj));
 }
 
 test "gwidth: emoji with ZWJ" {
     try testing.expectEqual(2, try gwidth("👩‍🚀", .unicode));
     try testing.expectEqual(4, try gwidth("👩‍🚀", .wcwidth));
+    try testing.expectEqual(4, try gwidth("👩‍🚀", .no_zwj));
 }
 
 test "gwidth: emoji with VS16 selector" {
     try testing.expectEqual(2, try gwidth("\xE2\x9D\xA4\xEF\xB8\x8F", .unicode));
     try testing.expectEqual(1, try gwidth("\xE2\x9D\xA4\xEF\xB8\x8F", .wcwidth));
+    try testing.expectEqual(2, try gwidth("\xE2\x9D\xA4\xEF\xB8\x8F", .no_zwj));
 }
 
 test "gwidth: emoji with skin tone selector" {
     try testing.expectEqual(2, try gwidth("👋🏿", .unicode));
     try testing.expectEqual(4, try gwidth("👋🏿", .wcwidth));
+    try testing.expectEqual(2, try gwidth("👋🏿", .no_zwj));
 }
 
 test "gwidth: invalid string" {
     try testing.expectError(error.InvalidUtf8, gwidth("\xc3\x28", .unicode));
     try testing.expectError(error.InvalidUtf8, gwidth("\xc3\x28", .wcwidth));
+    try testing.expectError(error.InvalidUtf8, gwidth("\xc3\x28", .no_zwj));
 }
