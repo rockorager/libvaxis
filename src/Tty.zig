@@ -13,14 +13,6 @@ const Writer = std.io.Writer(os.fd_t, os.WriteError, os.write);
 
 const BufferedWriter = std.io.BufferedWriter(4096, Writer);
 
-const system = switch (builtin.os.tag) {
-    .linux => os.linux,
-    .plan9 => os.plan9,
-    .wasi => os.wasi,
-    .uefi => os.uefi,
-    else => std.c,
-};
-
 /// the original state of the terminal, prior to calling makeRaw
 termios: os.termios,
 
@@ -35,7 +27,7 @@ buffered_writer: BufferedWriter,
 /// initializes a Tty instance by opening /dev/tty and "making it raw"
 pub fn init() !Tty {
     // Open our tty
-    const fd = try os.open("/dev/tty", os.system.O.RDWR, 0);
+    const fd = try os.open("/dev/tty", .{ .ACCMODE = .RDWR }, 0);
 
     // Set the termios of the tty
     const termios = try makeRaw(fd);
@@ -230,50 +222,28 @@ pub fn makeRaw(fd: os.fd_t) !os.termios {
     const state = try os.tcgetattr(fd);
     var raw = state;
     // see termios(3)
-    raw.iflag &= ~@as(
-        os.tcflag_t,
-        system.IGNBRK |
-            system.BRKINT |
-            system.PARMRK |
-            system.ISTRIP |
-            system.INLCR |
-            system.IGNCR |
-            system.ICRNL |
-            system.IXON,
-    );
-    raw.oflag &= ~@as(os.tcflag_t, system.OPOST);
-    raw.lflag &= ~@as(
-        os.tcflag_t,
-        system.ECHO |
-            system.ECHONL |
-            system.ICANON |
-            system.ISIG |
-            system.IEXTEN,
-    );
-    raw.cflag &= ~@as(
-        os.tcflag_t,
-        system.CSIZE |
-            system.PARENB,
-    );
-    raw.cflag |= @as(
-        os.tcflag_t,
-        system.CS8,
-    );
-    raw.cc[system.V.MIN] = 1;
-    raw.cc[system.V.TIME] = 0;
+    raw.iflag.IGNBRK = false;
+    raw.iflag.BRKINT = false;
+    raw.iflag.ISTRIP = false;
+    raw.iflag.INLCR = false;
+    raw.iflag.IGNCR = false;
+    raw.iflag.ICRNL = false;
+    raw.iflag.IXON = false;
+
+    raw.oflag.OPOST = false;
+
+    raw.lflag.ECHO = false;
+    raw.lflag.ECHONL = false;
+    raw.lflag.ICANON = false;
+    raw.lflag.IEXTEN = false;
+
+    raw.cflag.CSIZE = .CS8;
+    raw.cflag.PARENB = false;
+
+    raw.cc[@intFromEnum(std.posix.V.MIN)] = 1;
+    raw.cc[@intFromEnum(std.posix.V.TIME)] = 0;
     try os.tcsetattr(fd, .FLUSH, raw);
     return state;
-}
-
-const TIOCGWINSZ = switch (builtin.os.tag) {
-    .linux => 0x5413,
-    .macos => ior(0x40000000, 't', 104, @sizeOf(system.winsize)),
-    else => @compileError("Missing termiosbits for this target, sorry."),
-};
-
-const IOCPARM_MASK = 0x1fff;
-fn ior(inout: u32, group: usize, num: usize, len: usize) usize {
-    return (inout | ((len & IOCPARM_MASK) << 16) | ((group) << 8) | (num));
 }
 
 /// The size of the terminal screen
@@ -285,14 +255,14 @@ pub const Winsize = struct {
 };
 
 fn getWinsize(fd: os.fd_t) !Winsize {
-    var winsize = system.winsize{
+    var winsize = os.winsize{
         .ws_row = 0,
         .ws_col = 0,
         .ws_xpixel = 0,
         .ws_ypixel = 0,
     };
 
-    const err = os.system.ioctl(fd, TIOCGWINSZ, @intFromPtr(&winsize));
+    const err = os.system.ioctl(fd, os.T.IOCGWINSZ, @intFromPtr(&winsize));
     if (os.errno(err) == .SUCCESS)
         return Winsize{
             .rows = winsize.ws_row,

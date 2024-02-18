@@ -25,7 +25,7 @@ pub fn build(b: *std.Build) void {
 
     const example = b.addExecutable(.{
         .name = "vaxis_pathological_example",
-        .root_source_file = std.Build.LazyPath.relative("examples/pathological.zig"),
+        .root_source_file = std.Build.LazyPath.relative("examples/text_input.zig"),
         .target = target,
         .optimize = optimize,
     });

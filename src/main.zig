@@ -5,6 +5,7 @@ pub const Options = @import("Options.zig");
 
 pub const Key = @import("Key.zig");
 pub const Cell = @import("Cell.zig");
+pub const Style = Cell.Style;
 pub const Image = @import("Image.zig");
 pub const Mouse = @import("Mouse.zig");
 pub const Winsize = @import("Tty.zig").Winsize;
