@@ -22,6 +22,7 @@ pub fn Queue(
 
         const Self = @This();
 
+        /// pop an item from the queue. Blocks until an item is available
         pub fn pop(self: *Self) T {
             self.mutex.lock();
             defer self.mutex.unlock();
@@ -42,8 +43,8 @@ pub fn Queue(
             return self.buf[i];
         }
 
-        /// push an item into the queue. Blocks until the message has been put
-        /// in the queue
+        /// push an item into the queue. Blocks until the item has been put in
+        /// the queue
         pub fn push(self: *Self, item: T) void {
             self.mutex.lock();
             defer self.mutex.unlock();
@@ -61,8 +62,8 @@ pub fn Queue(
             self.buf[i] = item;
         }
 
-        /// push an item into the queue. If the queue is full, this returns
-        /// immediately and the item has not been place in the queue
+        /// push an item into the queue. Returns true when the item was
+        /// successfully placed in the queue
         pub fn tryPush(self: *Self, item: T) bool {
             self.mutex.lock();
             if (self.isFull()) {
@@ -72,6 +73,17 @@ pub fn Queue(
             self.mutex.unlock();
             self.push(item);
             return true;
+        }
+
+        /// pop an item from the queue. Returns null when no item is available
+        pub fn tryPop(self: *Self) ?T {
+            self.mutex.lock();
+            if (self.isEmpty()) {
+                self.mutex.unlock();
+                return null;
+            }
+            self.mutex.unlock();
+            return self.pop();
         }
 
         /// Returns `true` if the ring buffer is empty and `false` otherwise.
