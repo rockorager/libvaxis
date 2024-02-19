@@ -30,7 +30,7 @@ pub fn gwidth(str: []const u8, method: Method) !usize {
         },
         .no_zwj => {
             var out: [256]u8 = undefined;
-            if (str.len > out) return error.OutOfMemory;
+            if (str.len > out.len) return error.OutOfMemory;
             const n = std.mem.replace(u8, str, "\u{200D}", "", &out);
             return gwidth(out[0..n], .unicode);
         },
