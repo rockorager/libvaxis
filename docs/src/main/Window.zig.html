@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Window.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L2"><span class="tok-kw">const</span> ziglyph = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ziglyph&quot;</span>);</span>
+<span class="line" id="L3"><span class="tok-kw">const</span> WordIterator = ziglyph.WordIterator;</span>
+<span class="line" id="L4"><span class="tok-kw">const</span> GraphemeIterator = ziglyph.GraphemeIterator;</span>
+<span class="line" id="L5"></span>
+<span class="line" id="L6"><span class="tok-kw">const</span> Screen = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;Screen.zig&quot;</span>);</span>
+<span class="line" id="L7"><span class="tok-kw">const</span> Cell = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;Cell.zig&quot;</span>);</span>
+<span class="line" id="L8"><span class="tok-kw">const</span> Segment = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;Cell.zig&quot;</span>).Segment;</span>
+<span class="line" id="L9"><span class="tok-kw">const</span> gw = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;gwidth.zig&quot;</span>);</span>
+<span class="line" id="L10"></span>
+<span class="line" id="L11"><span class="tok-kw">const</span> log = std.log.scoped(.window);</span>
+<span class="line" id="L12"></span>
+<span class="line" id="L13"><span class="tok-kw">const</span> Window = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L14"></span>
+<span class="line" id="L15"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> Size = <span class="tok-kw">union</span>(<span class="tok-kw">enum</span>) {</span>
+<span class="line" id="L16">    expand,</span>
+<span class="line" id="L17">    limit: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L18">};</span>
+<span class="line" id="L19"></span>
+<span class="line" id="L20"><span class="tok-comment">/// horizontal offset from the screen</span></span>
+<span class="line" id="L21">x_off: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L22"><span class="tok-comment">/// vertical offset from the screen</span></span>
+<span class="line" id="L23">y_off: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L24"><span class="tok-comment">/// width of the window. This can't be larger than the terminal screen</span></span>
+<span class="line" id="L25">width: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L26"><span class="tok-comment">/// height of the window. This can't be larger than the terminal screen</span></span>
+<span class="line" id="L27">height: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L28"></span>
+<span class="line" id="L29">screen: *Screen,</span>
+<span class="line" id="L30"></span>
+<span class="line" id="L31"><span class="tok-comment">/// Creates a new window with offset relative to parent and size clamped to the</span></span>
+<span class="line" id="L32"><span class="tok-comment">/// parent's size. Windows do not retain a reference to their parent and are</span></span>
+<span class="line" id="L33"><span class="tok-comment">/// unaware of resizes.</span></span>
+<span class="line" id="L34"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">initChild</span>(</span>
+<span class="line" id="L35">    self: Window,</span>
+<span class="line" id="L36">    x_off: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L37">    y_off: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L38">    width: Size,</span>
+<span class="line" id="L39">    height: Size,</span>
+<span class="line" id="L40">) Window {</span>
+<span class="line" id="L41">    <span class="tok-kw">const</span> resolved_width = <span class="tok-kw">switch</span> (width) {</span>
+<span class="line" id="L42">        .expand =&gt; self.width - x_off,</span>
+<span class="line" id="L43">        .limit =&gt; |w| blk: {</span>
+<span class="line" id="L44">            <span class="tok-kw">if</span> (w + x_off &gt; self.width) {</span>
+<span class="line" id="L45">                <span class="tok-kw">break</span> :blk self.width - x_off;</span>
+<span class="line" id="L46">            }</span>
+<span class="line" id="L47">            <span class="tok-kw">break</span> :blk w;</span>
+<span class="line" id="L48">        },</span>
+<span class="line" id="L49">    };</span>
+<span class="line" id="L50">    <span class="tok-kw">const</span> resolved_height = <span class="tok-kw">switch</span> (height) {</span>
+<span class="line" id="L51">        .expand =&gt; self.height - y_off,</span>
+<span class="line" id="L52">        .limit =&gt; |h| blk: {</span>
+<span class="line" id="L53">            <span class="tok-kw">if</span> (h + y_off &gt; self.height) {</span>
+<span class="line" id="L54">                <span class="tok-kw">break</span> :blk self.height - y_off;</span>
+<span class="line" id="L55">            }</span>
+<span class="line" id="L56">            <span class="tok-kw">break</span> :blk h;</span>
+<span class="line" id="L57">        },</span>
+<span class="line" id="L58">    };</span>
+<span class="line" id="L59">    <span class="tok-kw">return</span> Window{</span>
+<span class="line" id="L60">        .x_off = x_off + self.x_off,</span>
+<span class="line" id="L61">        .y_off = y_off + self.y_off,</span>
+<span class="line" id="L62">        .width = resolved_width,</span>
+<span class="line" id="L63">        .height = resolved_height,</span>
+<span class="line" id="L64">        .screen = self.screen,</span>
+<span class="line" id="L65">    };</span>
+<span class="line" id="L66">}</span>
+<span class="line" id="L67"></span>
+<span class="line" id="L68"><span class="tok-comment">/// writes a cell to the location in the window</span></span>
+<span class="line" id="L69"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">writeCell</span>(self: Window, col: <span class="tok-type">usize</span>, row: <span class="tok-type">usize</span>, cell: Cell) <span class="tok-type">void</span> {</span>
+<span class="line" id="L70">    <span class="tok-kw">if</span> (self.height == <span class="tok-number">0</span> <span class="tok-kw">or</span> self.width == <span class="tok-number">0</span>) <span class="tok-kw">return</span>;</span>
+<span class="line" id="L71">    <span class="tok-kw">if</span> (self.height &lt;= row <span class="tok-kw">or</span> self.width &lt;= col) <span class="tok-kw">return</span>;</span>
+<span class="line" id="L72">    self.screen.writeCell(col + self.x_off, row + self.y_off, cell);</span>
+<span class="line" id="L73">}</span>
+<span class="line" id="L74"></span>
+<span class="line" id="L75"><span class="tok-comment">/// fills the window with the default cell</span></span>
+<span class="line" id="L76"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">clear</span>(self: Window) <span class="tok-type">void</span> {</span>
+<span class="line" id="L77">    self.fill(.{});</span>
+<span class="line" id="L78">}</span>
+<span class="line" id="L79"></span>
+<span class="line" id="L80"><span class="tok-comment">/// returns the width of the grapheme. This depends on the terminal capabilities</span></span>
+<span class="line" id="L81"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">gwidth</span>(self: Window, str: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) <span class="tok-type">usize</span> {</span>
+<span class="line" id="L82">    <span class="tok-kw">const</span> m: gw.Method = <span class="tok-kw">if</span> (self.screen.unicode) .unicode <span class="tok-kw">else</span> .wcwidth;</span>
+<span class="line" id="L83">    <span class="tok-kw">return</span> gw.gwidth(str, m) <span class="tok-kw">catch</span> <span class="tok-number">1</span>;</span>
+<span class="line" id="L84">}</span>
+<span class="line" id="L85"></span>
+<span class="line" id="L86"><span class="tok-comment">/// fills the window with the provided cell</span></span>
+<span class="line" id="L87"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">fill</span>(self: Window, cell: Cell) <span class="tok-type">void</span> {</span>
+<span class="line" id="L88">    <span class="tok-kw">var</span> row: <span class="tok-type">usize</span> = self.y_off;</span>
+<span class="line" id="L89">    <span class="tok-kw">while</span> (row &lt; (self.height + self.y_off)) : (row += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L90">        <span class="tok-kw">var</span> col: <span class="tok-type">usize</span> = self.x_off;</span>
+<span class="line" id="L91">        <span class="tok-kw">while</span> (col &lt; (self.width + self.x_off)) : (col += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L92">            self.screen.writeCell(col, row, cell);</span>
+<span class="line" id="L93">        }</span>
+<span class="line" id="L94">    }</span>
+<span class="line" id="L95">}</span>
+<span class="line" id="L96"></span>
+<span class="line" id="L97"><span class="tok-comment">/// hide the cursor</span></span>
+<span class="line" id="L98"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">hideCursor</span>(self: Window) <span class="tok-type">void</span> {</span>
+<span class="line" id="L99">    self.screen.cursor_vis = <span class="tok-null">false</span>;</span>
+<span class="line" id="L100">}</span>
+<span class="line" id="L101"></span>
+<span class="line" id="L102"><span class="tok-comment">/// show the cursor at the given coordinates, 0 indexed</span></span>
+<span class="line" id="L103"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">showCursor</span>(self: Window, col: <span class="tok-type">usize</span>, row: <span class="tok-type">usize</span>) <span class="tok-type">void</span> {</span>
+<span class="line" id="L104">    <span class="tok-kw">if</span> (self.height == <span class="tok-number">0</span> <span class="tok-kw">or</span> self.width == <span class="tok-number">0</span>) <span class="tok-kw">return</span>;</span>
+<span class="line" id="L105">    <span class="tok-kw">if</span> (self.height &lt;= row <span class="tok-kw">or</span> self.width &lt;= col) <span class="tok-kw">return</span>;</span>
+<span class="line" id="L106">    self.screen.cursor_vis = <span class="tok-null">true</span>;</span>
+<span class="line" id="L107">    self.screen.cursor_row = row + self.y_off;</span>
+<span class="line" id="L108">    self.screen.cursor_col = col + self.x_off;</span>
+<span class="line" id="L109">}</span>
+<span class="line" id="L110"></span>
+<span class="line" id="L111"><span class="tok-comment">/// prints text in the window with simple word wrapping.</span></span>
+<span class="line" id="L112"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">wrap</span>(self: Window, segments: []Segment) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L113">    <span class="tok-comment">// pub fn wrap(self: Window, str: []const u8) !void {</span>
+</span>
+<span class="line" id="L114">    <span class="tok-kw">var</span> row: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L115">    <span class="tok-kw">var</span> col: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L116">    <span class="tok-kw">var</span> wrapped: <span class="tok-type">bool</span> = <span class="tok-null">false</span>;</span>
+<span class="line" id="L117">    <span class="tok-kw">for</span> (segments) |segment| {</span>
+<span class="line" id="L118">        <span class="tok-kw">var</span> word_iter = <span class="tok-kw">try</span> WordIterator.init(segment.text);</span>
+<span class="line" id="L119">        <span class="tok-kw">while</span> (word_iter.next()) |word| {</span>
+<span class="line" id="L120">            <span class="tok-comment">// break lines when we need</span>
+</span>
+<span class="line" id="L121">            <span class="tok-kw">if</span> (word.bytes[<span class="tok-number">0</span>] == <span class="tok-str">'\r'</span> <span class="tok-kw">or</span> word.bytes[<span class="tok-number">0</span>] == <span class="tok-str">'\n'</span>) {</span>
+<span class="line" id="L122">                row += <span class="tok-number">1</span>;</span>
+<span class="line" id="L123">                col = <span class="tok-number">0</span>;</span>
+<span class="line" id="L124">                wrapped = <span class="tok-null">false</span>;</span>
+<span class="line" id="L125">                <span class="tok-kw">continue</span>;</span>
+<span class="line" id="L126">            }</span>
+<span class="line" id="L127">            <span class="tok-comment">// break lines when we can't fit this word, and the word isn't longer</span>
+</span>
+<span class="line" id="L128">            <span class="tok-comment">// than our width</span>
+</span>
+<span class="line" id="L129">            <span class="tok-kw">const</span> word_width = self.gwidth(word.bytes);</span>
+<span class="line" id="L130">            <span class="tok-kw">if</span> (word_width + col &gt;= self.width <span class="tok-kw">and</span> word_width &lt; self.width) {</span>
+<span class="line" id="L131">                row += <span class="tok-number">1</span>;</span>
+<span class="line" id="L132">                col = <span class="tok-number">0</span>;</span>
+<span class="line" id="L133">                wrapped = <span class="tok-null">true</span>;</span>
+<span class="line" id="L134">            }</span>
+<span class="line" id="L135">            <span class="tok-comment">// don't print whitespace in the first column, unless we had a hard</span>
+</span>
+<span class="line" id="L136">            <span class="tok-comment">// break</span>
+</span>
+<span class="line" id="L137">            <span class="tok-kw">if</span> (col == <span class="tok-number">0</span> <span class="tok-kw">and</span> std.mem.eql(<span class="tok-type">u8</span>, word.bytes, <span class="tok-str">&quot; &quot;</span>) <span class="tok-kw">and</span> wrapped) <span class="tok-kw">continue</span>;</span>
+<span class="line" id="L138">            <span class="tok-kw">var</span> iter = GraphemeIterator.init(word.bytes);</span>
+<span class="line" id="L139">            <span class="tok-kw">while</span> (iter.next()) |grapheme| {</span>
+<span class="line" id="L140">                <span class="tok-kw">if</span> (col &gt;= self.width) {</span>
+<span class="line" id="L141">                    row += <span class="tok-number">1</span>;</span>
+<span class="line" id="L142">                    col = <span class="tok-number">0</span>;</span>
+<span class="line" id="L143">                    wrapped = <span class="tok-null">true</span>;</span>
+<span class="line" id="L144">                }</span>
+<span class="line" id="L145">                <span class="tok-kw">const</span> s = grapheme.slice(word.bytes);</span>
+<span class="line" id="L146">                <span class="tok-kw">const</span> w = self.gwidth(s);</span>
+<span class="line" id="L147">                self.writeCell(col, row, .{</span>
+<span class="line" id="L148">                    .char = .{</span>
+<span class="line" id="L149">                        .grapheme = s,</span>
+<span class="line" id="L150">                        .width = w,</span>
+<span class="line" id="L151">                    },</span>
+<span class="line" id="L152">                    .style = segment.style,</span>
+<span class="line" id="L153">                    .link = segment.link,</span>
+<span class="line" id="L154">                });</span>
+<span class="line" id="L155">                col += w;</span>
+<span class="line" id="L156">            }</span>
+<span class="line" id="L157">        }</span>
+<span class="line" id="L158">    }</span>
+<span class="line" id="L159">}</span>
+<span class="line" id="L160"></span>
+<span class="line" id="L161"><span class="tok-kw">test</span> <span class="tok-str">&quot;Window size set&quot;</span> {</span>
+<span class="line" id="L162">    <span class="tok-kw">var</span> parent = Window{</span>
+<span class="line" id="L163">        .x_off = <span class="tok-number">0</span>,</span>
+<span class="line" id="L164">        .y_off = <span class="tok-number">0</span>,</span>
+<span class="line" id="L165">        .width = <span class="tok-number">20</span>,</span>
+<span class="line" id="L166">        .height = <span class="tok-number">20</span>,</span>
+<span class="line" id="L167">        .screen = <span class="tok-null">undefined</span>,</span>
+<span class="line" id="L168">    };</span>
+<span class="line" id="L169"></span>
+<span class="line" id="L170">    <span class="tok-kw">const</span> child = parent.initChild(<span class="tok-number">1</span>, <span class="tok-number">1</span>, .expand, .expand);</span>
+<span class="line" id="L171">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-number">19</span>, child.width);</span>
+<span class="line" id="L172">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-number">19</span>, child.height);</span>
+<span class="line" id="L173">}</span>
+<span class="line" id="L174"></span>
+<span class="line" id="L175"><span class="tok-kw">test</span> <span class="tok-str">&quot;Window size set too big&quot;</span> {</span>
+<span class="line" id="L176">    <span class="tok-kw">var</span> parent = Window{</span>
+<span class="line" id="L177">        .x_off = <span class="tok-number">0</span>,</span>
+<span class="line" id="L178">        .y_off = <span class="tok-number">0</span>,</span>
+<span class="line" id="L179">        .width = <span class="tok-number">20</span>,</span>
+<span class="line" id="L180">        .height = <span class="tok-number">20</span>,</span>
+<span class="line" id="L181">        .screen = <span class="tok-null">undefined</span>,</span>
+<span class="line" id="L182">    };</span>
+<span class="line" id="L183"></span>
+<span class="line" id="L184">    <span class="tok-kw">const</span> child = parent.initChild(<span class="tok-number">0</span>, <span class="tok-number">0</span>, .{ .limit = <span class="tok-number">21</span> }, .{ .limit = <span class="tok-number">21</span> });</span>
+<span class="line" id="L185">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-number">20</span>, child.width);</span>
+<span class="line" id="L186">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-number">20</span>, child.height);</span>
+<span class="line" id="L187">}</span>
+<span class="line" id="L188"></span>
+<span class="line" id="L189"><span class="tok-kw">test</span> <span class="tok-str">&quot;Window size set too big with offset&quot;</span> {</span>
+<span class="line" id="L190">    <span class="tok-kw">var</span> parent = Window{</span>
+<span class="line" id="L191">        .x_off = <span class="tok-number">0</span>,</span>
+<span class="line" id="L192">        .y_off = <span class="tok-number">0</span>,</span>
+<span class="line" id="L193">        .width = <span class="tok-number">20</span>,</span>
+<span class="line" id="L194">        .height = <span class="tok-number">20</span>,</span>
+<span class="line" id="L195">        .screen = <span class="tok-null">undefined</span>,</span>
+<span class="line" id="L196">    };</span>
+<span class="line" id="L197"></span>
+<span class="line" id="L198">    <span class="tok-kw">const</span> child = parent.initChild(<span class="tok-number">10</span>, <span class="tok-number">10</span>, .{ .limit = <span class="tok-number">21</span> }, .{ .limit = <span class="tok-number">21</span> });</span>
+<span class="line" id="L199">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-number">10</span>, child.width);</span>
+<span class="line" id="L200">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-number">10</span>, child.height);</span>
+<span class="line" id="L201">}</span>
+<span class="line" id="L202"></span>
+<span class="line" id="L203"><span class="tok-kw">test</span> <span class="tok-str">&quot;Window size nested offsets&quot;</span> {</span>
+<span class="line" id="L204">    <span class="tok-kw">var</span> parent = Window{</span>
+<span class="line" id="L205">        .x_off = <span class="tok-number">1</span>,</span>
+<span class="line" id="L206">        .y_off = <span class="tok-number">1</span>,</span>
+<span class="line" id="L207">        .width = <span class="tok-number">20</span>,</span>
+<span class="line" id="L208">        .height = <span class="tok-number">20</span>,</span>
+<span class="line" id="L209">        .screen = <span class="tok-null">undefined</span>,</span>
+<span class="line" id="L210">    };</span>
+<span class="line" id="L211"></span>
+<span class="line" id="L212">    <span class="tok-kw">const</span> child = parent.initChild(<span class="tok-number">10</span>, <span class="tok-number">10</span>, .{ .limit = <span class="tok-number">21</span> }, .{ .limit = <span class="tok-number">21</span> });</span>
+<span class="line" id="L213">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-number">11</span>, child.x_off);</span>
+<span class="line" id="L214">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-number">11</span>, child.y_off);</span>
+<span class="line" id="L215">}</span>
+<span class="line" id="L216"></span>
+</code></pre></body>
+</html>

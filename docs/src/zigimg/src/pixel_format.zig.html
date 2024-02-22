@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>src/pixel_format.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> PixelFormatVariant = <span class="tok-kw">enum</span>(<span class="tok-type">u4</span>) {</span>
+<span class="line" id="L2">    none = <span class="tok-number">0</span>,</span>
+<span class="line" id="L3">    bgr = <span class="tok-number">1</span>,</span>
+<span class="line" id="L4">    float = <span class="tok-number">2</span>,</span>
+<span class="line" id="L5">    rgb565 = <span class="tok-number">3</span>,</span>
+<span class="line" id="L6">    _,</span>
+<span class="line" id="L7">};</span>
+<span class="line" id="L8"></span>
+<span class="line" id="L9"><span class="tok-comment">/// The values for this enum are chosen so that:</span></span>
+<span class="line" id="L10"><span class="tok-comment">/// 1. value &amp; 0xFF gives number of bits per channel</span></span>
+<span class="line" id="L11"><span class="tok-comment">/// 2. value &amp; 0xF00 gives number of channels</span></span>
+<span class="line" id="L12"><span class="tok-comment">/// 3. value &amp; 0xF000 gives a special variant number, 1 for Bgr, 2 for Float and 3 for special Rgb 565</span></span>
+<span class="line" id="L13"><span class="tok-comment">/// Note that palette index formats have number of channels set to 0.</span></span>
+<span class="line" id="L14"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> PixelFormatInfo = <span class="tok-kw">packed</span> <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L15">    bits_per_channel: <span class="tok-type">u8</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L16">    channel_count: <span class="tok-type">u4</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L17">    variant: PixelFormatVariant = .none,</span>
+<span class="line" id="L18">    padding: <span class="tok-type">u16</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L19">};</span>
+<span class="line" id="L20"></span>
+<span class="line" id="L21"><span class="tok-kw">pub</span> <span class="tok-kw">inline</span> <span class="tok-kw">fn</span> <span class="tok-fn">toPixelFormatValue</span>(<span class="tok-kw">comptime</span> pixel_format: PixelFormatInfo) <span class="tok-type">u32</span> {</span>
+<span class="line" id="L22">    <span class="tok-kw">return</span> <span class="tok-builtin">@bitCast</span>(pixel_format);</span>
+<span class="line" id="L23">}</span>
+<span class="line" id="L24"></span>
+<span class="line" id="L25"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> PixelFormat = <span class="tok-kw">enum</span>(<span class="tok-type">u32</span>) {</span>
+<span class="line" id="L26">    invalid = <span class="tok-number">0</span>,</span>
+<span class="line" id="L27">    indexed1 = toPixelFormatValue(.{ .bits_per_channel = <span class="tok-number">1</span> }),</span>
+<span class="line" id="L28">    indexed2 = toPixelFormatValue(.{ .bits_per_channel = <span class="tok-number">2</span> }),</span>
+<span class="line" id="L29">    indexed4 = toPixelFormatValue(.{ .bits_per_channel = <span class="tok-number">4</span> }),</span>
+<span class="line" id="L30">    indexed8 = toPixelFormatValue(.{ .bits_per_channel = <span class="tok-number">8</span> }),</span>
+<span class="line" id="L31">    indexed16 = toPixelFormatValue(.{ .bits_per_channel = <span class="tok-number">16</span> }),</span>
+<span class="line" id="L32">    grayscale1 = toPixelFormatValue(.{ .channel_count = <span class="tok-number">1</span>, .bits_per_channel = <span class="tok-number">1</span> }),</span>
+<span class="line" id="L33">    grayscale2 = toPixelFormatValue(.{ .channel_count = <span class="tok-number">1</span>, .bits_per_channel = <span class="tok-number">2</span> }),</span>
+<span class="line" id="L34">    grayscale4 = toPixelFormatValue(.{ .channel_count = <span class="tok-number">1</span>, .bits_per_channel = <span class="tok-number">4</span> }),</span>
+<span class="line" id="L35">    grayscale8 = toPixelFormatValue(.{ .channel_count = <span class="tok-number">1</span>, .bits_per_channel = <span class="tok-number">8</span> }),</span>
+<span class="line" id="L36">    grayscale16 = toPixelFormatValue(.{ .channel_count = <span class="tok-number">1</span>, .bits_per_channel = <span class="tok-number">16</span> }),</span>
+<span class="line" id="L37">    grayscale8Alpha = toPixelFormatValue(.{ .channel_count = <span class="tok-number">2</span>, .bits_per_channel = <span class="tok-number">8</span> }),</span>
+<span class="line" id="L38">    grayscale16Alpha = toPixelFormatValue(.{ .channel_count = <span class="tok-number">2</span>, .bits_per_channel = <span class="tok-number">16</span> }),</span>
+<span class="line" id="L39">    rgb555 = toPixelFormatValue(.{ .channel_count = <span class="tok-number">3</span>, .bits_per_channel = <span class="tok-number">5</span> }),</span>
+<span class="line" id="L40">    rgb565 = toPixelFormatValue(.{ .variant = .rgb565, .channel_count = <span class="tok-number">3</span>, .bits_per_channel = <span class="tok-number">5</span> }),</span>
+<span class="line" id="L41">    rgb24 = toPixelFormatValue(.{ .channel_count = <span class="tok-number">3</span>, .bits_per_channel = <span class="tok-number">8</span> }),</span>
+<span class="line" id="L42">    rgba32 = toPixelFormatValue(.{ .channel_count = <span class="tok-number">4</span>, .bits_per_channel = <span class="tok-number">8</span> }),</span>
+<span class="line" id="L43">    bgr555 = toPixelFormatValue(.{ .variant = .bgr, .channel_count = <span class="tok-number">3</span>, .bits_per_channel = <span class="tok-number">5</span> }),</span>
+<span class="line" id="L44">    bgr24 = toPixelFormatValue(.{ .variant = .bgr, .channel_count = <span class="tok-number">3</span>, .bits_per_channel = <span class="tok-number">8</span> }),</span>
+<span class="line" id="L45">    bgra32 = toPixelFormatValue(.{ .variant = .bgr, .channel_count = <span class="tok-number">4</span>, .bits_per_channel = <span class="tok-number">8</span> }),</span>
+<span class="line" id="L46">    rgb48 = toPixelFormatValue(.{ .channel_count = <span class="tok-number">3</span>, .bits_per_channel = <span class="tok-number">16</span> }),</span>
+<span class="line" id="L47">    rgba64 = toPixelFormatValue(.{ .channel_count = <span class="tok-number">4</span>, .bits_per_channel = <span class="tok-number">16</span> }),</span>
+<span class="line" id="L48">    float32 = toPixelFormatValue(.{ .variant = .float, .channel_count = <span class="tok-number">4</span>, .bits_per_channel = <span class="tok-number">32</span> }),</span>
+<span class="line" id="L49"></span>
+<span class="line" id="L50">    <span class="tok-kw">pub</span> <span class="tok-kw">inline</span> <span class="tok-kw">fn</span> <span class="tok-fn">info</span>(self: PixelFormat) PixelFormatInfo {</span>
+<span class="line" id="L51">        <span class="tok-kw">return</span> <span class="tok-builtin">@as</span>(PixelFormatInfo, <span class="tok-builtin">@bitCast</span>(<span class="tok-builtin">@intFromEnum</span>(self)));</span>
+<span class="line" id="L52">    }</span>
+<span class="line" id="L53"></span>
+<span class="line" id="L54">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">isGrayscale</span>(self: PixelFormat) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L55">        <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (self) {</span>
+<span class="line" id="L56">            .grayscale1, .grayscale2, .grayscale4, .grayscale8, .grayscale16, .grayscale8Alpha, .grayscale16Alpha =&gt; <span class="tok-null">true</span>,</span>
+<span class="line" id="L57">            <span class="tok-kw">else</span> =&gt; <span class="tok-null">false</span>,</span>
+<span class="line" id="L58">        };</span>
+<span class="line" id="L59">    }</span>
+<span class="line" id="L60"></span>
+<span class="line" id="L61">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">isIndexed</span>(self: PixelFormat) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L62">        <span class="tok-kw">return</span> info(self).channel_count == <span class="tok-number">0</span>;</span>
+<span class="line" id="L63">    }</span>
+<span class="line" id="L64"></span>
+<span class="line" id="L65">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">isStandardRgb</span>(self: PixelFormat) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L66">        <span class="tok-kw">return</span> self == .rgb24 <span class="tok-kw">or</span> self == .rgb48;</span>
+<span class="line" id="L67">    }</span>
+<span class="line" id="L68"></span>
+<span class="line" id="L69">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">isRgba</span>(self: PixelFormat) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L70">        <span class="tok-kw">return</span> self == .rgba32 <span class="tok-kw">or</span> self == .rgba64;</span>
+<span class="line" id="L71">    }</span>
+<span class="line" id="L72"></span>
+<span class="line" id="L73">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">is16Bit</span>(self: PixelFormat) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L74">        <span class="tok-kw">return</span> info(self).bits_per_channel == <span class="tok-number">16</span>;</span>
+<span class="line" id="L75">    }</span>
+<span class="line" id="L76"></span>
+<span class="line" id="L77">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">pixelStride</span>(self: PixelFormat) <span class="tok-type">u8</span> {</span>
+<span class="line" id="L78">        <span class="tok-kw">if</span> (self.isIndexed()) {</span>
+<span class="line" id="L79">            <span class="tok-kw">return</span> (info(self).bits_per_channel + <span class="tok-number">7</span>) / <span class="tok-number">8</span>;</span>
+<span class="line" id="L80">        }</span>
+<span class="line" id="L81"></span>
+<span class="line" id="L82">        <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (self) {</span>
+<span class="line" id="L83">            <span class="tok-kw">inline</span> <span class="tok-kw">else</span> =&gt; |value| (info(value).channel_count * info(value).bits_per_channel + <span class="tok-number">7</span>) / <span class="tok-number">8</span>,</span>
+<span class="line" id="L84">        };</span>
+<span class="line" id="L85">    }</span>
+<span class="line" id="L86"></span>
+<span class="line" id="L87">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">bitsPerChannel</span>(self: PixelFormat) <span class="tok-type">u8</span> {</span>
+<span class="line" id="L88">        <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (self) {</span>
+<span class="line" id="L89">            .rgb565 =&gt; <span class="tok-kw">unreachable</span>, <span class="tok-comment">// TODO: what to do in that case?</span>
+</span>
+<span class="line" id="L90">            <span class="tok-kw">inline</span> <span class="tok-kw">else</span> =&gt; |value| info(value).bits_per_channel,</span>
+<span class="line" id="L91">        };</span>
+<span class="line" id="L92">    }</span>
+<span class="line" id="L93"></span>
+<span class="line" id="L94">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">channelCount</span>(self: PixelFormat) <span class="tok-type">u8</span> {</span>
+<span class="line" id="L95">        <span class="tok-kw">if</span> (self.isIndexed()) {</span>
+<span class="line" id="L96">            <span class="tok-kw">return</span> <span class="tok-number">1</span>;</span>
+<span class="line" id="L97">        }</span>
+<span class="line" id="L98"></span>
+<span class="line" id="L99">        <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (self) {</span>
+<span class="line" id="L100">            <span class="tok-kw">inline</span> <span class="tok-kw">else</span> =&gt; |value| info(value).channel_count,</span>
+<span class="line" id="L101">        };</span>
+<span class="line" id="L102">    }</span>
+<span class="line" id="L103">};</span>
+<span class="line" id="L104"></span>
+<span class="line" id="L105"><span class="tok-kw">comptime</span> {</span>
+<span class="line" id="L106">    <span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L107"></span>
+<span class="line" id="L108">    std.debug.assert(<span class="tok-builtin">@intFromEnum</span>(PixelFormat.grayscale1) == <span class="tok-number">0x101</span>);</span>
+<span class="line" id="L109">    std.debug.assert(<span class="tok-builtin">@intFromEnum</span>(PixelFormat.grayscale16) == <span class="tok-number">0x110</span>);</span>
+<span class="line" id="L110">    std.debug.assert(<span class="tok-builtin">@intFromEnum</span>(PixelFormat.grayscale8Alpha) == <span class="tok-number">0x208</span>);</span>
+<span class="line" id="L111">    std.debug.assert(<span class="tok-builtin">@intFromEnum</span>(PixelFormat.rgb555) == <span class="tok-number">0x305</span>);</span>
+<span class="line" id="L112">    std.debug.assert(<span class="tok-builtin">@intFromEnum</span>(PixelFormat.rgb565) == <span class="tok-number">0x3305</span>);</span>
+<span class="line" id="L113">    std.debug.assert(<span class="tok-builtin">@intFromEnum</span>(PixelFormat.rgba32) == <span class="tok-number">0x408</span>);</span>
+<span class="line" id="L114">    std.debug.assert(<span class="tok-builtin">@intFromEnum</span>(PixelFormat.bgr24) == <span class="tok-number">0x1308</span>);</span>
+<span class="line" id="L115">    std.debug.assert(<span class="tok-builtin">@intFromEnum</span>(PixelFormat.bgra32) == <span class="tok-number">0x1408</span>);</span>
+<span class="line" id="L116">    std.debug.assert(<span class="tok-builtin">@intFromEnum</span>(PixelFormat.float32) == <span class="tok-number">0x2420</span>);</span>
+<span class="line" id="L117">}</span>
+<span class="line" id="L118"></span>
+</code></pre></body>
+</html>
