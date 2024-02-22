@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>src/formats/netpbm.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-comment">// Adapted from https://github.com/MasterQ32/zig-gamedev-lib/blob/master/src/netbpm.zig</span>
+</span>
+<span class="line" id="L2"><span class="tok-comment">// with permission from Felix Queißner</span>
+</span>
+<span class="line" id="L3"><span class="tok-kw">const</span> Allocator = std.mem.Allocator;</span>
+<span class="line" id="L4"><span class="tok-kw">const</span> buffered_stream_source = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../buffered_stream_source.zig&quot;</span>);</span>
+<span class="line" id="L5"><span class="tok-kw">const</span> color = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../color.zig&quot;</span>);</span>
+<span class="line" id="L6"><span class="tok-kw">const</span> FormatInterface = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../FormatInterface.zig&quot;</span>);</span>
+<span class="line" id="L7"><span class="tok-kw">const</span> Image = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../Image.zig&quot;</span>);</span>
+<span class="line" id="L8"><span class="tok-kw">const</span> ImageError = Image.Error;</span>
+<span class="line" id="L9"><span class="tok-kw">const</span> ImageReadError = Image.ReadError;</span>
+<span class="line" id="L10"><span class="tok-kw">const</span> ImageWriteError = Image.WriteError;</span>
+<span class="line" id="L11"><span class="tok-kw">const</span> PixelFormat = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../pixel_format.zig&quot;</span>).PixelFormat;</span>
+<span class="line" id="L12"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L13"><span class="tok-kw">const</span> utils = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../utils.zig&quot;</span>);</span>
+<span class="line" id="L14"></span>
+<span class="line" id="L15"><span class="tok-comment">// this file implements the Portable Anymap specification provided by</span>
+</span>
+<span class="line" id="L16"><span class="tok-comment">// http://netpbm.sourceforge.net/doc/pbm.html // P1, P4 =&gt; bitmap</span>
+</span>
+<span class="line" id="L17"><span class="tok-comment">// http://netpbm.sourceforge.net/doc/pgm.html // P2, P5 =&gt; graymap</span>
+</span>
+<span class="line" id="L18"><span class="tok-comment">// http://netpbm.sourceforge.net/doc/ppm.html // P3, P6 =&gt; pixmap</span>
+</span>
+<span class="line" id="L19"></span>
+<span class="line" id="L20"><span class="tok-comment">/// one of the three types a netbpm graphic could be stored in.</span></span>
+<span class="line" id="L21"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> Format = <span class="tok-kw">enum</span> {</span>
+<span class="line" id="L22">    <span class="tok-comment">/// the image contains black-and-white pixels.</span></span>
+<span class="line" id="L23">    bitmap,</span>
+<span class="line" id="L24"></span>
+<span class="line" id="L25">    <span class="tok-comment">/// the image contains grayscale pixels.</span></span>
+<span class="line" id="L26">    grayscale,</span>
+<span class="line" id="L27"></span>
+<span class="line" id="L28">    <span class="tok-comment">/// the image contains RGB pixels.</span></span>
+<span class="line" id="L29">    rgb,</span>
+<span class="line" id="L30">};</span>
+<span class="line" id="L31"></span>
+<span class="line" id="L32"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> Header = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L33">    format: Format,</span>
+<span class="line" id="L34">    binary: <span class="tok-type">bool</span>,</span>
+<span class="line" id="L35">    width: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L36">    height: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L37">    max_value: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L38">};</span>
+<span class="line" id="L39"></span>
+<span class="line" id="L40"><span class="tok-kw">fn</span> <span class="tok-fn">parseHeader</span>(reader: buffered_stream_source.DefaultBufferedStreamSourceReader.Reader) ImageReadError!Header {</span>
+<span class="line" id="L41">    <span class="tok-kw">var</span> header: Header = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L42"></span>
+<span class="line" id="L43">    <span class="tok-kw">var</span> magic: [<span class="tok-number">2</span>]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L44">    _ = <span class="tok-kw">try</span> reader.read(magic[<span class="tok-number">0</span>..]);</span>
+<span class="line" id="L45"></span>
+<span class="line" id="L46">    <span class="tok-kw">if</span> (std.mem.eql(<span class="tok-type">u8</span>, &amp;magic, <span class="tok-str">&quot;P1&quot;</span>)) {</span>
+<span class="line" id="L47">        header.binary = <span class="tok-null">false</span>;</span>
+<span class="line" id="L48">        header.format = .bitmap;</span>
+<span class="line" id="L49">        header.max_value = <span class="tok-number">1</span>;</span>
+<span class="line" id="L50">    } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (std.mem.eql(<span class="tok-type">u8</span>, &amp;magic, <span class="tok-str">&quot;P2&quot;</span>)) {</span>
+<span class="line" id="L51">        header.binary = <span class="tok-null">false</span>;</span>
+<span class="line" id="L52">        header.format = .grayscale;</span>
+<span class="line" id="L53">    } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (std.mem.eql(<span class="tok-type">u8</span>, &amp;magic, <span class="tok-str">&quot;P3&quot;</span>)) {</span>
+<span class="line" id="L54">        header.binary = <span class="tok-null">false</span>;</span>
+<span class="line" id="L55">        header.format = .rgb;</span>
+<span class="line" id="L56">    } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (std.mem.eql(<span class="tok-type">u8</span>, &amp;magic, <span class="tok-str">&quot;P4&quot;</span>)) {</span>
+<span class="line" id="L57">        header.binary = <span class="tok-null">true</span>;</span>
+<span class="line" id="L58">        header.format = .bitmap;</span>
+<span class="line" id="L59">        header.max_value = <span class="tok-number">1</span>;</span>
+<span class="line" id="L60">    } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (std.mem.eql(<span class="tok-type">u8</span>, &amp;magic, <span class="tok-str">&quot;P5&quot;</span>)) {</span>
+<span class="line" id="L61">        header.binary = <span class="tok-null">true</span>;</span>
+<span class="line" id="L62">        header.format = .grayscale;</span>
+<span class="line" id="L63">    } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (std.mem.eql(<span class="tok-type">u8</span>, &amp;magic, <span class="tok-str">&quot;P6&quot;</span>)) {</span>
+<span class="line" id="L64">        header.binary = <span class="tok-null">true</span>;</span>
+<span class="line" id="L65">        header.format = .rgb;</span>
+<span class="line" id="L66">    } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L67">        <span class="tok-kw">return</span> ImageReadError.InvalidData;</span>
+<span class="line" id="L68">    }</span>
+<span class="line" id="L69"></span>
+<span class="line" id="L70">    <span class="tok-kw">var</span> read_buffer: [<span class="tok-number">16</span>]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L71"></span>
+<span class="line" id="L72">    header.width = <span class="tok-kw">try</span> parseNumber(reader, read_buffer[<span class="tok-number">0</span>..]);</span>
+<span class="line" id="L73">    header.height = <span class="tok-kw">try</span> parseNumber(reader, read_buffer[<span class="tok-number">0</span>..]);</span>
+<span class="line" id="L74">    <span class="tok-kw">if</span> (header.format != .bitmap) {</span>
+<span class="line" id="L75">        header.max_value = <span class="tok-kw">try</span> parseNumber(reader, read_buffer[<span class="tok-number">0</span>..]);</span>
+<span class="line" id="L76">    }</span>
+<span class="line" id="L77"></span>
+<span class="line" id="L78">    <span class="tok-kw">return</span> header;</span>
+<span class="line" id="L79">}</span>
+<span class="line" id="L80"></span>
+<span class="line" id="L81"><span class="tok-kw">fn</span> <span class="tok-fn">isWhitespace</span>(b: <span class="tok-type">u8</span>) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L82">    <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (b) {</span>
+<span class="line" id="L83">        <span class="tok-comment">// Whitespace (blanks, TABs, CRs, LFs).</span>
+</span>
+<span class="line" id="L84">        <span class="tok-str">'\n'</span>, <span class="tok-str">'\r'</span>, <span class="tok-str">' '</span>, <span class="tok-str">'\t'</span> =&gt; <span class="tok-null">true</span>,</span>
+<span class="line" id="L85">        <span class="tok-kw">else</span> =&gt; <span class="tok-null">false</span>,</span>
+<span class="line" id="L86">    };</span>
+<span class="line" id="L87">}</span>
+<span class="line" id="L88"></span>
+<span class="line" id="L89"><span class="tok-kw">fn</span> <span class="tok-fn">readNextByte</span>(reader: buffered_stream_source.DefaultBufferedStreamSourceReader.Reader) ImageReadError!<span class="tok-type">u8</span> {</span>
+<span class="line" id="L90">    <span class="tok-kw">while</span> (<span class="tok-null">true</span>) {</span>
+<span class="line" id="L91">        <span class="tok-kw">const</span> b = <span class="tok-kw">try</span> reader.readByte();</span>
+<span class="line" id="L92">        <span class="tok-kw">switch</span> (b) {</span>
+<span class="line" id="L93">            <span class="tok-comment">// Before the whitespace character that delimits the raster, any characters</span>
+</span>
+<span class="line" id="L94">            <span class="tok-comment">// from a &quot;#&quot; through the next carriage return or newline character, is a</span>
+</span>
+<span class="line" id="L95">            <span class="tok-comment">// comment and is ignored. Note that this is rather unconventional, because</span>
+</span>
+<span class="line" id="L96">            <span class="tok-comment">// a comment can actually be in the middle of what you might consider a token.</span>
+</span>
+<span class="line" id="L97">            <span class="tok-comment">// Note also that this means if you have a comment right before the raster,</span>
+</span>
+<span class="line" id="L98">            <span class="tok-comment">// the newline at the end of the comment is not sufficient to delimit the raster.</span>
+</span>
+<span class="line" id="L99">            <span class="tok-str">'#'</span> =&gt; {</span>
+<span class="line" id="L100">                <span class="tok-comment">// eat up comment</span>
+</span>
+<span class="line" id="L101">                <span class="tok-kw">while</span> (<span class="tok-null">true</span>) {</span>
+<span class="line" id="L102">                    <span class="tok-kw">const</span> c = <span class="tok-kw">try</span> reader.readByte();</span>
+<span class="line" id="L103">                    <span class="tok-kw">switch</span> (c) {</span>
+<span class="line" id="L104">                        <span class="tok-str">'\r'</span>, <span class="tok-str">'\n'</span> =&gt; <span class="tok-kw">break</span>,</span>
+<span class="line" id="L105">                        <span class="tok-kw">else</span> =&gt; {},</span>
+<span class="line" id="L106">                    }</span>
+<span class="line" id="L107">                }</span>
+<span class="line" id="L108">            },</span>
+<span class="line" id="L109">            <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> b,</span>
+<span class="line" id="L110">        }</span>
+<span class="line" id="L111">    }</span>
+<span class="line" id="L112">}</span>
+<span class="line" id="L113"></span>
+<span class="line" id="L114"><span class="tok-comment">/// skips whitespace and comments, then reads a number from the stream.</span></span>
+<span class="line" id="L115"><span class="tok-comment">/// this function reads one whitespace behind the number as a terminator.</span></span>
+<span class="line" id="L116"><span class="tok-kw">fn</span> <span class="tok-fn">parseNumber</span>(reader: buffered_stream_source.DefaultBufferedStreamSourceReader.Reader, buffer: []<span class="tok-type">u8</span>) ImageReadError!<span class="tok-type">usize</span> {</span>
+<span class="line" id="L117">    <span class="tok-kw">var</span> input_length: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L118">    <span class="tok-kw">while</span> (<span class="tok-null">true</span>) {</span>
+<span class="line" id="L119">        <span class="tok-kw">const</span> b = <span class="tok-kw">try</span> readNextByte(reader);</span>
+<span class="line" id="L120">        <span class="tok-kw">if</span> (isWhitespace(b)) {</span>
+<span class="line" id="L121">            <span class="tok-kw">if</span> (input_length &gt; <span class="tok-number">0</span>) {</span>
+<span class="line" id="L122">                <span class="tok-kw">return</span> std.fmt.parseInt(<span class="tok-type">usize</span>, buffer[<span class="tok-number">0</span>..input_length], <span class="tok-number">10</span>) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> ImageReadError.InvalidData;</span>
+<span class="line" id="L123">            } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L124">                <span class="tok-kw">continue</span>;</span>
+<span class="line" id="L125">            }</span>
+<span class="line" id="L126">        } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L127">            <span class="tok-kw">if</span> (input_length &gt;= buffer.len)</span>
+<span class="line" id="L128">                <span class="tok-kw">return</span> <span class="tok-kw">error</span>.OutOfMemory;</span>
+<span class="line" id="L129">            buffer[input_length] = b;</span>
+<span class="line" id="L130">            input_length += <span class="tok-number">1</span>;</span>
+<span class="line" id="L131">        }</span>
+<span class="line" id="L132">    }</span>
+<span class="line" id="L133">}</span>
+<span class="line" id="L134"></span>
+<span class="line" id="L135"><span class="tok-kw">fn</span> <span class="tok-fn">loadBinaryBitmap</span>(header: Header, data: []color.Grayscale1, reader: buffered_stream_source.DefaultBufferedStreamSourceReader.Reader) ImageReadError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L136">    <span class="tok-kw">var</span> bit_reader = std.io.bitReader(.big, reader);</span>
+<span class="line" id="L137"></span>
+<span class="line" id="L138">    <span class="tok-kw">for</span> (<span class="tok-number">0</span>..header.height) |row_index| {</span>
+<span class="line" id="L139">        <span class="tok-kw">for</span> (data[row_index * header.width ..][<span class="tok-number">0</span>..header.width]) |*sample| {</span>
+<span class="line" id="L140">            sample.value = ~(<span class="tok-kw">try</span> bit_reader.readBitsNoEof(<span class="tok-type">u1</span>, <span class="tok-number">1</span>));</span>
+<span class="line" id="L141">        }</span>
+<span class="line" id="L142">        bit_reader.alignToByte();</span>
+<span class="line" id="L143">    }</span>
+<span class="line" id="L144">}</span>
+<span class="line" id="L145"></span>
+<span class="line" id="L146"><span class="tok-kw">fn</span> <span class="tok-fn">loadAsciiBitmap</span>(header: Header, data: []color.Grayscale1, reader: buffered_stream_source.DefaultBufferedStreamSourceReader.Reader) ImageReadError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L147">    <span class="tok-kw">var</span> data_index: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L148">    <span class="tok-kw">const</span> data_end = header.width * header.height;</span>
+<span class="line" id="L149"></span>
+<span class="line" id="L150">    <span class="tok-kw">while</span> (data_index &lt; data_end) {</span>
+<span class="line" id="L151">        <span class="tok-kw">const</span> b = <span class="tok-kw">try</span> reader.readByte();</span>
+<span class="line" id="L152">        <span class="tok-kw">if</span> (isWhitespace(b)) {</span>
+<span class="line" id="L153">            <span class="tok-kw">continue</span>;</span>
+<span class="line" id="L154">        }</span>
+<span class="line" id="L155"></span>
+<span class="line" id="L156">        <span class="tok-comment">// 1 is black, 0 is white in PBM spec.</span>
+</span>
+<span class="line" id="L157">        <span class="tok-comment">// we use 1=white, 0=black in u1 format</span>
+</span>
+<span class="line" id="L158">        <span class="tok-kw">const</span> pixel = <span class="tok-kw">if</span> (b == <span class="tok-str">'0'</span>) <span class="tok-builtin">@as</span>(<span class="tok-type">u1</span>, <span class="tok-number">1</span>) <span class="tok-kw">else</span> <span class="tok-builtin">@as</span>(<span class="tok-type">u1</span>, <span class="tok-number">0</span>);</span>
+<span class="line" id="L159">        data[data_index] = color.Grayscale1{ .value = pixel };</span>
+<span class="line" id="L160"></span>
+<span class="line" id="L161">        data_index += <span class="tok-number">1</span>;</span>
+<span class="line" id="L162">    }</span>
+<span class="line" id="L163">}</span>
+<span class="line" id="L164"></span>
+<span class="line" id="L165"><span class="tok-kw">fn</span> <span class="tok-fn">readLinearizedValue</span>(reader: buffered_stream_source.DefaultBufferedStreamSourceReader.Reader, max_value: <span class="tok-type">usize</span>) ImageReadError!<span class="tok-type">u8</span> {</span>
+<span class="line" id="L166">    <span class="tok-kw">return</span> <span class="tok-kw">if</span> (max_value &gt; <span class="tok-number">255</span>)</span>
+<span class="line" id="L167">        <span class="tok-builtin">@truncate</span>(<span class="tok-number">255</span> * <span class="tok-builtin">@as</span>(<span class="tok-type">usize</span>, <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .big)) / max_value)</span>
+<span class="line" id="L168">    <span class="tok-kw">else</span></span>
+<span class="line" id="L169">        <span class="tok-builtin">@truncate</span>(<span class="tok-number">255</span> * <span class="tok-builtin">@as</span>(<span class="tok-type">usize</span>, <span class="tok-kw">try</span> reader.readByte()) / max_value);</span>
+<span class="line" id="L170">}</span>
+<span class="line" id="L171"></span>
+<span class="line" id="L172"><span class="tok-kw">fn</span> <span class="tok-fn">loadBinaryGraymap</span>(header: Header, pixels: *color.PixelStorage, reader: buffered_stream_source.DefaultBufferedStreamSourceReader.Reader) ImageReadError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L173">    <span class="tok-kw">var</span> data_index: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L174">    <span class="tok-kw">const</span> data_end = header.width * header.height;</span>
+<span class="line" id="L175">    <span class="tok-kw">if</span> (header.max_value &lt;= <span class="tok-number">255</span>) {</span>
+<span class="line" id="L176">        <span class="tok-kw">while</span> (data_index &lt; data_end) : (data_index += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L177">            pixels.grayscale8[data_index] = color.Grayscale8{ .value = <span class="tok-kw">try</span> readLinearizedValue(reader, header.max_value) };</span>
+<span class="line" id="L178">        }</span>
+<span class="line" id="L179">    } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L180">        <span class="tok-kw">while</span> (data_index &lt; data_end) : (data_index += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L181">            pixels.grayscale16[data_index] = color.Grayscale16{ .value = <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .big) };</span>
+<span class="line" id="L182">        }</span>
+<span class="line" id="L183">    }</span>
+<span class="line" id="L184">}</span>
+<span class="line" id="L185"></span>
+<span class="line" id="L186"><span class="tok-kw">fn</span> <span class="tok-fn">loadAsciiGraymap</span>(header: Header, pixels: *color.PixelStorage, reader: buffered_stream_source.DefaultBufferedStreamSourceReader.Reader) ImageReadError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L187">    <span class="tok-kw">var</span> read_buffer: [<span class="tok-number">16</span>]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L188"></span>
+<span class="line" id="L189">    <span class="tok-kw">var</span> data_index: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L190">    <span class="tok-kw">const</span> data_end = header.width * header.height;</span>
+<span class="line" id="L191"></span>
+<span class="line" id="L192">    <span class="tok-kw">if</span> (header.max_value &lt;= <span class="tok-number">255</span>) {</span>
+<span class="line" id="L193">        <span class="tok-kw">while</span> (data_index &lt; data_end) : (data_index += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L194">            pixels.grayscale8[data_index] = color.Grayscale8{ .value = <span class="tok-builtin">@truncate</span>(<span class="tok-kw">try</span> parseNumber(reader, read_buffer[<span class="tok-number">0</span>..])) };</span>
+<span class="line" id="L195">        }</span>
+<span class="line" id="L196">    } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L197">        <span class="tok-kw">while</span> (data_index &lt; data_end) : (data_index += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L198">            pixels.grayscale16[data_index] = color.Grayscale16{ .value = <span class="tok-builtin">@truncate</span>(<span class="tok-kw">try</span> parseNumber(reader, read_buffer[<span class="tok-number">0</span>..])) };</span>
+<span class="line" id="L199">        }</span>
+<span class="line" id="L200">    }</span>
+<span class="line" id="L201">}</span>
+<span class="line" id="L202"></span>
+<span class="line" id="L203"><span class="tok-kw">fn</span> <span class="tok-fn">loadBinaryRgbmap</span>(header: Header, data: []color.Rgb24, reader: buffered_stream_source.DefaultBufferedStreamSourceReader.Reader) ImageReadError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L204">    <span class="tok-kw">var</span> data_index: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L205">    <span class="tok-kw">const</span> data_end = header.width * header.height;</span>
+<span class="line" id="L206"></span>
+<span class="line" id="L207">    <span class="tok-kw">while</span> (data_index &lt; data_end) : (data_index += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L208">        data[data_index] = color.Rgb24{</span>
+<span class="line" id="L209">            .r = <span class="tok-kw">try</span> readLinearizedValue(reader, header.max_value),</span>
+<span class="line" id="L210">            .g = <span class="tok-kw">try</span> readLinearizedValue(reader, header.max_value),</span>
+<span class="line" id="L211">            .b = <span class="tok-kw">try</span> readLinearizedValue(reader, header.max_value),</span>
+<span class="line" id="L212">        };</span>
+<span class="line" id="L213">    }</span>
+<span class="line" id="L214">}</span>
+<span class="line" id="L215"></span>
+<span class="line" id="L216"><span class="tok-kw">fn</span> <span class="tok-fn">loadAsciiRgbmap</span>(header: Header, data: []color.Rgb24, reader: buffered_stream_source.DefaultBufferedStreamSourceReader.Reader) ImageReadError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L217">    <span class="tok-kw">var</span> read_buffer: [<span class="tok-number">16</span>]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L218"></span>
+<span class="line" id="L219">    <span class="tok-kw">var</span> data_index: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L220">    <span class="tok-kw">const</span> data_end = header.width * header.height;</span>
+<span class="line" id="L221"></span>
+<span class="line" id="L222">    <span class="tok-kw">while</span> (data_index &lt; data_end) : (data_index += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L223">        <span class="tok-kw">const</span> r = <span class="tok-kw">try</span> parseNumber(reader, read_buffer[<span class="tok-number">0</span>..]);</span>
+<span class="line" id="L224">        <span class="tok-kw">const</span> g = <span class="tok-kw">try</span> parseNumber(reader, read_buffer[<span class="tok-number">0</span>..]);</span>
+<span class="line" id="L225">        <span class="tok-kw">const</span> b = <span class="tok-kw">try</span> parseNumber(reader, read_buffer[<span class="tok-number">0</span>..]);</span>
+<span class="line" id="L226"></span>
+<span class="line" id="L227">        data[data_index] = color.Rgb24{</span>
+<span class="line" id="L228">            .r = <span class="tok-builtin">@truncate</span>(<span class="tok-number">255</span> * r / header.max_value),</span>
+<span class="line" id="L229">            .g = <span class="tok-builtin">@truncate</span>(<span class="tok-number">255</span> * g / header.max_value),</span>
+<span class="line" id="L230">            .b = <span class="tok-builtin">@truncate</span>(<span class="tok-number">255</span> * b / header.max_value),</span>
+<span class="line" id="L231">        };</span>
+<span class="line" id="L232">    }</span>
+<span class="line" id="L233">}</span>
+<span class="line" id="L234"></span>
+<span class="line" id="L235"><span class="tok-kw">fn</span> <span class="tok-fn">Netpbm</span>(<span class="tok-kw">comptime</span> image_format: Image.Format, <span class="tok-kw">comptime</span> header_numbers: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) <span class="tok-type">type</span> {</span>
+<span class="line" id="L236">    <span class="tok-kw">return</span> <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L237">        header: Header = <span class="tok-null">undefined</span>,</span>
+<span class="line" id="L238"></span>
+<span class="line" id="L239">        <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L240"></span>
+<span class="line" id="L241">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> EncoderOptions = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L242">            binary: <span class="tok-type">bool</span> = <span class="tok-null">true</span>,</span>
+<span class="line" id="L243">        };</span>
+<span class="line" id="L244"></span>
+<span class="line" id="L245">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">formatInterface</span>() FormatInterface {</span>
+<span class="line" id="L246">            <span class="tok-kw">return</span> FormatInterface{</span>
+<span class="line" id="L247">                .format = format,</span>
+<span class="line" id="L248">                .formatDetect = formatDetect,</span>
+<span class="line" id="L249">                .readImage = readImage,</span>
+<span class="line" id="L250">                .writeImage = writeImage,</span>
+<span class="line" id="L251">            };</span>
+<span class="line" id="L252">        }</span>
+<span class="line" id="L253"></span>
+<span class="line" id="L254">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">format</span>() Image.Format {</span>
+<span class="line" id="L255">            <span class="tok-kw">return</span> image_format;</span>
+<span class="line" id="L256">        }</span>
+<span class="line" id="L257"></span>
+<span class="line" id="L258">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">formatDetect</span>(stream: *Image.Stream) ImageReadError!<span class="tok-type">bool</span> {</span>
+<span class="line" id="L259">            <span class="tok-kw">var</span> magic_number_buffer: [<span class="tok-number">2</span>]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L260">            _ = <span class="tok-kw">try</span> stream.read(magic_number_buffer[<span class="tok-number">0</span>..]);</span>
+<span class="line" id="L261"></span>
+<span class="line" id="L262">            <span class="tok-kw">if</span> (magic_number_buffer[<span class="tok-number">0</span>] != <span class="tok-str">'P'</span>) {</span>
+<span class="line" id="L263">                <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L264">            }</span>
+<span class="line" id="L265"></span>
+<span class="line" id="L266">            <span class="tok-kw">var</span> found = <span class="tok-null">false</span>;</span>
+<span class="line" id="L267"></span>
+<span class="line" id="L268">            <span class="tok-kw">for</span> (header_numbers) |number| {</span>
+<span class="line" id="L269">                <span class="tok-kw">if</span> (magic_number_buffer[<span class="tok-number">1</span>] == number) {</span>
+<span class="line" id="L270">                    found = <span class="tok-null">true</span>;</span>
+<span class="line" id="L271">                    <span class="tok-kw">break</span>;</span>
+<span class="line" id="L272">                }</span>
+<span class="line" id="L273">            }</span>
+<span class="line" id="L274"></span>
+<span class="line" id="L275">            <span class="tok-kw">return</span> found;</span>
+<span class="line" id="L276">        }</span>
+<span class="line" id="L277"></span>
+<span class="line" id="L278">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">readImage</span>(allocator: Allocator, stream: *Image.Stream) ImageReadError!Image {</span>
+<span class="line" id="L279">            <span class="tok-kw">var</span> result = Image.init(allocator);</span>
+<span class="line" id="L280">            <span class="tok-kw">errdefer</span> result.deinit();</span>
+<span class="line" id="L281">            <span class="tok-kw">var</span> netpbm_file = Self{};</span>
+<span class="line" id="L282"></span>
+<span class="line" id="L283">            <span class="tok-kw">const</span> pixels = <span class="tok-kw">try</span> netpbm_file.read(allocator, stream);</span>
+<span class="line" id="L284"></span>
+<span class="line" id="L285">            result.width = netpbm_file.header.width;</span>
+<span class="line" id="L286">            result.height = netpbm_file.header.height;</span>
+<span class="line" id="L287">            result.pixels = pixels;</span>
+<span class="line" id="L288"></span>
+<span class="line" id="L289">            <span class="tok-kw">return</span> result;</span>
+<span class="line" id="L290">        }</span>
+<span class="line" id="L291"></span>
+<span class="line" id="L292">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">writeImage</span>(allocator: Allocator, write_stream: *Image.Stream, image: Image, encoder_options: Image.EncoderOptions) ImageWriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L293">            _ = allocator;</span>
+<span class="line" id="L294"></span>
+<span class="line" id="L295">            <span class="tok-kw">var</span> netpbm_file = Self{};</span>
+<span class="line" id="L296">            netpbm_file.header.binary = <span class="tok-kw">switch</span> (encoder_options) {</span>
+<span class="line" id="L297">                .pbm =&gt; |options| options.binary,</span>
+<span class="line" id="L298">                .pgm =&gt; |options| options.binary,</span>
+<span class="line" id="L299">                .ppm =&gt; |options| options.binary,</span>
+<span class="line" id="L300">                <span class="tok-kw">else</span> =&gt; <span class="tok-null">false</span>,</span>
+<span class="line" id="L301">            };</span>
+<span class="line" id="L302"></span>
+<span class="line" id="L303">            netpbm_file.header.width = image.width;</span>
+<span class="line" id="L304">            netpbm_file.header.height = image.height;</span>
+<span class="line" id="L305">            netpbm_file.header.format = <span class="tok-kw">switch</span> (image.pixels) {</span>
+<span class="line" id="L306">                .grayscale1 =&gt; Format.bitmap,</span>
+<span class="line" id="L307">                .grayscale8, .grayscale16 =&gt; Format.grayscale,</span>
+<span class="line" id="L308">                .rgb24 =&gt; Format.rgb,</span>
+<span class="line" id="L309">                <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> ImageError.Unsupported,</span>
+<span class="line" id="L310">            };</span>
+<span class="line" id="L311"></span>
+<span class="line" id="L312">            netpbm_file.header.max_value = <span class="tok-kw">switch</span> (image.pixels) {</span>
+<span class="line" id="L313">                .grayscale16 =&gt; std.math.maxInt(<span class="tok-type">u16</span>),</span>
+<span class="line" id="L314">                .grayscale1 =&gt; <span class="tok-number">1</span>,</span>
+<span class="line" id="L315">                <span class="tok-kw">else</span> =&gt; std.math.maxInt(<span class="tok-type">u8</span>),</span>
+<span class="line" id="L316">            };</span>
+<span class="line" id="L317"></span>
+<span class="line" id="L318">            <span class="tok-kw">try</span> netpbm_file.write(write_stream, image.pixels);</span>
+<span class="line" id="L319">        }</span>
+<span class="line" id="L320"></span>
+<span class="line" id="L321">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">pixelFormat</span>(self: Self) ImageReadError!PixelFormat {</span>
+<span class="line" id="L322">            <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (self.header.format) {</span>
+<span class="line" id="L323">                .bitmap =&gt; PixelFormat.grayscale1,</span>
+<span class="line" id="L324">                .grayscale =&gt; <span class="tok-kw">switch</span> (self.header.max_value) {</span>
+<span class="line" id="L325">                    <span class="tok-number">0</span>...<span class="tok-number">255</span> =&gt; PixelFormat.grayscale8,</span>
+<span class="line" id="L326">                    <span class="tok-kw">else</span> =&gt; PixelFormat.grayscale16,</span>
+<span class="line" id="L327">                },</span>
+<span class="line" id="L328">                .rgb =&gt; PixelFormat.rgb24,</span>
+<span class="line" id="L329">            };</span>
+<span class="line" id="L330">        }</span>
+<span class="line" id="L331"></span>
+<span class="line" id="L332">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">read</span>(self: *Self, allocator: Allocator, stream: *Image.Stream) ImageReadError!color.PixelStorage {</span>
+<span class="line" id="L333">            <span class="tok-kw">var</span> buffered_stream = buffered_stream_source.bufferedStreamSourceReader(stream);</span>
+<span class="line" id="L334">            <span class="tok-kw">const</span> reader = buffered_stream.reader();</span>
+<span class="line" id="L335">            self.header = <span class="tok-kw">try</span> parseHeader(reader);</span>
+<span class="line" id="L336"></span>
+<span class="line" id="L337">            <span class="tok-kw">const</span> pixel_format = <span class="tok-kw">try</span> self.pixelFormat();</span>
+<span class="line" id="L338"></span>
+<span class="line" id="L339">            <span class="tok-kw">var</span> pixels = <span class="tok-kw">try</span> color.PixelStorage.init(allocator, pixel_format, self.header.width * self.header.height);</span>
+<span class="line" id="L340">            <span class="tok-kw">errdefer</span> pixels.deinit(allocator);</span>
+<span class="line" id="L341"></span>
+<span class="line" id="L342">            <span class="tok-kw">switch</span> (self.header.format) {</span>
+<span class="line" id="L343">                .bitmap =&gt; {</span>
+<span class="line" id="L344">                    <span class="tok-kw">if</span> (self.header.binary) {</span>
+<span class="line" id="L345">                        <span class="tok-kw">try</span> loadBinaryBitmap(self.header, pixels.grayscale1, reader);</span>
+<span class="line" id="L346">                    } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L347">                        <span class="tok-kw">try</span> loadAsciiBitmap(self.header, pixels.grayscale1, reader);</span>
+<span class="line" id="L348">                    }</span>
+<span class="line" id="L349">                },</span>
+<span class="line" id="L350">                .grayscale =&gt; {</span>
+<span class="line" id="L351">                    <span class="tok-kw">if</span> (self.header.binary) {</span>
+<span class="line" id="L352">                        <span class="tok-kw">try</span> loadBinaryGraymap(self.header, &amp;pixels, reader);</span>
+<span class="line" id="L353">                    } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L354">                        <span class="tok-kw">try</span> loadAsciiGraymap(self.header, &amp;pixels, reader);</span>
+<span class="line" id="L355">                    }</span>
+<span class="line" id="L356">                },</span>
+<span class="line" id="L357">                .rgb =&gt; {</span>
+<span class="line" id="L358">                    <span class="tok-kw">if</span> (self.header.binary) {</span>
+<span class="line" id="L359">                        <span class="tok-kw">try</span> loadBinaryRgbmap(self.header, pixels.rgb24, reader);</span>
+<span class="line" id="L360">                    } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L361">                        <span class="tok-kw">try</span> loadAsciiRgbmap(self.header, pixels.rgb24, reader);</span>
+<span class="line" id="L362">                    }</span>
+<span class="line" id="L363">                },</span>
+<span class="line" id="L364">            }</span>
+<span class="line" id="L365"></span>
+<span class="line" id="L366">            <span class="tok-kw">return</span> pixels;</span>
+<span class="line" id="L367">        }</span>
+<span class="line" id="L368"></span>
+<span class="line" id="L369">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">write</span>(self: *Self, write_stream: *Image.Stream, pixels: color.PixelStorage) ImageWriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L370">            <span class="tok-kw">var</span> buffered_stream = buffered_stream_source.bufferedStreamSourceWriter(write_stream);</span>
+<span class="line" id="L371"></span>
+<span class="line" id="L372">            <span class="tok-kw">const</span> image_type = <span class="tok-kw">if</span> (self.header.binary) header_numbers[<span class="tok-number">1</span>] <span class="tok-kw">else</span> header_numbers[<span class="tok-number">0</span>];</span>
+<span class="line" id="L373">            <span class="tok-kw">const</span> writer = buffered_stream.writer();</span>
+<span class="line" id="L374">            <span class="tok-kw">try</span> writer.print(<span class="tok-str">&quot;P{c}\n&quot;</span>, .{image_type});</span>
+<span class="line" id="L375">            _ = <span class="tok-kw">try</span> writer.write(<span class="tok-str">&quot;# Created by zigimg\n&quot;</span>);</span>
+<span class="line" id="L376"></span>
+<span class="line" id="L377">            <span class="tok-kw">try</span> writer.print(<span class="tok-str">&quot;{} {}\n&quot;</span>, .{ self.header.width, self.header.height });</span>
+<span class="line" id="L378"></span>
+<span class="line" id="L379">            <span class="tok-kw">if</span> (self.header.format != .bitmap) {</span>
+<span class="line" id="L380">                <span class="tok-kw">try</span> writer.print(<span class="tok-str">&quot;{}\n&quot;</span>, .{self.header.max_value});</span>
+<span class="line" id="L381">            }</span>
+<span class="line" id="L382"></span>
+<span class="line" id="L383">            <span class="tok-kw">if</span> (self.header.binary) {</span>
+<span class="line" id="L384">                <span class="tok-kw">switch</span> (self.header.format) {</span>
+<span class="line" id="L385">                    .bitmap =&gt; {</span>
+<span class="line" id="L386">                        <span class="tok-kw">switch</span> (pixels) {</span>
+<span class="line" id="L387">                            .grayscale1 =&gt; |samples| {</span>
+<span class="line" id="L388">                                <span class="tok-kw">var</span> bit_writer = std.io.bitWriter(.big, writer);</span>
+<span class="line" id="L389"></span>
+<span class="line" id="L390">                                <span class="tok-kw">for</span> (<span class="tok-number">0</span>..self.header.height) |row_index| {</span>
+<span class="line" id="L391">                                    <span class="tok-kw">for</span> (samples[row_index * self.header.width ..][<span class="tok-number">0</span>..self.header.width]) |sample| {</span>
+<span class="line" id="L392">                                        <span class="tok-kw">try</span> bit_writer.writeBits(~sample.value, <span class="tok-number">1</span>);</span>
+<span class="line" id="L393">                                    }</span>
+<span class="line" id="L394">                                    <span class="tok-kw">try</span> bit_writer.flushBits();</span>
+<span class="line" id="L395">                                }</span>
+<span class="line" id="L396">                            },</span>
+<span class="line" id="L397">                            <span class="tok-kw">else</span> =&gt; {</span>
+<span class="line" id="L398">                                <span class="tok-kw">return</span> ImageError.Unsupported;</span>
+<span class="line" id="L399">                            },</span>
+<span class="line" id="L400">                        }</span>
+<span class="line" id="L401">                    },</span>
+<span class="line" id="L402">                    .grayscale =&gt; {</span>
+<span class="line" id="L403">                        <span class="tok-kw">switch</span> (pixels) {</span>
+<span class="line" id="L404">                            .grayscale16 =&gt; {</span>
+<span class="line" id="L405">                                <span class="tok-kw">for</span> (pixels.grayscale16) |entry| {</span>
+<span class="line" id="L406">                                    <span class="tok-comment">// Big due to 16-bit PGM being semi standardized as big-endian</span>
+</span>
+<span class="line" id="L407">                                    <span class="tok-kw">try</span> writer.writeInt(<span class="tok-type">u16</span>, entry.value, .big);</span>
+<span class="line" id="L408">                                }</span>
+<span class="line" id="L409">                            },</span>
+<span class="line" id="L410">                            .grayscale8 =&gt; {</span>
+<span class="line" id="L411">                                <span class="tok-kw">for</span> (pixels.grayscale8) |entry| {</span>
+<span class="line" id="L412">                                    <span class="tok-kw">try</span> writer.writeInt(<span class="tok-type">u8</span>, entry.value, .little);</span>
+<span class="line" id="L413">                                }</span>
+<span class="line" id="L414">                            },</span>
+<span class="line" id="L415">                            <span class="tok-kw">else</span> =&gt; {</span>
+<span class="line" id="L416">                                <span class="tok-kw">return</span> ImageError.Unsupported;</span>
+<span class="line" id="L417">                            },</span>
+<span class="line" id="L418">                        }</span>
+<span class="line" id="L419">                    },</span>
+<span class="line" id="L420">                    .rgb =&gt; {</span>
+<span class="line" id="L421">                        <span class="tok-kw">switch</span> (pixels) {</span>
+<span class="line" id="L422">                            .rgb24 =&gt; {</span>
+<span class="line" id="L423">                                <span class="tok-kw">for</span> (pixels.rgb24) |entry| {</span>
+<span class="line" id="L424">                                    <span class="tok-kw">try</span> writer.writeByte(entry.r);</span>
+<span class="line" id="L425">                                    <span class="tok-kw">try</span> writer.writeByte(entry.g);</span>
+<span class="line" id="L426">                                    <span class="tok-kw">try</span> writer.writeByte(entry.b);</span>
+<span class="line" id="L427">                                }</span>
+<span class="line" id="L428">                            },</span>
+<span class="line" id="L429">                            <span class="tok-kw">else</span> =&gt; {</span>
+<span class="line" id="L430">                                <span class="tok-kw">return</span> ImageError.Unsupported;</span>
+<span class="line" id="L431">                            },</span>
+<span class="line" id="L432">                        }</span>
+<span class="line" id="L433">                    },</span>
+<span class="line" id="L434">                }</span>
+<span class="line" id="L435">            } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L436">                <span class="tok-kw">switch</span> (self.header.format) {</span>
+<span class="line" id="L437">                    .bitmap =&gt; {</span>
+<span class="line" id="L438">                        <span class="tok-kw">switch</span> (pixels) {</span>
+<span class="line" id="L439">                            .grayscale1 =&gt; {</span>
+<span class="line" id="L440">                                <span class="tok-kw">for</span> (pixels.grayscale1) |entry| {</span>
+<span class="line" id="L441">                                    <span class="tok-kw">try</span> writer.print(<span class="tok-str">&quot;{}&quot;</span>, .{~entry.value});</span>
+<span class="line" id="L442">                                }</span>
+<span class="line" id="L443">                                _ = <span class="tok-kw">try</span> writer.write(<span class="tok-str">&quot;\n&quot;</span>);</span>
+<span class="line" id="L444">                            },</span>
+<span class="line" id="L445">                            <span class="tok-kw">else</span> =&gt; {</span>
+<span class="line" id="L446">                                <span class="tok-kw">return</span> ImageError.Unsupported;</span>
+<span class="line" id="L447">                            },</span>
+<span class="line" id="L448">                        }</span>
+<span class="line" id="L449">                    },</span>
+<span class="line" id="L450">                    .grayscale =&gt; {</span>
+<span class="line" id="L451">                        <span class="tok-kw">switch</span> (pixels) {</span>
+<span class="line" id="L452">                            .grayscale16 =&gt; {</span>
+<span class="line" id="L453">                                <span class="tok-kw">const</span> pixels_len = pixels.len();</span>
+<span class="line" id="L454">                                <span class="tok-kw">for</span> (pixels.grayscale16, <span class="tok-number">0</span>..) |entry, index| {</span>
+<span class="line" id="L455">                                    <span class="tok-kw">try</span> writer.print(<span class="tok-str">&quot;{}&quot;</span>, .{entry.value});</span>
+<span class="line" id="L456"></span>
+<span class="line" id="L457">                                    <span class="tok-kw">if</span> (index != (pixels_len - <span class="tok-number">1</span>)) {</span>
+<span class="line" id="L458">                                        _ = <span class="tok-kw">try</span> writer.write(<span class="tok-str">&quot; &quot;</span>);</span>
+<span class="line" id="L459">                                    }</span>
+<span class="line" id="L460">                                }</span>
+<span class="line" id="L461">                                _ = <span class="tok-kw">try</span> writer.write(<span class="tok-str">&quot;\n&quot;</span>);</span>
+<span class="line" id="L462">                            },</span>
+<span class="line" id="L463">                            .grayscale8 =&gt; {</span>
+<span class="line" id="L464">                                <span class="tok-kw">const</span> pixels_len = pixels.len();</span>
+<span class="line" id="L465">                                <span class="tok-kw">for</span> (pixels.grayscale8, <span class="tok-number">0</span>..) |entry, index| {</span>
+<span class="line" id="L466">                                    <span class="tok-kw">try</span> writer.print(<span class="tok-str">&quot;{}&quot;</span>, .{entry.value});</span>
+<span class="line" id="L467"></span>
+<span class="line" id="L468">                                    <span class="tok-kw">if</span> (index != (pixels_len - <span class="tok-number">1</span>)) {</span>
+<span class="line" id="L469">                                        _ = <span class="tok-kw">try</span> writer.write(<span class="tok-str">&quot; &quot;</span>);</span>
+<span class="line" id="L470">                                    }</span>
+<span class="line" id="L471">                                }</span>
+<span class="line" id="L472">                                _ = <span class="tok-kw">try</span> writer.write(<span class="tok-str">&quot;\n&quot;</span>);</span>
+<span class="line" id="L473">                            },</span>
+<span class="line" id="L474">                            <span class="tok-kw">else</span> =&gt; {</span>
+<span class="line" id="L475">                                <span class="tok-kw">return</span> ImageError.Unsupported;</span>
+<span class="line" id="L476">                            },</span>
+<span class="line" id="L477">                        }</span>
+<span class="line" id="L478">                    },</span>
+<span class="line" id="L479">                    .rgb =&gt; {</span>
+<span class="line" id="L480">                        <span class="tok-kw">switch</span> (pixels) {</span>
+<span class="line" id="L481">                            .rgb24 =&gt; {</span>
+<span class="line" id="L482">                                <span class="tok-kw">for</span> (pixels.rgb24) |entry| {</span>
+<span class="line" id="L483">                                    <span class="tok-kw">try</span> writer.print(<span class="tok-str">&quot;{} {} {}\n&quot;</span>, .{ entry.r, entry.g, entry.b });</span>
+<span class="line" id="L484">                                }</span>
+<span class="line" id="L485">                            },</span>
+<span class="line" id="L486">                            <span class="tok-kw">else</span> =&gt; {</span>
+<span class="line" id="L487">                                <span class="tok-kw">return</span> ImageError.Unsupported;</span>
+<span class="line" id="L488">                            },</span>
+<span class="line" id="L489">                        }</span>
+<span class="line" id="L490">                    },</span>
+<span class="line" id="L491">                }</span>
+<span class="line" id="L492">            }</span>
+<span class="line" id="L493"></span>
+<span class="line" id="L494">            <span class="tok-kw">try</span> buffered_stream.flush();</span>
+<span class="line" id="L495">        }</span>
+<span class="line" id="L496">    };</span>
+<span class="line" id="L497">}</span>
+<span class="line" id="L498"></span>
+<span class="line" id="L499"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> PBM = Netpbm(Image.Format.pbm, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-str">'1'</span>, <span class="tok-str">'4'</span> });</span>
+<span class="line" id="L500"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> PGM = Netpbm(Image.Format.pgm, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-str">'2'</span>, <span class="tok-str">'5'</span> });</span>
+<span class="line" id="L501"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> PPM = Netpbm(Image.Format.ppm, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-str">'3'</span>, <span class="tok-str">'6'</span> });</span>
+<span class="line" id="L502"></span>
+</code></pre></body>
+</html>

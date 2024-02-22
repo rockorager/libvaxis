@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>collator/Collator.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L2"></span>
+<span class="line" id="L3"><span class="tok-kw">const</span> ccc_map = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../autogen/derived_combining_class.zig&quot;</span>);</span>
+<span class="line" id="L4"><span class="tok-kw">const</span> CodePointIterator = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../segmenter/CodePoint.zig&quot;</span>).CodePointIterator;</span>
+<span class="line" id="L5"><span class="tok-kw">const</span> Normalizer = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../normalizer/Normalizer.zig&quot;</span>);</span>
+<span class="line" id="L6"><span class="tok-kw">const</span> props = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../autogen/prop_list.zig&quot;</span>);</span>
+<span class="line" id="L7"></span>
+<span class="line" id="L8"><span class="tok-kw">const</span> Element = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L9">    l1: <span class="tok-type">u16</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L10">    l2: <span class="tok-type">u16</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L11">    l3: <span class="tok-type">u8</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L12">};</span>
+<span class="line" id="L13"></span>
+<span class="line" id="L14"><span class="tok-kw">const</span> Implicit = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L15">    start: <span class="tok-type">u21</span>,</span>
+<span class="line" id="L16">    end: <span class="tok-type">u21</span>,</span>
+<span class="line" id="L17">    base: <span class="tok-type">u16</span>,</span>
+<span class="line" id="L18">};</span>
+<span class="line" id="L19"></span>
+<span class="line" id="L20"><span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L21"></span>
+<span class="line" id="L22">ducet: std.AutoHashMap([<span class="tok-number">3</span>]<span class="tok-type">u21</span>, [<span class="tok-number">18</span>]?Element),</span>
+<span class="line" id="L23">implicits: [<span class="tok-number">4</span>]Implicit,</span>
+<span class="line" id="L24">normalizer: Normalizer,</span>
+<span class="line" id="L25"></span>
+<span class="line" id="L26"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">init</span>(allocator: std.mem.Allocator) !Self {</span>
+<span class="line" id="L27">    <span class="tok-kw">var</span> self = Self{</span>
+<span class="line" id="L28">        .ducet = std.AutoHashMap([<span class="tok-number">3</span>]<span class="tok-type">u21</span>, [<span class="tok-number">18</span>]?Element).init(allocator),</span>
+<span class="line" id="L29">        .implicits = <span class="tok-null">undefined</span>,</span>
+<span class="line" id="L30">        .normalizer = <span class="tok-kw">try</span> Normalizer.init(allocator),</span>
+<span class="line" id="L31">    };</span>
+<span class="line" id="L32">    <span class="tok-kw">errdefer</span> self.deinit();</span>
+<span class="line" id="L33"></span>
+<span class="line" id="L34">    <span class="tok-comment">// allkeys-strip.txt file.</span>
+</span>
+<span class="line" id="L35">    <span class="tok-kw">const</span> ak_file = <span class="tok-builtin">@embedFile</span>(<span class="tok-str">&quot;../data/allkeys-diffs.txt.deflate&quot;</span>);</span>
+<span class="line" id="L36">    <span class="tok-kw">var</span> ak_fb = std.io.fixedBufferStream(ak_file);</span>
+<span class="line" id="L37">    <span class="tok-kw">var</span> ak_comp = <span class="tok-kw">try</span> std.compress.deflate.decompressor(allocator, ak_fb.reader(), <span class="tok-null">null</span>);</span>
+<span class="line" id="L38">    <span class="tok-kw">defer</span> ak_comp.deinit();</span>
+<span class="line" id="L39">    <span class="tok-kw">var</span> ak_br = std.io.bufferedReader(ak_comp.reader());</span>
+<span class="line" id="L40">    <span class="tok-kw">const</span> ak_reader = ak_br.reader();</span>
+<span class="line" id="L41"></span>
+<span class="line" id="L42">    <span class="tok-kw">var</span> buf: [<span class="tok-number">4096</span>]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L43">    <span class="tok-kw">var</span> line_num: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L44"></span>
+<span class="line" id="L45">    <span class="tok-comment">// Diff state</span>
+</span>
+<span class="line" id="L46">    <span class="tok-kw">var</span> prev_cp: <span class="tok-type">u21</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L47">    <span class="tok-kw">var</span> cp_diff: <span class="tok-type">isize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L48">    <span class="tok-kw">var</span> prev_l1: <span class="tok-type">u16</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L49">    <span class="tok-kw">var</span> l1_diff: <span class="tok-type">isize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L50"></span>
+<span class="line" id="L51">    <span class="tok-kw">while</span> (<span class="tok-kw">try</span> ak_reader.readUntilDelimiterOrEof(&amp;buf, <span class="tok-str">'\n'</span>)) |line| : (line_num += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L52">        <span class="tok-kw">var</span> fields = std.mem.split(<span class="tok-type">u8</span>, line, <span class="tok-str">&quot;;&quot;</span>);</span>
+<span class="line" id="L53"></span>
+<span class="line" id="L54">        <span class="tok-comment">// Will the number of implicits change in a future version of Unicode?</span>
+</span>
+<span class="line" id="L55">        <span class="tok-kw">if</span> (line_num &lt; <span class="tok-number">4</span>) {</span>
+<span class="line" id="L56">            self.implicits[line_num] = Implicit{</span>
+<span class="line" id="L57">                .start = <span class="tok-kw">try</span> std.fmt.parseInt(<span class="tok-type">u21</span>, fields.next().?, <span class="tok-number">16</span>),</span>
+<span class="line" id="L58">                .end = <span class="tok-kw">try</span> std.fmt.parseInt(<span class="tok-type">u21</span>, fields.next().?, <span class="tok-number">16</span>),</span>
+<span class="line" id="L59">                .base = <span class="tok-kw">try</span> std.fmt.parseInt(<span class="tok-type">u16</span>, fields.next().?, <span class="tok-number">16</span>),</span>
+<span class="line" id="L60">            };</span>
+<span class="line" id="L61"></span>
+<span class="line" id="L62">            <span class="tok-kw">continue</span>;</span>
+<span class="line" id="L63">        }</span>
+<span class="line" id="L64"></span>
+<span class="line" id="L65">        <span class="tok-kw">var</span> i: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L66">        <span class="tok-kw">var</span> cps = [_]<span class="tok-type">u21</span>{<span class="tok-number">0</span>} ** <span class="tok-number">3</span>;</span>
+<span class="line" id="L67">        <span class="tok-kw">var</span> cp_diff_strs = std.mem.split(<span class="tok-type">u8</span>, fields.next().?, <span class="tok-str">&quot; &quot;</span>);</span>
+<span class="line" id="L68"></span>
+<span class="line" id="L69">        <span class="tok-kw">while</span> (cp_diff_strs.next()) |cp_diff_str| : (i += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L70">            cp_diff = <span class="tok-kw">try</span> std.fmt.parseInt(<span class="tok-type">isize</span>, cp_diff_str, <span class="tok-number">16</span>);</span>
+<span class="line" id="L71">            prev_cp = <span class="tok-builtin">@intCast</span>(<span class="tok-builtin">@as</span>(<span class="tok-type">isize</span>, prev_cp) + cp_diff);</span>
+<span class="line" id="L72">            cps[i] = prev_cp;</span>
+<span class="line" id="L73">        }</span>
+<span class="line" id="L74"></span>
+<span class="line" id="L75">        i = <span class="tok-number">0</span>;</span>
+<span class="line" id="L76">        <span class="tok-kw">var</span> elements = [_]?Element{<span class="tok-null">null</span>} ** <span class="tok-number">18</span>;</span>
+<span class="line" id="L77"></span>
+<span class="line" id="L78">        <span class="tok-kw">while</span> (fields.next()) |element_diff_str| : (i += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L79">            <span class="tok-comment">// i.e. 3D3;-42</span>
+</span>
+<span class="line" id="L80">            <span class="tok-kw">if</span> (std.mem.indexOf(<span class="tok-type">u8</span>, element_diff_str, <span class="tok-str">&quot;.&quot;</span>) == <span class="tok-null">null</span>) {</span>
+<span class="line" id="L81">                l1_diff = <span class="tok-kw">try</span> std.fmt.parseInt(<span class="tok-type">isize</span>, element_diff_str, <span class="tok-number">16</span>);</span>
+<span class="line" id="L82">                prev_l1 = <span class="tok-builtin">@intCast</span>(<span class="tok-builtin">@as</span>(<span class="tok-type">isize</span>, prev_l1) + l1_diff);</span>
+<span class="line" id="L83"></span>
+<span class="line" id="L84">                elements[i] = Element{</span>
+<span class="line" id="L85">                    .l1 = prev_l1,</span>
+<span class="line" id="L86">                    .l2 = <span class="tok-number">0x20</span>,</span>
+<span class="line" id="L87">                    .l3 = <span class="tok-number">0x2</span>,</span>
+<span class="line" id="L88">                };</span>
+<span class="line" id="L89"></span>
+<span class="line" id="L90">                <span class="tok-kw">continue</span>;</span>
+<span class="line" id="L91">            }</span>
+<span class="line" id="L92"></span>
+<span class="line" id="L93">            <span class="tok-kw">var</span> weight_strs = std.mem.split(<span class="tok-type">u8</span>, element_diff_str, <span class="tok-str">&quot;.&quot;</span>);</span>
+<span class="line" id="L94">            l1_diff = <span class="tok-kw">try</span> std.fmt.parseInt(<span class="tok-type">isize</span>, weight_strs.next().?, <span class="tok-number">16</span>);</span>
+<span class="line" id="L95">            prev_l1 = <span class="tok-builtin">@intCast</span>(<span class="tok-builtin">@as</span>(<span class="tok-type">isize</span>, prev_l1) + l1_diff);</span>
+<span class="line" id="L96">            elements[i] = Element{ .l1 = prev_l1 };</span>
+<span class="line" id="L97"></span>
+<span class="line" id="L98">            <span class="tok-kw">var</span> j: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L99">            <span class="tok-kw">while</span> (weight_strs.next()) |weight_str| : (j += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L100">                <span class="tok-kw">if</span> (weight_str.len == <span class="tok-number">1</span> <span class="tok-kw">and</span> weight_str[<span class="tok-number">0</span>] == <span class="tok-str">')'</span>) {</span>
+<span class="line" id="L101">                    elements[i].?.l2 = <span class="tok-number">0</span>;</span>
+<span class="line" id="L102">                    elements[i].?.l3 = <span class="tok-number">0</span>;</span>
+<span class="line" id="L103">                    <span class="tok-kw">break</span>;</span>
+<span class="line" id="L104">                }</span>
+<span class="line" id="L105"></span>
+<span class="line" id="L106">                <span class="tok-kw">if</span> (weight_str[<span class="tok-number">0</span>] == <span class="tok-str">'@'</span>) {</span>
+<span class="line" id="L107">                    elements[i].?.l2 = <span class="tok-number">0x20</span>;</span>
+<span class="line" id="L108">                    elements[i].?.l3 = <span class="tok-kw">try</span> std.fmt.parseInt(<span class="tok-type">u8</span>, weight_str[<span class="tok-number">1</span>..], <span class="tok-number">16</span>);</span>
+<span class="line" id="L109">                    <span class="tok-kw">break</span>;</span>
+<span class="line" id="L110">                }</span>
+<span class="line" id="L111"></span>
+<span class="line" id="L112">                <span class="tok-kw">switch</span> (j) {</span>
+<span class="line" id="L113">                    <span class="tok-number">0</span> =&gt; elements[i].?.l2 = <span class="tok-kw">try</span> std.fmt.parseInt(<span class="tok-type">u16</span>, weight_str, <span class="tok-number">16</span>),</span>
+<span class="line" id="L114">                    <span class="tok-number">1</span> =&gt; elements[i].?.l3 = <span class="tok-kw">try</span> std.fmt.parseInt(<span class="tok-type">u8</span>, weight_str, <span class="tok-number">16</span>),</span>
+<span class="line" id="L115">                    <span class="tok-kw">else</span> =&gt; <span class="tok-kw">unreachable</span>,</span>
+<span class="line" id="L116">                }</span>
+<span class="line" id="L117">            }</span>
+<span class="line" id="L118">        }</span>
+<span class="line" id="L119"></span>
+<span class="line" id="L120">        <span class="tok-kw">try</span> self.ducet.put(cps, elements);</span>
+<span class="line" id="L121">    }</span>
+<span class="line" id="L122"></span>
+<span class="line" id="L123">    <span class="tok-kw">return</span> self;</span>
+<span class="line" id="L124">}</span>
+<span class="line" id="L125"></span>
+<span class="line" id="L126"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">deinit</span>(self: *Self) <span class="tok-type">void</span> {</span>
+<span class="line" id="L127">    self.ducet.deinit();</span>
+<span class="line" id="L128">    self.normalizer.deinit();</span>
+<span class="line" id="L129">}</span>
+<span class="line" id="L130"></span>
+<span class="line" id="L131"><span class="tok-kw">test</span> <span class="tok-str">&quot;init / deinit&quot;</span> {</span>
+<span class="line" id="L132">    <span class="tok-kw">var</span> c = <span class="tok-kw">try</span> init(std.testing.allocator);</span>
+<span class="line" id="L133">    <span class="tok-kw">defer</span> c.deinit();</span>
+<span class="line" id="L134"></span>
+<span class="line" id="L135">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">u16</span>, <span class="tok-number">0xfb00</span>), c.implicits[<span class="tok-number">0</span>].base);</span>
+<span class="line" id="L136">    <span class="tok-comment">//try std.testing.expectEqual(@as(usize, 34193), c.ducet.count()); // full</span>
+</span>
+<span class="line" id="L137">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">usize</span>, <span class="tok-number">32130</span>), c.ducet.count()); <span class="tok-comment">// NFD only</span>
+</span>
+<span class="line" id="L138">}</span>
+<span class="line" id="L139"></span>
+<span class="line" id="L140"><span class="tok-kw">fn</span> <span class="tok-fn">implicitWeight</span>(self: Self, cp: <span class="tok-type">u21</span>) [<span class="tok-number">18</span>]?Element {</span>
+<span class="line" id="L141">    <span class="tok-kw">var</span> base: <span class="tok-type">u16</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L142">    <span class="tok-kw">var</span> aaaa: <span class="tok-type">u16</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L143">    <span class="tok-kw">var</span> bbbb: <span class="tok-type">u16</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L144"></span>
+<span class="line" id="L145">    <span class="tok-kw">if</span> (props.isUnifiedIdeograph(cp) <span class="tok-kw">and</span> ((<span class="tok-number">0x4E00</span> &lt;= cp <span class="tok-kw">and</span> cp &lt;= <span class="tok-number">0x9FFF</span>) <span class="tok-kw">or</span> (<span class="tok-number">0xF900</span> &lt;= cp <span class="tok-kw">and</span> cp &lt;= <span class="tok-number">0xFAFF</span>))) {</span>
+<span class="line" id="L146">        base = <span class="tok-number">0xFB40</span>;</span>
+<span class="line" id="L147">        aaaa = base + <span class="tok-builtin">@as</span>(<span class="tok-type">u16</span>, <span class="tok-builtin">@intCast</span>((cp &gt;&gt; <span class="tok-number">15</span>)));</span>
+<span class="line" id="L148">        bbbb = <span class="tok-builtin">@as</span>(<span class="tok-type">u16</span>, <span class="tok-builtin">@intCast</span>((cp &amp; <span class="tok-number">0x7FFF</span>))) | <span class="tok-number">0x8000</span>;</span>
+<span class="line" id="L149">    } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (props.isUnifiedIdeograph(cp) <span class="tok-kw">and</span> !((<span class="tok-number">0x4E00</span> &lt;= cp <span class="tok-kw">and</span> cp &lt;= <span class="tok-number">0x9FFF</span>) <span class="tok-kw">or</span> (<span class="tok-number">0xF900</span> &lt;= cp <span class="tok-kw">and</span> cp &lt;= <span class="tok-number">0xFAFF</span>))) {</span>
+<span class="line" id="L150">        base = <span class="tok-number">0xFB80</span>;</span>
+<span class="line" id="L151">        aaaa = base + <span class="tok-builtin">@as</span>(<span class="tok-type">u16</span>, <span class="tok-builtin">@intCast</span>((cp &gt;&gt; <span class="tok-number">15</span>)));</span>
+<span class="line" id="L152">        bbbb = <span class="tok-builtin">@as</span>(<span class="tok-type">u16</span>, <span class="tok-builtin">@intCast</span>((cp &amp; <span class="tok-number">0x7FFF</span>))) | <span class="tok-number">0x8000</span>;</span>
+<span class="line" id="L153">    } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L154">        <span class="tok-kw">for</span> (self.implicits) |implicit| {</span>
+<span class="line" id="L155">            <span class="tok-kw">if</span> (implicit.start &lt;= cp <span class="tok-kw">and</span> cp &lt;= implicit.end) {</span>
+<span class="line" id="L156">                aaaa = implicit.base;</span>
+<span class="line" id="L157"></span>
+<span class="line" id="L158">                <span class="tok-kw">if</span> (<span class="tok-number">0x18D00</span> &lt;= cp <span class="tok-kw">and</span> cp &lt;= <span class="tok-number">0x18D8F</span>) {</span>
+<span class="line" id="L159">                    bbbb = <span class="tok-builtin">@as</span>(<span class="tok-type">u16</span>, <span class="tok-builtin">@truncate</span>((cp - <span class="tok-number">17000</span>))) | <span class="tok-number">0x8000</span>;</span>
+<span class="line" id="L160">                } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L161">                    bbbb = <span class="tok-builtin">@as</span>(<span class="tok-type">u16</span>, <span class="tok-builtin">@intCast</span>((cp - implicit.start))) | <span class="tok-number">0x8000</span>;</span>
+<span class="line" id="L162">                }</span>
+<span class="line" id="L163"></span>
+<span class="line" id="L164">                <span class="tok-kw">break</span>;</span>
+<span class="line" id="L165">            }</span>
+<span class="line" id="L166">        }</span>
+<span class="line" id="L167"></span>
+<span class="line" id="L168">        <span class="tok-kw">if</span> (aaaa == <span class="tok-number">0</span>) {</span>
+<span class="line" id="L169">            base = <span class="tok-number">0xFBC0</span>;</span>
+<span class="line" id="L170">            aaaa = base + <span class="tok-builtin">@as</span>(<span class="tok-type">u16</span>, <span class="tok-builtin">@intCast</span>((cp &gt;&gt; <span class="tok-number">15</span>)));</span>
+<span class="line" id="L171">            bbbb = <span class="tok-builtin">@as</span>(<span class="tok-type">u16</span>, <span class="tok-builtin">@intCast</span>((cp &amp; <span class="tok-number">0x7FFF</span>))) | <span class="tok-number">0x8000</span>;</span>
+<span class="line" id="L172">        }</span>
+<span class="line" id="L173">    }</span>
+<span class="line" id="L174"></span>
+<span class="line" id="L175">    <span class="tok-kw">var</span> elements = [_]?Element{<span class="tok-null">null</span>} ** <span class="tok-number">18</span>;</span>
+<span class="line" id="L176">    elements[<span class="tok-number">0</span>] = Element{ .l1 = aaaa, .l2 = <span class="tok-number">0x0020</span>, .l3 = <span class="tok-number">0x0002</span> };</span>
+<span class="line" id="L177">    elements[<span class="tok-number">1</span>] = Element{ .l1 = bbbb, .l2 = <span class="tok-number">0x0000</span>, .l3 = <span class="tok-number">0x0000</span> };</span>
+<span class="line" id="L178"></span>
+<span class="line" id="L179">    <span class="tok-kw">return</span> elements;</span>
+<span class="line" id="L180">}</span>
+<span class="line" id="L181"></span>
+<span class="line" id="L182"><span class="tok-kw">fn</span> <span class="tok-fn">getElements</span>(self: Self, allocator: std.mem.Allocator, str: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) ![]<span class="tok-kw">const</span> Element {</span>
+<span class="line" id="L183">    std.debug.assert(str.len &gt; <span class="tok-number">0</span>);</span>
+<span class="line" id="L184"></span>
+<span class="line" id="L185">    <span class="tok-kw">var</span> normalized = <span class="tok-kw">try</span> self.normalizer.nfd(allocator, str);</span>
+<span class="line" id="L186">    <span class="tok-kw">defer</span> normalized.deinit();</span>
+<span class="line" id="L187"></span>
+<span class="line" id="L188">    <span class="tok-kw">var</span> cp_list = <span class="tok-kw">try</span> std.ArrayList(<span class="tok-type">u21</span>).initCapacity(allocator, normalized.slice.len);</span>
+<span class="line" id="L189">    <span class="tok-kw">defer</span> cp_list.deinit();</span>
+<span class="line" id="L190">    <span class="tok-kw">var</span> cp_iter = CodePointIterator{ .bytes = normalized.slice };</span>
+<span class="line" id="L191">    <span class="tok-kw">while</span> (cp_iter.next()) |cp| cp_list.appendAssumeCapacity(cp.code);</span>
+<span class="line" id="L192"></span>
+<span class="line" id="L193">    <span class="tok-kw">var</span> all_elements = std.ArrayList(Element).init(allocator);</span>
+<span class="line" id="L194">    <span class="tok-kw">defer</span> all_elements.deinit();</span>
+<span class="line" id="L195"></span>
+<span class="line" id="L196">    <span class="tok-kw">var</span> cp_index: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L197"></span>
+<span class="line" id="L198">    <span class="tok-kw">while</span> (cp_index &lt; cp_list.items.len) {</span>
+<span class="line" id="L199">        <span class="tok-kw">var</span> S: [<span class="tok-number">3</span>]<span class="tok-type">u21</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L200">        <span class="tok-kw">var</span> s_len: <span class="tok-type">usize</span> = <span class="tok-number">3</span>;</span>
+<span class="line" id="L201">        <span class="tok-kw">var</span> elements: ?[<span class="tok-number">18</span>]?Element = <span class="tok-null">null</span>;</span>
+<span class="line" id="L202"></span>
+<span class="line" id="L203">        <span class="tok-kw">if</span> (cp_list.items.len &gt; cp_index + <span class="tok-number">2</span>) {</span>
+<span class="line" id="L204">            S[<span class="tok-number">0</span>] = cp_list.items[cp_index];</span>
+<span class="line" id="L205">            S[<span class="tok-number">1</span>] = cp_list.items[cp_index + <span class="tok-number">1</span>];</span>
+<span class="line" id="L206">            S[<span class="tok-number">2</span>] = cp_list.items[cp_index + <span class="tok-number">2</span>];</span>
+<span class="line" id="L207">            elements = self.ducet.get(S);</span>
+<span class="line" id="L208">        }</span>
+<span class="line" id="L209"></span>
+<span class="line" id="L210">        <span class="tok-kw">if</span> (elements == <span class="tok-null">null</span> <span class="tok-kw">and</span> cp_list.items.len &gt; cp_index + <span class="tok-number">1</span>) {</span>
+<span class="line" id="L211">            S[<span class="tok-number">0</span>] = cp_list.items[cp_index];</span>
+<span class="line" id="L212">            S[<span class="tok-number">1</span>] = cp_list.items[cp_index + <span class="tok-number">1</span>];</span>
+<span class="line" id="L213">            S[<span class="tok-number">2</span>] = <span class="tok-number">0</span>;</span>
+<span class="line" id="L214">            s_len = <span class="tok-number">2</span>;</span>
+<span class="line" id="L215">            elements = self.ducet.get(S);</span>
+<span class="line" id="L216">        }</span>
+<span class="line" id="L217"></span>
+<span class="line" id="L218">        <span class="tok-kw">if</span> (elements == <span class="tok-null">null</span>) {</span>
+<span class="line" id="L219">            S[<span class="tok-number">0</span>] = cp_list.items[cp_index];</span>
+<span class="line" id="L220">            S[<span class="tok-number">1</span>] = <span class="tok-number">0</span>;</span>
+<span class="line" id="L221">            S[<span class="tok-number">2</span>] = <span class="tok-number">0</span>;</span>
+<span class="line" id="L222">            s_len = <span class="tok-number">1</span>;</span>
+<span class="line" id="L223">            elements = self.ducet.get(S);</span>
+<span class="line" id="L224">        }</span>
+<span class="line" id="L225"></span>
+<span class="line" id="L226">        <span class="tok-kw">if</span> (elements != <span class="tok-null">null</span> <span class="tok-kw">and</span> s_len &lt; <span class="tok-number">3</span>) {</span>
+<span class="line" id="L227">            <span class="tok-comment">// Handle non-starters</span>
+</span>
+<span class="line" id="L228">            <span class="tok-kw">var</span> prev_ccc: ?<span class="tok-type">u8</span> = <span class="tok-null">null</span>;</span>
+<span class="line" id="L229">            <span class="tok-kw">const</span> tail_start = cp_index + s_len; <span class="tok-comment">// 1 past S</span>
+</span>
+<span class="line" id="L230">            <span class="tok-kw">var</span> tail_index = tail_start;</span>
+<span class="line" id="L231"></span>
+<span class="line" id="L232">            <span class="tok-comment">// Advance to last combining C.</span>
+</span>
+<span class="line" id="L233">            <span class="tok-kw">while</span> (tail_index &lt; cp_list.items.len) : (tail_index += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L234">                <span class="tok-kw">const</span> ccc = ccc_map.combiningClass(cp_list.items[tail_index]);</span>
+<span class="line" id="L235">                <span class="tok-kw">if</span> (ccc == <span class="tok-number">0</span> <span class="tok-kw">or</span> (prev_ccc != <span class="tok-null">null</span> <span class="tok-kw">and</span> prev_ccc.? &gt;= ccc)) <span class="tok-kw">break</span>;</span>
+<span class="line" id="L236">                prev_ccc = ccc;</span>
+<span class="line" id="L237">            }</span>
+<span class="line" id="L238"></span>
+<span class="line" id="L239">            <span class="tok-kw">if</span> (tail_start != tail_index) { <span class="tok-comment">// We have combining characters</span>
+</span>
+<span class="line" id="L240">                S[s_len] = cp_list.items[tail_index - <span class="tok-number">1</span>]; <span class="tok-comment">// S + C</span>
+</span>
+<span class="line" id="L241">                s_len += <span class="tok-number">1</span>;</span>
+<span class="line" id="L242"></span>
+<span class="line" id="L243">                <span class="tok-kw">if</span> (self.ducet.get(S)) |sc_elements| {</span>
+<span class="line" id="L244">                    <span class="tok-comment">// S + C has an entry; Rotate C to be just after S.</span>
+</span>
+<span class="line" id="L245">                    <span class="tok-kw">const</span> segment = cp_list.items[tail_start..tail_index];</span>
+<span class="line" id="L246">                    std.mem.rotate(<span class="tok-type">u21</span>, segment, segment.len - <span class="tok-number">1</span>);</span>
+<span class="line" id="L247"></span>
+<span class="line" id="L248">                    <span class="tok-comment">// Add S + C elements to final collection.</span>
+</span>
+<span class="line" id="L249">                    <span class="tok-kw">for</span> (sc_elements) |element_opt| {</span>
+<span class="line" id="L250">                        <span class="tok-kw">if</span> (element_opt) |element| {</span>
+<span class="line" id="L251">                            <span class="tok-kw">try</span> all_elements.append(element);</span>
+<span class="line" id="L252">                        } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L253">                            <span class="tok-kw">break</span>;</span>
+<span class="line" id="L254">                        }</span>
+<span class="line" id="L255">                    }</span>
+<span class="line" id="L256"></span>
+<span class="line" id="L257">                    cp_index += s_len; <span class="tok-comment">// 1 past S + C</span>
+</span>
+<span class="line" id="L258"></span>
+<span class="line" id="L259">                    <span class="tok-kw">continue</span>;</span>
+<span class="line" id="L260">                }</span>
+<span class="line" id="L261"></span>
+<span class="line" id="L262">                <span class="tok-kw">if</span> (s_len &lt; <span class="tok-number">3</span>) S[s_len] = <span class="tok-number">0</span>; <span class="tok-comment">// back up to just S</span>
+</span>
+<span class="line" id="L263">                s_len -= <span class="tok-number">1</span>;</span>
+<span class="line" id="L264">            }</span>
+<span class="line" id="L265">        }</span>
+<span class="line" id="L266"></span>
+<span class="line" id="L267">        <span class="tok-kw">if</span> (elements == <span class="tok-null">null</span>) {</span>
+<span class="line" id="L268">            <span class="tok-comment">// Not in DUCET; derive the elements.</span>
+</span>
+<span class="line" id="L269">            elements = self.implicitWeight(cp_list.items[cp_index]);</span>
+<span class="line" id="L270">        }</span>
+<span class="line" id="L271"></span>
+<span class="line" id="L272">        <span class="tok-comment">// Add elements to final collection.</span>
+</span>
+<span class="line" id="L273">        <span class="tok-kw">for</span> (elements.?) |element_opt| {</span>
+<span class="line" id="L274">            <span class="tok-kw">if</span> (element_opt) |element| {</span>
+<span class="line" id="L275">                <span class="tok-kw">try</span> all_elements.append(element);</span>
+<span class="line" id="L276">            } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L277">                <span class="tok-kw">break</span>;</span>
+<span class="line" id="L278">            }</span>
+<span class="line" id="L279">        }</span>
+<span class="line" id="L280"></span>
+<span class="line" id="L281">        cp_index += s_len; <span class="tok-comment">// 1 past S</span>
+</span>
+<span class="line" id="L282">    }</span>
+<span class="line" id="L283"></span>
+<span class="line" id="L284">    <span class="tok-kw">return</span> all_elements.toOwnedSlice();</span>
+<span class="line" id="L285">}</span>
+<span class="line" id="L286"></span>
+<span class="line" id="L287"><span class="tok-kw">test</span> <span class="tok-str">&quot;getElements&quot;</span> {</span>
+<span class="line" id="L288">    <span class="tok-kw">var</span> c = <span class="tok-kw">try</span> init(std.testing.allocator);</span>
+<span class="line" id="L289">    <span class="tok-kw">defer</span> c.deinit();</span>
+<span class="line" id="L290"></span>
+<span class="line" id="L291">    <span class="tok-kw">const</span> elements_1 = <span class="tok-kw">try</span> c.getElements(std.testing.allocator, <span class="tok-str">&quot;ca\u{301}b&quot;</span>);</span>
+<span class="line" id="L292">    <span class="tok-kw">defer</span> std.testing.allocator.free(elements_1);</span>
+<span class="line" id="L293"></span>
+<span class="line" id="L294">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">usize</span>, <span class="tok-number">4</span>), elements_1.len);</span>
+<span class="line" id="L295">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">u16</span>, <span class="tok-number">0x20e7</span>), elements_1[<span class="tok-number">0</span>].l1);</span>
+<span class="line" id="L296">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">u16</span>, <span class="tok-number">0x20b3</span>), elements_1[<span class="tok-number">1</span>].l1);</span>
+<span class="line" id="L297">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">u16</span>, <span class="tok-number">0x0024</span>), elements_1[<span class="tok-number">2</span>].l2);</span>
+<span class="line" id="L298">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">u16</span>, <span class="tok-number">0x20cd</span>), elements_1[<span class="tok-number">3</span>].l1);</span>
+<span class="line" id="L299"></span>
+<span class="line" id="L300">    <span class="tok-kw">const</span> elements_2 = <span class="tok-kw">try</span> c.getElements(std.testing.allocator, <span class="tok-str">&quot;\u{0CC6}\u{0CC2}\u{0CD5}&quot;</span>);</span>
+<span class="line" id="L301">    <span class="tok-kw">defer</span> std.testing.allocator.free(elements_2);</span>
+<span class="line" id="L302"></span>
+<span class="line" id="L303">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">usize</span>, <span class="tok-number">1</span>), elements_2.len);</span>
+<span class="line" id="L304">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">u16</span>, <span class="tok-number">0x2D59</span>), elements_2[<span class="tok-number">0</span>].l1);</span>
+<span class="line" id="L305">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">u16</span>, <span class="tok-number">0x0020</span>), elements_2[<span class="tok-number">0</span>].l2);</span>
+<span class="line" id="L306">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">u16</span>, <span class="tok-number">0x0002</span>), elements_2[<span class="tok-number">0</span>].l3);</span>
+<span class="line" id="L307">}</span>
+<span class="line" id="L308"></span>
+<span class="line" id="L309"><span class="tok-comment">/// A sort key is a slice of `u16`s that can be compared efficiently.</span></span>
+<span class="line" id="L310"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">sortKey</span>(self: Self, allocator: std.mem.Allocator, str: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) ![]<span class="tok-kw">const</span> <span class="tok-type">u16</span> {</span>
+<span class="line" id="L311">    <span class="tok-kw">const</span> elements = <span class="tok-kw">try</span> self.getElements(allocator, str);</span>
+<span class="line" id="L312">    <span class="tok-kw">defer</span> allocator.free(elements);</span>
+<span class="line" id="L313"></span>
+<span class="line" id="L314">    <span class="tok-kw">var</span> sort_key = std.ArrayList(<span class="tok-type">u16</span>).init(allocator);</span>
+<span class="line" id="L315">    <span class="tok-kw">defer</span> sort_key.deinit();</span>
+<span class="line" id="L316"></span>
+<span class="line" id="L317">    <span class="tok-kw">var</span> level: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L318">    <span class="tok-kw">while</span> (level &lt; <span class="tok-number">3</span>) : (level += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L319">        <span class="tok-kw">if</span> (level != <span class="tok-number">0</span>) <span class="tok-kw">try</span> sort_key.append(<span class="tok-number">0</span>); <span class="tok-comment">// level separator</span>
+</span>
+<span class="line" id="L320"></span>
+<span class="line" id="L321">        <span class="tok-kw">for</span> (elements) |element| {</span>
+<span class="line" id="L322">            <span class="tok-kw">switch</span> (level) {</span>
+<span class="line" id="L323">                <span class="tok-number">0</span> =&gt; <span class="tok-kw">if</span> (element.l1 != <span class="tok-number">0</span>) <span class="tok-kw">try</span> sort_key.append(element.l1),</span>
+<span class="line" id="L324">                <span class="tok-number">1</span> =&gt; <span class="tok-kw">if</span> (element.l2 != <span class="tok-number">0</span>) <span class="tok-kw">try</span> sort_key.append(element.l2),</span>
+<span class="line" id="L325">                <span class="tok-number">2</span> =&gt; <span class="tok-kw">if</span> (element.l3 != <span class="tok-number">0</span>) <span class="tok-kw">try</span> sort_key.append(element.l3),</span>
+<span class="line" id="L326">                <span class="tok-kw">else</span> =&gt; <span class="tok-kw">unreachable</span>,</span>
+<span class="line" id="L327">            }</span>
+<span class="line" id="L328">        }</span>
+<span class="line" id="L329">    }</span>
+<span class="line" id="L330"></span>
+<span class="line" id="L331">    <span class="tok-kw">return</span> sort_key.toOwnedSlice();</span>
+<span class="line" id="L332">}</span>
+<span class="line" id="L333"></span>
+<span class="line" id="L334"><span class="tok-comment">/// Orders strings `a` and `b` based only on the base characters; case and combining marks are ignored.</span></span>
+<span class="line" id="L335"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">primaryOrder</span>(a: []<span class="tok-kw">const</span> <span class="tok-type">u16</span>, b: []<span class="tok-kw">const</span> <span class="tok-type">u16</span>) std.math.Order {</span>
+<span class="line" id="L336">    <span class="tok-kw">return</span> <span class="tok-kw">for</span> (a, <span class="tok-number">0</span>..) |weight, i| {</span>
+<span class="line" id="L337">        <span class="tok-kw">if</span> (weight == <span class="tok-number">0</span>) <span class="tok-kw">break</span> .eq; <span class="tok-comment">// End of level</span>
+</span>
+<span class="line" id="L338">        <span class="tok-kw">const</span> order = std.math.order(weight, b[i]);</span>
+<span class="line" id="L339">        <span class="tok-kw">if</span> (order != .eq) <span class="tok-kw">break</span> order;</span>
+<span class="line" id="L340">    } <span class="tok-kw">else</span> .eq;</span>
+<span class="line" id="L341">}</span>
+<span class="line" id="L342"></span>
+<span class="line" id="L343"><span class="tok-comment">/// Orders strings `a` and `b` based on base characters and combining marks; case is ignored.</span></span>
+<span class="line" id="L344"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">secondaryOrder</span>(a: []<span class="tok-kw">const</span> <span class="tok-type">u16</span>, b: []<span class="tok-kw">const</span> <span class="tok-type">u16</span>) std.math.Order {</span>
+<span class="line" id="L345">    <span class="tok-kw">var</span> last_level = <span class="tok-null">false</span>;</span>
+<span class="line" id="L346"></span>
+<span class="line" id="L347">    <span class="tok-kw">return</span> <span class="tok-kw">for</span> (a, <span class="tok-number">0</span>..) |weight, i| {</span>
+<span class="line" id="L348">        <span class="tok-kw">if</span> (weight == <span class="tok-number">0</span>) {</span>
+<span class="line" id="L349">            <span class="tok-kw">if</span> (last_level) <span class="tok-kw">break</span> .eq <span class="tok-kw">else</span> last_level = <span class="tok-null">true</span>;</span>
+<span class="line" id="L350">            <span class="tok-kw">continue</span>;</span>
+<span class="line" id="L351">        }</span>
+<span class="line" id="L352"></span>
+<span class="line" id="L353">        <span class="tok-kw">const</span> order = std.math.order(weight, b[i]);</span>
+<span class="line" id="L354">        <span class="tok-kw">if</span> (order != .eq) <span class="tok-kw">break</span> order;</span>
+<span class="line" id="L355">    } <span class="tok-kw">else</span> .eq;</span>
+<span class="line" id="L356">}</span>
+<span class="line" id="L357"></span>
+<span class="line" id="L358"><span class="tok-comment">/// Orders strings `a` and `b` based on base characters, combining marks, and letter case.</span></span>
+<span class="line" id="L359"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">tertiaryOrder</span>(a: []<span class="tok-kw">const</span> <span class="tok-type">u16</span>, b: []<span class="tok-kw">const</span> <span class="tok-type">u16</span>) std.math.Order {</span>
+<span class="line" id="L360">    <span class="tok-kw">return</span> <span class="tok-kw">for</span> (a, <span class="tok-number">0</span>..) |weight, i| {</span>
+<span class="line" id="L361">        <span class="tok-kw">const</span> order = std.math.order(weight, b[i]);</span>
+<span class="line" id="L362">        <span class="tok-kw">if</span> (order != .eq) <span class="tok-kw">break</span> order;</span>
+<span class="line" id="L363">    } <span class="tok-kw">else</span> .eq;</span>
+<span class="line" id="L364">}</span>
+<span class="line" id="L365"></span>
+<span class="line" id="L366"><span class="tok-kw">test</span> <span class="tok-str">&quot;key order&quot;</span> {</span>
+<span class="line" id="L367">    <span class="tok-kw">var</span> c = <span class="tok-kw">try</span> init(std.testing.allocator);</span>
+<span class="line" id="L368">    <span class="tok-kw">defer</span> c.deinit();</span>
+<span class="line" id="L369"></span>
+<span class="line" id="L370">    <span class="tok-kw">const</span> key_a = <span class="tok-kw">try</span> c.sortKey(std.testing.allocator, <span class="tok-str">&quot;cab&quot;</span>);</span>
+<span class="line" id="L371">    <span class="tok-kw">defer</span> std.testing.allocator.free(key_a);</span>
+<span class="line" id="L372">    <span class="tok-kw">const</span> key_b = <span class="tok-kw">try</span> c.sortKey(std.testing.allocator, <span class="tok-str">&quot;Cab&quot;</span>);</span>
+<span class="line" id="L373">    <span class="tok-kw">defer</span> std.testing.allocator.free(key_b);</span>
+<span class="line" id="L374"></span>
+<span class="line" id="L375">    <span class="tok-kw">try</span> std.testing.expectEqual(std.math.Order.eq, primaryOrder(key_a, key_b));</span>
+<span class="line" id="L376">    <span class="tok-kw">try</span> std.testing.expectEqual(std.math.Order.eq, secondaryOrder(key_a, key_b));</span>
+<span class="line" id="L377">    <span class="tok-kw">try</span> std.testing.expectEqual(std.math.Order.lt, tertiaryOrder(key_a, key_b));</span>
+<span class="line" id="L378">}</span>
+<span class="line" id="L379"></span>
+<span class="line" id="L380"><span class="tok-kw">test</span> <span class="tok-str">&quot;key order with combining&quot;</span> {</span>
+<span class="line" id="L381">    <span class="tok-kw">var</span> c = <span class="tok-kw">try</span> init(std.testing.allocator);</span>
+<span class="line" id="L382">    <span class="tok-kw">defer</span> c.deinit();</span>
+<span class="line" id="L383"></span>
+<span class="line" id="L384">    <span class="tok-kw">const</span> key_a = <span class="tok-kw">try</span> c.sortKey(std.testing.allocator, <span class="tok-str">&quot;ca\u{301}b&quot;</span>);</span>
+<span class="line" id="L385">    <span class="tok-kw">defer</span> std.testing.allocator.free(key_a);</span>
+<span class="line" id="L386">    <span class="tok-kw">const</span> key_b = <span class="tok-kw">try</span> c.sortKey(std.testing.allocator, <span class="tok-str">&quot;Cab&quot;</span>);</span>
+<span class="line" id="L387">    <span class="tok-kw">defer</span> std.testing.allocator.free(key_b);</span>
+<span class="line" id="L388"></span>
+<span class="line" id="L389">    <span class="tok-kw">try</span> std.testing.expectEqual(std.math.Order.eq, primaryOrder(key_a, key_b));</span>
+<span class="line" id="L390">    <span class="tok-kw">try</span> std.testing.expectEqual(std.math.Order.gt, secondaryOrder(key_a, key_b));</span>
+<span class="line" id="L391">    <span class="tok-kw">try</span> std.testing.expectEqual(std.math.Order.gt, tertiaryOrder(key_a, key_b));</span>
+<span class="line" id="L392">}</span>
+<span class="line" id="L393"></span>
+<span class="line" id="L394"><span class="tok-comment">/// An ascending sort for strings that works with `std.mem.sort`. Because the API requires this function to be</span></span>
+<span class="line" id="L395"><span class="tok-comment">/// infallible, it just returns `false` on errors.</span></span>
+<span class="line" id="L396"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">ascending</span>(self: Self, a: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>, b: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L397">    <span class="tok-kw">const</span> key_a = self.sortKey(self.ducet.allocator, a) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L398">    <span class="tok-kw">defer</span> self.ducet.allocator.free(key_a);</span>
+<span class="line" id="L399">    <span class="tok-kw">const</span> key_b = self.sortKey(self.ducet.allocator, b) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L400">    <span class="tok-kw">defer</span> self.ducet.allocator.free(key_b);</span>
+<span class="line" id="L401"></span>
+<span class="line" id="L402">    <span class="tok-kw">return</span> tertiaryOrder(key_a, key_b) == .lt;</span>
+<span class="line" id="L403">}</span>
+<span class="line" id="L404"></span>
+<span class="line" id="L405"><span class="tok-comment">/// A descending sort for strings that works with `std.mem.sort`. Because the API requires this function to be</span></span>
+<span class="line" id="L406"><span class="tok-comment">/// infallible, it just returns `false` on errors.</span></span>
+<span class="line" id="L407"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">descending</span>(self: Self, a: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>, b: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L408">    <span class="tok-kw">const</span> key_a = self.sortKey(self.ducet.allocator, a) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L409">    <span class="tok-kw">defer</span> self.ducet.allocator.free(key_a);</span>
+<span class="line" id="L410">    <span class="tok-kw">const</span> key_b = self.sortKey(self.ducet.allocator, b) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L411">    <span class="tok-kw">defer</span> self.ducet.allocator.free(key_b);</span>
+<span class="line" id="L412"></span>
+<span class="line" id="L413">    <span class="tok-kw">return</span> tertiaryOrder(key_a, key_b) == .gt;</span>
+<span class="line" id="L414">}</span>
+<span class="line" id="L415"></span>
+<span class="line" id="L416"><span class="tok-kw">test</span> <span class="tok-str">&quot;sort functions&quot;</span> {</span>
+<span class="line" id="L417">    <span class="tok-kw">var</span> c = <span class="tok-kw">try</span> init(std.testing.allocator);</span>
+<span class="line" id="L418">    <span class="tok-kw">defer</span> c.deinit();</span>
+<span class="line" id="L419"></span>
+<span class="line" id="L420">    <span class="tok-kw">var</span> strings = [_][]<span class="tok-kw">const</span> <span class="tok-type">u8</span>{ <span class="tok-str">&quot;def&quot;</span>, <span class="tok-str">&quot;xyz&quot;</span>, <span class="tok-str">&quot;abc&quot;</span> };</span>
+<span class="line" id="L421">    <span class="tok-kw">var</span> want = [_][]<span class="tok-kw">const</span> <span class="tok-type">u8</span>{ <span class="tok-str">&quot;abc&quot;</span>, <span class="tok-str">&quot;def&quot;</span>, <span class="tok-str">&quot;xyz&quot;</span> };</span>
+<span class="line" id="L422"></span>
+<span class="line" id="L423">    std.mem.sort([]<span class="tok-kw">const</span> <span class="tok-type">u8</span>, &amp;strings, c, ascending);</span>
+<span class="line" id="L424">    <span class="tok-kw">try</span> std.testing.expectEqualSlices([]<span class="tok-kw">const</span> <span class="tok-type">u8</span>, &amp;want, &amp;strings);</span>
+<span class="line" id="L425"></span>
+<span class="line" id="L426">    want = [_][]<span class="tok-kw">const</span> <span class="tok-type">u8</span>{ <span class="tok-str">&quot;xyz&quot;</span>, <span class="tok-str">&quot;def&quot;</span>, <span class="tok-str">&quot;abc&quot;</span> };</span>
+<span class="line" id="L427">    std.mem.sort([]<span class="tok-kw">const</span> <span class="tok-type">u8</span>, &amp;strings, c, descending);</span>
+<span class="line" id="L428">    <span class="tok-kw">try</span> std.testing.expectEqualSlices([]<span class="tok-kw">const</span> <span class="tok-type">u8</span>, &amp;want, &amp;strings);</span>
+<span class="line" id="L429">}</span>
+<span class="line" id="L430"></span>
+<span class="line" id="L431"><span class="tok-comment">/// A caseless ascending sort for strings that works with `std.mem.sort`. Because the API requires this function to be</span></span>
+<span class="line" id="L432"><span class="tok-comment">/// infallible, it just returns `false` on errors.</span></span>
+<span class="line" id="L433"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">ascendingCaseless</span>(self: Self, a: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>, b: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L434">    <span class="tok-kw">const</span> key_a = self.sortKey(self.ducet.allocator, a) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L435">    <span class="tok-kw">defer</span> self.ducet.allocator.free(key_a);</span>
+<span class="line" id="L436">    <span class="tok-kw">const</span> key_b = self.sortKey(self.ducet.allocator, b) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L437">    <span class="tok-kw">defer</span> self.ducet.allocator.free(key_b);</span>
+<span class="line" id="L438"></span>
+<span class="line" id="L439">    <span class="tok-kw">return</span> secondaryOrder(key_a, key_b) == .lt;</span>
+<span class="line" id="L440">}</span>
+<span class="line" id="L441"></span>
+<span class="line" id="L442"><span class="tok-comment">/// A caseless descending sort for strings that works with `std.mem.sort`. Because the API requires this function to be</span></span>
+<span class="line" id="L443"><span class="tok-comment">/// infallible, it just returns `false` on errors.</span></span>
+<span class="line" id="L444"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">descendingCaseless</span>(self: Self, a: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>, b: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L445">    <span class="tok-kw">const</span> key_a = self.sortKey(self.ducet.allocator, a) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L446">    <span class="tok-kw">defer</span> self.ducet.allocator.free(key_a);</span>
+<span class="line" id="L447">    <span class="tok-kw">const</span> key_b = self.sortKey(self.ducet.allocator, b) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L448">    <span class="tok-kw">defer</span> self.ducet.allocator.free(key_b);</span>
+<span class="line" id="L449"></span>
+<span class="line" id="L450">    <span class="tok-kw">return</span> secondaryOrder(key_a, key_b) == .gt;</span>
+<span class="line" id="L451">}</span>
+<span class="line" id="L452"></span>
+<span class="line" id="L453"><span class="tok-kw">test</span> <span class="tok-str">&quot;caseless sort functions&quot;</span> {</span>
+<span class="line" id="L454">    <span class="tok-kw">var</span> c = <span class="tok-kw">try</span> init(std.testing.allocator);</span>
+<span class="line" id="L455">    <span class="tok-kw">defer</span> c.deinit();</span>
+<span class="line" id="L456"></span>
+<span class="line" id="L457">    <span class="tok-kw">var</span> strings = [_][]<span class="tok-kw">const</span> <span class="tok-type">u8</span>{ <span class="tok-str">&quot;def&quot;</span>, <span class="tok-str">&quot;Abc&quot;</span>, <span class="tok-str">&quot;abc&quot;</span> };</span>
+<span class="line" id="L458">    <span class="tok-kw">var</span> want = [_][]<span class="tok-kw">const</span> <span class="tok-type">u8</span>{ <span class="tok-str">&quot;Abc&quot;</span>, <span class="tok-str">&quot;abc&quot;</span>, <span class="tok-str">&quot;def&quot;</span> };</span>
+<span class="line" id="L459"></span>
+<span class="line" id="L460">    std.mem.sort([]<span class="tok-kw">const</span> <span class="tok-type">u8</span>, &amp;strings, c, ascendingCaseless);</span>
+<span class="line" id="L461">    <span class="tok-kw">try</span> std.testing.expectEqualSlices([]<span class="tok-kw">const</span> <span class="tok-type">u8</span>, &amp;want, &amp;strings);</span>
+<span class="line" id="L462"></span>
+<span class="line" id="L463">    want = [_][]<span class="tok-kw">const</span> <span class="tok-type">u8</span>{ <span class="tok-str">&quot;def&quot;</span>, <span class="tok-str">&quot;Abc&quot;</span>, <span class="tok-str">&quot;abc&quot;</span> };</span>
+<span class="line" id="L464">    std.mem.sort([]<span class="tok-kw">const</span> <span class="tok-type">u8</span>, &amp;strings, c, descendingCaseless);</span>
+<span class="line" id="L465">    <span class="tok-kw">try</span> std.testing.expectEqualSlices([]<span class="tok-kw">const</span> <span class="tok-type">u8</span>, &amp;want, &amp;strings);</span>
+<span class="line" id="L466">}</span>
+<span class="line" id="L467"></span>
+<span class="line" id="L468"><span class="tok-kw">test</span> <span class="tok-str">&quot;caseless / markless sort functions&quot;</span> {</span>
+<span class="line" id="L469">    <span class="tok-kw">var</span> c = <span class="tok-kw">try</span> init(std.testing.allocator);</span>
+<span class="line" id="L470">    <span class="tok-kw">defer</span> c.deinit();</span>
+<span class="line" id="L471"></span>
+<span class="line" id="L472">    <span class="tok-kw">var</span> strings = [_][]<span class="tok-kw">const</span> <span class="tok-type">u8</span>{ <span class="tok-str">&quot;ábc&quot;</span>, <span class="tok-str">&quot;Abc&quot;</span>, <span class="tok-str">&quot;abc&quot;</span> };</span>
+<span class="line" id="L473">    <span class="tok-kw">const</span> want = [_][]<span class="tok-kw">const</span> <span class="tok-type">u8</span>{ <span class="tok-str">&quot;ábc&quot;</span>, <span class="tok-str">&quot;Abc&quot;</span>, <span class="tok-str">&quot;abc&quot;</span> };</span>
+<span class="line" id="L474"></span>
+<span class="line" id="L475">    std.mem.sort([]<span class="tok-kw">const</span> <span class="tok-type">u8</span>, &amp;strings, c, ascendingBase);</span>
+<span class="line" id="L476">    <span class="tok-kw">try</span> std.testing.expectEqualSlices([]<span class="tok-kw">const</span> <span class="tok-type">u8</span>, &amp;want, &amp;strings);</span>
+<span class="line" id="L477"></span>
+<span class="line" id="L478">    std.mem.sort([]<span class="tok-kw">const</span> <span class="tok-type">u8</span>, &amp;strings, c, descendingBase);</span>
+<span class="line" id="L479">    <span class="tok-kw">try</span> std.testing.expectEqualSlices([]<span class="tok-kw">const</span> <span class="tok-type">u8</span>, &amp;want, &amp;strings);</span>
+<span class="line" id="L480">}</span>
+<span class="line" id="L481"></span>
+<span class="line" id="L482"><span class="tok-comment">/// An ascending sort for strings that works with `std.mem.sort`. This ignores case and any combining marks like</span></span>
+<span class="line" id="L483"><span class="tok-comment">/// accents.  Because the API requires this function to be infallible, it just returns `false` on errors.</span></span>
+<span class="line" id="L484"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">ascendingBase</span>(self: Self, a: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>, b: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L485">    <span class="tok-kw">const</span> key_a = self.sortKey(self.ducet.allocator, a) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L486">    <span class="tok-kw">defer</span> self.ducet.allocator.free(key_a);</span>
+<span class="line" id="L487">    <span class="tok-kw">const</span> key_b = self.sortKey(self.ducet.allocator, b) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L488">    <span class="tok-kw">defer</span> self.ducet.allocator.free(key_b);</span>
+<span class="line" id="L489"></span>
+<span class="line" id="L490">    <span class="tok-kw">return</span> primaryOrder(key_a, key_b) == .lt;</span>
+<span class="line" id="L491">}</span>
+<span class="line" id="L492"></span>
+<span class="line" id="L493"><span class="tok-comment">/// A descending sort for strings that works with `std.mem.sort`. This ignores case and any combining marks like</span></span>
+<span class="line" id="L494"><span class="tok-comment">/// accents.  Because the API requires this function to be infallible, it just returns `false` on errors.</span></span>
+<span class="line" id="L495"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">descendingBase</span>(self: Self, a: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>, b: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L496">    <span class="tok-kw">const</span> key_a = self.sortKey(self.ducet.allocator, a) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L497">    <span class="tok-kw">defer</span> self.ducet.allocator.free(key_a);</span>
+<span class="line" id="L498">    <span class="tok-kw">const</span> key_b = self.sortKey(self.ducet.allocator, b) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L499">    <span class="tok-kw">defer</span> self.ducet.allocator.free(key_b);</span>
+<span class="line" id="L500"></span>
+<span class="line" id="L501">    <span class="tok-kw">return</span> primaryOrder(key_a, key_b) == .gt;</span>
+<span class="line" id="L502">}</span>
+<span class="line" id="L503"></span>
+</code></pre></body>
+</html>

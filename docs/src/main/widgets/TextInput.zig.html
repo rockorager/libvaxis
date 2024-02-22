@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>widgets/TextInput.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L2"><span class="tok-kw">const</span> Key = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../Key.zig&quot;</span>);</span>
+<span class="line" id="L3"><span class="tok-kw">const</span> Cell = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../Cell.zig&quot;</span>);</span>
+<span class="line" id="L4"><span class="tok-kw">const</span> Window = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../Window.zig&quot;</span>);</span>
+<span class="line" id="L5"><span class="tok-kw">const</span> GraphemeIterator = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ziglyph&quot;</span>).GraphemeIterator;</span>
+<span class="line" id="L6"></span>
+<span class="line" id="L7"><span class="tok-kw">const</span> log = std.log.scoped(.text_input);</span>
+<span class="line" id="L8"></span>
+<span class="line" id="L9"><span class="tok-kw">const</span> TextInput = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L10"></span>
+<span class="line" id="L11"><span class="tok-comment">/// The events that this widget handles</span></span>
+<span class="line" id="L12"><span class="tok-kw">const</span> Event = <span class="tok-kw">union</span>(<span class="tok-kw">enum</span>) {</span>
+<span class="line" id="L13">    key_press: Key,</span>
+<span class="line" id="L14">};</span>
+<span class="line" id="L15"></span>
+<span class="line" id="L16"><span class="tok-comment">// Index of our cursor</span>
+</span>
+<span class="line" id="L17">cursor_idx: <span class="tok-type">usize</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L18">grapheme_count: <span class="tok-type">usize</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L19"></span>
+<span class="line" id="L20"><span class="tok-comment">// TODO: an ArrayList is not great for this. orderedRemove is O(n) and we can</span>
+</span>
+<span class="line" id="L21"><span class="tok-comment">// only remove one byte at a time. Make a bespoke ArrayList which allows removal</span>
+</span>
+<span class="line" id="L22"><span class="tok-comment">// of a slice at a time, or truncating even would be nice</span>
+</span>
+<span class="line" id="L23">buf: std.ArrayList(<span class="tok-type">u8</span>),</span>
+<span class="line" id="L24"></span>
+<span class="line" id="L25"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">init</span>(alloc: std.mem.Allocator) TextInput {</span>
+<span class="line" id="L26">    <span class="tok-kw">return</span> TextInput{</span>
+<span class="line" id="L27">        .buf = std.ArrayList(<span class="tok-type">u8</span>).init(alloc),</span>
+<span class="line" id="L28">    };</span>
+<span class="line" id="L29">}</span>
+<span class="line" id="L30"></span>
+<span class="line" id="L31"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">deinit</span>(self: *TextInput) <span class="tok-type">void</span> {</span>
+<span class="line" id="L32">    self.buf.deinit();</span>
+<span class="line" id="L33">}</span>
+<span class="line" id="L34"></span>
+<span class="line" id="L35"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">update</span>(self: *TextInput, event: Event) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L36">    <span class="tok-kw">switch</span> (event) {</span>
+<span class="line" id="L37">        .key_press =&gt; |key| {</span>
+<span class="line" id="L38">            <span class="tok-kw">if</span> (key.matches(Key.backspace, .{})) {</span>
+<span class="line" id="L39">                <span class="tok-kw">if</span> (self.cursor_idx == <span class="tok-number">0</span>) <span class="tok-kw">return</span>;</span>
+<span class="line" id="L40">                self.deleteBeforeCursor();</span>
+<span class="line" id="L41">            } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (key.matches(Key.delete, .{}) <span class="tok-kw">or</span> key.matches(<span class="tok-str">'d'</span>, .{ .ctrl = <span class="tok-null">true</span> })) {</span>
+<span class="line" id="L42">                <span class="tok-kw">if</span> (self.cursor_idx == self.grapheme_count) <span class="tok-kw">return</span>;</span>
+<span class="line" id="L43">                self.deleteAtCursor();</span>
+<span class="line" id="L44">            } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (key.matches(Key.left, .{}) <span class="tok-kw">or</span> key.matches(<span class="tok-str">'b'</span>, .{ .ctrl = <span class="tok-null">true</span> })) {</span>
+<span class="line" id="L45">                <span class="tok-kw">if</span> (self.cursor_idx &gt; <span class="tok-number">0</span>) self.cursor_idx -= <span class="tok-number">1</span>;</span>
+<span class="line" id="L46">            } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (key.matches(Key.right, .{}) <span class="tok-kw">or</span> key.matches(<span class="tok-str">'f'</span>, .{ .ctrl = <span class="tok-null">true</span> })) {</span>
+<span class="line" id="L47">                <span class="tok-kw">if</span> (self.cursor_idx &lt; self.grapheme_count) self.cursor_idx += <span class="tok-number">1</span>;</span>
+<span class="line" id="L48">            } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (key.matches(<span class="tok-str">'a'</span>, .{ .ctrl = <span class="tok-null">true</span> })) {</span>
+<span class="line" id="L49">                self.cursor_idx = <span class="tok-number">0</span>;</span>
+<span class="line" id="L50">            } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (key.matches(<span class="tok-str">'e'</span>, .{ .ctrl = <span class="tok-null">true</span> })) {</span>
+<span class="line" id="L51">                self.cursor_idx = self.grapheme_count;</span>
+<span class="line" id="L52">            } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (key.matches(<span class="tok-str">'k'</span>, .{ .ctrl = <span class="tok-null">true</span> })) {</span>
+<span class="line" id="L53">                <span class="tok-kw">while</span> (self.cursor_idx &lt; self.grapheme_count) {</span>
+<span class="line" id="L54">                    self.deleteAtCursor();</span>
+<span class="line" id="L55">                }</span>
+<span class="line" id="L56">            } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (key.matches(<span class="tok-str">'u'</span>, .{ .ctrl = <span class="tok-null">true</span> })) {</span>
+<span class="line" id="L57">                <span class="tok-kw">while</span> (self.cursor_idx &gt; <span class="tok-number">0</span>) {</span>
+<span class="line" id="L58">                    self.deleteBeforeCursor();</span>
+<span class="line" id="L59">                }</span>
+<span class="line" id="L60">            } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (key.text) |text| {</span>
+<span class="line" id="L61">                <span class="tok-kw">try</span> self.buf.insertSlice(self.byteOffsetToCursor(), text);</span>
+<span class="line" id="L62">                self.cursor_idx += <span class="tok-number">1</span>;</span>
+<span class="line" id="L63">                self.grapheme_count += <span class="tok-number">1</span>;</span>
+<span class="line" id="L64">            }</span>
+<span class="line" id="L65">        },</span>
+<span class="line" id="L66">    }</span>
+<span class="line" id="L67">}</span>
+<span class="line" id="L68"></span>
+<span class="line" id="L69"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">draw</span>(self: *TextInput, win: Window) <span class="tok-type">void</span> {</span>
+<span class="line" id="L70">    <span class="tok-kw">var</span> iter = GraphemeIterator.init(self.buf.items);</span>
+<span class="line" id="L71">    <span class="tok-kw">var</span> col: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L72">    <span class="tok-kw">var</span> i: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L73">    <span class="tok-kw">var</span> cursor_idx: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L74">    <span class="tok-kw">while</span> (iter.next()) |grapheme| {</span>
+<span class="line" id="L75">        <span class="tok-kw">const</span> g = grapheme.slice(self.buf.items);</span>
+<span class="line" id="L76">        <span class="tok-kw">const</span> w = win.gwidth(g);</span>
+<span class="line" id="L77">        win.writeCell(col, <span class="tok-number">0</span>, .{</span>
+<span class="line" id="L78">            .char = .{</span>
+<span class="line" id="L79">                .grapheme = g,</span>
+<span class="line" id="L80">                .width = w,</span>
+<span class="line" id="L81">            },</span>
+<span class="line" id="L82">        });</span>
+<span class="line" id="L83">        col += w;</span>
+<span class="line" id="L84">        i += <span class="tok-number">1</span>;</span>
+<span class="line" id="L85">        <span class="tok-kw">if</span> (i == self.cursor_idx) cursor_idx = col;</span>
+<span class="line" id="L86">    }</span>
+<span class="line" id="L87">    win.showCursor(cursor_idx, <span class="tok-number">0</span>);</span>
+<span class="line" id="L88">}</span>
+<span class="line" id="L89"></span>
+<span class="line" id="L90"><span class="tok-comment">// returns the number of bytes before the cursor</span>
+</span>
+<span class="line" id="L91"><span class="tok-kw">fn</span> <span class="tok-fn">byteOffsetToCursor</span>(self: TextInput) <span class="tok-type">usize</span> {</span>
+<span class="line" id="L92">    <span class="tok-kw">var</span> iter = GraphemeIterator.init(self.buf.items);</span>
+<span class="line" id="L93">    <span class="tok-kw">var</span> offset: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L94">    <span class="tok-kw">var</span> i: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L95">    <span class="tok-kw">while</span> (iter.next()) |grapheme| {</span>
+<span class="line" id="L96">        <span class="tok-kw">if</span> (i == self.cursor_idx) <span class="tok-kw">break</span>;</span>
+<span class="line" id="L97">        offset += grapheme.len;</span>
+<span class="line" id="L98">        i += <span class="tok-number">1</span>;</span>
+<span class="line" id="L99">    }</span>
+<span class="line" id="L100">    <span class="tok-kw">return</span> offset;</span>
+<span class="line" id="L101">}</span>
+<span class="line" id="L102"></span>
+<span class="line" id="L103"><span class="tok-kw">fn</span> <span class="tok-fn">deleteBeforeCursor</span>(self: *TextInput) <span class="tok-type">void</span> {</span>
+<span class="line" id="L104">    <span class="tok-kw">var</span> iter = GraphemeIterator.init(self.buf.items);</span>
+<span class="line" id="L105">    <span class="tok-kw">var</span> offset: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L106">    <span class="tok-kw">var</span> i: <span class="tok-type">usize</span> = <span class="tok-number">1</span>;</span>
+<span class="line" id="L107">    <span class="tok-kw">while</span> (iter.next()) |grapheme| {</span>
+<span class="line" id="L108">        <span class="tok-kw">if</span> (i == self.cursor_idx) {</span>
+<span class="line" id="L109">            <span class="tok-kw">var</span> j: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L110">            <span class="tok-kw">while</span> (j &lt; grapheme.len) : (j += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L111">                _ = self.buf.orderedRemove(offset);</span>
+<span class="line" id="L112">            }</span>
+<span class="line" id="L113">            self.cursor_idx -= <span class="tok-number">1</span>;</span>
+<span class="line" id="L114">            self.grapheme_count -= <span class="tok-number">1</span>;</span>
+<span class="line" id="L115">            <span class="tok-kw">return</span>;</span>
+<span class="line" id="L116">        }</span>
+<span class="line" id="L117">        offset += grapheme.len;</span>
+<span class="line" id="L118">        i += <span class="tok-number">1</span>;</span>
+<span class="line" id="L119">    }</span>
+<span class="line" id="L120">}</span>
+<span class="line" id="L121"></span>
+<span class="line" id="L122"><span class="tok-kw">fn</span> <span class="tok-fn">deleteAtCursor</span>(self: *TextInput) <span class="tok-type">void</span> {</span>
+<span class="line" id="L123">    <span class="tok-kw">var</span> iter = GraphemeIterator.init(self.buf.items);</span>
+<span class="line" id="L124">    <span class="tok-kw">var</span> offset: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L125">    <span class="tok-kw">var</span> i: <span class="tok-type">usize</span> = <span class="tok-number">1</span>;</span>
+<span class="line" id="L126">    <span class="tok-kw">while</span> (iter.next()) |grapheme| {</span>
+<span class="line" id="L127">        <span class="tok-kw">if</span> (i == self.cursor_idx + <span class="tok-number">1</span>) {</span>
+<span class="line" id="L128">            <span class="tok-kw">var</span> j: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L129">            <span class="tok-kw">while</span> (j &lt; grapheme.len) : (j += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L130">                _ = self.buf.orderedRemove(offset);</span>
+<span class="line" id="L131">            }</span>
+<span class="line" id="L132">            self.grapheme_count -= <span class="tok-number">1</span>;</span>
+<span class="line" id="L133">            <span class="tok-kw">return</span>;</span>
+<span class="line" id="L134">        }</span>
+<span class="line" id="L135">        offset += grapheme.len;</span>
+<span class="line" id="L136">        i += <span class="tok-number">1</span>;</span>
+<span class="line" id="L137">    }</span>
+<span class="line" id="L138">}</span>
+<span class="line" id="L139"></span>
+</code></pre></body>
+</html>

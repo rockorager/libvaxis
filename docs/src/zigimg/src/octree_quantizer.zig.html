@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>src/octree_quantizer.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-kw">const</span> Allocator = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>).mem.Allocator;</span>
+<span class="line" id="L2"><span class="tok-kw">const</span> ArenaAllocator = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>).heap.ArenaAllocator;</span>
+<span class="line" id="L3"><span class="tok-kw">const</span> ArrayList = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>).ArrayList;</span>
+<span class="line" id="L4"><span class="tok-kw">const</span> Rgba32 = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;color.zig&quot;</span>).Rgba32;</span>
+<span class="line" id="L5"></span>
+<span class="line" id="L6"><span class="tok-kw">const</span> MaxDepth = <span class="tok-number">8</span>;</span>
+<span class="line" id="L7"></span>
+<span class="line" id="L8"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> OctTreeQuantizer = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L9">    rootNode: OctTreeQuantizerNode,</span>
+<span class="line" id="L10">    levels: [MaxDepth]NodeArrayList,</span>
+<span class="line" id="L11">    arenaAllocator: ArenaAllocator,</span>
+<span class="line" id="L12"></span>
+<span class="line" id="L13">    <span class="tok-kw">const</span> NodeArrayList = ArrayList(*OctTreeQuantizerNode);</span>
+<span class="line" id="L14">    <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L15"></span>
+<span class="line" id="L16">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">init</span>(allocator: Allocator) Self {</span>
+<span class="line" id="L17">        <span class="tok-kw">var</span> result = Self{</span>
+<span class="line" id="L18">            .rootNode = OctTreeQuantizerNode{},</span>
+<span class="line" id="L19">            .arenaAllocator = ArenaAllocator.init(allocator),</span>
+<span class="line" id="L20">            .levels = <span class="tok-null">undefined</span>,</span>
+<span class="line" id="L21">        };</span>
+<span class="line" id="L22">        <span class="tok-kw">var</span> i: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L23">        <span class="tok-kw">while</span> (i &lt; result.levels.len) : (i += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L24">            result.levels[i] = NodeArrayList.init(allocator);</span>
+<span class="line" id="L25">        }</span>
+<span class="line" id="L26">        result.rootNode.init(<span class="tok-number">0</span>, &amp;result) <span class="tok-kw">catch</span> <span class="tok-kw">unreachable</span>;</span>
+<span class="line" id="L27">        <span class="tok-kw">return</span> result;</span>
+<span class="line" id="L28">    }</span>
+<span class="line" id="L29"></span>
+<span class="line" id="L30">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">deinit</span>(self: *Self) <span class="tok-type">void</span> {</span>
+<span class="line" id="L31">        self.arenaAllocator.deinit();</span>
+<span class="line" id="L32">        <span class="tok-kw">var</span> i: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L33">        <span class="tok-kw">while</span> (i &lt; self.levels.len) : (i += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L34">            self.levels[i].deinit();</span>
+<span class="line" id="L35">        }</span>
+<span class="line" id="L36">    }</span>
+<span class="line" id="L37"></span>
+<span class="line" id="L38">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">allocateNode</span>(self: *Self) !*OctTreeQuantizerNode {</span>
+<span class="line" id="L39">        <span class="tok-kw">return</span> <span class="tok-kw">try</span> self.arenaAllocator.allocator().create(OctTreeQuantizerNode);</span>
+<span class="line" id="L40">    }</span>
+<span class="line" id="L41"></span>
+<span class="line" id="L42">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">addLevelNode</span>(self: *Self, level: <span class="tok-type">i32</span>, node: *OctTreeQuantizerNode) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L43">        <span class="tok-kw">try</span> self.levels[<span class="tok-builtin">@intCast</span>(level)].append(node);</span>
+<span class="line" id="L44">    }</span>
+<span class="line" id="L45"></span>
+<span class="line" id="L46">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">addColor</span>(self: *Self, color: Rgba32) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L47">        <span class="tok-kw">try</span> self.rootNode.addColor(color, <span class="tok-number">0</span>, self);</span>
+<span class="line" id="L48">    }</span>
+<span class="line" id="L49"></span>
+<span class="line" id="L50">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">getPaletteIndex</span>(self: Self, color: Rgba32) !<span class="tok-type">usize</span> {</span>
+<span class="line" id="L51">        <span class="tok-kw">return</span> <span class="tok-kw">try</span> self.rootNode.getPaletteIndex(color, <span class="tok-number">0</span>);</span>
+<span class="line" id="L52">    }</span>
+<span class="line" id="L53"></span>
+<span class="line" id="L54">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">makePalette</span>(self: *Self, colorCount: <span class="tok-type">usize</span>, palette: []Rgba32) <span class="tok-type">anyerror</span>![]Rgba32 {</span>
+<span class="line" id="L55">        <span class="tok-kw">var</span> paletteIndex: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L56"></span>
+<span class="line" id="L57">        <span class="tok-kw">var</span> rootLeafNodes = <span class="tok-kw">try</span> self.rootNode.getLeafNodes(self.arenaAllocator.child_allocator);</span>
+<span class="line" id="L58">        <span class="tok-kw">defer</span> rootLeafNodes.deinit();</span>
+<span class="line" id="L59">        <span class="tok-kw">var</span> leafCount = rootLeafNodes.items.len;</span>
+<span class="line" id="L60"></span>
+<span class="line" id="L61">        <span class="tok-kw">var</span> level: <span class="tok-type">usize</span> = MaxDepth - <span class="tok-number">1</span>;</span>
+<span class="line" id="L62">        <span class="tok-kw">while</span> (level &gt;= <span class="tok-number">0</span>) : (level -= <span class="tok-number">1</span>) {</span>
+<span class="line" id="L63">            <span class="tok-kw">for</span> (self.levels[level].items) |node| {</span>
+<span class="line" id="L64">                leafCount -= <span class="tok-builtin">@intCast</span>(node.removeLeaves());</span>
+<span class="line" id="L65">                <span class="tok-kw">if</span> (leafCount &lt;= colorCount) {</span>
+<span class="line" id="L66">                    <span class="tok-kw">break</span>;</span>
+<span class="line" id="L67">                }</span>
+<span class="line" id="L68">            }</span>
+<span class="line" id="L69">            <span class="tok-kw">if</span> (leafCount &lt;= colorCount) {</span>
+<span class="line" id="L70">                <span class="tok-kw">break</span>;</span>
+<span class="line" id="L71">            }</span>
+<span class="line" id="L72">            <span class="tok-kw">try</span> self.levels[level].resize(<span class="tok-number">0</span>);</span>
+<span class="line" id="L73">        }</span>
+<span class="line" id="L74"></span>
+<span class="line" id="L75">        <span class="tok-kw">var</span> processedRoofLeafNodes = <span class="tok-kw">try</span> self.rootNode.getLeafNodes(self.arenaAllocator.child_allocator);</span>
+<span class="line" id="L76">        <span class="tok-kw">defer</span> processedRoofLeafNodes.deinit();</span>
+<span class="line" id="L77"></span>
+<span class="line" id="L78">        <span class="tok-kw">for</span> (processedRoofLeafNodes.items) |node| {</span>
+<span class="line" id="L79">            <span class="tok-kw">if</span> (paletteIndex &gt;= colorCount) {</span>
+<span class="line" id="L80">                <span class="tok-kw">break</span>;</span>
+<span class="line" id="L81">            }</span>
+<span class="line" id="L82">            <span class="tok-kw">if</span> (node.isLeaf()) {</span>
+<span class="line" id="L83">                palette[paletteIndex] = node.getColor();</span>
+<span class="line" id="L84">                node.paletteIndex = paletteIndex;</span>
+<span class="line" id="L85">                paletteIndex += <span class="tok-number">1</span>;</span>
+<span class="line" id="L86">            }</span>
+<span class="line" id="L87">        }</span>
+<span class="line" id="L88"></span>
+<span class="line" id="L89">        <span class="tok-kw">return</span> palette[<span class="tok-number">0</span>..paletteIndex];</span>
+<span class="line" id="L90">    }</span>
+<span class="line" id="L91">};</span>
+<span class="line" id="L92"></span>
+<span class="line" id="L93"><span class="tok-kw">const</span> OctTreeQuantizerNode = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L94">    red: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L95">    green: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L96">    blue: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L97">    referenceCount: <span class="tok-type">usize</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L98">    paletteIndex: <span class="tok-type">usize</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L99">    children: [<span class="tok-number">8</span>]?*Self = <span class="tok-null">undefined</span>,</span>
+<span class="line" id="L100"></span>
+<span class="line" id="L101">    <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L102">    <span class="tok-kw">const</span> NodeArrayList = ArrayList(*Self);</span>
+<span class="line" id="L103"></span>
+<span class="line" id="L104">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">init</span>(self: *Self, level: <span class="tok-type">i32</span>, parent: *OctTreeQuantizer) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L105">        self.red = <span class="tok-number">0</span>;</span>
+<span class="line" id="L106">        self.green = <span class="tok-number">0</span>;</span>
+<span class="line" id="L107">        self.blue = <span class="tok-number">0</span>;</span>
+<span class="line" id="L108">        self.referenceCount = <span class="tok-number">0</span>;</span>
+<span class="line" id="L109">        self.paletteIndex = <span class="tok-number">0</span>;</span>
+<span class="line" id="L110"></span>
+<span class="line" id="L111">        <span class="tok-kw">var</span> i: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L112">        <span class="tok-kw">while</span> (i &lt; self.children.len) : (i += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L113">            self.children[i] = <span class="tok-null">null</span>;</span>
+<span class="line" id="L114">        }</span>
+<span class="line" id="L115"></span>
+<span class="line" id="L116">        <span class="tok-kw">if</span> (level &lt; (MaxDepth - <span class="tok-number">1</span>)) {</span>
+<span class="line" id="L117">            <span class="tok-kw">try</span> parent.addLevelNode(level, self);</span>
+<span class="line" id="L118">        }</span>
+<span class="line" id="L119">    }</span>
+<span class="line" id="L120"></span>
+<span class="line" id="L121">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">isLeaf</span>(self: Self) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L122">        <span class="tok-kw">return</span> self.referenceCount &gt; <span class="tok-number">0</span>;</span>
+<span class="line" id="L123">    }</span>
+<span class="line" id="L124"></span>
+<span class="line" id="L125">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">getColor</span>(self: Self) Rgba32 {</span>
+<span class="line" id="L126">        <span class="tok-kw">return</span> Rgba32.initRgb(<span class="tok-builtin">@intCast</span>(self.red / self.referenceCount), <span class="tok-builtin">@intCast</span>(self.green / self.referenceCount), <span class="tok-builtin">@intCast</span>(self.blue / self.referenceCount));</span>
+<span class="line" id="L127">    }</span>
+<span class="line" id="L128"></span>
+<span class="line" id="L129">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">addColor</span>(self: *Self, color: Rgba32, level: <span class="tok-type">i32</span>, parent: *OctTreeQuantizer) <span class="tok-type">anyerror</span>!<span class="tok-type">void</span> {</span>
+<span class="line" id="L130">        <span class="tok-kw">if</span> (level &gt;= MaxDepth) {</span>
+<span class="line" id="L131">            self.red += color.r;</span>
+<span class="line" id="L132">            self.green += color.g;</span>
+<span class="line" id="L133">            self.blue += color.b;</span>
+<span class="line" id="L134">            self.referenceCount += <span class="tok-number">1</span>;</span>
+<span class="line" id="L135">            <span class="tok-kw">return</span>;</span>
+<span class="line" id="L136">        }</span>
+<span class="line" id="L137">        <span class="tok-kw">const</span> index = getColorIndex(color, level);</span>
+<span class="line" id="L138">        <span class="tok-kw">if</span> (index &gt;= self.children.len) {</span>
+<span class="line" id="L139">            <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidColorIndex;</span>
+<span class="line" id="L140">        }</span>
+<span class="line" id="L141">        <span class="tok-kw">if</span> (self.children[index]) |child| {</span>
+<span class="line" id="L142">            <span class="tok-kw">try</span> child.addColor(color, level + <span class="tok-number">1</span>, parent);</span>
+<span class="line" id="L143">        } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L144">            <span class="tok-kw">var</span> newNode = <span class="tok-kw">try</span> parent.allocateNode();</span>
+<span class="line" id="L145">            <span class="tok-kw">try</span> newNode.init(level, parent);</span>
+<span class="line" id="L146">            <span class="tok-kw">try</span> newNode.addColor(color, level + <span class="tok-number">1</span>, parent);</span>
+<span class="line" id="L147">            self.children[index] = newNode;</span>
+<span class="line" id="L148">        }</span>
+<span class="line" id="L149">    }</span>
+<span class="line" id="L150"></span>
+<span class="line" id="L151">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">getPaletteIndex</span>(self: Self, color: Rgba32, level: <span class="tok-type">i32</span>) <span class="tok-type">anyerror</span>!<span class="tok-type">usize</span> {</span>
+<span class="line" id="L152">        <span class="tok-kw">if</span> (self.isLeaf()) {</span>
+<span class="line" id="L153">            <span class="tok-kw">return</span> self.paletteIndex;</span>
+<span class="line" id="L154">        }</span>
+<span class="line" id="L155">        <span class="tok-kw">const</span> index = getColorIndex(color, level);</span>
+<span class="line" id="L156">        <span class="tok-kw">if</span> (self.children[index]) |child| {</span>
+<span class="line" id="L157">            <span class="tok-kw">return</span> <span class="tok-kw">try</span> child.getPaletteIndex(color, level + <span class="tok-number">1</span>);</span>
+<span class="line" id="L158">        } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L159">            <span class="tok-kw">for</span> (self.children) |childOptional| {</span>
+<span class="line" id="L160">                <span class="tok-kw">if</span> (childOptional) |child| {</span>
+<span class="line" id="L161">                    <span class="tok-kw">return</span> <span class="tok-kw">try</span> child.getPaletteIndex(color, level + <span class="tok-number">1</span>);</span>
+<span class="line" id="L162">                }</span>
+<span class="line" id="L163">            }</span>
+<span class="line" id="L164">        }</span>
+<span class="line" id="L165"></span>
+<span class="line" id="L166">        <span class="tok-kw">return</span> <span class="tok-kw">error</span>.ColorNotFound;</span>
+<span class="line" id="L167">    }</span>
+<span class="line" id="L168"></span>
+<span class="line" id="L169">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">getLeafNodes</span>(self: Self, allocator: Allocator) <span class="tok-type">anyerror</span>!NodeArrayList {</span>
+<span class="line" id="L170">        <span class="tok-kw">var</span> leafNodes = NodeArrayList.init(allocator);</span>
+<span class="line" id="L171"></span>
+<span class="line" id="L172">        <span class="tok-kw">for</span> (self.children) |childOptional| {</span>
+<span class="line" id="L173">            <span class="tok-kw">if</span> (childOptional) |child| {</span>
+<span class="line" id="L174">                <span class="tok-kw">if</span> (child.isLeaf()) {</span>
+<span class="line" id="L175">                    <span class="tok-kw">try</span> leafNodes.append(child);</span>
+<span class="line" id="L176">                } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L177">                    <span class="tok-kw">var</span> childNodes = <span class="tok-kw">try</span> child.getLeafNodes(allocator);</span>
+<span class="line" id="L178">                    <span class="tok-kw">defer</span> childNodes.deinit();</span>
+<span class="line" id="L179">                    <span class="tok-kw">for</span> (childNodes.items) |childNode| {</span>
+<span class="line" id="L180">                        <span class="tok-kw">try</span> leafNodes.append(childNode);</span>
+<span class="line" id="L181">                    }</span>
+<span class="line" id="L182">                }</span>
+<span class="line" id="L183">            }</span>
+<span class="line" id="L184">        }</span>
+<span class="line" id="L185"></span>
+<span class="line" id="L186">        <span class="tok-kw">return</span> leafNodes;</span>
+<span class="line" id="L187">    }</span>
+<span class="line" id="L188"></span>
+<span class="line" id="L189">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">removeLeaves</span>(self: *Self) <span class="tok-type">i32</span> {</span>
+<span class="line" id="L190">        <span class="tok-kw">var</span> result: <span class="tok-type">i32</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L191">        <span class="tok-kw">for</span> (self.children, <span class="tok-number">0</span>..) |childOptional, i| {</span>
+<span class="line" id="L192">            <span class="tok-kw">if</span> (childOptional) |child| {</span>
+<span class="line" id="L193">                self.red += child.red;</span>
+<span class="line" id="L194">                self.green += child.green;</span>
+<span class="line" id="L195">                self.blue += child.blue;</span>
+<span class="line" id="L196">                self.referenceCount += child.referenceCount;</span>
+<span class="line" id="L197">                result += <span class="tok-number">1</span>;</span>
+<span class="line" id="L198">                self.children[i] = <span class="tok-null">null</span>;</span>
+<span class="line" id="L199">            }</span>
+<span class="line" id="L200">        }</span>
+<span class="line" id="L201">        <span class="tok-kw">return</span> result - <span class="tok-number">1</span>;</span>
+<span class="line" id="L202">    }</span>
+<span class="line" id="L203"></span>
+<span class="line" id="L204">    <span class="tok-kw">inline</span> <span class="tok-kw">fn</span> <span class="tok-fn">getColorIndex</span>(color: Rgba32, level: <span class="tok-type">i32</span>) <span class="tok-type">usize</span> {</span>
+<span class="line" id="L205">        <span class="tok-kw">var</span> index: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L206">        <span class="tok-kw">const</span> mask = <span class="tok-builtin">@as</span>(<span class="tok-type">u8</span>, <span class="tok-number">0b10000000</span>) &gt;&gt; <span class="tok-builtin">@intCast</span>(level);</span>
+<span class="line" id="L207">        <span class="tok-kw">if</span> (color.r &amp; mask != <span class="tok-number">0</span>) {</span>
+<span class="line" id="L208">            index |= <span class="tok-number">0b100</span>;</span>
+<span class="line" id="L209">        }</span>
+<span class="line" id="L210">        <span class="tok-kw">if</span> (color.g &amp; mask != <span class="tok-number">0</span>) {</span>
+<span class="line" id="L211">            index |= <span class="tok-number">0b010</span>;</span>
+<span class="line" id="L212">        }</span>
+<span class="line" id="L213">        <span class="tok-kw">if</span> (color.b &amp; mask != <span class="tok-number">0</span>) {</span>
+<span class="line" id="L214">            index |= <span class="tok-number">0b001</span>;</span>
+<span class="line" id="L215">        }</span>
+<span class="line" id="L216">        <span class="tok-kw">return</span> index;</span>
+<span class="line" id="L217">    }</span>
+<span class="line" id="L218">};</span>
+<span class="line" id="L219"></span>
+</code></pre></body>
+</html>

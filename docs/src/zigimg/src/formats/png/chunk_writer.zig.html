@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>src/formats/png/chunk_writer.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L2"></span>
+<span class="line" id="L3"><span class="tok-kw">const</span> io = std.io;</span>
+<span class="line" id="L4"><span class="tok-kw">const</span> mem = std.mem;</span>
+<span class="line" id="L5"></span>
+<span class="line" id="L6"><span class="tok-kw">const</span> Crc = std.hash.crc.Crc32WithPoly(.IEEE);</span>
+<span class="line" id="L7"></span>
+<span class="line" id="L8"><span class="tok-comment">/// Writer based on buffered writer that will write whole chunks of data of [buffer size]</span></span>
+<span class="line" id="L9"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">ChunkWriter</span>(<span class="tok-kw">comptime</span> buffer_size: <span class="tok-type">usize</span>, <span class="tok-kw">comptime</span> WriterType: <span class="tok-type">type</span>) <span class="tok-type">type</span> {</span>
+<span class="line" id="L10">    <span class="tok-kw">return</span> <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L11">        unbuffered_writer: WriterType,</span>
+<span class="line" id="L12">        buf: [buffer_size]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>,</span>
+<span class="line" id="L13">        end: <span class="tok-type">usize</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L14">        section_id: [<span class="tok-number">4</span>]<span class="tok-type">u8</span>,</span>
+<span class="line" id="L15"></span>
+<span class="line" id="L16">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> Error = WriterType.Error;</span>
+<span class="line" id="L17">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> Writer = io.Writer(*Self, Error, write);</span>
+<span class="line" id="L18"></span>
+<span class="line" id="L19">        <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L20"></span>
+<span class="line" id="L21">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">flush</span>(self: *Self) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L22">            <span class="tok-kw">try</span> self.unbuffered_writer.writeInt(<span class="tok-type">u32</span>, <span class="tok-builtin">@as</span>(<span class="tok-type">u32</span>, <span class="tok-builtin">@truncate</span>(self.end)), .big);</span>
+<span class="line" id="L23"></span>
+<span class="line" id="L24">            <span class="tok-kw">var</span> crc = Crc.init();</span>
+<span class="line" id="L25"></span>
+<span class="line" id="L26">            crc.update(&amp;self.section_id);</span>
+<span class="line" id="L27">            <span class="tok-kw">try</span> self.unbuffered_writer.writeAll(&amp;self.section_id);</span>
+<span class="line" id="L28">            crc.update(self.buf[<span class="tok-number">0</span>..self.end]);</span>
+<span class="line" id="L29">            <span class="tok-kw">try</span> self.unbuffered_writer.writeAll(self.buf[<span class="tok-number">0</span>..self.end]);</span>
+<span class="line" id="L30"></span>
+<span class="line" id="L31">            <span class="tok-kw">try</span> self.unbuffered_writer.writeInt(<span class="tok-type">u32</span>, crc.final(), .big);</span>
+<span class="line" id="L32"></span>
+<span class="line" id="L33">            self.end = <span class="tok-number">0</span>;</span>
+<span class="line" id="L34">        }</span>
+<span class="line" id="L35"></span>
+<span class="line" id="L36">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">writer</span>(self: *Self) Writer {</span>
+<span class="line" id="L37">            <span class="tok-kw">return</span> .{ .context = self };</span>
+<span class="line" id="L38">        }</span>
+<span class="line" id="L39"></span>
+<span class="line" id="L40">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">write</span>(self: *Self, bytes: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) Error!<span class="tok-type">usize</span> {</span>
+<span class="line" id="L41">            <span class="tok-kw">if</span> (self.end + bytes.len &gt; self.buf.len) {</span>
+<span class="line" id="L42">                <span class="tok-kw">try</span> self.flush();</span>
+<span class="line" id="L43">                <span class="tok-kw">if</span> (bytes.len &gt; self.buf.len)</span>
+<span class="line" id="L44">                    <span class="tok-kw">return</span> self.unbuffered_writer.write(bytes);</span>
+<span class="line" id="L45">            }</span>
+<span class="line" id="L46"></span>
+<span class="line" id="L47">            <span class="tok-builtin">@memcpy</span>(self.buf[self.end..][<span class="tok-number">0</span>..bytes.len], bytes);</span>
+<span class="line" id="L48">            self.end += bytes.len;</span>
+<span class="line" id="L49">            <span class="tok-kw">return</span> bytes.len;</span>
+<span class="line" id="L50">        }</span>
+<span class="line" id="L51">    };</span>
+<span class="line" id="L52">}</span>
+<span class="line" id="L53"></span>
+<span class="line" id="L54"><span class="tok-kw">const</span> ChunkBufferSize = <span class="tok-number">1</span> &lt;&lt; <span class="tok-number">14</span>; <span class="tok-comment">// 16 kb</span>
+</span>
+<span class="line" id="L55"></span>
+<span class="line" id="L56"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">chunkWriter</span>(underlying_stream: <span class="tok-kw">anytype</span>, <span class="tok-kw">comptime</span> id: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) ChunkWriter(ChunkBufferSize, <span class="tok-builtin">@TypeOf</span>(underlying_stream)) {</span>
+<span class="line" id="L57">    <span class="tok-kw">if</span> (id.len != <span class="tok-number">4</span>)</span>
+<span class="line" id="L58">        <span class="tok-builtin">@compileError</span>(<span class="tok-str">&quot;PNG chunk id must be 4 characters&quot;</span>);</span>
+<span class="line" id="L59"></span>
+<span class="line" id="L60">    <span class="tok-kw">return</span> .{ .unbuffered_writer = underlying_stream, .section_id = std.mem.bytesToValue([<span class="tok-number">4</span>]<span class="tok-type">u8</span>, id[<span class="tok-number">0</span>..<span class="tok-number">4</span>]) };</span>
+<span class="line" id="L61">}</span>
+<span class="line" id="L62"></span>
+<span class="line" id="L63"><span class="tok-comment">// TODO: test idat writer</span>
+</span>
+<span class="line" id="L64"></span>
+</code></pre></body>
+</html>

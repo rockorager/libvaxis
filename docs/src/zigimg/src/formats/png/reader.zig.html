@@ -1,0 +1,1240 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>src/formats/png/reader.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-kw">const</span> Allocator = std.mem.Allocator;</span>
+<span class="line" id="L2"><span class="tok-kw">const</span> buffered_stream_source = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../../buffered_stream_source.zig&quot;</span>);</span>
+<span class="line" id="L3"><span class="tok-kw">const</span> color = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../../color.zig&quot;</span>);</span>
+<span class="line" id="L4"><span class="tok-kw">const</span> Crc32 = std.hash.Crc32;</span>
+<span class="line" id="L5"><span class="tok-kw">const</span> File = std.fs.File;</span>
+<span class="line" id="L6"><span class="tok-kw">const</span> Image = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../../Image.zig&quot;</span>);</span>
+<span class="line" id="L7"><span class="tok-kw">const</span> mem = std.mem;</span>
+<span class="line" id="L8"><span class="tok-kw">const</span> PixelFormat = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../../pixel_format.zig&quot;</span>).PixelFormat;</span>
+<span class="line" id="L9"><span class="tok-kw">const</span> PixelStorage = color.PixelStorage;</span>
+<span class="line" id="L10"><span class="tok-kw">const</span> png = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;types.zig&quot;</span>);</span>
+<span class="line" id="L11"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L12"><span class="tok-kw">const</span> utils = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../../utils.zig&quot;</span>);</span>
+<span class="line" id="L13"></span>
+<span class="line" id="L14"><span class="tok-comment">// Png specification: http://www.libpng.org/pub/png/spec/iso/index-object.html</span>
+</span>
+<span class="line" id="L15"></span>
+<span class="line" id="L16"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">isChunkCritical</span>(id: <span class="tok-type">u32</span>) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L17">    <span class="tok-kw">return</span> (id &amp; <span class="tok-number">0x20000000</span>) == <span class="tok-number">0</span>;</span>
+<span class="line" id="L18">}</span>
+<span class="line" id="L19"></span>
+<span class="line" id="L20"><span class="tok-kw">fn</span> <span class="tok-fn">callChunkProcessors</span>(processors: []ReaderProcessor, chunk_process_data: *ChunkProcessData) Image.ReadError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L21">    <span class="tok-kw">const</span> id = chunk_process_data.chunk_id;</span>
+<span class="line" id="L22">    <span class="tok-comment">// Critical chunks are already processed but we can still notify any number of processors about them</span>
+</span>
+<span class="line" id="L23">    <span class="tok-kw">var</span> processed = isChunkCritical(id);</span>
+<span class="line" id="L24">    <span class="tok-kw">for</span> (processors) |*processor| {</span>
+<span class="line" id="L25">        <span class="tok-kw">if</span> (processor.id == id <span class="tok-kw">or</span> processor.id == png.Chunks.Any.id) {</span>
+<span class="line" id="L26">            <span class="tok-kw">const</span> new_format = <span class="tok-kw">try</span> processor.processChunk(chunk_process_data);</span>
+<span class="line" id="L27">            std.debug.assert(new_format.pixelStride() &gt;= chunk_process_data.current_format.pixelStride());</span>
+<span class="line" id="L28">            chunk_process_data.current_format = new_format;</span>
+<span class="line" id="L29">            <span class="tok-kw">if</span> (!processed) {</span>
+<span class="line" id="L30">                <span class="tok-comment">// For non critical chunks we only allow one processor so we break after the first one</span>
+</span>
+<span class="line" id="L31">                processed = <span class="tok-null">true</span>;</span>
+<span class="line" id="L32">                <span class="tok-kw">break</span>;</span>
+<span class="line" id="L33">            }</span>
+<span class="line" id="L34">        }</span>
+<span class="line" id="L35">    }</span>
+<span class="line" id="L36"></span>
+<span class="line" id="L37">    <span class="tok-comment">// If noone loaded this chunk we need to skip over it</span>
+</span>
+<span class="line" id="L38">    <span class="tok-kw">if</span> (!processed) {</span>
+<span class="line" id="L39">        <span class="tok-kw">try</span> chunk_process_data.stream.seekBy(<span class="tok-builtin">@intCast</span>(chunk_process_data.chunk_length + <span class="tok-number">4</span>));</span>
+<span class="line" id="L40">    }</span>
+<span class="line" id="L41">}</span>
+<span class="line" id="L42"></span>
+<span class="line" id="L43"><span class="tok-comment">// Provides reader interface for Zlib stream that knows to read consecutive IDAT chunks.</span>
+</span>
+<span class="line" id="L44"><span class="tok-comment">// The way Zlib is currently implemented it very often reads a byte at a time which is</span>
+</span>
+<span class="line" id="L45"><span class="tok-comment">// slow so we also provide buffering here. We can't used BufferedReader because we need</span>
+</span>
+<span class="line" id="L46"><span class="tok-comment">// more control than it currently provides.</span>
+</span>
+<span class="line" id="L47"><span class="tok-kw">const</span> IDatChunksReader = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L48">    stream: *buffered_stream_source.DefaultBufferedStreamSourceReader,</span>
+<span class="line" id="L49">    buffer: [<span class="tok-number">4096</span>]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>,</span>
+<span class="line" id="L50">    data: []<span class="tok-type">u8</span>,</span>
+<span class="line" id="L51">    processors: []ReaderProcessor,</span>
+<span class="line" id="L52">    chunk_process_data: *ChunkProcessData,</span>
+<span class="line" id="L53">    remaining_chunk_length: <span class="tok-type">u32</span>,</span>
+<span class="line" id="L54">    crc: Crc32,</span>
+<span class="line" id="L55"></span>
+<span class="line" id="L56">    <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L57"></span>
+<span class="line" id="L58">    <span class="tok-kw">fn</span> <span class="tok-fn">init</span>(</span>
+<span class="line" id="L59">        stream: *buffered_stream_source.DefaultBufferedStreamSourceReader,</span>
+<span class="line" id="L60">        processors: []ReaderProcessor,</span>
+<span class="line" id="L61">        chunk_process_data: *ChunkProcessData,</span>
+<span class="line" id="L62">    ) Self {</span>
+<span class="line" id="L63">        <span class="tok-kw">var</span> crc = Crc32.init();</span>
+<span class="line" id="L64">        crc.update(png.Chunks.IDAT.name);</span>
+<span class="line" id="L65">        <span class="tok-kw">return</span> .{</span>
+<span class="line" id="L66">            .stream = stream,</span>
+<span class="line" id="L67">            .data = &amp;[_]<span class="tok-type">u8</span>{},</span>
+<span class="line" id="L68">            .processors = processors,</span>
+<span class="line" id="L69">            .chunk_process_data = chunk_process_data,</span>
+<span class="line" id="L70">            .remaining_chunk_length = chunk_process_data.chunk_length,</span>
+<span class="line" id="L71">            .crc = crc,</span>
+<span class="line" id="L72">        };</span>
+<span class="line" id="L73">    }</span>
+<span class="line" id="L74"></span>
+<span class="line" id="L75">    <span class="tok-kw">fn</span> <span class="tok-fn">fillBuffer</span>(self: *Self, to_read: <span class="tok-type">usize</span>) Image.ReadError!<span class="tok-type">usize</span> {</span>
+<span class="line" id="L76">        <span class="tok-builtin">@memcpy</span>(self.buffer[<span class="tok-number">0</span>..self.data.len], self.data);</span>
+<span class="line" id="L77">        <span class="tok-kw">const</span> new_start = self.data.len;</span>
+<span class="line" id="L78">        <span class="tok-kw">var</span> max = self.buffer.len;</span>
+<span class="line" id="L79">        <span class="tok-kw">if</span> (max &gt; self.remaining_chunk_length) {</span>
+<span class="line" id="L80">            max = self.remaining_chunk_length;</span>
+<span class="line" id="L81">        }</span>
+<span class="line" id="L82">        <span class="tok-kw">const</span> len = <span class="tok-kw">try</span> self.stream.read(self.buffer[new_start..max]);</span>
+<span class="line" id="L83">        self.data = self.buffer[<span class="tok-number">0</span> .. new_start + len];</span>
+<span class="line" id="L84">        self.crc.update(self.data[new_start..]);</span>
+<span class="line" id="L85">        <span class="tok-kw">return</span> <span class="tok-kw">if</span> (len &lt; to_read) len <span class="tok-kw">else</span> to_read;</span>
+<span class="line" id="L86">    }</span>
+<span class="line" id="L87"></span>
+<span class="line" id="L88">    <span class="tok-kw">fn</span> <span class="tok-fn">read</span>(self: *Self, dest: []<span class="tok-type">u8</span>) Image.ReadError!<span class="tok-type">usize</span> {</span>
+<span class="line" id="L89">        <span class="tok-kw">if</span> (self.remaining_chunk_length == <span class="tok-number">0</span>) <span class="tok-kw">return</span> <span class="tok-number">0</span>;</span>
+<span class="line" id="L90">        <span class="tok-kw">const</span> new_dest = dest;</span>
+<span class="line" id="L91"></span>
+<span class="line" id="L92">        <span class="tok-kw">var</span> reader = self.stream.reader();</span>
+<span class="line" id="L93">        <span class="tok-kw">var</span> to_read = new_dest.len;</span>
+<span class="line" id="L94">        <span class="tok-kw">if</span> (to_read &gt; self.remaining_chunk_length) {</span>
+<span class="line" id="L95">            to_read = self.remaining_chunk_length;</span>
+<span class="line" id="L96">        }</span>
+<span class="line" id="L97">        <span class="tok-kw">if</span> (to_read &gt; self.data.len) {</span>
+<span class="line" id="L98">            to_read = <span class="tok-kw">try</span> self.fillBuffer(to_read);</span>
+<span class="line" id="L99">        }</span>
+<span class="line" id="L100">        <span class="tok-builtin">@memcpy</span>(new_dest[<span class="tok-number">0</span>..to_read], self.data[<span class="tok-number">0</span>..to_read]);</span>
+<span class="line" id="L101">        self.remaining_chunk_length -= <span class="tok-builtin">@intCast</span>(to_read);</span>
+<span class="line" id="L102">        self.data = self.data[to_read..];</span>
+<span class="line" id="L103"></span>
+<span class="line" id="L104">        <span class="tok-kw">if</span> (self.remaining_chunk_length == <span class="tok-number">0</span>) {</span>
+<span class="line" id="L105">            <span class="tok-comment">// First read and check CRC of just finished chunk</span>
+</span>
+<span class="line" id="L106">            <span class="tok-kw">const</span> expected_crc = <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u32</span>, .big);</span>
+<span class="line" id="L107">            <span class="tok-kw">const</span> actual_crc = self.crc.final();</span>
+<span class="line" id="L108">            <span class="tok-kw">if</span> (actual_crc != expected_crc) {</span>
+<span class="line" id="L109">                <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L110">            }</span>
+<span class="line" id="L111"></span>
+<span class="line" id="L112">            <span class="tok-kw">try</span> callChunkProcessors(self.processors, self.chunk_process_data);</span>
+<span class="line" id="L113"></span>
+<span class="line" id="L114">            self.crc = Crc32.init();</span>
+<span class="line" id="L115">            self.crc.update(png.Chunks.IDAT.name);</span>
+<span class="line" id="L116"></span>
+<span class="line" id="L117">            <span class="tok-comment">// Try to load the next IDAT chunk</span>
+</span>
+<span class="line" id="L118">            <span class="tok-kw">const</span> chunk = <span class="tok-kw">try</span> utils.readStruct(reader, png.ChunkHeader, .big);</span>
+<span class="line" id="L119">            <span class="tok-kw">if</span> (chunk.<span class="tok-type">type</span> == png.Chunks.IDAT.id) {</span>
+<span class="line" id="L120">                self.remaining_chunk_length = chunk.length;</span>
+<span class="line" id="L121">            } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L122">                <span class="tok-comment">// Return to the start of the next chunk so code in main struct can read it</span>
+</span>
+<span class="line" id="L123">                <span class="tok-kw">try</span> self.stream.seekBy(-<span class="tok-builtin">@sizeOf</span>(png.ChunkHeader));</span>
+<span class="line" id="L124">            }</span>
+<span class="line" id="L125">        }</span>
+<span class="line" id="L126"></span>
+<span class="line" id="L127">        <span class="tok-kw">return</span> to_read;</span>
+<span class="line" id="L128">    }</span>
+<span class="line" id="L129">};</span>
+<span class="line" id="L130"></span>
+<span class="line" id="L131"><span class="tok-kw">const</span> IDATReader = std.io.Reader(*IDatChunksReader, Image.ReadError, IDatChunksReader.read);</span>
+<span class="line" id="L132"></span>
+<span class="line" id="L133"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">loadHeader</span>(stream: *Image.Stream) Image.ReadError!png.HeaderData {</span>
+<span class="line" id="L134">    <span class="tok-kw">var</span> reader = stream.reader();</span>
+<span class="line" id="L135">    <span class="tok-kw">var</span> signature: [png.magic_header.len]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L136">    <span class="tok-kw">try</span> reader.readNoEof(signature[<span class="tok-number">0</span>..]);</span>
+<span class="line" id="L137">    <span class="tok-kw">if</span> (!mem.eql(<span class="tok-type">u8</span>, signature[<span class="tok-number">0</span>..], png.magic_header)) {</span>
+<span class="line" id="L138">        <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L139">    }</span>
+<span class="line" id="L140"></span>
+<span class="line" id="L141">    <span class="tok-kw">const</span> chunk = <span class="tok-kw">try</span> utils.readStruct(reader, png.ChunkHeader, .big);</span>
+<span class="line" id="L142">    <span class="tok-kw">if</span> (chunk.<span class="tok-type">type</span> != png.Chunks.IHDR.id) <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L143">    <span class="tok-kw">if</span> (chunk.length != <span class="tok-builtin">@sizeOf</span>(png.HeaderData)) <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L144"></span>
+<span class="line" id="L145">    <span class="tok-kw">var</span> header_data: [<span class="tok-builtin">@sizeOf</span>(png.HeaderData)]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L146">    <span class="tok-kw">try</span> reader.readNoEof(&amp;header_data);</span>
+<span class="line" id="L147"></span>
+<span class="line" id="L148">    <span class="tok-kw">var</span> struct_stream = std.io.fixedBufferStream(&amp;header_data);</span>
+<span class="line" id="L149"></span>
+<span class="line" id="L150">    <span class="tok-kw">const</span> header = <span class="tok-kw">try</span> utils.readStruct(struct_stream.reader(), png.HeaderData, .big);</span>
+<span class="line" id="L151">    <span class="tok-kw">if</span> (!header.isValid()) <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L152"></span>
+<span class="line" id="L153">    <span class="tok-kw">const</span> expected_crc = <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u32</span>, .big);</span>
+<span class="line" id="L154">    <span class="tok-kw">var</span> crc = Crc32.init();</span>
+<span class="line" id="L155">    crc.update(png.Chunks.IHDR.name);</span>
+<span class="line" id="L156">    crc.update(&amp;header_data);</span>
+<span class="line" id="L157">    <span class="tok-kw">const</span> actual_crc = crc.final();</span>
+<span class="line" id="L158">    <span class="tok-kw">if</span> (expected_crc != actual_crc) <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L159"></span>
+<span class="line" id="L160">    <span class="tok-kw">return</span> header;</span>
+<span class="line" id="L161">}</span>
+<span class="line" id="L162"></span>
+<span class="line" id="L163"><span class="tok-comment">/// Loads the png image using the given allocator and options.</span></span>
+<span class="line" id="L164"><span class="tok-comment">/// The options allow you to pass in a custom allocator for temporary allocations.</span></span>
+<span class="line" id="L165"><span class="tok-comment">/// By default it will also use the main allocator for temporary allocations.</span></span>
+<span class="line" id="L166"><span class="tok-comment">/// You can also pass in an array of chunk processors. You can use def_processors</span></span>
+<span class="line" id="L167"><span class="tok-comment">/// array if you want to use these default set of processors:</span></span>
+<span class="line" id="L168"><span class="tok-comment">/// 1. tRNS processor that decodes the tRNS chunk if it exists into an alpha channel</span></span>
+<span class="line" id="L169"><span class="tok-comment">/// 2. PLTE processor that decodes the indexed image with a palette into a RGB image.</span></span>
+<span class="line" id="L170"><span class="tok-comment">/// If you want default processors with default temp allocator you can just pass</span></span>
+<span class="line" id="L171"><span class="tok-comment">/// predefined default_options. If you just pass .{} no processors will be used.</span></span>
+<span class="line" id="L172"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">load</span>(stream: *Image.Stream, allocator: Allocator, options: ReaderOptions) Image.ReadError!Image {</span>
+<span class="line" id="L173">    <span class="tok-kw">const</span> header = <span class="tok-kw">try</span> loadHeader(stream);</span>
+<span class="line" id="L174">    <span class="tok-kw">var</span> result = Image.init(allocator);</span>
+<span class="line" id="L175">    <span class="tok-kw">errdefer</span> result.deinit();</span>
+<span class="line" id="L176"></span>
+<span class="line" id="L177">    result.width = header.width;</span>
+<span class="line" id="L178">    result.height = header.height;</span>
+<span class="line" id="L179">    result.pixels = <span class="tok-kw">try</span> loadWithHeader(stream, &amp;header, allocator, options);</span>
+<span class="line" id="L180"></span>
+<span class="line" id="L181">    <span class="tok-kw">return</span> result;</span>
+<span class="line" id="L182">}</span>
+<span class="line" id="L183"></span>
+<span class="line" id="L184"><span class="tok-comment">/// Loads the png image for which the header has already been loaded.</span></span>
+<span class="line" id="L185"><span class="tok-comment">/// For options param description look at the load method docs.</span></span>
+<span class="line" id="L186"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">loadWithHeader</span>(</span>
+<span class="line" id="L187">    stream: *Image.Stream,</span>
+<span class="line" id="L188">    header: *<span class="tok-kw">const</span> png.HeaderData,</span>
+<span class="line" id="L189">    allocator: Allocator,</span>
+<span class="line" id="L190">    in_options: ReaderOptions,</span>
+<span class="line" id="L191">) Image.ReadError!PixelStorage {</span>
+<span class="line" id="L192">    <span class="tok-kw">var</span> buffered_stream = buffered_stream_source.bufferedStreamSourceReader(stream);</span>
+<span class="line" id="L193">    <span class="tok-kw">var</span> options = in_options;</span>
+<span class="line" id="L194">    <span class="tok-kw">var</span> temp_allocator = options.temp_allocator;</span>
+<span class="line" id="L195">    <span class="tok-kw">if</span> (temp_allocator.vtable == &amp;NoopAllocator) {</span>
+<span class="line" id="L196">        temp_allocator = allocator;</span>
+<span class="line" id="L197">    }</span>
+<span class="line" id="L198"></span>
+<span class="line" id="L199">    <span class="tok-kw">var</span> arena_allocator = std.heap.ArenaAllocator.init(temp_allocator);</span>
+<span class="line" id="L200">    <span class="tok-kw">defer</span> arena_allocator.deinit();</span>
+<span class="line" id="L201">    options.temp_allocator = arena_allocator.allocator();</span>
+<span class="line" id="L202"></span>
+<span class="line" id="L203">    <span class="tok-kw">var</span> palette: []color.Rgb24 = &amp;[_]color.Rgb24{};</span>
+<span class="line" id="L204">    <span class="tok-kw">var</span> data_found = <span class="tok-null">false</span>;</span>
+<span class="line" id="L205">    <span class="tok-kw">var</span> result: PixelStorage = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L206"></span>
+<span class="line" id="L207">    <span class="tok-kw">var</span> chunk_process_data = ChunkProcessData{</span>
+<span class="line" id="L208">        .stream = &amp;buffered_stream,</span>
+<span class="line" id="L209">        .chunk_id = png.Chunks.IHDR.id,</span>
+<span class="line" id="L210">        .chunk_length = <span class="tok-builtin">@sizeOf</span>(png.HeaderData),</span>
+<span class="line" id="L211">        .current_format = header.getPixelFormat(),</span>
+<span class="line" id="L212">        .header = header,</span>
+<span class="line" id="L213">        .temp_allocator = options.temp_allocator,</span>
+<span class="line" id="L214">    };</span>
+<span class="line" id="L215">    <span class="tok-kw">try</span> callChunkProcessors(options.processors, &amp;chunk_process_data);</span>
+<span class="line" id="L216"></span>
+<span class="line" id="L217">    <span class="tok-kw">var</span> reader = buffered_stream.reader();</span>
+<span class="line" id="L218"></span>
+<span class="line" id="L219">    <span class="tok-kw">while</span> (<span class="tok-null">true</span>) {</span>
+<span class="line" id="L220">        <span class="tok-kw">const</span> chunk = (<span class="tok-kw">try</span> utils.readStruct(reader, png.ChunkHeader, .big));</span>
+<span class="line" id="L221">        chunk_process_data.chunk_id = chunk.<span class="tok-type">type</span>;</span>
+<span class="line" id="L222">        chunk_process_data.chunk_length = chunk.length;</span>
+<span class="line" id="L223"></span>
+<span class="line" id="L224">        <span class="tok-kw">switch</span> (chunk.<span class="tok-type">type</span>) {</span>
+<span class="line" id="L225">            png.Chunks.IHDR.id =&gt; {</span>
+<span class="line" id="L226">                <span class="tok-kw">return</span> Image.ReadError.InvalidData; <span class="tok-comment">// We already processed IHDR so another one is an error</span>
+</span>
+<span class="line" id="L227">            },</span>
+<span class="line" id="L228">            png.Chunks.IEND.id =&gt; {</span>
+<span class="line" id="L229">                <span class="tok-kw">if</span> (!data_found) <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L230">                _ = <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u32</span>, .big); <span class="tok-comment">// Read and ignore the crc</span>
+</span>
+<span class="line" id="L231">                <span class="tok-kw">try</span> callChunkProcessors(options.processors, &amp;chunk_process_data);</span>
+<span class="line" id="L232">                <span class="tok-kw">return</span> result;</span>
+<span class="line" id="L233">            },</span>
+<span class="line" id="L234">            png.Chunks.IDAT.id =&gt; {</span>
+<span class="line" id="L235">                <span class="tok-kw">if</span> (data_found) <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L236">                <span class="tok-kw">if</span> (header.color_type == .indexed <span class="tok-kw">and</span> palette.len == <span class="tok-number">0</span>) {</span>
+<span class="line" id="L237">                    <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L238">                }</span>
+<span class="line" id="L239">                result = <span class="tok-kw">try</span> readAllData(&amp;buffered_stream, header, palette, allocator, &amp;options, &amp;chunk_process_data);</span>
+<span class="line" id="L240">                data_found = <span class="tok-null">true</span>;</span>
+<span class="line" id="L241">            },</span>
+<span class="line" id="L242">            png.Chunks.PLTE.id =&gt; {</span>
+<span class="line" id="L243">                <span class="tok-kw">if</span> (!header.allowsPalette()) <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L244">                <span class="tok-kw">if</span> (palette.len &gt; <span class="tok-number">0</span>) <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L245">                <span class="tok-comment">// We ignore if tRNS is already found</span>
+</span>
+<span class="line" id="L246">                <span class="tok-kw">if</span> (data_found) {</span>
+<span class="line" id="L247">                    <span class="tok-comment">// If IDAT was already processed we skip and ignore this palette</span>
+</span>
+<span class="line" id="L248">                    <span class="tok-kw">try</span> buffered_stream.seekBy(chunk.length + <span class="tok-builtin">@sizeOf</span>(<span class="tok-type">u32</span>));</span>
+<span class="line" id="L249">                } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L250">                    <span class="tok-kw">if</span> (chunk.length % <span class="tok-number">3</span> != <span class="tok-number">0</span>) <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L251">                    <span class="tok-kw">const</span> palette_entries = chunk.length / <span class="tok-number">3</span>;</span>
+<span class="line" id="L252">                    <span class="tok-kw">if</span> (palette_entries &gt; header.maxPaletteSize()) {</span>
+<span class="line" id="L253">                        <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L254">                    }</span>
+<span class="line" id="L255">                    palette = <span class="tok-kw">try</span> options.temp_allocator.alloc(color.Rgb24, palette_entries);</span>
+<span class="line" id="L256">                    <span class="tok-kw">const</span> palette_bytes = mem.sliceAsBytes(palette);</span>
+<span class="line" id="L257">                    <span class="tok-kw">try</span> reader.readNoEof(palette_bytes);</span>
+<span class="line" id="L258"></span>
+<span class="line" id="L259">                    <span class="tok-kw">const</span> expected_crc = <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u32</span>, .big);</span>
+<span class="line" id="L260">                    <span class="tok-kw">var</span> crc = Crc32.init();</span>
+<span class="line" id="L261">                    crc.update(png.Chunks.PLTE.name);</span>
+<span class="line" id="L262">                    crc.update(palette_bytes);</span>
+<span class="line" id="L263">                    <span class="tok-kw">const</span> actual_crc = crc.final();</span>
+<span class="line" id="L264">                    <span class="tok-kw">if</span> (expected_crc != actual_crc) <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L265">                    <span class="tok-kw">try</span> callChunkProcessors(options.processors, &amp;chunk_process_data);</span>
+<span class="line" id="L266">                }</span>
+<span class="line" id="L267">            },</span>
+<span class="line" id="L268">            <span class="tok-kw">else</span> =&gt; {</span>
+<span class="line" id="L269">                <span class="tok-kw">try</span> callChunkProcessors(options.processors, &amp;chunk_process_data);</span>
+<span class="line" id="L270">            },</span>
+<span class="line" id="L271">        }</span>
+<span class="line" id="L272">    }</span>
+<span class="line" id="L273">}</span>
+<span class="line" id="L274"></span>
+<span class="line" id="L275"><span class="tok-kw">fn</span> <span class="tok-fn">readAllData</span>(</span>
+<span class="line" id="L276">    buffered_stream: *buffered_stream_source.DefaultBufferedStreamSourceReader,</span>
+<span class="line" id="L277">    header: *<span class="tok-kw">const</span> png.HeaderData,</span>
+<span class="line" id="L278">    palette: []color.Rgb24,</span>
+<span class="line" id="L279">    allocator: Allocator,</span>
+<span class="line" id="L280">    options: *<span class="tok-kw">const</span> ReaderOptions,</span>
+<span class="line" id="L281">    chunk_process_data: *ChunkProcessData,</span>
+<span class="line" id="L282">) Image.ReadError!PixelStorage {</span>
+<span class="line" id="L283">    <span class="tok-kw">const</span> native_endian = <span class="tok-kw">comptime</span> <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;builtin&quot;</span>).cpu.arch.endian();</span>
+<span class="line" id="L284">    <span class="tok-kw">const</span> is_little_endian = native_endian == .little;</span>
+<span class="line" id="L285">    <span class="tok-kw">const</span> width = header.width;</span>
+<span class="line" id="L286">    <span class="tok-kw">const</span> height = header.height;</span>
+<span class="line" id="L287">    <span class="tok-kw">const</span> channel_count = header.channelCount();</span>
+<span class="line" id="L288">    <span class="tok-kw">const</span> dest_format = chunk_process_data.current_format;</span>
+<span class="line" id="L289">    <span class="tok-kw">var</span> result = <span class="tok-kw">try</span> PixelStorage.init(allocator, dest_format, width * height);</span>
+<span class="line" id="L290">    <span class="tok-kw">errdefer</span> result.deinit(allocator);</span>
+<span class="line" id="L291">    <span class="tok-kw">var</span> idat_chunks_reader = IDatChunksReader.init(buffered_stream, options.processors, chunk_process_data);</span>
+<span class="line" id="L292">    <span class="tok-kw">const</span> idat_reader: IDATReader = .{ .context = &amp;idat_chunks_reader };</span>
+<span class="line" id="L293">    <span class="tok-kw">var</span> decompress_stream = std.compress.zlib.decompressStream(options.temp_allocator, idat_reader) <span class="tok-kw">catch</span> |err| <span class="tok-kw">switch</span> (err) {</span>
+<span class="line" id="L294">        <span class="tok-kw">error</span>.BadHeader, <span class="tok-kw">error</span>.InvalidCompression, <span class="tok-kw">error</span>.InvalidWindowSize =&gt; <span class="tok-kw">return</span> Image.ReadError.InvalidData,</span>
+<span class="line" id="L295">        <span class="tok-kw">else</span> =&gt; |leftover_err| <span class="tok-kw">return</span> leftover_err,</span>
+<span class="line" id="L296">    };</span>
+<span class="line" id="L297">    <span class="tok-kw">defer</span> decompress_stream.deinit();</span>
+<span class="line" id="L298"></span>
+<span class="line" id="L299">    <span class="tok-kw">if</span> (palette.len &gt; <span class="tok-number">0</span>) {</span>
+<span class="line" id="L300">        <span class="tok-kw">var</span> destination_palette = <span class="tok-kw">if</span> (result.getPalette()) |result_palette|</span>
+<span class="line" id="L301">            result_palette</span>
+<span class="line" id="L302">        <span class="tok-kw">else</span></span>
+<span class="line" id="L303">            <span class="tok-kw">try</span> options.temp_allocator.alloc(color.Rgba32, palette.len);</span>
+<span class="line" id="L304">        <span class="tok-kw">for</span> (palette, <span class="tok-number">0</span>..) |entry, n| {</span>
+<span class="line" id="L305">            destination_palette[n] = color.Rgba32.initRgb(entry.r, entry.g, entry.b);</span>
+<span class="line" id="L306">        }</span>
+<span class="line" id="L307">        <span class="tok-kw">try</span> callPaletteProcessors(options, destination_palette);</span>
+<span class="line" id="L308">    }</span>
+<span class="line" id="L309"></span>
+<span class="line" id="L310">    <span class="tok-kw">var</span> destination = result.asBytes();</span>
+<span class="line" id="L311"></span>
+<span class="line" id="L312">    <span class="tok-comment">// For defiltering we need to keep two rows in memory so we allocate space for that</span>
+</span>
+<span class="line" id="L313">    <span class="tok-kw">const</span> filter_stride = (header.bit_depth + <span class="tok-number">7</span>) / <span class="tok-number">8</span> * channel_count; <span class="tok-comment">// 1 to 8 bytes</span>
+</span>
+<span class="line" id="L314">    <span class="tok-kw">const</span> line_bytes = header.lineBytes();</span>
+<span class="line" id="L315">    <span class="tok-kw">const</span> virtual_line_bytes = line_bytes + filter_stride;</span>
+<span class="line" id="L316">    <span class="tok-kw">const</span> result_line_bytes: <span class="tok-type">u32</span> = <span class="tok-builtin">@intCast</span>(destination.len / height);</span>
+<span class="line" id="L317">    <span class="tok-kw">var</span> tmpbytes = <span class="tok-number">2</span> * virtual_line_bytes;</span>
+<span class="line" id="L318">    <span class="tok-comment">// For deinterlacing we also need one additional temporary row of resulting pixels</span>
+</span>
+<span class="line" id="L319">    <span class="tok-kw">if</span> (header.interlace_method == .adam7) {</span>
+<span class="line" id="L320">        tmpbytes += result_line_bytes;</span>
+<span class="line" id="L321">    }</span>
+<span class="line" id="L322">    <span class="tok-kw">var</span> temp_allocator = <span class="tok-kw">if</span> (tmpbytes &lt; <span class="tok-number">128</span> * <span class="tok-number">1024</span>) options.temp_allocator <span class="tok-kw">else</span> allocator;</span>
+<span class="line" id="L323">    <span class="tok-kw">var</span> tmp_buffer = <span class="tok-kw">try</span> temp_allocator.alloc(<span class="tok-type">u8</span>, tmpbytes);</span>
+<span class="line" id="L324">    <span class="tok-kw">defer</span> temp_allocator.free(tmp_buffer);</span>
+<span class="line" id="L325">    <span class="tok-builtin">@memset</span>(tmp_buffer, <span class="tok-number">0</span>);</span>
+<span class="line" id="L326">    <span class="tok-kw">var</span> prev_row = tmp_buffer[<span class="tok-number">0</span>..virtual_line_bytes];</span>
+<span class="line" id="L327">    <span class="tok-kw">var</span> current_row = tmp_buffer[virtual_line_bytes .. <span class="tok-number">2</span> * virtual_line_bytes];</span>
+<span class="line" id="L328">    <span class="tok-kw">const</span> pixel_stride: <span class="tok-type">u8</span> = <span class="tok-builtin">@intCast</span>(result_line_bytes / width);</span>
+<span class="line" id="L329">    std.debug.assert(pixel_stride == dest_format.pixelStride());</span>
+<span class="line" id="L330"></span>
+<span class="line" id="L331">    <span class="tok-kw">var</span> process_row_data = RowProcessData{</span>
+<span class="line" id="L332">        .dest_row = <span class="tok-null">undefined</span>,</span>
+<span class="line" id="L333">        .src_format = header.getPixelFormat(),</span>
+<span class="line" id="L334">        .dest_format = dest_format,</span>
+<span class="line" id="L335">        .header = header,</span>
+<span class="line" id="L336">        .temp_allocator = options.temp_allocator,</span>
+<span class="line" id="L337">    };</span>
+<span class="line" id="L338"></span>
+<span class="line" id="L339">    <span class="tok-kw">var</span> decompress_reader = decompress_stream.reader();</span>
+<span class="line" id="L340"></span>
+<span class="line" id="L341">    <span class="tok-kw">if</span> (header.interlace_method == .none) {</span>
+<span class="line" id="L342">        <span class="tok-kw">var</span> i: <span class="tok-type">u32</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L343">        <span class="tok-kw">while</span> (i &lt; height) : (i += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L344">            decompress_reader.readNoEof(current_row[filter_stride - <span class="tok-number">1</span> ..]) <span class="tok-kw">catch</span> |err| <span class="tok-kw">switch</span> (err) {</span>
+<span class="line" id="L345">                <span class="tok-kw">error</span>.CorruptInput, <span class="tok-kw">error</span>.BadInternalState, <span class="tok-kw">error</span>.BadReaderState, <span class="tok-kw">error</span>.UnexpectedEndOfStream, <span class="tok-kw">error</span>.EndOfStreamWithNoError, <span class="tok-kw">error</span>.WrongChecksum =&gt; <span class="tok-kw">return</span> Image.ReadError.InvalidData,</span>
+<span class="line" id="L346">                <span class="tok-kw">else</span> =&gt; |leftover_err| <span class="tok-kw">return</span> leftover_err,</span>
+<span class="line" id="L347">            };</span>
+<span class="line" id="L348">            <span class="tok-kw">try</span> defilter(current_row, prev_row, filter_stride);</span>
+<span class="line" id="L349"></span>
+<span class="line" id="L350">            process_row_data.dest_row = destination[<span class="tok-number">0</span>..result_line_bytes];</span>
+<span class="line" id="L351">            destination = destination[result_line_bytes..];</span>
+<span class="line" id="L352"></span>
+<span class="line" id="L353">            <span class="tok-comment">// Spreads the data into a destination format pixel stride so that all callRowProcessors methods can work in place</span>
+</span>
+<span class="line" id="L354">            spreadRowData(</span>
+<span class="line" id="L355">                process_row_data.dest_row,</span>
+<span class="line" id="L356">                current_row[filter_stride..],</span>
+<span class="line" id="L357">                header.bit_depth,</span>
+<span class="line" id="L358">                channel_count,</span>
+<span class="line" id="L359">                pixel_stride,</span>
+<span class="line" id="L360">                is_little_endian,</span>
+<span class="line" id="L361">            );</span>
+<span class="line" id="L362"></span>
+<span class="line" id="L363">            <span class="tok-kw">const</span> result_format = <span class="tok-kw">try</span> callRowProcessors(options.processors, &amp;process_row_data);</span>
+<span class="line" id="L364">            <span class="tok-kw">if</span> (result_format != dest_format) <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L365"></span>
+<span class="line" id="L366">            <span class="tok-kw">const</span> tmp = prev_row;</span>
+<span class="line" id="L367">            prev_row = current_row;</span>
+<span class="line" id="L368">            current_row = tmp;</span>
+<span class="line" id="L369">        }</span>
+<span class="line" id="L370">    } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L371">        <span class="tok-kw">const</span> start_x = [<span class="tok-number">7</span>]<span class="tok-type">u8</span>{ <span class="tok-number">0</span>, <span class="tok-number">4</span>, <span class="tok-number">0</span>, <span class="tok-number">2</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">0</span> };</span>
+<span class="line" id="L372">        <span class="tok-kw">const</span> start_y = [<span class="tok-number">7</span>]<span class="tok-type">u8</span>{ <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">4</span>, <span class="tok-number">0</span>, <span class="tok-number">2</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span> };</span>
+<span class="line" id="L373">        <span class="tok-kw">const</span> xinc = [<span class="tok-number">7</span>]<span class="tok-type">u8</span>{ <span class="tok-number">8</span>, <span class="tok-number">8</span>, <span class="tok-number">4</span>, <span class="tok-number">4</span>, <span class="tok-number">2</span>, <span class="tok-number">2</span>, <span class="tok-number">1</span> };</span>
+<span class="line" id="L374">        <span class="tok-kw">const</span> yinc = [<span class="tok-number">7</span>]<span class="tok-type">u8</span>{ <span class="tok-number">8</span>, <span class="tok-number">8</span>, <span class="tok-number">8</span>, <span class="tok-number">4</span>, <span class="tok-number">4</span>, <span class="tok-number">2</span>, <span class="tok-number">2</span> };</span>
+<span class="line" id="L375">        <span class="tok-kw">const</span> pass_width = [<span class="tok-number">7</span>]<span class="tok-type">u32</span>{</span>
+<span class="line" id="L376">            (width + <span class="tok-number">7</span>) / <span class="tok-number">8</span>,</span>
+<span class="line" id="L377">            (width + <span class="tok-number">3</span>) / <span class="tok-number">8</span>,</span>
+<span class="line" id="L378">            (width + <span class="tok-number">3</span>) / <span class="tok-number">4</span>,</span>
+<span class="line" id="L379">            (width + <span class="tok-number">1</span>) / <span class="tok-number">4</span>,</span>
+<span class="line" id="L380">            (width + <span class="tok-number">1</span>) / <span class="tok-number">2</span>,</span>
+<span class="line" id="L381">            width / <span class="tok-number">2</span>,</span>
+<span class="line" id="L382">            width,</span>
+<span class="line" id="L383">        };</span>
+<span class="line" id="L384">        <span class="tok-kw">const</span> pass_height = [<span class="tok-number">7</span>]<span class="tok-type">u32</span>{</span>
+<span class="line" id="L385">            (height + <span class="tok-number">7</span>) / <span class="tok-number">8</span>,</span>
+<span class="line" id="L386">            (height + <span class="tok-number">7</span>) / <span class="tok-number">8</span>,</span>
+<span class="line" id="L387">            (height + <span class="tok-number">3</span>) / <span class="tok-number">8</span>,</span>
+<span class="line" id="L388">            (height + <span class="tok-number">3</span>) / <span class="tok-number">4</span>,</span>
+<span class="line" id="L389">            (height + <span class="tok-number">1</span>) / <span class="tok-number">4</span>,</span>
+<span class="line" id="L390">            (height + <span class="tok-number">1</span>) / <span class="tok-number">2</span>,</span>
+<span class="line" id="L391">            height / <span class="tok-number">2</span>,</span>
+<span class="line" id="L392">        };</span>
+<span class="line" id="L393">        <span class="tok-kw">const</span> pixel_bits = header.pixelBits();</span>
+<span class="line" id="L394">        <span class="tok-kw">const</span> deinterlace_bit_depth: <span class="tok-type">u8</span> = <span class="tok-kw">if</span> (header.bit_depth &lt;= <span class="tok-number">8</span>) <span class="tok-number">8</span> <span class="tok-kw">else</span> <span class="tok-number">16</span>;</span>
+<span class="line" id="L395">        <span class="tok-kw">var</span> dest_row = tmp_buffer[virtual_line_bytes * <span class="tok-number">2</span> ..];</span>
+<span class="line" id="L396"></span>
+<span class="line" id="L397">        <span class="tok-kw">var</span> pass: <span class="tok-type">u32</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L398">        <span class="tok-kw">while</span> (pass &lt; <span class="tok-number">7</span>) : (pass += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L399">            <span class="tok-kw">if</span> (pass_width[pass] == <span class="tok-number">0</span> <span class="tok-kw">or</span> pass_height[pass] == <span class="tok-number">0</span>) {</span>
+<span class="line" id="L400">                <span class="tok-kw">continue</span>;</span>
+<span class="line" id="L401">            }</span>
+<span class="line" id="L402">            <span class="tok-kw">const</span> pass_bytes = (pixel_bits * pass_width[pass] + <span class="tok-number">7</span>) / <span class="tok-number">8</span>;</span>
+<span class="line" id="L403">            <span class="tok-kw">const</span> pass_length = pass_bytes + filter_stride;</span>
+<span class="line" id="L404">            <span class="tok-kw">const</span> result_pass_line_bytes = pixel_stride * pass_width[pass];</span>
+<span class="line" id="L405">            <span class="tok-kw">const</span> deinterlace_stride = xinc[pass] * pixel_stride;</span>
+<span class="line" id="L406">            <span class="tok-builtin">@memset</span>(prev_row, <span class="tok-number">0</span>);</span>
+<span class="line" id="L407">            <span class="tok-kw">const</span> destx = start_x[pass] * pixel_stride;</span>
+<span class="line" id="L408">            <span class="tok-kw">var</span> desty = start_y[pass];</span>
+<span class="line" id="L409">            <span class="tok-kw">var</span> y: <span class="tok-type">u32</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L410">            <span class="tok-kw">while</span> (y &lt; pass_height[pass]) : (y += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L411">                decompress_reader.readNoEof(current_row[filter_stride - <span class="tok-number">1</span> .. pass_length]) <span class="tok-kw">catch</span> |err| <span class="tok-kw">switch</span> (err) {</span>
+<span class="line" id="L412">                    <span class="tok-kw">error</span>.CorruptInput, <span class="tok-kw">error</span>.BadInternalState, <span class="tok-kw">error</span>.BadReaderState, <span class="tok-kw">error</span>.UnexpectedEndOfStream, <span class="tok-kw">error</span>.EndOfStreamWithNoError, <span class="tok-kw">error</span>.WrongChecksum =&gt; <span class="tok-kw">return</span> Image.ReadError.InvalidData,</span>
+<span class="line" id="L413">                    <span class="tok-kw">else</span> =&gt; |leftover_err| <span class="tok-kw">return</span> leftover_err,</span>
+<span class="line" id="L414">                };</span>
+<span class="line" id="L415">                <span class="tok-kw">try</span> defilter(current_row[<span class="tok-number">0</span>..pass_length], prev_row[<span class="tok-number">0</span>..pass_length], filter_stride);</span>
+<span class="line" id="L416"></span>
+<span class="line" id="L417">                process_row_data.dest_row = dest_row[<span class="tok-number">0</span>..result_pass_line_bytes];</span>
+<span class="line" id="L418"></span>
+<span class="line" id="L419">                <span class="tok-comment">// Spreads the data into a destination format pixel stride so that all callRowProcessors methods can work in place</span>
+</span>
+<span class="line" id="L420">                spreadRowData(</span>
+<span class="line" id="L421">                    process_row_data.dest_row,</span>
+<span class="line" id="L422">                    current_row[filter_stride..],</span>
+<span class="line" id="L423">                    header.bit_depth,</span>
+<span class="line" id="L424">                    channel_count,</span>
+<span class="line" id="L425">                    pixel_stride,</span>
+<span class="line" id="L426">                    is_little_endian,</span>
+<span class="line" id="L427">                );</span>
+<span class="line" id="L428"></span>
+<span class="line" id="L429">                <span class="tok-kw">const</span> result_format = <span class="tok-kw">try</span> callRowProcessors(options.processors, &amp;process_row_data);</span>
+<span class="line" id="L430">                <span class="tok-kw">if</span> (result_format != dest_format) <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L431"></span>
+<span class="line" id="L432">                <span class="tok-kw">const</span> line_start_index = desty * result_line_bytes;</span>
+<span class="line" id="L433">                <span class="tok-kw">const</span> start_byte = line_start_index + destx;</span>
+<span class="line" id="L434">                <span class="tok-kw">const</span> end_byte = line_start_index + result_line_bytes;</span>
+<span class="line" id="L435">                <span class="tok-comment">// This spread does the actual deinterlacing of the row</span>
+</span>
+<span class="line" id="L436">                spreadRowData(</span>
+<span class="line" id="L437">                    destination[start_byte..end_byte],</span>
+<span class="line" id="L438">                    process_row_data.dest_row,</span>
+<span class="line" id="L439">                    deinterlace_bit_depth,</span>
+<span class="line" id="L440">                    result_format.channelCount(),</span>
+<span class="line" id="L441">                    deinterlace_stride,</span>
+<span class="line" id="L442">                    <span class="tok-null">false</span>,</span>
+<span class="line" id="L443">                );</span>
+<span class="line" id="L444"></span>
+<span class="line" id="L445">                desty += yinc[pass];</span>
+<span class="line" id="L446"></span>
+<span class="line" id="L447">                <span class="tok-kw">const</span> tmp = prev_row;</span>
+<span class="line" id="L448">                prev_row = current_row;</span>
+<span class="line" id="L449">                current_row = tmp;</span>
+<span class="line" id="L450">            }</span>
+<span class="line" id="L451">        }</span>
+<span class="line" id="L452">    }</span>
+<span class="line" id="L453"></span>
+<span class="line" id="L454">    <span class="tok-comment">// Just make sure zip stream gets to its end</span>
+</span>
+<span class="line" id="L455">    <span class="tok-kw">var</span> buf: [<span class="tok-number">8</span>]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L456">    <span class="tok-kw">const</span> shouldBeZero = decompress_stream.read(buf[<span class="tok-number">0</span>..]) <span class="tok-kw">catch</span> |err| <span class="tok-kw">switch</span> (err) {</span>
+<span class="line" id="L457">        <span class="tok-kw">error</span>.CorruptInput, <span class="tok-kw">error</span>.BadInternalState, <span class="tok-kw">error</span>.BadReaderState, <span class="tok-kw">error</span>.UnexpectedEndOfStream, <span class="tok-kw">error</span>.EndOfStreamWithNoError, <span class="tok-kw">error</span>.WrongChecksum =&gt; <span class="tok-kw">return</span> Image.ReadError.InvalidData,</span>
+<span class="line" id="L458">        <span class="tok-kw">else</span> =&gt; |leftover_err| <span class="tok-kw">return</span> leftover_err,</span>
+<span class="line" id="L459">    };</span>
+<span class="line" id="L460"></span>
+<span class="line" id="L461">    std.debug.assert(shouldBeZero == <span class="tok-number">0</span>);</span>
+<span class="line" id="L462"></span>
+<span class="line" id="L463">    <span class="tok-kw">return</span> result;</span>
+<span class="line" id="L464">}</span>
+<span class="line" id="L465"></span>
+<span class="line" id="L466"><span class="tok-kw">fn</span> <span class="tok-fn">callPaletteProcessors</span>(options: *<span class="tok-kw">const</span> ReaderOptions, palette: []color.Rgba32) Image.ReadError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L467">    <span class="tok-kw">var</span> process_data = PaletteProcessData{ .palette = palette, .temp_allocator = options.temp_allocator };</span>
+<span class="line" id="L468">    <span class="tok-kw">for</span> (options.processors) |*processor| {</span>
+<span class="line" id="L469">        <span class="tok-kw">try</span> processor.processPalette(&amp;process_data);</span>
+<span class="line" id="L470">    }</span>
+<span class="line" id="L471">}</span>
+<span class="line" id="L472"></span>
+<span class="line" id="L473"><span class="tok-kw">fn</span> <span class="tok-fn">defilter</span>(current_row: []<span class="tok-type">u8</span>, prev_row: []<span class="tok-type">u8</span>, filter_stride: <span class="tok-type">u8</span>) Image.ReadError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L474">    <span class="tok-kw">const</span> filter_byte = current_row[filter_stride - <span class="tok-number">1</span>];</span>
+<span class="line" id="L475">    <span class="tok-kw">if</span> (filter_byte &gt; <span class="tok-builtin">@intFromEnum</span>(png.FilterType.paeth)) {</span>
+<span class="line" id="L476">        <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L477">    }</span>
+<span class="line" id="L478">    <span class="tok-kw">const</span> filter: png.FilterType = <span class="tok-builtin">@enumFromInt</span>(filter_byte);</span>
+<span class="line" id="L479">    current_row[filter_stride - <span class="tok-number">1</span>] = <span class="tok-number">0</span>;</span>
+<span class="line" id="L480"></span>
+<span class="line" id="L481">    <span class="tok-kw">var</span> x: <span class="tok-type">u32</span> = filter_stride;</span>
+<span class="line" id="L482">    <span class="tok-kw">switch</span> (filter) {</span>
+<span class="line" id="L483">        .none =&gt; {},</span>
+<span class="line" id="L484">        .sub =&gt; <span class="tok-kw">while</span> (x &lt; current_row.len) : (x += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L485">            current_row[x] +%= current_row[x - filter_stride];</span>
+<span class="line" id="L486">        },</span>
+<span class="line" id="L487">        .up =&gt; <span class="tok-kw">while</span> (x &lt; current_row.len) : (x += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L488">            current_row[x] +%= prev_row[x];</span>
+<span class="line" id="L489">        },</span>
+<span class="line" id="L490">        .average =&gt; <span class="tok-kw">while</span> (x &lt; current_row.len) : (x += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L491">            current_row[x] +%= <span class="tok-builtin">@truncate</span>((<span class="tok-builtin">@as</span>(<span class="tok-type">u32</span>, <span class="tok-builtin">@intCast</span>(current_row[x - filter_stride])) + <span class="tok-builtin">@as</span>(<span class="tok-type">u32</span>, <span class="tok-builtin">@intCast</span>(prev_row[x]))) / <span class="tok-number">2</span>);</span>
+<span class="line" id="L492">        },</span>
+<span class="line" id="L493">        .paeth =&gt; <span class="tok-kw">while</span> (x &lt; current_row.len) : (x += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L494">            <span class="tok-kw">const</span> a = current_row[x - filter_stride];</span>
+<span class="line" id="L495">            <span class="tok-kw">const</span> b = prev_row[x];</span>
+<span class="line" id="L496">            <span class="tok-kw">const</span> c = prev_row[x - filter_stride];</span>
+<span class="line" id="L497">            <span class="tok-kw">var</span> pa: <span class="tok-type">i32</span> = <span class="tok-builtin">@as</span>(<span class="tok-type">i32</span>, <span class="tok-builtin">@intCast</span>(b)) - c;</span>
+<span class="line" id="L498">            <span class="tok-kw">var</span> pb: <span class="tok-type">i32</span> = <span class="tok-builtin">@as</span>(<span class="tok-type">i32</span>, <span class="tok-builtin">@intCast</span>(a)) - c;</span>
+<span class="line" id="L499">            <span class="tok-kw">var</span> pc: <span class="tok-type">i32</span> = pa + pb;</span>
+<span class="line" id="L500">            <span class="tok-kw">if</span> (pa &lt; <span class="tok-number">0</span>) pa = -pa;</span>
+<span class="line" id="L501">            <span class="tok-kw">if</span> (pb &lt; <span class="tok-number">0</span>) pb = -pb;</span>
+<span class="line" id="L502">            <span class="tok-kw">if</span> (pc &lt; <span class="tok-number">0</span>) pc = -pc;</span>
+<span class="line" id="L503">            <span class="tok-comment">// zig fmt: off</span>
+</span>
+<span class="line" id="L504">            current_row[x] +%= <span class="tok-kw">if</span> (pa &lt;= pb <span class="tok-kw">and</span> pa &lt;= pc) a</span>
+<span class="line" id="L505">                                <span class="tok-kw">else</span> <span class="tok-kw">if</span> (pb &lt;= pc) b</span>
+<span class="line" id="L506">                                <span class="tok-kw">else</span> c;</span>
+<span class="line" id="L507">            <span class="tok-comment">// zig fmt: on</span>
+</span>
+<span class="line" id="L508">        },</span>
+<span class="line" id="L509">    }</span>
+<span class="line" id="L510">}</span>
+<span class="line" id="L511"></span>
+<span class="line" id="L512"><span class="tok-kw">fn</span> <span class="tok-fn">spreadRowData</span>(</span>
+<span class="line" id="L513">    dest_row: []<span class="tok-type">u8</span>,</span>
+<span class="line" id="L514">    current_row: []<span class="tok-type">u8</span>,</span>
+<span class="line" id="L515">    bit_depth: <span class="tok-type">u8</span>,</span>
+<span class="line" id="L516">    channel_count: <span class="tok-type">u8</span>,</span>
+<span class="line" id="L517">    pixel_stride: <span class="tok-type">u8</span>,</span>
+<span class="line" id="L518">    <span class="tok-kw">comptime</span> byteswap: <span class="tok-type">bool</span>,</span>
+<span class="line" id="L519">) <span class="tok-type">void</span> {</span>
+<span class="line" id="L520">    <span class="tok-kw">var</span> dest_index: <span class="tok-type">u32</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L521">    <span class="tok-kw">var</span> source_index: <span class="tok-type">u32</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L522">    <span class="tok-kw">const</span> result_line_bytes = dest_row.len;</span>
+<span class="line" id="L523">    <span class="tok-kw">switch</span> (bit_depth) {</span>
+<span class="line" id="L524">        <span class="tok-number">1</span>, <span class="tok-number">2</span>, <span class="tok-number">4</span> =&gt; {</span>
+<span class="line" id="L525">            <span class="tok-kw">while</span> (dest_index &lt; result_line_bytes) {</span>
+<span class="line" id="L526">                <span class="tok-comment">// color_type must be Grayscale or Indexed</span>
+</span>
+<span class="line" id="L527">                <span class="tok-kw">var</span> shift: <span class="tok-type">i4</span> = <span class="tok-builtin">@intCast</span>(<span class="tok-number">8</span> - bit_depth);</span>
+<span class="line" id="L528">                <span class="tok-kw">var</span> mask = <span class="tok-builtin">@as</span>(<span class="tok-type">u8</span>, <span class="tok-number">0xff</span>) &lt;&lt; <span class="tok-builtin">@intCast</span>(shift);</span>
+<span class="line" id="L529">                <span class="tok-kw">while</span> (shift &gt;= <span class="tok-number">0</span> <span class="tok-kw">and</span> dest_index &lt; result_line_bytes) : (shift -= <span class="tok-builtin">@as</span>(<span class="tok-type">i4</span>, <span class="tok-builtin">@intCast</span>(bit_depth))) {</span>
+<span class="line" id="L530">                    dest_row[dest_index] = (current_row[source_index] &amp; mask) &gt;&gt; <span class="tok-builtin">@as</span>(<span class="tok-type">u3</span>, <span class="tok-builtin">@intCast</span>(shift));</span>
+<span class="line" id="L531">                    dest_index += pixel_stride;</span>
+<span class="line" id="L532">                    mask &gt;&gt;= <span class="tok-builtin">@intCast</span>(bit_depth);</span>
+<span class="line" id="L533">                }</span>
+<span class="line" id="L534">                source_index += <span class="tok-number">1</span>;</span>
+<span class="line" id="L535">            }</span>
+<span class="line" id="L536">        },</span>
+<span class="line" id="L537">        <span class="tok-number">8</span> =&gt; {</span>
+<span class="line" id="L538">            <span class="tok-kw">while</span> (dest_index &lt; result_line_bytes) : (dest_index += pixel_stride) {</span>
+<span class="line" id="L539">                <span class="tok-kw">var</span> c: <span class="tok-type">u32</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L540">                <span class="tok-kw">while</span> (c &lt; channel_count) : (c += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L541">                    dest_row[dest_index + c] = current_row[source_index + c];</span>
+<span class="line" id="L542">                }</span>
+<span class="line" id="L543">                source_index += channel_count;</span>
+<span class="line" id="L544">            }</span>
+<span class="line" id="L545">        },</span>
+<span class="line" id="L546">        <span class="tok-number">16</span> =&gt; {</span>
+<span class="line" id="L547">            <span class="tok-kw">const</span> current_row16 = mem.bytesAsSlice(<span class="tok-type">u16</span>, current_row);</span>
+<span class="line" id="L548">            <span class="tok-kw">var</span> dest_row16 = mem.bytesAsSlice(<span class="tok-type">u16</span>, dest_row);</span>
+<span class="line" id="L549">            <span class="tok-kw">const</span> pixel_stride16 = pixel_stride / <span class="tok-number">2</span>;</span>
+<span class="line" id="L550">            source_index /= <span class="tok-number">2</span>;</span>
+<span class="line" id="L551">            <span class="tok-kw">while</span> (dest_index &lt; dest_row16.len) : (dest_index += pixel_stride16) {</span>
+<span class="line" id="L552">                <span class="tok-kw">var</span> c: <span class="tok-type">u32</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L553">                <span class="tok-kw">while</span> (c &lt; channel_count) : (c += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L554">                    <span class="tok-comment">// This is a comptime if so it is not executed in every loop</span>
+</span>
+<span class="line" id="L555">                    dest_row16[dest_index + c] = <span class="tok-kw">if</span> (byteswap) <span class="tok-builtin">@byteSwap</span>(current_row16[source_index + c]) <span class="tok-kw">else</span> current_row16[source_index + c];</span>
+<span class="line" id="L556">                }</span>
+<span class="line" id="L557">                source_index += channel_count;</span>
+<span class="line" id="L558">            }</span>
+<span class="line" id="L559">        },</span>
+<span class="line" id="L560">        <span class="tok-kw">else</span> =&gt; <span class="tok-kw">unreachable</span>,</span>
+<span class="line" id="L561">    }</span>
+<span class="line" id="L562">}</span>
+<span class="line" id="L563"></span>
+<span class="line" id="L564"><span class="tok-kw">fn</span> <span class="tok-fn">callRowProcessors</span>(processors: []ReaderProcessor, process_data: *RowProcessData) Image.ReadError!PixelFormat {</span>
+<span class="line" id="L565">    <span class="tok-kw">const</span> starting_format = process_data.src_format;</span>
+<span class="line" id="L566">    <span class="tok-kw">var</span> result_format = starting_format;</span>
+<span class="line" id="L567">    <span class="tok-kw">for</span> (processors) |*processor| {</span>
+<span class="line" id="L568">        result_format = <span class="tok-kw">try</span> processor.processDataRow(process_data);</span>
+<span class="line" id="L569">        process_data.src_format = result_format;</span>
+<span class="line" id="L570">    }</span>
+<span class="line" id="L571">    process_data.src_format = starting_format;</span>
+<span class="line" id="L572">    <span class="tok-kw">return</span> result_format;</span>
+<span class="line" id="L573">}</span>
+<span class="line" id="L574"></span>
+<span class="line" id="L575"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> ChunkProcessData = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L576">    stream: *buffered_stream_source.DefaultBufferedStreamSourceReader,</span>
+<span class="line" id="L577">    chunk_id: <span class="tok-type">u32</span>,</span>
+<span class="line" id="L578">    chunk_length: <span class="tok-type">u32</span>,</span>
+<span class="line" id="L579">    current_format: PixelFormat,</span>
+<span class="line" id="L580">    header: *<span class="tok-kw">const</span> png.HeaderData,</span>
+<span class="line" id="L581">    temp_allocator: Allocator,</span>
+<span class="line" id="L582">};</span>
+<span class="line" id="L583"></span>
+<span class="line" id="L584"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> PaletteProcessData = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L585">    palette: []color.Rgba32,</span>
+<span class="line" id="L586">    temp_allocator: Allocator,</span>
+<span class="line" id="L587">};</span>
+<span class="line" id="L588"></span>
+<span class="line" id="L589"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> RowProcessData = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L590">    dest_row: []<span class="tok-type">u8</span>,</span>
+<span class="line" id="L591">    src_format: PixelFormat,</span>
+<span class="line" id="L592">    dest_format: PixelFormat,</span>
+<span class="line" id="L593">    header: *<span class="tok-kw">const</span> png.HeaderData,</span>
+<span class="line" id="L594">    temp_allocator: Allocator,</span>
+<span class="line" id="L595">};</span>
+<span class="line" id="L596"></span>
+<span class="line" id="L597"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> ReaderProcessor = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L598">    id: <span class="tok-type">u32</span>,</span>
+<span class="line" id="L599">    context: *<span class="tok-type">anyopaque</span>,</span>
+<span class="line" id="L600">    vtable: *<span class="tok-kw">const</span> VTable,</span>
+<span class="line" id="L601"></span>
+<span class="line" id="L602">    <span class="tok-kw">const</span> VTable = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L603">        chunk_processor: ?*<span class="tok-kw">const</span> <span class="tok-kw">fn</span> (context: *<span class="tok-type">anyopaque</span>, data: *ChunkProcessData) Image.ReadError!PixelFormat,</span>
+<span class="line" id="L604">        palette_processor: ?*<span class="tok-kw">const</span> <span class="tok-kw">fn</span> (context: *<span class="tok-type">anyopaque</span>, data: *PaletteProcessData) Image.ReadError!<span class="tok-type">void</span>,</span>
+<span class="line" id="L605">        data_row_processor: ?*<span class="tok-kw">const</span> <span class="tok-kw">fn</span> (context: *<span class="tok-type">anyopaque</span>, data: *RowProcessData) Image.ReadError!PixelFormat,</span>
+<span class="line" id="L606">    };</span>
+<span class="line" id="L607"></span>
+<span class="line" id="L608">    <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L609"></span>
+<span class="line" id="L610">    <span class="tok-kw">pub</span> <span class="tok-kw">inline</span> <span class="tok-kw">fn</span> <span class="tok-fn">processChunk</span>(self: *Self, data: *ChunkProcessData) Image.ReadError!PixelFormat {</span>
+<span class="line" id="L611">        <span class="tok-kw">return</span> <span class="tok-kw">if</span> (self.vtable.chunk_processor) |cp| cp(self.context, data) <span class="tok-kw">else</span> data.current_format;</span>
+<span class="line" id="L612">    }</span>
+<span class="line" id="L613"></span>
+<span class="line" id="L614">    <span class="tok-kw">pub</span> <span class="tok-kw">inline</span> <span class="tok-kw">fn</span> <span class="tok-fn">processPalette</span>(self: *Self, data: *PaletteProcessData) Image.ReadError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L615">        <span class="tok-kw">if</span> (self.vtable.palette_processor) |pp| <span class="tok-kw">try</span> pp(self.context, data);</span>
+<span class="line" id="L616">    }</span>
+<span class="line" id="L617"></span>
+<span class="line" id="L618">    <span class="tok-kw">pub</span> <span class="tok-kw">inline</span> <span class="tok-kw">fn</span> <span class="tok-fn">processDataRow</span>(self: *Self, data: *RowProcessData) Image.ReadError!PixelFormat {</span>
+<span class="line" id="L619">        <span class="tok-kw">return</span> <span class="tok-kw">if</span> (self.vtable.data_row_processor) |drp| drp(self.context, data) <span class="tok-kw">else</span> data.dest_format;</span>
+<span class="line" id="L620">    }</span>
+<span class="line" id="L621"></span>
+<span class="line" id="L622">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">init</span>(</span>
+<span class="line" id="L623">        id: <span class="tok-type">u32</span>,</span>
+<span class="line" id="L624">        context: <span class="tok-kw">anytype</span>,</span>
+<span class="line" id="L625">        <span class="tok-kw">comptime</span> chunkProcessorFn: ?<span class="tok-kw">fn</span> (ptr: <span class="tok-builtin">@TypeOf</span>(context), data: *ChunkProcessData) Image.ReadError!PixelFormat,</span>
+<span class="line" id="L626">        <span class="tok-kw">comptime</span> paletteProcessorFn: ?<span class="tok-kw">fn</span> (ptr: <span class="tok-builtin">@TypeOf</span>(context), data: *PaletteProcessData) Image.ReadError!<span class="tok-type">void</span>,</span>
+<span class="line" id="L627">        <span class="tok-kw">comptime</span> dataRowProcessorFn: ?<span class="tok-kw">fn</span> (ptr: <span class="tok-builtin">@TypeOf</span>(context), data: *RowProcessData) Image.ReadError!PixelFormat,</span>
+<span class="line" id="L628">    ) Self {</span>
+<span class="line" id="L629">        <span class="tok-kw">const</span> Ptr = <span class="tok-builtin">@TypeOf</span>(context);</span>
+<span class="line" id="L630">        <span class="tok-kw">const</span> ptr_info = <span class="tok-builtin">@typeInfo</span>(Ptr);</span>
+<span class="line" id="L631"></span>
+<span class="line" id="L632">        std.debug.assert(ptr_info == .Pointer); <span class="tok-comment">// Must be a pointer</span>
+</span>
+<span class="line" id="L633">        std.debug.assert(ptr_info.Pointer.size == .One); <span class="tok-comment">// Must be a single-item pointer</span>
+</span>
+<span class="line" id="L634"></span>
+<span class="line" id="L635">        <span class="tok-kw">const</span> gen = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L636">            <span class="tok-kw">fn</span> <span class="tok-fn">chunkProcessor</span>(ptr: *<span class="tok-type">anyopaque</span>, data: *ChunkProcessData) Image.ReadError!PixelFormat {</span>
+<span class="line" id="L637">                <span class="tok-kw">const</span> self: Ptr = <span class="tok-builtin">@ptrCast</span>(<span class="tok-builtin">@alignCast</span>(ptr));</span>
+<span class="line" id="L638">                <span class="tok-kw">return</span> <span class="tok-builtin">@call</span>(.always_inline, chunkProcessorFn.?, .{ self, data });</span>
+<span class="line" id="L639">            }</span>
+<span class="line" id="L640">            <span class="tok-kw">fn</span> <span class="tok-fn">paletteProcessor</span>(ptr: *<span class="tok-type">anyopaque</span>, data: *PaletteProcessData) Image.ReadError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L641">                <span class="tok-kw">const</span> self: Ptr = <span class="tok-builtin">@ptrCast</span>(<span class="tok-builtin">@alignCast</span>(ptr));</span>
+<span class="line" id="L642">                <span class="tok-kw">return</span> <span class="tok-builtin">@call</span>(.always_inline, paletteProcessorFn.?, .{ self, data });</span>
+<span class="line" id="L643">            }</span>
+<span class="line" id="L644">            <span class="tok-kw">fn</span> <span class="tok-fn">dataRowProcessor</span>(ptr: *<span class="tok-type">anyopaque</span>, data: *RowProcessData) Image.ReadError!PixelFormat {</span>
+<span class="line" id="L645">                <span class="tok-kw">const</span> self: Ptr = <span class="tok-builtin">@ptrCast</span>(<span class="tok-builtin">@alignCast</span>(ptr));</span>
+<span class="line" id="L646">                <span class="tok-kw">return</span> <span class="tok-builtin">@call</span>(.always_inline, dataRowProcessorFn.?, .{ self, data });</span>
+<span class="line" id="L647">            }</span>
+<span class="line" id="L648"></span>
+<span class="line" id="L649">            <span class="tok-kw">const</span> vtable = VTable{</span>
+<span class="line" id="L650">                .chunk_processor = <span class="tok-kw">if</span> (chunkProcessorFn == <span class="tok-null">null</span>) <span class="tok-null">null</span> <span class="tok-kw">else</span> chunkProcessor,</span>
+<span class="line" id="L651">                .palette_processor = <span class="tok-kw">if</span> (paletteProcessorFn == <span class="tok-null">null</span>) <span class="tok-null">null</span> <span class="tok-kw">else</span> paletteProcessor,</span>
+<span class="line" id="L652">                .data_row_processor = <span class="tok-kw">if</span> (dataRowProcessorFn == <span class="tok-null">null</span>) <span class="tok-null">null</span> <span class="tok-kw">else</span> dataRowProcessor,</span>
+<span class="line" id="L653">            };</span>
+<span class="line" id="L654">        };</span>
+<span class="line" id="L655"></span>
+<span class="line" id="L656">        <span class="tok-kw">return</span> .{</span>
+<span class="line" id="L657">            .id = id,</span>
+<span class="line" id="L658">            .context = context,</span>
+<span class="line" id="L659">            .vtable = &amp;gen.vtable,</span>
+<span class="line" id="L660">        };</span>
+<span class="line" id="L661">    }</span>
+<span class="line" id="L662">};</span>
+<span class="line" id="L663"></span>
+<span class="line" id="L664"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> TrnsProcessor = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L665">    <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L666">    <span class="tok-kw">const</span> TRNSData = <span class="tok-kw">union</span>(<span class="tok-kw">enum</span>) { unset: <span class="tok-type">void</span>, gray: <span class="tok-type">u16</span>, rgb: color.Rgb48, index_alpha: []<span class="tok-type">u8</span> };</span>
+<span class="line" id="L667"></span>
+<span class="line" id="L668">    trns_data: TRNSData = .unset,</span>
+<span class="line" id="L669">    processed: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L670"></span>
+<span class="line" id="L671">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">processor</span>(self: *Self) ReaderProcessor {</span>
+<span class="line" id="L672">        <span class="tok-kw">return</span> ReaderProcessor.init(</span>
+<span class="line" id="L673">            png.Chunks.tRNS.id,</span>
+<span class="line" id="L674">            self,</span>
+<span class="line" id="L675">            processChunk,</span>
+<span class="line" id="L676">            processPalette,</span>
+<span class="line" id="L677">            processDataRow,</span>
+<span class="line" id="L678">        );</span>
+<span class="line" id="L679">    }</span>
+<span class="line" id="L680"></span>
+<span class="line" id="L681">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">processChunk</span>(self: *Self, data: *ChunkProcessData) Image.ReadError!PixelFormat {</span>
+<span class="line" id="L682">        <span class="tok-comment">// We will allow multiple tRNS chunks and load the first one</span>
+</span>
+<span class="line" id="L683">        <span class="tok-comment">// We ignore if we encounter this chunk with color_type that already has alpha</span>
+</span>
+<span class="line" id="L684">        <span class="tok-kw">var</span> result_format = data.current_format;</span>
+<span class="line" id="L685">        <span class="tok-kw">if</span> (self.processed) {</span>
+<span class="line" id="L686">            <span class="tok-kw">try</span> data.stream.seekBy(data.chunk_length + <span class="tok-builtin">@sizeOf</span>(<span class="tok-type">u32</span>)); <span class="tok-comment">// Skip invalid</span>
+</span>
+<span class="line" id="L687">            <span class="tok-kw">return</span> result_format;</span>
+<span class="line" id="L688">        }</span>
+<span class="line" id="L689">        <span class="tok-kw">var</span> reader = data.stream.reader();</span>
+<span class="line" id="L690">        <span class="tok-kw">switch</span> (data.header.getPixelFormat()) {</span>
+<span class="line" id="L691">            .grayscale1, .grayscale2, .grayscale4, .grayscale8, .grayscale16 =&gt; {</span>
+<span class="line" id="L692">                <span class="tok-kw">if</span> (data.chunk_length == <span class="tok-number">2</span>) {</span>
+<span class="line" id="L693">                    self.trns_data = .{ .gray = <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .big) };</span>
+<span class="line" id="L694">                    result_format = <span class="tok-kw">if</span> (result_format == .grayscale16) .grayscale16Alpha <span class="tok-kw">else</span> .grayscale8Alpha;</span>
+<span class="line" id="L695">                } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L696">                    <span class="tok-kw">try</span> data.stream.seekBy(data.chunk_length); <span class="tok-comment">// Skip invalid</span>
+</span>
+<span class="line" id="L697">                }</span>
+<span class="line" id="L698">            },</span>
+<span class="line" id="L699">            .indexed1, .indexed2, .indexed4, .indexed8, .indexed16 =&gt; {</span>
+<span class="line" id="L700">                <span class="tok-kw">if</span> (data.chunk_length &lt;= data.header.maxPaletteSize()) {</span>
+<span class="line" id="L701">                    self.trns_data = .{ .index_alpha = <span class="tok-kw">try</span> data.temp_allocator.alloc(<span class="tok-type">u8</span>, data.chunk_length) };</span>
+<span class="line" id="L702">                    <span class="tok-kw">try</span> reader.readNoEof(self.trns_data.index_alpha);</span>
+<span class="line" id="L703">                } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L704">                    <span class="tok-kw">try</span> data.stream.seekBy(data.chunk_length); <span class="tok-comment">// Skip invalid</span>
+</span>
+<span class="line" id="L705">                }</span>
+<span class="line" id="L706">            },</span>
+<span class="line" id="L707">            .rgb24, .rgb48 =&gt; {</span>
+<span class="line" id="L708">                <span class="tok-kw">if</span> (data.chunk_length == <span class="tok-builtin">@sizeOf</span>(color.Rgb48)) {</span>
+<span class="line" id="L709">                    self.trns_data = .{ .rgb = <span class="tok-kw">try</span> utils.readStruct(reader, color.Rgb48, .big) };</span>
+<span class="line" id="L710">                    result_format = <span class="tok-kw">if</span> (result_format == .rgb48) .rgba64 <span class="tok-kw">else</span> .rgba32;</span>
+<span class="line" id="L711">                } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L712">                    <span class="tok-kw">try</span> data.stream.seekBy(data.chunk_length); <span class="tok-comment">// Skip invalid</span>
+</span>
+<span class="line" id="L713">                }</span>
+<span class="line" id="L714">            },</span>
+<span class="line" id="L715">            <span class="tok-kw">else</span> =&gt; <span class="tok-kw">try</span> data.stream.seekBy(data.chunk_length), <span class="tok-comment">// Skip invalid</span>
+</span>
+<span class="line" id="L716">        }</span>
+<span class="line" id="L717">        <span class="tok-comment">// Skip the Crc since this is not critical chunk</span>
+</span>
+<span class="line" id="L718">        <span class="tok-kw">try</span> data.stream.seekBy(<span class="tok-builtin">@sizeOf</span>(<span class="tok-type">u32</span>));</span>
+<span class="line" id="L719">        <span class="tok-kw">return</span> result_format;</span>
+<span class="line" id="L720">    }</span>
+<span class="line" id="L721"></span>
+<span class="line" id="L722">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">processPalette</span>(self: *Self, data: *PaletteProcessData) Image.ReadError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L723">        self.processed = <span class="tok-null">true</span>;</span>
+<span class="line" id="L724">        <span class="tok-kw">switch</span> (self.trns_data) {</span>
+<span class="line" id="L725">            .index_alpha =&gt; |index_alpha| {</span>
+<span class="line" id="L726">                <span class="tok-kw">for</span> (index_alpha, <span class="tok-number">0</span>..) |alpha, i| {</span>
+<span class="line" id="L727">                    data.palette[i].a = alpha;</span>
+<span class="line" id="L728">                }</span>
+<span class="line" id="L729">            },</span>
+<span class="line" id="L730">            .unset =&gt; <span class="tok-kw">return</span>,</span>
+<span class="line" id="L731">            <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> Image.ReadError.InvalidData,</span>
+<span class="line" id="L732">        }</span>
+<span class="line" id="L733">    }</span>
+<span class="line" id="L734"></span>
+<span class="line" id="L735">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">processDataRow</span>(self: *Self, data: *RowProcessData) Image.ReadError!PixelFormat {</span>
+<span class="line" id="L736">        self.processed = <span class="tok-null">true</span>;</span>
+<span class="line" id="L737">        <span class="tok-kw">if</span> (data.src_format.isIndexed() <span class="tok-kw">or</span> self.trns_data == .unset) {</span>
+<span class="line" id="L738">            <span class="tok-kw">return</span> data.src_format;</span>
+<span class="line" id="L739">        }</span>
+<span class="line" id="L740">        <span class="tok-kw">var</span> pixel_stride: <span class="tok-type">u8</span> = <span class="tok-kw">switch</span> (data.dest_format) {</span>
+<span class="line" id="L741">            .grayscale8Alpha, .grayscale16Alpha =&gt; <span class="tok-number">2</span>,</span>
+<span class="line" id="L742">            .rgba32, .bgra32 =&gt; <span class="tok-number">4</span>,</span>
+<span class="line" id="L743">            .rgba64 =&gt; <span class="tok-number">8</span>,</span>
+<span class="line" id="L744">            <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> data.src_format,</span>
+<span class="line" id="L745">        };</span>
+<span class="line" id="L746">        <span class="tok-kw">var</span> pixel_pos: <span class="tok-type">u32</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L747">        <span class="tok-comment">// work around broken saturating arithmetic on wasm https://github.com/llvm/llvm-project/issues/58557</span>
+</span>
+<span class="line" id="L748">        <span class="tok-kw">const</span> isWasm = <span class="tok-kw">comptime</span> <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;builtin&quot;</span>).target.isWasm();</span>
+<span class="line" id="L749">        <span class="tok-kw">switch</span> (self.trns_data) {</span>
+<span class="line" id="L750">            .gray =&gt; |gray_alpha| {</span>
+<span class="line" id="L751">                <span class="tok-kw">switch</span> (data.src_format) {</span>
+<span class="line" id="L752">                    .grayscale1, .grayscale2, .grayscale4, .grayscale8 =&gt; {</span>
+<span class="line" id="L753">                        <span class="tok-kw">while</span> (pixel_pos + <span class="tok-number">1</span> &lt; data.dest_row.len) : (pixel_pos += pixel_stride) {</span>
+<span class="line" id="L754">                            <span class="tok-kw">if</span> (!isWasm) {</span>
+<span class="line" id="L755">                                data.dest_row[pixel_pos + <span class="tok-number">1</span>] = (data.dest_row[pixel_pos] ^ <span class="tok-builtin">@as</span>(<span class="tok-type">u8</span>, <span class="tok-builtin">@truncate</span>(gray_alpha))) *| <span class="tok-number">255</span>;</span>
+<span class="line" id="L756">                            } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L757">                                data.dest_row[pixel_pos + <span class="tok-number">1</span>] = (data.dest_row[pixel_pos] ^ <span class="tok-builtin">@as</span>(<span class="tok-type">u8</span>, <span class="tok-builtin">@truncate</span>(gray_alpha))) * <span class="tok-number">255</span>;</span>
+<span class="line" id="L758">                            }</span>
+<span class="line" id="L759">                        }</span>
+<span class="line" id="L760">                        <span class="tok-kw">return</span> .grayscale8Alpha;</span>
+<span class="line" id="L761">                    },</span>
+<span class="line" id="L762">                    .grayscale16 =&gt; {</span>
+<span class="line" id="L763">                        <span class="tok-kw">var</span> destination = std.mem.bytesAsSlice(<span class="tok-type">u16</span>, data.dest_row);</span>
+<span class="line" id="L764">                        <span class="tok-kw">while</span> (pixel_pos + <span class="tok-number">1</span> &lt; destination.len) : (pixel_pos += pixel_stride) {</span>
+<span class="line" id="L765">                            <span class="tok-comment">// work around broken saturating arithmetic on wasm https://github.com/llvm/llvm-project/issues/58557</span>
+</span>
+<span class="line" id="L766">                            <span class="tok-kw">if</span> (!isWasm) {</span>
+<span class="line" id="L767">                                destination[pixel_pos + <span class="tok-number">1</span>] = (data.dest_row[pixel_pos] ^ gray_alpha) *| <span class="tok-number">65535</span>;</span>
+<span class="line" id="L768">                            } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L769">                                destination[pixel_pos + <span class="tok-number">1</span>] = (data.dest_row[pixel_pos] ^ gray_alpha) * <span class="tok-number">65535</span>;</span>
+<span class="line" id="L770">                            }</span>
+<span class="line" id="L771">                        }</span>
+<span class="line" id="L772">                        <span class="tok-kw">return</span> .grayscale16Alpha;</span>
+<span class="line" id="L773">                    },</span>
+<span class="line" id="L774">                    <span class="tok-kw">else</span> =&gt; <span class="tok-kw">unreachable</span>,</span>
+<span class="line" id="L775">                }</span>
+<span class="line" id="L776">            },</span>
+<span class="line" id="L777">            .rgb =&gt; |tr_color| {</span>
+<span class="line" id="L778">                <span class="tok-kw">switch</span> (data.src_format) {</span>
+<span class="line" id="L779">                    .rgb24 =&gt; {</span>
+<span class="line" id="L780">                        <span class="tok-kw">var</span> destination = std.mem.bytesAsSlice(color.Rgba32, data.dest_row);</span>
+<span class="line" id="L781">                        pixel_stride /= <span class="tok-number">4</span>;</span>
+<span class="line" id="L782">                        <span class="tok-kw">while</span> (pixel_pos &lt; destination.len) : (pixel_pos += pixel_stride) {</span>
+<span class="line" id="L783">                            <span class="tok-kw">var</span> val = destination[pixel_pos];</span>
+<span class="line" id="L784">                            val.a = <span class="tok-kw">if</span> (val.r == tr_color.r <span class="tok-kw">and</span> val.g == tr_color.g <span class="tok-kw">and</span> val.b == tr_color.b) <span class="tok-number">0</span> <span class="tok-kw">else</span> <span class="tok-number">255</span>;</span>
+<span class="line" id="L785">                            destination[pixel_pos] = val;</span>
+<span class="line" id="L786">                        }</span>
+<span class="line" id="L787">                        <span class="tok-kw">return</span> .rgba32;</span>
+<span class="line" id="L788">                    },</span>
+<span class="line" id="L789">                    .rgb48 =&gt; {</span>
+<span class="line" id="L790">                        <span class="tok-kw">var</span> destination = std.mem.bytesAsSlice(color.Rgba64, data.dest_row);</span>
+<span class="line" id="L791">                        pixel_stride = <span class="tok-number">1</span>;</span>
+<span class="line" id="L792">                        <span class="tok-kw">while</span> (pixel_pos &lt; destination.len) : (pixel_pos += pixel_stride) {</span>
+<span class="line" id="L793">                            <span class="tok-kw">var</span> val = destination[pixel_pos];</span>
+<span class="line" id="L794">                            val.a = <span class="tok-kw">if</span> (val.r == tr_color.r <span class="tok-kw">and</span> val.g == tr_color.g <span class="tok-kw">and</span> val.b == tr_color.b) <span class="tok-number">0</span> <span class="tok-kw">else</span> <span class="tok-number">65535</span>;</span>
+<span class="line" id="L795">                            destination[pixel_pos] = val;</span>
+<span class="line" id="L796">                        }</span>
+<span class="line" id="L797">                        <span class="tok-kw">return</span> .rgba64;</span>
+<span class="line" id="L798">                    },</span>
+<span class="line" id="L799">                    <span class="tok-kw">else</span> =&gt; <span class="tok-kw">unreachable</span>,</span>
+<span class="line" id="L800">                }</span>
+<span class="line" id="L801">            },</span>
+<span class="line" id="L802">            <span class="tok-kw">else</span> =&gt; <span class="tok-kw">unreachable</span>,</span>
+<span class="line" id="L803">        }</span>
+<span class="line" id="L804">        <span class="tok-kw">return</span> data.src_format;</span>
+<span class="line" id="L805">    }</span>
+<span class="line" id="L806">};</span>
+<span class="line" id="L807"></span>
+<span class="line" id="L808"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> PlteProcessor = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L809">    <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L810"></span>
+<span class="line" id="L811">    palette: []color.Rgba32 = <span class="tok-null">undefined</span>,</span>
+<span class="line" id="L812">    processed: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L813"></span>
+<span class="line" id="L814">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">processor</span>(self: *Self) ReaderProcessor {</span>
+<span class="line" id="L815">        <span class="tok-kw">return</span> ReaderProcessor.init(</span>
+<span class="line" id="L816">            png.Chunks.PLTE.id,</span>
+<span class="line" id="L817">            self,</span>
+<span class="line" id="L818">            processChunk,</span>
+<span class="line" id="L819">            processPalette,</span>
+<span class="line" id="L820">            processDataRow,</span>
+<span class="line" id="L821">        );</span>
+<span class="line" id="L822">    }</span>
+<span class="line" id="L823"></span>
+<span class="line" id="L824">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">processChunk</span>(self: *Self, data: *ChunkProcessData) Image.ReadError!PixelFormat {</span>
+<span class="line" id="L825">        <span class="tok-comment">// This is critical chunk so it is already read and there is no need to read it here</span>
+</span>
+<span class="line" id="L826">        <span class="tok-kw">var</span> result_format = data.current_format;</span>
+<span class="line" id="L827">        <span class="tok-kw">if</span> (self.processed <span class="tok-kw">or</span> !result_format.isIndexed()) {</span>
+<span class="line" id="L828">            self.processed = <span class="tok-null">true</span>;</span>
+<span class="line" id="L829">            <span class="tok-kw">return</span> result_format;</span>
+<span class="line" id="L830">        }</span>
+<span class="line" id="L831"></span>
+<span class="line" id="L832">        <span class="tok-kw">return</span> .rgba32;</span>
+<span class="line" id="L833">    }</span>
+<span class="line" id="L834"></span>
+<span class="line" id="L835">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">processPalette</span>(self: *Self, data: *PaletteProcessData) Image.ReadError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L836">        self.processed = <span class="tok-null">true</span>;</span>
+<span class="line" id="L837">        self.palette = data.palette;</span>
+<span class="line" id="L838">    }</span>
+<span class="line" id="L839"></span>
+<span class="line" id="L840">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">processDataRow</span>(self: *Self, data: *RowProcessData) Image.ReadError!PixelFormat {</span>
+<span class="line" id="L841">        self.processed = <span class="tok-null">true</span>;</span>
+<span class="line" id="L842"></span>
+<span class="line" id="L843">        <span class="tok-kw">if</span> (!data.src_format.isIndexed() <span class="tok-kw">or</span> self.palette.len == <span class="tok-number">0</span>) {</span>
+<span class="line" id="L844">            <span class="tok-kw">return</span> data.src_format;</span>
+<span class="line" id="L845">        }</span>
+<span class="line" id="L846"></span>
+<span class="line" id="L847">        <span class="tok-kw">const</span> pixel_stride: <span class="tok-type">u8</span> = <span class="tok-kw">switch</span> (data.dest_format) {</span>
+<span class="line" id="L848">            .rgba32, .bgra32 =&gt; <span class="tok-number">4</span>,</span>
+<span class="line" id="L849">            .rgba64 =&gt; <span class="tok-number">8</span>,</span>
+<span class="line" id="L850">            <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> data.src_format,</span>
+<span class="line" id="L851">        };</span>
+<span class="line" id="L852"></span>
+<span class="line" id="L853">        <span class="tok-kw">var</span> pixel_pos: <span class="tok-type">u32</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L854">        <span class="tok-kw">switch</span> (data.src_format) {</span>
+<span class="line" id="L855">            .indexed1, .indexed2, .indexed4, .indexed8 =&gt; {</span>
+<span class="line" id="L856">                <span class="tok-kw">while</span> (pixel_pos + <span class="tok-number">3</span> &lt; data.dest_row.len) : (pixel_pos += pixel_stride) {</span>
+<span class="line" id="L857">                    <span class="tok-kw">const</span> index = data.dest_row[pixel_pos];</span>
+<span class="line" id="L858">                    <span class="tok-kw">const</span> entry = self.palette[index];</span>
+<span class="line" id="L859">                    data.dest_row[pixel_pos] = entry.r;</span>
+<span class="line" id="L860">                    data.dest_row[pixel_pos + <span class="tok-number">1</span>] = entry.g;</span>
+<span class="line" id="L861">                    data.dest_row[pixel_pos + <span class="tok-number">2</span>] = entry.b;</span>
+<span class="line" id="L862">                    data.dest_row[pixel_pos + <span class="tok-number">3</span>] = entry.a;</span>
+<span class="line" id="L863">                }</span>
+<span class="line" id="L864">            },</span>
+<span class="line" id="L865">            .indexed16 =&gt; {</span>
+<span class="line" id="L866">                <span class="tok-kw">while</span> (pixel_pos + <span class="tok-number">3</span> &lt; data.dest_row.len) : (pixel_pos += pixel_stride) {</span>
+<span class="line" id="L867">                    <span class="tok-kw">const</span> index = std.mem.bytesToValue(<span class="tok-type">u16</span>, &amp;[<span class="tok-number">2</span>]<span class="tok-type">u8</span>{ data.dest_row[pixel_pos], data.dest_row[pixel_pos + <span class="tok-number">1</span>] });</span>
+<span class="line" id="L868">                    <span class="tok-kw">const</span> entry = self.palette[index];</span>
+<span class="line" id="L869">                    data.dest_row[pixel_pos] = entry.r;</span>
+<span class="line" id="L870">                    data.dest_row[pixel_pos + <span class="tok-number">1</span>] = entry.g;</span>
+<span class="line" id="L871">                    data.dest_row[pixel_pos + <span class="tok-number">2</span>] = entry.b;</span>
+<span class="line" id="L872">                    data.dest_row[pixel_pos + <span class="tok-number">3</span>] = entry.a;</span>
+<span class="line" id="L873">                }</span>
+<span class="line" id="L874">            },</span>
+<span class="line" id="L875">            <span class="tok-kw">else</span> =&gt; <span class="tok-kw">unreachable</span>,</span>
+<span class="line" id="L876">        }</span>
+<span class="line" id="L877"></span>
+<span class="line" id="L878">        <span class="tok-kw">return</span> .rgba32;</span>
+<span class="line" id="L879">    }</span>
+<span class="line" id="L880">};</span>
+<span class="line" id="L881"></span>
+<span class="line" id="L882"><span class="tok-comment">/// The options you need to pass to PNG reader. If you want default options</span></span>
+<span class="line" id="L883"><span class="tok-comment">/// that use main allocator for temporary allocations and default set of</span></span>
+<span class="line" id="L884"><span class="tok-comment">/// processors just use this:</span></span>
+<span class="line" id="L885"><span class="tok-comment">/// var default_options = DefaultOptions{};</span></span>
+<span class="line" id="L886"><span class="tok-comment">/// png.reader.load(main_allocator, default_options.get());</span></span>
+<span class="line" id="L887"><span class="tok-comment">/// Note that application can define its own DefaultPngOptions in the root file</span></span>
+<span class="line" id="L888"><span class="tok-comment">/// and all the code that uses DefaultOptions will actually use that.</span></span>
+<span class="line" id="L889"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> ReaderOptions = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L890">    <span class="tok-comment">/// Allocator for temporary allocations. Some temp allocations depend</span></span>
+<span class="line" id="L891">    <span class="tok-comment">/// on the image size so they will use the main allocator since we can't guarantee</span></span>
+<span class="line" id="L892">    <span class="tok-comment">/// they are bounded. They will be allocated after the destination image to</span></span>
+<span class="line" id="L893">    <span class="tok-comment">/// reduce memory fragmentation and freed internally.</span></span>
+<span class="line" id="L894">    temp_allocator: Allocator,</span>
+<span class="line" id="L895"></span>
+<span class="line" id="L896">    <span class="tok-comment">/// Default is no processors so they are not even compiled in if not used.</span></span>
+<span class="line" id="L897">    <span class="tok-comment">/// If you want a default set of processors create a DefaultProcessors object</span></span>
+<span class="line" id="L898">    <span class="tok-comment">/// call get() on it and pass that here.</span></span>
+<span class="line" id="L899">    <span class="tok-comment">/// Note that application can define its own DefPngProcessors and all the</span></span>
+<span class="line" id="L900">    <span class="tok-comment">/// code that uses DefaultProcessors will actually use that.</span></span>
+<span class="line" id="L901">    processors: []ReaderProcessor = &amp;[_]ReaderProcessor{},</span>
+<span class="line" id="L902"></span>
+<span class="line" id="L903">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">init</span>(temp_allocator: Allocator) ReaderOptions {</span>
+<span class="line" id="L904">        <span class="tok-kw">return</span> .{ .temp_allocator = temp_allocator };</span>
+<span class="line" id="L905">    }</span>
+<span class="line" id="L906"></span>
+<span class="line" id="L907">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">initWithProcessors</span>(temp_allocator: Allocator, processors: []ReaderProcessor) ReaderOptions {</span>
+<span class="line" id="L908">        <span class="tok-kw">return</span> .{ .temp_allocator = temp_allocator, .processors = processors };</span>
+<span class="line" id="L909">    }</span>
+<span class="line" id="L910">};</span>
+<span class="line" id="L911"></span>
+<span class="line" id="L912"><span class="tok-kw">const</span> root = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;root&quot;</span>);</span>
+<span class="line" id="L913"></span>
+<span class="line" id="L914"><span class="tok-comment">/// Applications can override this by defining DefPngProcessors struct in their root source file.</span></span>
+<span class="line" id="L915"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> DefaultProcessors = <span class="tok-kw">if</span> (<span class="tok-builtin">@hasDecl</span>(root, <span class="tok-str">&quot;DefPngProcessors&quot;</span>))</span>
+<span class="line" id="L916">    root.DefPngProcessors</span>
+<span class="line" id="L917"><span class="tok-kw">else</span></span>
+<span class="line" id="L918">    <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L919">        trns_processor: TrnsProcessor = .{},</span>
+<span class="line" id="L920">        plte_processor: PlteProcessor = .{},</span>
+<span class="line" id="L921">        processors_buffer: [<span class="tok-number">2</span>]ReaderProcessor = <span class="tok-null">undefined</span>,</span>
+<span class="line" id="L922"></span>
+<span class="line" id="L923">        <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L924"></span>
+<span class="line" id="L925">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">get</span>(self: *Self) []ReaderProcessor {</span>
+<span class="line" id="L926">            self.processors_buffer[<span class="tok-number">0</span>] = self.trns_processor.processor();</span>
+<span class="line" id="L927">            self.processors_buffer[<span class="tok-number">1</span>] = self.plte_processor.processor();</span>
+<span class="line" id="L928">            <span class="tok-kw">return</span> self.processors_buffer[<span class="tok-number">0</span>..];</span>
+<span class="line" id="L929">        }</span>
+<span class="line" id="L930">    };</span>
+<span class="line" id="L931"></span>
+<span class="line" id="L932"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> NoopAllocator = Allocator.VTable{ .alloc = <span class="tok-null">undefined</span>, .free = <span class="tok-null">undefined</span>, .resize = <span class="tok-null">undefined</span> };</span>
+<span class="line" id="L933"></span>
+<span class="line" id="L934"><span class="tok-comment">/// Applications can override this by defining DefaultPngOptions struct in their root source file.</span></span>
+<span class="line" id="L935"><span class="tok-comment">/// We would like to use FixedBufferAllocator with memory from stack here since we should be able</span></span>
+<span class="line" id="L936"><span class="tok-comment">/// to guarantee the max size of temp allocations but zig's std decompressor unlike C zlib doesn't</span></span>
+<span class="line" id="L937"><span class="tok-comment">/// currently guarantee the max it needs.</span></span>
+<span class="line" id="L938"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> DefaultOptions = <span class="tok-kw">if</span> (<span class="tok-builtin">@hasDecl</span>(root, <span class="tok-str">&quot;DefaultPngOptions&quot;</span>))</span>
+<span class="line" id="L939">    root.DefaultPngOptions</span>
+<span class="line" id="L940"><span class="tok-kw">else</span></span>
+<span class="line" id="L941">    <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L942">        def_processors: DefaultProcessors = .{},</span>
+<span class="line" id="L943"></span>
+<span class="line" id="L944">        <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L945"></span>
+<span class="line" id="L946">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">get</span>(self: *Self) ReaderOptions {</span>
+<span class="line" id="L947">            <span class="tok-kw">return</span> .{ .temp_allocator = .{ .ptr = <span class="tok-null">undefined</span>, .vtable = &amp;NoopAllocator }, .processors = self.def_processors.get() };</span>
+<span class="line" id="L948">        }</span>
+<span class="line" id="L949">    };</span>
+<span class="line" id="L950"></span>
+<span class="line" id="L951"><span class="tok-comment">// ********************* TESTS *********************</span>
+</span>
+<span class="line" id="L952"></span>
+<span class="line" id="L953"><span class="tok-kw">test</span> <span class="tok-str">&quot;testDefilter&quot;</span> {</span>
+<span class="line" id="L954">    <span class="tok-kw">var</span> buffer = [_]<span class="tok-type">u8</span>{ <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">2</span>, <span class="tok-number">3</span>, <span class="tok-number">0</span>, <span class="tok-number">5</span>, <span class="tok-number">6</span>, <span class="tok-number">7</span> };</span>
+<span class="line" id="L955">    <span class="tok-comment">// Start with none filter</span>
+</span>
+<span class="line" id="L956">    <span class="tok-kw">var</span> current_row: []<span class="tok-type">u8</span> = buffer[<span class="tok-number">4</span>..];</span>
+<span class="line" id="L957">    <span class="tok-kw">var</span> prev_row: []<span class="tok-type">u8</span> = buffer[<span class="tok-number">0</span>..<span class="tok-number">4</span>];</span>
+<span class="line" id="L958">    <span class="tok-kw">var</span> filter_stride: <span class="tok-type">u8</span> = <span class="tok-number">1</span>;</span>
+<span class="line" id="L959"></span>
+<span class="line" id="L960">    <span class="tok-kw">try</span> testFilter(png.FilterType.none, current_row, prev_row, filter_stride, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0</span>, <span class="tok-number">5</span>, <span class="tok-number">6</span>, <span class="tok-number">7</span> });</span>
+<span class="line" id="L961">    <span class="tok-kw">try</span> testFilter(png.FilterType.sub, current_row, prev_row, filter_stride, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0</span>, <span class="tok-number">5</span>, <span class="tok-number">11</span>, <span class="tok-number">18</span> });</span>
+<span class="line" id="L962">    <span class="tok-kw">try</span> testFilter(png.FilterType.up, current_row, prev_row, filter_stride, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0</span>, <span class="tok-number">6</span>, <span class="tok-number">13</span>, <span class="tok-number">21</span> });</span>
+<span class="line" id="L963">    <span class="tok-kw">try</span> testFilter(png.FilterType.average, current_row, prev_row, filter_stride, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0</span>, <span class="tok-number">6</span>, <span class="tok-number">17</span>, <span class="tok-number">31</span> });</span>
+<span class="line" id="L964">    <span class="tok-kw">try</span> testFilter(png.FilterType.paeth, current_row, prev_row, filter_stride, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0</span>, <span class="tok-number">7</span>, <span class="tok-number">24</span>, <span class="tok-number">55</span> });</span>
+<span class="line" id="L965"></span>
+<span class="line" id="L966">    <span class="tok-kw">var</span> buffer16 = [_]<span class="tok-type">u8</span>{ <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">2</span>, <span class="tok-number">3</span>, <span class="tok-number">4</span>, <span class="tok-number">5</span>, <span class="tok-number">6</span>, <span class="tok-number">7</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">8</span>, <span class="tok-number">9</span>, <span class="tok-number">10</span>, <span class="tok-number">11</span>, <span class="tok-number">12</span>, <span class="tok-number">13</span>, <span class="tok-number">14</span> };</span>
+<span class="line" id="L967">    current_row = buffer16[<span class="tok-number">9</span>..];</span>
+<span class="line" id="L968">    prev_row = buffer16[<span class="tok-number">0</span>..<span class="tok-number">9</span>];</span>
+<span class="line" id="L969">    filter_stride = <span class="tok-number">2</span>;</span>
+<span class="line" id="L970"></span>
+<span class="line" id="L971">    <span class="tok-kw">try</span> testFilter(png.FilterType.none, current_row, prev_row, filter_stride, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">8</span>, <span class="tok-number">9</span>, <span class="tok-number">10</span>, <span class="tok-number">11</span>, <span class="tok-number">12</span>, <span class="tok-number">13</span>, <span class="tok-number">14</span> });</span>
+<span class="line" id="L972">    <span class="tok-kw">try</span> testFilter(png.FilterType.sub, current_row, prev_row, filter_stride, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">8</span>, <span class="tok-number">9</span>, <span class="tok-number">18</span>, <span class="tok-number">20</span>, <span class="tok-number">30</span>, <span class="tok-number">33</span>, <span class="tok-number">44</span> });</span>
+<span class="line" id="L973">    <span class="tok-kw">try</span> testFilter(png.FilterType.up, current_row, prev_row, filter_stride, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">9</span>, <span class="tok-number">11</span>, <span class="tok-number">21</span>, <span class="tok-number">24</span>, <span class="tok-number">35</span>, <span class="tok-number">39</span>, <span class="tok-number">51</span> });</span>
+<span class="line" id="L974">    <span class="tok-kw">try</span> testFilter(png.FilterType.average, current_row, prev_row, filter_stride, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">9</span>, <span class="tok-number">12</span>, <span class="tok-number">27</span>, <span class="tok-number">32</span>, <span class="tok-number">51</span>, <span class="tok-number">58</span>, <span class="tok-number">80</span> });</span>
+<span class="line" id="L975">    <span class="tok-kw">try</span> testFilter(png.FilterType.paeth, current_row, prev_row, filter_stride, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">10</span>, <span class="tok-number">14</span>, <span class="tok-number">37</span>, <span class="tok-number">46</span>, <span class="tok-number">88</span>, <span class="tok-number">104</span>, <span class="tok-number">168</span> });</span>
+<span class="line" id="L976">}</span>
+<span class="line" id="L977"></span>
+<span class="line" id="L978"><span class="tok-kw">fn</span> <span class="tok-fn">testFilter</span>(filter_type: png.FilterType, current_row: []<span class="tok-type">u8</span>, prev_row: []<span class="tok-type">u8</span>, filter_stride: <span class="tok-type">u8</span>, expected: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L979">    <span class="tok-kw">const</span> expectEqualSlices = std.testing.expectEqualSlices;</span>
+<span class="line" id="L980">    current_row[filter_stride - <span class="tok-number">1</span>] = <span class="tok-builtin">@intFromEnum</span>(filter_type);</span>
+<span class="line" id="L981">    <span class="tok-kw">try</span> defilter(current_row, prev_row, filter_stride);</span>
+<span class="line" id="L982">    <span class="tok-kw">try</span> expectEqualSlices(<span class="tok-type">u8</span>, expected, current_row);</span>
+<span class="line" id="L983">}</span>
+<span class="line" id="L984"></span>
+<span class="line" id="L985"><span class="tok-kw">test</span> <span class="tok-str">&quot;spreadRowData&quot;</span> {</span>
+<span class="line" id="L986">    <span class="tok-kw">var</span> channel_count: <span class="tok-type">u8</span> = <span class="tok-number">1</span>;</span>
+<span class="line" id="L987">    <span class="tok-kw">var</span> bit_depth: <span class="tok-type">u8</span> = <span class="tok-number">1</span>;</span>
+<span class="line" id="L988">    <span class="tok-comment">// 16 destination bytes, filter byte and two more bytes of current_row</span>
+</span>
+<span class="line" id="L989">    <span class="tok-kw">var</span> dest_buffer = [_]<span class="tok-type">u8</span>{<span class="tok-number">0</span>} ** <span class="tok-number">32</span>;</span>
+<span class="line" id="L990">    <span class="tok-kw">var</span> cur_buffer = [_]<span class="tok-type">u8</span>{ <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0xa5</span>, <span class="tok-number">0x7c</span>, <span class="tok-number">0x39</span>, <span class="tok-number">0xf2</span>, <span class="tok-number">0x5b</span>, <span class="tok-number">0x15</span>, <span class="tok-number">0x78</span>, <span class="tok-number">0xd1</span> };</span>
+<span class="line" id="L991">    <span class="tok-kw">var</span> dest_row: []<span class="tok-type">u8</span> = dest_buffer[<span class="tok-number">0</span>..<span class="tok-number">16</span>];</span>
+<span class="line" id="L992">    <span class="tok-kw">var</span> current_row: []<span class="tok-type">u8</span> = cur_buffer[<span class="tok-number">3</span>..<span class="tok-number">6</span>];</span>
+<span class="line" id="L993">    <span class="tok-kw">var</span> filter_stride: <span class="tok-type">u8</span> = <span class="tok-number">1</span>;</span>
+<span class="line" id="L994">    <span class="tok-kw">var</span> pixel_stride: <span class="tok-type">u8</span> = <span class="tok-number">1</span>;</span>
+<span class="line" id="L995">    <span class="tok-kw">const</span> expectEqualSlices = std.testing.expectEqualSlices;</span>
+<span class="line" id="L996"></span>
+<span class="line" id="L997">    spreadRowData(dest_row, current_row[filter_stride..], bit_depth, channel_count, pixel_stride, <span class="tok-null">false</span>);</span>
+<span class="line" id="L998">    <span class="tok-kw">try</span> expectEqualSlices(<span class="tok-type">u8</span>, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">1</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">1</span>, <span class="tok-number">1</span>, <span class="tok-number">1</span>, <span class="tok-number">1</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span> }, dest_row);</span>
+<span class="line" id="L999">    dest_row = dest_buffer[<span class="tok-number">0</span>..<span class="tok-number">32</span>];</span>
+<span class="line" id="L1000">    pixel_stride = <span class="tok-number">2</span>;</span>
+<span class="line" id="L1001">    <span class="tok-builtin">@memset</span>(dest_row, <span class="tok-number">0</span>);</span>
+<span class="line" id="L1002">    spreadRowData(dest_row, current_row[filter_stride..], bit_depth, channel_count, pixel_stride, <span class="tok-null">false</span>);</span>
+<span class="line" id="L1003">    <span class="tok-kw">try</span> expectEqualSlices(<span class="tok-type">u8</span>, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">1</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span> }, dest_row);</span>
+<span class="line" id="L1004"></span>
+<span class="line" id="L1005">    bit_depth = <span class="tok-number">2</span>;</span>
+<span class="line" id="L1006">    pixel_stride = <span class="tok-number">1</span>;</span>
+<span class="line" id="L1007">    dest_row = dest_buffer[<span class="tok-number">0</span>..<span class="tok-number">8</span>];</span>
+<span class="line" id="L1008">    spreadRowData(dest_row, current_row[filter_stride..], bit_depth, channel_count, pixel_stride, <span class="tok-null">false</span>);</span>
+<span class="line" id="L1009">    <span class="tok-kw">try</span> expectEqualSlices(<span class="tok-type">u8</span>, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">2</span>, <span class="tok-number">2</span>, <span class="tok-number">1</span>, <span class="tok-number">1</span>, <span class="tok-number">1</span>, <span class="tok-number">3</span>, <span class="tok-number">3</span>, <span class="tok-number">0</span> }, dest_row);</span>
+<span class="line" id="L1010">    dest_row = dest_buffer[<span class="tok-number">0</span>..<span class="tok-number">16</span>];</span>
+<span class="line" id="L1011">    pixel_stride = <span class="tok-number">2</span>;</span>
+<span class="line" id="L1012">    <span class="tok-builtin">@memset</span>(dest_row, <span class="tok-number">0</span>);</span>
+<span class="line" id="L1013">    spreadRowData(dest_row, current_row[filter_stride..], bit_depth, channel_count, pixel_stride, <span class="tok-null">false</span>);</span>
+<span class="line" id="L1014">    <span class="tok-kw">try</span> expectEqualSlices(<span class="tok-type">u8</span>, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">2</span>, <span class="tok-number">0</span>, <span class="tok-number">2</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">0</span>, <span class="tok-number">1</span>, <span class="tok-number">0</span>, <span class="tok-number">3</span>, <span class="tok-number">0</span>, <span class="tok-number">3</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span> }, dest_row);</span>
+<span class="line" id="L1015"></span>
+<span class="line" id="L1016">    bit_depth = <span class="tok-number">4</span>;</span>
+<span class="line" id="L1017">    pixel_stride = <span class="tok-number">1</span>;</span>
+<span class="line" id="L1018">    dest_row = dest_buffer[<span class="tok-number">0</span>..<span class="tok-number">4</span>];</span>
+<span class="line" id="L1019">    spreadRowData(dest_row, current_row[filter_stride..], bit_depth, channel_count, pixel_stride, <span class="tok-null">false</span>);</span>
+<span class="line" id="L1020">    <span class="tok-kw">try</span> expectEqualSlices(<span class="tok-type">u8</span>, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0xa</span>, <span class="tok-number">0x5</span>, <span class="tok-number">0x7</span>, <span class="tok-number">0xc</span> }, dest_row);</span>
+<span class="line" id="L1021">    dest_row = dest_buffer[<span class="tok-number">0</span>..<span class="tok-number">8</span>];</span>
+<span class="line" id="L1022">    pixel_stride = <span class="tok-number">2</span>;</span>
+<span class="line" id="L1023">    <span class="tok-builtin">@memset</span>(dest_row, <span class="tok-number">0</span>);</span>
+<span class="line" id="L1024">    spreadRowData(dest_row, current_row[filter_stride..], bit_depth, channel_count, pixel_stride, <span class="tok-null">false</span>);</span>
+<span class="line" id="L1025">    <span class="tok-kw">try</span> expectEqualSlices(<span class="tok-type">u8</span>, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0xa</span>, <span class="tok-number">0</span>, <span class="tok-number">0x5</span>, <span class="tok-number">0</span>, <span class="tok-number">0x7</span>, <span class="tok-number">0</span>, <span class="tok-number">0xc</span>, <span class="tok-number">0</span> }, dest_row);</span>
+<span class="line" id="L1026"></span>
+<span class="line" id="L1027">    bit_depth = <span class="tok-number">8</span>;</span>
+<span class="line" id="L1028">    pixel_stride = <span class="tok-number">1</span>;</span>
+<span class="line" id="L1029">    dest_row = dest_buffer[<span class="tok-number">0</span>..<span class="tok-number">2</span>];</span>
+<span class="line" id="L1030">    spreadRowData(dest_row, current_row[filter_stride..], bit_depth, channel_count, pixel_stride, <span class="tok-null">false</span>);</span>
+<span class="line" id="L1031">    <span class="tok-kw">try</span> expectEqualSlices(<span class="tok-type">u8</span>, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0xa5</span>, <span class="tok-number">0x7c</span> }, dest_row);</span>
+<span class="line" id="L1032">    dest_row = dest_buffer[<span class="tok-number">0</span>..<span class="tok-number">4</span>];</span>
+<span class="line" id="L1033">    pixel_stride = <span class="tok-number">2</span>;</span>
+<span class="line" id="L1034">    <span class="tok-builtin">@memset</span>(dest_row, <span class="tok-number">0</span>);</span>
+<span class="line" id="L1035">    spreadRowData(dest_row, current_row[filter_stride..], bit_depth, channel_count, pixel_stride, <span class="tok-null">false</span>);</span>
+<span class="line" id="L1036">    <span class="tok-kw">try</span> expectEqualSlices(<span class="tok-type">u8</span>, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0xa5</span>, <span class="tok-number">0</span>, <span class="tok-number">0x7c</span>, <span class="tok-number">0</span> }, dest_row);</span>
+<span class="line" id="L1037"></span>
+<span class="line" id="L1038">    channel_count = <span class="tok-number">2</span>; <span class="tok-comment">// grayscale_alpha</span>
+</span>
+<span class="line" id="L1039">    bit_depth = <span class="tok-number">8</span>;</span>
+<span class="line" id="L1040">    current_row = cur_buffer[<span class="tok-number">2</span>..<span class="tok-number">8</span>];</span>
+<span class="line" id="L1041">    dest_row = dest_buffer[<span class="tok-number">0</span>..<span class="tok-number">4</span>];</span>
+<span class="line" id="L1042">    filter_stride = <span class="tok-number">2</span>;</span>
+<span class="line" id="L1043">    pixel_stride = <span class="tok-number">2</span>;</span>
+<span class="line" id="L1044">    spreadRowData(dest_row, current_row[filter_stride..], bit_depth, channel_count, pixel_stride, <span class="tok-null">false</span>);</span>
+<span class="line" id="L1045">    <span class="tok-kw">try</span> expectEqualSlices(<span class="tok-type">u8</span>, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0xa5</span>, <span class="tok-number">0x7c</span>, <span class="tok-number">0x39</span>, <span class="tok-number">0xf2</span> }, dest_row);</span>
+<span class="line" id="L1046">    dest_row = dest_buffer[<span class="tok-number">0</span>..<span class="tok-number">8</span>];</span>
+<span class="line" id="L1047">    <span class="tok-builtin">@memset</span>(dest_row, <span class="tok-number">0</span>);</span>
+<span class="line" id="L1048">    pixel_stride = <span class="tok-number">4</span>;</span>
+<span class="line" id="L1049">    spreadRowData(dest_row, current_row[filter_stride..], bit_depth, channel_count, pixel_stride, <span class="tok-null">false</span>);</span>
+<span class="line" id="L1050">    <span class="tok-kw">try</span> expectEqualSlices(<span class="tok-type">u8</span>, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0xa5</span>, <span class="tok-number">0x7c</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0x39</span>, <span class="tok-number">0xf2</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span> }, dest_row);</span>
+<span class="line" id="L1051"></span>
+<span class="line" id="L1052">    bit_depth = <span class="tok-number">16</span>;</span>
+<span class="line" id="L1053">    current_row = cur_buffer[<span class="tok-number">0</span>..<span class="tok-number">12</span>];</span>
+<span class="line" id="L1054">    dest_row = dest_buffer[<span class="tok-number">0</span>..<span class="tok-number">8</span>];</span>
+<span class="line" id="L1055">    filter_stride = <span class="tok-number">4</span>;</span>
+<span class="line" id="L1056">    pixel_stride = <span class="tok-number">4</span>;</span>
+<span class="line" id="L1057">    spreadRowData(dest_row, current_row[filter_stride..], bit_depth, channel_count, pixel_stride, <span class="tok-null">true</span>);</span>
+<span class="line" id="L1058">    <span class="tok-kw">try</span> expectEqualSlices(<span class="tok-type">u8</span>, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0x7c</span>, <span class="tok-number">0xa5</span>, <span class="tok-number">0xf2</span>, <span class="tok-number">0x39</span>, <span class="tok-number">0x15</span>, <span class="tok-number">0x5b</span>, <span class="tok-number">0xd1</span>, <span class="tok-number">0x78</span> }, dest_row);</span>
+<span class="line" id="L1059"></span>
+<span class="line" id="L1060">    channel_count = <span class="tok-number">3</span>;</span>
+<span class="line" id="L1061">    bit_depth = <span class="tok-number">8</span>;</span>
+<span class="line" id="L1062">    current_row = cur_buffer[<span class="tok-number">1</span>..<span class="tok-number">10</span>];</span>
+<span class="line" id="L1063">    dest_row = dest_buffer[<span class="tok-number">0</span>..<span class="tok-number">8</span>];</span>
+<span class="line" id="L1064">    <span class="tok-builtin">@memset</span>(dest_row, <span class="tok-number">0</span>);</span>
+<span class="line" id="L1065">    filter_stride = <span class="tok-number">3</span>;</span>
+<span class="line" id="L1066">    pixel_stride = <span class="tok-number">4</span>;</span>
+<span class="line" id="L1067">    spreadRowData(dest_row, current_row[filter_stride..], bit_depth, channel_count, pixel_stride, <span class="tok-null">false</span>);</span>
+<span class="line" id="L1068">    <span class="tok-kw">try</span> expectEqualSlices(<span class="tok-type">u8</span>, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0xa5</span>, <span class="tok-number">0x7c</span>, <span class="tok-number">0x39</span>, <span class="tok-number">0</span>, <span class="tok-number">0xf2</span>, <span class="tok-number">0x5b</span>, <span class="tok-number">0x15</span>, <span class="tok-number">0</span> }, dest_row);</span>
+<span class="line" id="L1069"></span>
+<span class="line" id="L1070">    channel_count = <span class="tok-number">4</span>;</span>
+<span class="line" id="L1071">    bit_depth = <span class="tok-number">16</span>;</span>
+<span class="line" id="L1072">    <span class="tok-kw">var</span> cbuffer16 = [_]<span class="tok-type">u8</span>{ <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0</span>, <span class="tok-number">0xa5</span>, <span class="tok-number">0x7c</span>, <span class="tok-number">0x39</span>, <span class="tok-number">0xf2</span>, <span class="tok-number">0x5b</span>, <span class="tok-number">0x15</span>, <span class="tok-number">0x78</span>, <span class="tok-number">0xd1</span> };</span>
+<span class="line" id="L1073">    current_row = cbuffer16[<span class="tok-number">0</span>..];</span>
+<span class="line" id="L1074">    dest_row = dest_buffer[<span class="tok-number">0</span>..<span class="tok-number">8</span>];</span>
+<span class="line" id="L1075">    <span class="tok-builtin">@memset</span>(dest_row, <span class="tok-number">0</span>);</span>
+<span class="line" id="L1076">    filter_stride = <span class="tok-number">8</span>;</span>
+<span class="line" id="L1077">    pixel_stride = <span class="tok-number">8</span>;</span>
+<span class="line" id="L1078">    spreadRowData(dest_row, current_row[filter_stride..], bit_depth, channel_count, pixel_stride, <span class="tok-null">true</span>);</span>
+<span class="line" id="L1079">    <span class="tok-kw">try</span> expectEqualSlices(<span class="tok-type">u8</span>, &amp;[_]<span class="tok-type">u8</span>{ <span class="tok-number">0x7c</span>, <span class="tok-number">0xa5</span>, <span class="tok-number">0xf2</span>, <span class="tok-number">0x39</span>, <span class="tok-number">0x15</span>, <span class="tok-number">0x5b</span>, <span class="tok-number">0xd1</span>, <span class="tok-number">0x78</span> }, dest_row);</span>
+<span class="line" id="L1080">}</span>
+<span class="line" id="L1081"></span>
+</code></pre></body>
+</html>

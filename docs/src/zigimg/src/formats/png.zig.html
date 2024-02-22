@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>src/formats/png.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-comment">// Implement PNG image format according to W3C Portable Network Graphics (PNG) specification second edition (ISO/IEC 15948:2003 (E))</span>
+</span>
+<span class="line" id="L2"><span class="tok-comment">// Last version: https://www.w3.org/TR/PNG/</span>
+</span>
+<span class="line" id="L3"></span>
+<span class="line" id="L4"><span class="tok-kw">const</span> Allocator = std.mem.Allocator;</span>
+<span class="line" id="L5"><span class="tok-kw">const</span> chunk_writer = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;png/chunk_writer.zig&quot;</span>);</span>
+<span class="line" id="L6"><span class="tok-kw">const</span> color = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../color.zig&quot;</span>);</span>
+<span class="line" id="L7"><span class="tok-kw">const</span> filter = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;png/filtering.zig&quot;</span>);</span>
+<span class="line" id="L8"><span class="tok-kw">const</span> FormatInterface = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../FormatInterface.zig&quot;</span>);</span>
+<span class="line" id="L9"><span class="tok-kw">const</span> Image = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../Image.zig&quot;</span>);</span>
+<span class="line" id="L10"><span class="tok-kw">const</span> ImageReadError = Image.ReadError;</span>
+<span class="line" id="L11"><span class="tok-kw">const</span> ImageWriteError = Image.WriteError;</span>
+<span class="line" id="L12"><span class="tok-kw">const</span> PixelFormat = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../pixel_format.zig&quot;</span>).PixelFormat;</span>
+<span class="line" id="L13"><span class="tok-kw">const</span> reader = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;png/reader.zig&quot;</span>);</span>
+<span class="line" id="L14"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L15"><span class="tok-kw">const</span> types = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;png/types.zig&quot;</span>);</span>
+<span class="line" id="L16"><span class="tok-kw">const</span> ZlibCompressor = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;png/zlib_compressor.zig&quot;</span>).ZlibCompressor;</span>
+<span class="line" id="L17"></span>
+<span class="line" id="L18"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> HeaderData = types.HeaderData;</span>
+<span class="line" id="L19"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> ColorType = types.ColorType;</span>
+<span class="line" id="L20"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> CompressionMethod = types.CompressionMethod;</span>
+<span class="line" id="L21"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> FilterMethod = types.FilterMethod;</span>
+<span class="line" id="L22"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> FilterType = types.FilterType;</span>
+<span class="line" id="L23"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> InterlaceMethod = types.InterlaceMethod;</span>
+<span class="line" id="L24"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> Chunks = types.Chunks;</span>
+<span class="line" id="L25"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> isChunkCritical = reader.isChunkCritical;</span>
+<span class="line" id="L26"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> load = reader.load;</span>
+<span class="line" id="L27"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> loadHeader = reader.loadHeader;</span>
+<span class="line" id="L28"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> loadWithHeader = reader.loadWithHeader;</span>
+<span class="line" id="L29"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> ChunkProcessData = reader.ChunkProcessData;</span>
+<span class="line" id="L30"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> PaletteProcessData = reader.PaletteProcessData;</span>
+<span class="line" id="L31"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> RowProcessData = reader.RowProcessData;</span>
+<span class="line" id="L32"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> ReaderProcessor = reader.ReaderProcessor;</span>
+<span class="line" id="L33"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> TrnsProcessor = reader.TrnsProcessor;</span>
+<span class="line" id="L34"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> PlteProcessor = reader.PlteProcessor;</span>
+<span class="line" id="L35"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> ReaderOptions = reader.ReaderOptions;</span>
+<span class="line" id="L36"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> DefaultProcessors = reader.DefaultProcessors;</span>
+<span class="line" id="L37"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> DefaultOptions = reader.DefaultOptions;</span>
+<span class="line" id="L38"></span>
+<span class="line" id="L39"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> PNG = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L40">    <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L41"></span>
+<span class="line" id="L42">    <span class="tok-kw">pub</span> <span class="tok-kw">const</span> EncoderOptions = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L43">        <span class="tok-comment">// For progressive rendering of big images</span>
+</span>
+<span class="line" id="L44">        interlaced: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L45">        <span class="tok-comment">// Changing this can affect performance positively or negatively</span>
+</span>
+<span class="line" id="L46">        filter_choice: filter.FilterChoice = .heuristic,</span>
+<span class="line" id="L47">    };</span>
+<span class="line" id="L48"></span>
+<span class="line" id="L49">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">formatInterface</span>() FormatInterface {</span>
+<span class="line" id="L50">        <span class="tok-kw">return</span> FormatInterface{</span>
+<span class="line" id="L51">            .format = format,</span>
+<span class="line" id="L52">            .formatDetect = formatDetect,</span>
+<span class="line" id="L53">            .readImage = readImage,</span>
+<span class="line" id="L54">            .writeImage = writeImage,</span>
+<span class="line" id="L55">        };</span>
+<span class="line" id="L56">    }</span>
+<span class="line" id="L57"></span>
+<span class="line" id="L58">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">format</span>() Image.Format {</span>
+<span class="line" id="L59">        <span class="tok-kw">return</span> Image.Format.png;</span>
+<span class="line" id="L60">    }</span>
+<span class="line" id="L61"></span>
+<span class="line" id="L62">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">formatDetect</span>(stream: *Image.Stream) ImageReadError!<span class="tok-type">bool</span> {</span>
+<span class="line" id="L63">        <span class="tok-kw">var</span> magic_buffer: [types.magic_header.len]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L64"></span>
+<span class="line" id="L65">        _ = <span class="tok-kw">try</span> stream.reader().readAll(magic_buffer[<span class="tok-number">0</span>..]);</span>
+<span class="line" id="L66"></span>
+<span class="line" id="L67">        <span class="tok-kw">return</span> std.mem.eql(<span class="tok-type">u8</span>, magic_buffer[<span class="tok-number">0</span>..], types.magic_header[<span class="tok-number">0</span>..]);</span>
+<span class="line" id="L68">    }</span>
+<span class="line" id="L69"></span>
+<span class="line" id="L70">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">readImage</span>(allocator: Allocator, stream: *Image.Stream) ImageReadError!Image {</span>
+<span class="line" id="L71">        <span class="tok-kw">var</span> default_options = DefaultOptions{};</span>
+<span class="line" id="L72">        <span class="tok-kw">return</span> load(stream, allocator, default_options.get());</span>
+<span class="line" id="L73">    }</span>
+<span class="line" id="L74"></span>
+<span class="line" id="L75">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">writeImage</span>(allocator: Allocator, write_stream: *Image.Stream, image: Image, encoder_options: Image.EncoderOptions) ImageWriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L76">        <span class="tok-kw">const</span> options = encoder_options.png;</span>
+<span class="line" id="L77"></span>
+<span class="line" id="L78">        <span class="tok-kw">try</span> ensureWritable(image);</span>
+<span class="line" id="L79"></span>
+<span class="line" id="L80">        <span class="tok-kw">const</span> header = HeaderData{</span>
+<span class="line" id="L81">            .width = <span class="tok-builtin">@truncate</span>(image.width),</span>
+<span class="line" id="L82">            .height = <span class="tok-builtin">@truncate</span>(image.height),</span>
+<span class="line" id="L83">            .bit_depth = image.pixelFormat().bitsPerChannel(),</span>
+<span class="line" id="L84">            .color_type = <span class="tok-kw">try</span> types.ColorType.fromPixelFormat(image.pixelFormat()),</span>
+<span class="line" id="L85">            .compression_method = .deflate,</span>
+<span class="line" id="L86">            .filter_method = .adaptive,</span>
+<span class="line" id="L87">            .interlace_method = <span class="tok-kw">if</span> (options.interlaced) .adam7 <span class="tok-kw">else</span> .none,</span>
+<span class="line" id="L88">        };</span>
+<span class="line" id="L89"></span>
+<span class="line" id="L90">        std.debug.assert(header.isValid());</span>
+<span class="line" id="L91"></span>
+<span class="line" id="L92">        <span class="tok-kw">try</span> write(allocator, write_stream, image.pixels, header, options.filter_choice);</span>
+<span class="line" id="L93">    }</span>
+<span class="line" id="L94"></span>
+<span class="line" id="L95">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">write</span>(allocator: Allocator, write_stream: *Image.Stream, pixels: color.PixelStorage, header: HeaderData, filter_choice: filter.FilterChoice) ImageWriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L96">        <span class="tok-kw">if</span> (header.interlace_method != .none)</span>
+<span class="line" id="L97">            <span class="tok-kw">return</span> ImageWriteError.Unsupported;</span>
+<span class="line" id="L98">        <span class="tok-kw">if</span> (header.compression_method != .deflate)</span>
+<span class="line" id="L99">            <span class="tok-kw">return</span> ImageWriteError.Unsupported;</span>
+<span class="line" id="L100">        <span class="tok-kw">if</span> (header.filter_method != .adaptive)</span>
+<span class="line" id="L101">            <span class="tok-kw">return</span> ImageWriteError.Unsupported;</span>
+<span class="line" id="L102"></span>
+<span class="line" id="L103">        <span class="tok-kw">const</span> writer = write_stream.writer();</span>
+<span class="line" id="L104"></span>
+<span class="line" id="L105">        <span class="tok-kw">try</span> writeSignature(writer);</span>
+<span class="line" id="L106">        <span class="tok-kw">try</span> writeHeader(writer, header);</span>
+<span class="line" id="L107">        <span class="tok-kw">if</span> (PixelFormat.isIndexed(pixels)) {</span>
+<span class="line" id="L108">            <span class="tok-kw">try</span> writePalette(writer, pixels);</span>
+<span class="line" id="L109">            <span class="tok-kw">try</span> writeTransparencyInfo(writer, pixels); <span class="tok-comment">// TODO: pixel format where there is no transparency</span>
+</span>
+<span class="line" id="L110">        }</span>
+<span class="line" id="L111">        <span class="tok-kw">try</span> writeData(allocator, writer, pixels, header, filter_choice);</span>
+<span class="line" id="L112">        <span class="tok-kw">try</span> writeTrailer(writer);</span>
+<span class="line" id="L113">    }</span>
+<span class="line" id="L114"></span>
+<span class="line" id="L115">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">ensureWritable</span>(image: Image) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L116">        <span class="tok-kw">if</span> (image.width &gt; std.math.maxInt(<span class="tok-type">u31</span>))</span>
+<span class="line" id="L117">            <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Unsupported;</span>
+<span class="line" id="L118">        <span class="tok-kw">if</span> (image.height &gt; std.math.maxInt(<span class="tok-type">u31</span>))</span>
+<span class="line" id="L119">            <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Unsupported;</span>
+<span class="line" id="L120"></span>
+<span class="line" id="L121">        <span class="tok-kw">switch</span> (image.pixels) {</span>
+<span class="line" id="L122">            .rgb24, .rgb48, .rgba32, .rgba64, .grayscale8, .grayscale16, .grayscale8Alpha, .grayscale16Alpha, .indexed8 =&gt; {},</span>
+<span class="line" id="L123"></span>
+<span class="line" id="L124">            .grayscale1, .grayscale2, .grayscale4, .indexed1, .indexed2, .indexed4 =&gt; <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Unsupported, <span class="tok-comment">// TODO</span>
+</span>
+<span class="line" id="L125"></span>
+<span class="line" id="L126">            <span class="tok-comment">// Should bgr be supported with swapping operations during the filtering?</span>
+</span>
+<span class="line" id="L127"></span>
+<span class="line" id="L128">            <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Unsupported,</span>
+<span class="line" id="L129">        }</span>
+<span class="line" id="L130">    }</span>
+<span class="line" id="L131"></span>
+<span class="line" id="L132">    <span class="tok-kw">fn</span> <span class="tok-fn">writeSignature</span>(writer: <span class="tok-kw">anytype</span>) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L133">        <span class="tok-kw">try</span> writer.writeAll(types.magic_header);</span>
+<span class="line" id="L134">    }</span>
+<span class="line" id="L135"></span>
+<span class="line" id="L136">    <span class="tok-comment">// IHDR</span>
+</span>
+<span class="line" id="L137">    <span class="tok-kw">fn</span> <span class="tok-fn">writeHeader</span>(writer: <span class="tok-kw">anytype</span>, header: HeaderData) ImageWriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L138">        <span class="tok-kw">var</span> chunk = chunk_writer.chunkWriter(writer, <span class="tok-str">&quot;IHDR&quot;</span>);</span>
+<span class="line" id="L139">        <span class="tok-kw">var</span> chunk_wr = chunk.writer();</span>
+<span class="line" id="L140"></span>
+<span class="line" id="L141">        <span class="tok-kw">try</span> chunk_wr.writeInt(<span class="tok-type">u32</span>, header.width, .big);</span>
+<span class="line" id="L142">        <span class="tok-kw">try</span> chunk_wr.writeInt(<span class="tok-type">u32</span>, header.height, .big);</span>
+<span class="line" id="L143">        <span class="tok-kw">try</span> chunk_wr.writeInt(<span class="tok-type">u8</span>, header.bit_depth, .big);</span>
+<span class="line" id="L144">        <span class="tok-kw">try</span> chunk_wr.writeInt(<span class="tok-type">u8</span>, <span class="tok-builtin">@intFromEnum</span>(header.color_type), .big);</span>
+<span class="line" id="L145">        <span class="tok-kw">try</span> chunk_wr.writeInt(<span class="tok-type">u8</span>, <span class="tok-builtin">@intFromEnum</span>(header.compression_method), .big);</span>
+<span class="line" id="L146">        <span class="tok-kw">try</span> chunk_wr.writeInt(<span class="tok-type">u8</span>, <span class="tok-builtin">@intFromEnum</span>(header.filter_method), .big);</span>
+<span class="line" id="L147">        <span class="tok-kw">try</span> chunk_wr.writeInt(<span class="tok-type">u8</span>, <span class="tok-builtin">@intFromEnum</span>(header.interlace_method), .big);</span>
+<span class="line" id="L148"></span>
+<span class="line" id="L149">        <span class="tok-kw">try</span> chunk.flush();</span>
+<span class="line" id="L150">    }</span>
+<span class="line" id="L151"></span>
+<span class="line" id="L152">    <span class="tok-comment">// IDAT (multiple maybe)</span>
+</span>
+<span class="line" id="L153">    <span class="tok-kw">fn</span> <span class="tok-fn">writeData</span>(allocator: Allocator, writer: <span class="tok-kw">anytype</span>, pixels: color.PixelStorage, header: HeaderData, filter_choice: filter.FilterChoice) ImageWriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L154">        <span class="tok-comment">// Note: there may be more than 1 chunk</span>
+</span>
+<span class="line" id="L155">        <span class="tok-comment">// TODO: provide choice of how much it buffers (how much data per idat chunk)</span>
+</span>
+<span class="line" id="L156">        <span class="tok-kw">var</span> chunks = chunk_writer.chunkWriter(writer, <span class="tok-str">&quot;IDAT&quot;</span>);</span>
+<span class="line" id="L157">        <span class="tok-kw">const</span> chunk_wr = chunks.writer();</span>
+<span class="line" id="L158"></span>
+<span class="line" id="L159">        <span class="tok-kw">var</span> zlib: ZlibCompressor(<span class="tok-builtin">@TypeOf</span>(chunk_wr)) = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L160">        <span class="tok-kw">try</span> zlib.init(allocator, chunk_wr);</span>
+<span class="line" id="L161"></span>
+<span class="line" id="L162">        <span class="tok-kw">try</span> zlib.begin();</span>
+<span class="line" id="L163">        <span class="tok-kw">try</span> filter.filter(zlib.writer(), pixels, filter_choice, header);</span>
+<span class="line" id="L164">        <span class="tok-kw">try</span> zlib.end();</span>
+<span class="line" id="L165"></span>
+<span class="line" id="L166">        <span class="tok-kw">try</span> chunks.flush();</span>
+<span class="line" id="L167">    }</span>
+<span class="line" id="L168"></span>
+<span class="line" id="L169">    <span class="tok-comment">// IEND chunk</span>
+</span>
+<span class="line" id="L170">    <span class="tok-kw">fn</span> <span class="tok-fn">writeTrailer</span>(writer: <span class="tok-kw">anytype</span>) ImageWriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L171">        <span class="tok-kw">var</span> chunk = chunk_writer.chunkWriter(writer, <span class="tok-str">&quot;IEND&quot;</span>);</span>
+<span class="line" id="L172">        <span class="tok-kw">try</span> chunk.flush();</span>
+<span class="line" id="L173">    }</span>
+<span class="line" id="L174"></span>
+<span class="line" id="L175">    <span class="tok-comment">// PLTE (if indexed storage)</span>
+</span>
+<span class="line" id="L176">    <span class="tok-kw">fn</span> <span class="tok-fn">writePalette</span>(writer: <span class="tok-kw">anytype</span>, pixels: color.PixelStorage) ImageWriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L177">        <span class="tok-kw">var</span> chunk = chunk_writer.chunkWriter(writer, <span class="tok-str">&quot;PLTE&quot;</span>);</span>
+<span class="line" id="L178">        <span class="tok-kw">var</span> chunk_wr = chunk.writer();</span>
+<span class="line" id="L179"></span>
+<span class="line" id="L180">        <span class="tok-kw">const</span> palette = <span class="tok-kw">switch</span> (pixels) {</span>
+<span class="line" id="L181">            .indexed1 =&gt; |d| d.palette,</span>
+<span class="line" id="L182">            .indexed2 =&gt; |d| d.palette,</span>
+<span class="line" id="L183">            .indexed4 =&gt; |d| d.palette,</span>
+<span class="line" id="L184">            .indexed8 =&gt; |d| d.palette,</span>
+<span class="line" id="L185">            .indexed16 =&gt; <span class="tok-kw">return</span> ImageWriteError.Unsupported,</span>
+<span class="line" id="L186">            <span class="tok-kw">else</span> =&gt; <span class="tok-kw">unreachable</span>,</span>
+<span class="line" id="L187">        };</span>
+<span class="line" id="L188"></span>
+<span class="line" id="L189">        <span class="tok-kw">for</span> (palette) |col| {</span>
+<span class="line" id="L190">            <span class="tok-kw">try</span> chunk_wr.writeByte(col.r);</span>
+<span class="line" id="L191">            <span class="tok-kw">try</span> chunk_wr.writeByte(col.g);</span>
+<span class="line" id="L192">            <span class="tok-kw">try</span> chunk_wr.writeByte(col.b);</span>
+<span class="line" id="L193">        }</span>
+<span class="line" id="L194"></span>
+<span class="line" id="L195">        <span class="tok-kw">try</span> chunk.flush();</span>
+<span class="line" id="L196">    }</span>
+<span class="line" id="L197"></span>
+<span class="line" id="L198">    <span class="tok-comment">// tRNS (if indexed storage with transparency (there may be other uses later))</span>
+</span>
+<span class="line" id="L199">    <span class="tok-kw">fn</span> <span class="tok-fn">writeTransparencyInfo</span>(writer: <span class="tok-kw">anytype</span>, pixels: color.PixelStorage) ImageWriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L200">        <span class="tok-kw">var</span> chunk = chunk_writer.chunkWriter(writer, <span class="tok-str">&quot;tRNS&quot;</span>);</span>
+<span class="line" id="L201">        <span class="tok-kw">var</span> chunk_wr = chunk.writer();</span>
+<span class="line" id="L202"></span>
+<span class="line" id="L203">        <span class="tok-kw">const</span> palette = <span class="tok-kw">switch</span> (pixels) {</span>
+<span class="line" id="L204">            .indexed1 =&gt; |d| d.palette,</span>
+<span class="line" id="L205">            .indexed2 =&gt; |d| d.palette,</span>
+<span class="line" id="L206">            .indexed4 =&gt; |d| d.palette,</span>
+<span class="line" id="L207">            .indexed8 =&gt; |d| d.palette,</span>
+<span class="line" id="L208">            .indexed16 =&gt; <span class="tok-kw">return</span> ImageWriteError.Unsupported,</span>
+<span class="line" id="L209">            <span class="tok-comment">// TODO: png support transparency info for other formats?</span>
+</span>
+<span class="line" id="L210">            <span class="tok-kw">else</span> =&gt; <span class="tok-kw">unreachable</span>,</span>
+<span class="line" id="L211">        };</span>
+<span class="line" id="L212"></span>
+<span class="line" id="L213">        <span class="tok-kw">for</span> (palette) |col| {</span>
+<span class="line" id="L214">            <span class="tok-kw">try</span> chunk_wr.writeByte(col.a);</span>
+<span class="line" id="L215">        }</span>
+<span class="line" id="L216"></span>
+<span class="line" id="L217">        <span class="tok-kw">try</span> chunk.flush();</span>
+<span class="line" id="L218">    }</span>
+<span class="line" id="L219">};</span>
+<span class="line" id="L220"></span>
+</code></pre></body>
+</html>

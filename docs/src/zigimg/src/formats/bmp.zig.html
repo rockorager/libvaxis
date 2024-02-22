@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>src/formats/bmp.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-kw">const</span> buffered_stream_source = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../buffered_stream_source.zig&quot;</span>);</span>
+<span class="line" id="L2"><span class="tok-kw">const</span> color = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../color.zig&quot;</span>);</span>
+<span class="line" id="L3"><span class="tok-kw">const</span> FormatInterface = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../FormatInterface.zig&quot;</span>);</span>
+<span class="line" id="L4"><span class="tok-kw">const</span> Image = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../Image.zig&quot;</span>);</span>
+<span class="line" id="L5"><span class="tok-kw">const</span> PixelFormat = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../pixel_format.zig&quot;</span>).PixelFormat;</span>
+<span class="line" id="L6"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L7"><span class="tok-kw">const</span> utils = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../utils.zig&quot;</span>);</span>
+<span class="line" id="L8"></span>
+<span class="line" id="L9"><span class="tok-kw">const</span> BitmapMagicHeader = [_]<span class="tok-type">u8</span>{ <span class="tok-str">'B'</span>, <span class="tok-str">'M'</span> };</span>
+<span class="line" id="L10"></span>
+<span class="line" id="L11"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> BitmapFileHeader = <span class="tok-kw">extern</span> <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L12">    magic_header: [<span class="tok-number">2</span>]<span class="tok-type">u8</span> = BitmapMagicHeader,</span>
+<span class="line" id="L13">    size: <span class="tok-type">u32</span> <span class="tok-kw">align</span>(<span class="tok-number">1</span>) = <span class="tok-number">0</span>,</span>
+<span class="line" id="L14">    reserved: <span class="tok-type">u32</span> <span class="tok-kw">align</span>(<span class="tok-number">1</span>) = <span class="tok-number">0</span>,</span>
+<span class="line" id="L15">    pixel_offset: <span class="tok-type">u32</span> <span class="tok-kw">align</span>(<span class="tok-number">1</span>) = <span class="tok-number">0</span>,</span>
+<span class="line" id="L16">};</span>
+<span class="line" id="L17"></span>
+<span class="line" id="L18"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> CompressionMethod = <span class="tok-kw">enum</span>(<span class="tok-type">u32</span>) {</span>
+<span class="line" id="L19">    none = <span class="tok-number">0</span>,</span>
+<span class="line" id="L20">    rle8 = <span class="tok-number">1</span>,</span>
+<span class="line" id="L21">    rle4 = <span class="tok-number">2</span>,</span>
+<span class="line" id="L22">    bitfields = <span class="tok-number">3</span>,</span>
+<span class="line" id="L23">    jpg = <span class="tok-number">4</span>,</span>
+<span class="line" id="L24">    png = <span class="tok-number">5</span>,</span>
+<span class="line" id="L25">    alpha_bit_fields = <span class="tok-number">6</span>,</span>
+<span class="line" id="L26">    cmyk = <span class="tok-number">11</span>,</span>
+<span class="line" id="L27">    cmyk_rle8 = <span class="tok-number">12</span>,</span>
+<span class="line" id="L28">    cmyk_rle4 = <span class="tok-number">13</span>,</span>
+<span class="line" id="L29">};</span>
+<span class="line" id="L30"></span>
+<span class="line" id="L31"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> BitmapColorSpace = <span class="tok-kw">enum</span>(<span class="tok-type">u32</span>) {</span>
+<span class="line" id="L32">    calibrated_rgb = <span class="tok-number">0</span>,</span>
+<span class="line" id="L33">    srgb = utils.toMagicNumber(<span class="tok-str">&quot;sRGB&quot;</span>, .big),</span>
+<span class="line" id="L34">    windows_color_space = utils.toMagicNumber(<span class="tok-str">&quot;Win &quot;</span>, .big),</span>
+<span class="line" id="L35">    profile_linked = utils.toMagicNumber(<span class="tok-str">&quot;LINK&quot;</span>, .big),</span>
+<span class="line" id="L36">    profile_embedded = utils.toMagicNumber(<span class="tok-str">&quot;MBED&quot;</span>, .big),</span>
+<span class="line" id="L37">};</span>
+<span class="line" id="L38"></span>
+<span class="line" id="L39"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> BitmapIntent = <span class="tok-kw">enum</span>(<span class="tok-type">u32</span>) {</span>
+<span class="line" id="L40">    business = <span class="tok-number">1</span>,</span>
+<span class="line" id="L41">    graphics = <span class="tok-number">2</span>,</span>
+<span class="line" id="L42">    images = <span class="tok-number">4</span>,</span>
+<span class="line" id="L43">    absolute_colorimetric = <span class="tok-number">8</span>,</span>
+<span class="line" id="L44">};</span>
+<span class="line" id="L45"></span>
+<span class="line" id="L46"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> CieXyz = <span class="tok-kw">extern</span> <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L47">    x: <span class="tok-type">u32</span> = <span class="tok-number">0</span>, <span class="tok-comment">// TODO: Use FXPT2DOT30</span>
+</span>
+<span class="line" id="L48">    y: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L49">    z: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L50">};</span>
+<span class="line" id="L51"></span>
+<span class="line" id="L52"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> CieXyzTriple = <span class="tok-kw">extern</span> <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L53">    red: CieXyz = CieXyz{},</span>
+<span class="line" id="L54">    green: CieXyz = CieXyz{},</span>
+<span class="line" id="L55">    blue: CieXyz = CieXyz{},</span>
+<span class="line" id="L56">};</span>
+<span class="line" id="L57"></span>
+<span class="line" id="L58"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> BitmapInfoHeaderWindows31 = <span class="tok-kw">extern</span> <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L59">    header_size: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L60">    width: <span class="tok-type">i32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L61">    height: <span class="tok-type">i32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L62">    color_plane: <span class="tok-type">u16</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L63">    bit_count: <span class="tok-type">u16</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L64">    compression_method: CompressionMethod = .none,</span>
+<span class="line" id="L65">    image_raw_size: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L66">    horizontal_resolution: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L67">    vertical_resolution: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L68">    palette_size: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L69">    important_colors: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L70"></span>
+<span class="line" id="L71">    <span class="tok-kw">pub</span> <span class="tok-kw">const</span> HeaderSize = <span class="tok-builtin">@sizeOf</span>(BitmapInfoHeaderWindows31);</span>
+<span class="line" id="L72">};</span>
+<span class="line" id="L73"></span>
+<span class="line" id="L74"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> BitmapInfoHeaderV4 = <span class="tok-kw">extern</span> <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L75">    header_size: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L76">    width: <span class="tok-type">i32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L77">    height: <span class="tok-type">i32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L78">    color_plane: <span class="tok-type">u16</span> <span class="tok-kw">align</span>(<span class="tok-number">1</span>) = <span class="tok-number">0</span>,</span>
+<span class="line" id="L79">    bit_count: <span class="tok-type">u16</span> <span class="tok-kw">align</span>(<span class="tok-number">1</span>) = <span class="tok-number">0</span>,</span>
+<span class="line" id="L80">    compression_method: CompressionMethod = .none,</span>
+<span class="line" id="L81">    image_raw_size: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L82">    horizontal_resolution: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L83">    vertical_resolution: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L84">    palette_size: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L85">    important_colors: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L86">    red_mask: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L87">    green_mask: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L88">    blue_mask: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L89">    alpha_mask: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L90">    color_space: BitmapColorSpace = .srgb,</span>
+<span class="line" id="L91">    cie_end_points: CieXyzTriple = .{},</span>
+<span class="line" id="L92">    gamma_red: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L93">    gamma_green: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L94">    gamma_blue: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L95"></span>
+<span class="line" id="L96">    <span class="tok-kw">pub</span> <span class="tok-kw">const</span> HeaderSize = <span class="tok-builtin">@sizeOf</span>(BitmapInfoHeaderV4);</span>
+<span class="line" id="L97">};</span>
+<span class="line" id="L98"></span>
+<span class="line" id="L99"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> BitmapInfoHeaderV5 = <span class="tok-kw">extern</span> <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L100">    header_size: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L101">    width: <span class="tok-type">i32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L102">    height: <span class="tok-type">i32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L103">    color_plane: <span class="tok-type">u16</span> <span class="tok-kw">align</span>(<span class="tok-number">1</span>) = <span class="tok-number">0</span>,</span>
+<span class="line" id="L104">    bit_count: <span class="tok-type">u16</span> <span class="tok-kw">align</span>(<span class="tok-number">1</span>) = <span class="tok-number">0</span>,</span>
+<span class="line" id="L105">    compression_method: CompressionMethod = .none,</span>
+<span class="line" id="L106">    image_raw_size: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L107">    horizontal_resolution: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L108">    vertical_resolution: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L109">    palette_size: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L110">    important_colors: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L111">    red_mask: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L112">    green_mask: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L113">    blue_mask: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L114">    alpha_mask: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L115">    color_space: BitmapColorSpace = .srgb,</span>
+<span class="line" id="L116">    cie_end_points: CieXyzTriple = .{},</span>
+<span class="line" id="L117">    gamma_red: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L118">    gamma_green: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L119">    gamma_blue: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L120">    intent: BitmapIntent = .graphics,</span>
+<span class="line" id="L121">    profile_data: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L122">    profile_size: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L123">    reserved: <span class="tok-type">u32</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L124"></span>
+<span class="line" id="L125">    <span class="tok-kw">pub</span> <span class="tok-kw">const</span> HeaderSize = <span class="tok-builtin">@sizeOf</span>(BitmapInfoHeaderV5);</span>
+<span class="line" id="L126">};</span>
+<span class="line" id="L127"></span>
+<span class="line" id="L128"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> BitmapInfoHeader = <span class="tok-kw">union</span>(<span class="tok-kw">enum</span>) {</span>
+<span class="line" id="L129">    windows31: BitmapInfoHeaderWindows31,</span>
+<span class="line" id="L130">    v4: BitmapInfoHeaderV4,</span>
+<span class="line" id="L131">    v5: BitmapInfoHeaderV5,</span>
+<span class="line" id="L132">};</span>
+<span class="line" id="L133"></span>
+<span class="line" id="L134"><span class="tok-comment">// Print resolution of the image,</span>
+</span>
+<span class="line" id="L135"><span class="tok-comment">// 72 DPI × 39.3701 inches per metre yields 2834.6472</span>
+</span>
+<span class="line" id="L136"><span class="tok-kw">const</span> PixelsPerMeterResolution = <span class="tok-number">2835</span>;</span>
+<span class="line" id="L137"></span>
+<span class="line" id="L138"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> BMP = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L139">    file_header: BitmapFileHeader = <span class="tok-null">undefined</span>,</span>
+<span class="line" id="L140">    info_header: BitmapInfoHeader = <span class="tok-null">undefined</span>,</span>
+<span class="line" id="L141"></span>
+<span class="line" id="L142">    <span class="tok-kw">pub</span> <span class="tok-kw">const</span> EncoderOptions = <span class="tok-kw">struct</span> {};</span>
+<span class="line" id="L143"></span>
+<span class="line" id="L144">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">formatInterface</span>() FormatInterface {</span>
+<span class="line" id="L145">        <span class="tok-kw">return</span> FormatInterface{</span>
+<span class="line" id="L146">            .format = format,</span>
+<span class="line" id="L147">            .formatDetect = formatDetect,</span>
+<span class="line" id="L148">            .readImage = readImage,</span>
+<span class="line" id="L149">            .writeImage = writeImage,</span>
+<span class="line" id="L150">        };</span>
+<span class="line" id="L151">    }</span>
+<span class="line" id="L152"></span>
+<span class="line" id="L153">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">format</span>() Image.Format {</span>
+<span class="line" id="L154">        <span class="tok-kw">return</span> Image.Format.bmp;</span>
+<span class="line" id="L155">    }</span>
+<span class="line" id="L156"></span>
+<span class="line" id="L157">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">formatDetect</span>(stream: *Image.Stream) Image.Stream.ReadError!<span class="tok-type">bool</span> {</span>
+<span class="line" id="L158">        <span class="tok-kw">var</span> magic_number_buffer: [<span class="tok-number">2</span>]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L159">        _ = <span class="tok-kw">try</span> stream.read(magic_number_buffer[<span class="tok-number">0</span>..]);</span>
+<span class="line" id="L160">        <span class="tok-kw">if</span> (std.mem.eql(<span class="tok-type">u8</span>, magic_number_buffer[<span class="tok-number">0</span>..], BitmapMagicHeader[<span class="tok-number">0</span>..])) {</span>
+<span class="line" id="L161">            <span class="tok-kw">return</span> <span class="tok-null">true</span>;</span>
+<span class="line" id="L162">        }</span>
+<span class="line" id="L163"></span>
+<span class="line" id="L164">        <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L165">    }</span>
+<span class="line" id="L166"></span>
+<span class="line" id="L167">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">readImage</span>(allocator: std.mem.Allocator, stream: *Image.Stream) Image.ReadError!Image {</span>
+<span class="line" id="L168">        <span class="tok-kw">var</span> result = Image.init(allocator);</span>
+<span class="line" id="L169">        <span class="tok-kw">errdefer</span> result.deinit();</span>
+<span class="line" id="L170"></span>
+<span class="line" id="L171">        <span class="tok-kw">var</span> bmp = BMP{};</span>
+<span class="line" id="L172">        <span class="tok-kw">const</span> pixels = <span class="tok-kw">try</span> bmp.read(allocator, stream);</span>
+<span class="line" id="L173"></span>
+<span class="line" id="L174">        result.width = <span class="tok-builtin">@intCast</span>(bmp.width());</span>
+<span class="line" id="L175">        result.height = <span class="tok-builtin">@intCast</span>(bmp.height());</span>
+<span class="line" id="L176">        result.pixels = pixels;</span>
+<span class="line" id="L177"></span>
+<span class="line" id="L178">        <span class="tok-kw">return</span> result;</span>
+<span class="line" id="L179">    }</span>
+<span class="line" id="L180"></span>
+<span class="line" id="L181">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">writeImage</span>(allocator: std.mem.Allocator, stream: *Image.Stream, image: Image, encoder_options: Image.EncoderOptions) Image.WriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L182">        <span class="tok-kw">var</span> bmp = BMP{};</span>
+<span class="line" id="L183"></span>
+<span class="line" id="L184">        <span class="tok-comment">//  Fill header information based on pixel format</span>
+</span>
+<span class="line" id="L185">        <span class="tok-kw">switch</span> (image.pixels) {</span>
+<span class="line" id="L186">            .bgr24 =&gt; {</span>
+<span class="line" id="L187">                bmp.file_header = .{</span>
+<span class="line" id="L188">                    .size = <span class="tok-builtin">@intCast</span>(image.width * image.height * <span class="tok-number">3</span> + <span class="tok-builtin">@sizeOf</span>(BitmapFileHeader) + BitmapInfoHeaderV4.HeaderSize),</span>
+<span class="line" id="L189">                    .pixel_offset = <span class="tok-builtin">@sizeOf</span>(BitmapFileHeader) + BitmapInfoHeaderV4.HeaderSize,</span>
+<span class="line" id="L190">                };</span>
+<span class="line" id="L191"></span>
+<span class="line" id="L192">                bmp.info_header = .{</span>
+<span class="line" id="L193">                    .v4 = .{</span>
+<span class="line" id="L194">                        .header_size = BitmapInfoHeaderV4.HeaderSize,</span>
+<span class="line" id="L195">                        .width = <span class="tok-builtin">@intCast</span>(image.width),</span>
+<span class="line" id="L196">                        .height = <span class="tok-builtin">@intCast</span>(image.height),</span>
+<span class="line" id="L197">                        .color_plane = <span class="tok-number">1</span>,</span>
+<span class="line" id="L198">                        .bit_count = <span class="tok-number">24</span>,</span>
+<span class="line" id="L199">                        .compression_method = .none,</span>
+<span class="line" id="L200">                        .image_raw_size = <span class="tok-builtin">@intCast</span>(image.width * image.height * <span class="tok-number">3</span>),</span>
+<span class="line" id="L201">                        .horizontal_resolution = PixelsPerMeterResolution,</span>
+<span class="line" id="L202">                        .vertical_resolution = PixelsPerMeterResolution,</span>
+<span class="line" id="L203">                        .color_space = .srgb,</span>
+<span class="line" id="L204">                    },</span>
+<span class="line" id="L205">                };</span>
+<span class="line" id="L206">            },</span>
+<span class="line" id="L207">            .bgra32 =&gt; {</span>
+<span class="line" id="L208">                bmp.file_header = .{</span>
+<span class="line" id="L209">                    .size = <span class="tok-builtin">@intCast</span>(image.width * image.height * <span class="tok-number">4</span> + <span class="tok-builtin">@sizeOf</span>(BitmapFileHeader) + BitmapInfoHeaderV5.HeaderSize),</span>
+<span class="line" id="L210">                    .pixel_offset = <span class="tok-builtin">@sizeOf</span>(BitmapFileHeader) + BitmapInfoHeaderV5.HeaderSize,</span>
+<span class="line" id="L211">                };</span>
+<span class="line" id="L212"></span>
+<span class="line" id="L213">                bmp.info_header = .{</span>
+<span class="line" id="L214">                    .v5 = .{</span>
+<span class="line" id="L215">                        .header_size = BitmapInfoHeaderV5.HeaderSize,</span>
+<span class="line" id="L216">                        .width = <span class="tok-builtin">@intCast</span>(image.width),</span>
+<span class="line" id="L217">                        .height = <span class="tok-builtin">@intCast</span>(image.height),</span>
+<span class="line" id="L218">                        .color_plane = <span class="tok-number">1</span>,</span>
+<span class="line" id="L219">                        .bit_count = <span class="tok-number">32</span>,</span>
+<span class="line" id="L220">                        .compression_method = .bitfields, <span class="tok-comment">// We must specify the color mask when using an 32-bpp bmp with V5</span>
+</span>
+<span class="line" id="L221">                        .image_raw_size = <span class="tok-builtin">@intCast</span>(image.width * image.height * <span class="tok-number">4</span>),</span>
+<span class="line" id="L222">                        .horizontal_resolution = PixelsPerMeterResolution,</span>
+<span class="line" id="L223">                        .vertical_resolution = PixelsPerMeterResolution,</span>
+<span class="line" id="L224">                        .color_space = .srgb,</span>
+<span class="line" id="L225">                        .red_mask = <span class="tok-number">0x0000FF00</span>,</span>
+<span class="line" id="L226">                        .green_mask = <span class="tok-number">0x00FF0000</span>,</span>
+<span class="line" id="L227">                        .blue_mask = <span class="tok-number">0xFF000000</span>,</span>
+<span class="line" id="L228">                        .alpha_mask = <span class="tok-number">0x000000FF</span>,</span>
+<span class="line" id="L229">                    },</span>
+<span class="line" id="L230">                };</span>
+<span class="line" id="L231">            },</span>
+<span class="line" id="L232">            <span class="tok-kw">else</span> =&gt; {</span>
+<span class="line" id="L233">                <span class="tok-kw">return</span> Image.WriteError.InvalidData;</span>
+<span class="line" id="L234">            },</span>
+<span class="line" id="L235">        }</span>
+<span class="line" id="L236"></span>
+<span class="line" id="L237">        <span class="tok-kw">try</span> bmp.write(stream, image.pixels);</span>
+<span class="line" id="L238"></span>
+<span class="line" id="L239">        _ = allocator;</span>
+<span class="line" id="L240">        _ = encoder_options;</span>
+<span class="line" id="L241">    }</span>
+<span class="line" id="L242"></span>
+<span class="line" id="L243">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">width</span>(self: BMP) <span class="tok-type">i32</span> {</span>
+<span class="line" id="L244">        <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (self.info_header) {</span>
+<span class="line" id="L245">            .windows31 =&gt; |win31| {</span>
+<span class="line" id="L246">                <span class="tok-kw">return</span> win31.width;</span>
+<span class="line" id="L247">            },</span>
+<span class="line" id="L248">            .v4 =&gt; |v4Header| {</span>
+<span class="line" id="L249">                <span class="tok-kw">return</span> v4Header.width;</span>
+<span class="line" id="L250">            },</span>
+<span class="line" id="L251">            .v5 =&gt; |v5Header| {</span>
+<span class="line" id="L252">                <span class="tok-kw">return</span> v5Header.width;</span>
+<span class="line" id="L253">            },</span>
+<span class="line" id="L254">        };</span>
+<span class="line" id="L255">    }</span>
+<span class="line" id="L256"></span>
+<span class="line" id="L257">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">height</span>(self: BMP) <span class="tok-type">i32</span> {</span>
+<span class="line" id="L258">        <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (self.info_header) {</span>
+<span class="line" id="L259">            .windows31 =&gt; |win31| {</span>
+<span class="line" id="L260">                <span class="tok-kw">return</span> win31.height;</span>
+<span class="line" id="L261">            },</span>
+<span class="line" id="L262">            .v4 =&gt; |v4Header| {</span>
+<span class="line" id="L263">                <span class="tok-kw">return</span> v4Header.height;</span>
+<span class="line" id="L264">            },</span>
+<span class="line" id="L265">            .v5 =&gt; |v5Header| {</span>
+<span class="line" id="L266">                <span class="tok-kw">return</span> v5Header.height;</span>
+<span class="line" id="L267">            },</span>
+<span class="line" id="L268">        };</span>
+<span class="line" id="L269">    }</span>
+<span class="line" id="L270"></span>
+<span class="line" id="L271">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">pixelFormat</span>(self: BMP) Image.ReadError!PixelFormat {</span>
+<span class="line" id="L272">        <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (self.info_header) {</span>
+<span class="line" id="L273">            .v4 =&gt; |v4Header| <span class="tok-kw">try</span> findPixelFormat(v4Header.bit_count, v4Header.compression_method),</span>
+<span class="line" id="L274">            .v5 =&gt; |v5Header| <span class="tok-kw">try</span> findPixelFormat(v5Header.bit_count, v5Header.compression_method),</span>
+<span class="line" id="L275">            <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> Image.Error.Unsupported,</span>
+<span class="line" id="L276">        };</span>
+<span class="line" id="L277">    }</span>
+<span class="line" id="L278"></span>
+<span class="line" id="L279">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">read</span>(self: *BMP, allocator: std.mem.Allocator, stream: *Image.Stream) Image.ReadError!color.PixelStorage {</span>
+<span class="line" id="L280">        <span class="tok-kw">var</span> buffered_stream = buffered_stream_source.bufferedStreamSourceReader(stream);</span>
+<span class="line" id="L281"></span>
+<span class="line" id="L282">        <span class="tok-comment">// Read file header</span>
+</span>
+<span class="line" id="L283">        <span class="tok-kw">const</span> reader = buffered_stream.reader();</span>
+<span class="line" id="L284">        self.file_header = <span class="tok-kw">try</span> utils.readStruct(reader, BitmapFileHeader, .little);</span>
+<span class="line" id="L285">        <span class="tok-kw">if</span> (!std.mem.eql(<span class="tok-type">u8</span>, self.file_header.magic_header[<span class="tok-number">0</span>..], BitmapMagicHeader[<span class="tok-number">0</span>..])) {</span>
+<span class="line" id="L286">            <span class="tok-kw">return</span> Image.ReadError.InvalidData;</span>
+<span class="line" id="L287">        }</span>
+<span class="line" id="L288"></span>
+<span class="line" id="L289">        <span class="tok-kw">const</span> header_size = <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u32</span>, .little);</span>
+<span class="line" id="L290">        <span class="tok-kw">try</span> buffered_stream.seekBy(-<span class="tok-builtin">@sizeOf</span>(<span class="tok-type">u32</span>));</span>
+<span class="line" id="L291"></span>
+<span class="line" id="L292">        <span class="tok-comment">// Read info header</span>
+</span>
+<span class="line" id="L293">        self.info_header = <span class="tok-kw">switch</span> (header_size) {</span>
+<span class="line" id="L294">            BitmapInfoHeaderWindows31.HeaderSize =&gt; BitmapInfoHeader{ .windows31 = <span class="tok-kw">try</span> utils.readStruct(reader, BitmapInfoHeaderWindows31, .little) },</span>
+<span class="line" id="L295">            BitmapInfoHeaderV4.HeaderSize =&gt; BitmapInfoHeader{ .v4 = <span class="tok-kw">try</span> utils.readStruct(reader, BitmapInfoHeaderV4, .little) },</span>
+<span class="line" id="L296">            BitmapInfoHeaderV5.HeaderSize =&gt; BitmapInfoHeader{ .v5 = <span class="tok-kw">try</span> utils.readStruct(reader, BitmapInfoHeaderV5, .little) },</span>
+<span class="line" id="L297">            <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> Image.Error.Unsupported,</span>
+<span class="line" id="L298">        };</span>
+<span class="line" id="L299"></span>
+<span class="line" id="L300">        <span class="tok-kw">var</span> pixels: color.PixelStorage = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L301"></span>
+<span class="line" id="L302">        <span class="tok-comment">// Read pixel data</span>
+</span>
+<span class="line" id="L303">        _ = <span class="tok-kw">switch</span> (self.info_header) {</span>
+<span class="line" id="L304">            .v4 =&gt; |v4Header| {</span>
+<span class="line" id="L305">                <span class="tok-kw">const</span> pixel_width = v4Header.width;</span>
+<span class="line" id="L306">                <span class="tok-kw">const</span> pixel_height = v4Header.height;</span>
+<span class="line" id="L307">                <span class="tok-kw">const</span> pixel_format = <span class="tok-kw">try</span> findPixelFormat(v4Header.bit_count, v4Header.compression_method);</span>
+<span class="line" id="L308"></span>
+<span class="line" id="L309">                pixels = <span class="tok-kw">try</span> color.PixelStorage.init(allocator, pixel_format, <span class="tok-builtin">@intCast</span>(pixel_width * pixel_height));</span>
+<span class="line" id="L310">                <span class="tok-kw">errdefer</span> pixels.deinit(allocator);</span>
+<span class="line" id="L311"></span>
+<span class="line" id="L312">                <span class="tok-kw">try</span> readPixels(reader, pixel_width, pixel_height, &amp;pixels);</span>
+<span class="line" id="L313">            },</span>
+<span class="line" id="L314">            .v5 =&gt; |v5Header| {</span>
+<span class="line" id="L315">                <span class="tok-kw">const</span> pixel_width = v5Header.width;</span>
+<span class="line" id="L316">                <span class="tok-kw">const</span> pixel_height = v5Header.height;</span>
+<span class="line" id="L317">                <span class="tok-kw">const</span> pixel_format = <span class="tok-kw">try</span> findPixelFormat(v5Header.bit_count, v5Header.compression_method);</span>
+<span class="line" id="L318"></span>
+<span class="line" id="L319">                pixels = <span class="tok-kw">try</span> color.PixelStorage.init(allocator, pixel_format, <span class="tok-builtin">@intCast</span>(pixel_width * pixel_height));</span>
+<span class="line" id="L320">                <span class="tok-kw">errdefer</span> pixels.deinit(allocator);</span>
+<span class="line" id="L321"></span>
+<span class="line" id="L322">                <span class="tok-kw">try</span> readPixels(reader, pixel_width, pixel_height, &amp;pixels);</span>
+<span class="line" id="L323">            },</span>
+<span class="line" id="L324">            <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> Image.Error.Unsupported,</span>
+<span class="line" id="L325">        };</span>
+<span class="line" id="L326"></span>
+<span class="line" id="L327">        <span class="tok-kw">return</span> pixels;</span>
+<span class="line" id="L328">    }</span>
+<span class="line" id="L329"></span>
+<span class="line" id="L330">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">write</span>(self: BMP, stream: *Image.Stream, pixels: color.PixelStorage) Image.WriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L331">        <span class="tok-kw">var</span> buffered_stream = buffered_stream_source.bufferedStreamSourceWriter(stream);</span>
+<span class="line" id="L332"></span>
+<span class="line" id="L333">        <span class="tok-kw">const</span> writer = buffered_stream.writer();</span>
+<span class="line" id="L334"></span>
+<span class="line" id="L335">        <span class="tok-kw">try</span> utils.writeStruct(writer, self.file_header, .little);</span>
+<span class="line" id="L336"></span>
+<span class="line" id="L337">        <span class="tok-kw">switch</span> (self.info_header) {</span>
+<span class="line" id="L338">            .v4 =&gt; |v4| {</span>
+<span class="line" id="L339">                <span class="tok-kw">try</span> utils.writeStruct(writer, v4, .little);</span>
+<span class="line" id="L340">            },</span>
+<span class="line" id="L341">            .v5 =&gt; |v5| {</span>
+<span class="line" id="L342">                <span class="tok-kw">try</span> utils.writeStruct(writer, v5, .little);</span>
+<span class="line" id="L343">            },</span>
+<span class="line" id="L344">            <span class="tok-kw">else</span> =&gt; {</span>
+<span class="line" id="L345">                <span class="tok-kw">return</span> Image.WriteError.InvalidData;</span>
+<span class="line" id="L346">            },</span>
+<span class="line" id="L347">        }</span>
+<span class="line" id="L348"></span>
+<span class="line" id="L349">        <span class="tok-kw">try</span> writePixels(writer, pixels, self.width(), self.height());</span>
+<span class="line" id="L350"></span>
+<span class="line" id="L351">        <span class="tok-kw">try</span> buffered_stream.flush();</span>
+<span class="line" id="L352">    }</span>
+<span class="line" id="L353"></span>
+<span class="line" id="L354">    <span class="tok-kw">fn</span> <span class="tok-fn">findPixelFormat</span>(bit_count: <span class="tok-type">u32</span>, compression: CompressionMethod) Image.Error!PixelFormat {</span>
+<span class="line" id="L355">        <span class="tok-kw">if</span> (bit_count == <span class="tok-number">32</span> <span class="tok-kw">and</span> compression == CompressionMethod.bitfields) {</span>
+<span class="line" id="L356">            <span class="tok-kw">return</span> PixelFormat.bgra32;</span>
+<span class="line" id="L357">        } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (bit_count == <span class="tok-number">24</span> <span class="tok-kw">and</span> compression == CompressionMethod.none) {</span>
+<span class="line" id="L358">            <span class="tok-kw">return</span> PixelFormat.bgr24;</span>
+<span class="line" id="L359">        } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L360">            <span class="tok-kw">return</span> Image.Error.Unsupported;</span>
+<span class="line" id="L361">        }</span>
+<span class="line" id="L362">    }</span>
+<span class="line" id="L363"></span>
+<span class="line" id="L364">    <span class="tok-kw">fn</span> <span class="tok-fn">readPixels</span>(reader: buffered_stream_source.DefaultBufferedStreamSourceReader.Reader, pixel_width: <span class="tok-type">i32</span>, pixel_height: <span class="tok-type">i32</span>, pixels: *color.PixelStorage) Image.ReadError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L365">        <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (pixels.*) {</span>
+<span class="line" id="L366">            .bgr24 =&gt; {</span>
+<span class="line" id="L367">                <span class="tok-kw">return</span> readPixelsInternal(pixels.bgr24, reader, pixel_width, pixel_height);</span>
+<span class="line" id="L368">            },</span>
+<span class="line" id="L369">            .bgra32 =&gt; {</span>
+<span class="line" id="L370">                <span class="tok-kw">return</span> readPixelsInternal(pixels.bgra32, reader, pixel_width, pixel_height);</span>
+<span class="line" id="L371">            },</span>
+<span class="line" id="L372">            <span class="tok-kw">else</span> =&gt; {</span>
+<span class="line" id="L373">                <span class="tok-kw">return</span> Image.Error.Unsupported;</span>
+<span class="line" id="L374">            },</span>
+<span class="line" id="L375">        };</span>
+<span class="line" id="L376">    }</span>
+<span class="line" id="L377"></span>
+<span class="line" id="L378">    <span class="tok-kw">fn</span> <span class="tok-fn">readPixelsInternal</span>(pixels: <span class="tok-kw">anytype</span>, reader: buffered_stream_source.DefaultBufferedStreamSourceReader.Reader, pixel_width: <span class="tok-type">i32</span>, pixel_height: <span class="tok-type">i32</span>) Image.ReadError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L379">        <span class="tok-kw">const</span> ColorBufferType = <span class="tok-builtin">@typeInfo</span>(<span class="tok-builtin">@TypeOf</span>(pixels)).Pointer.child;</span>
+<span class="line" id="L380"></span>
+<span class="line" id="L381">        <span class="tok-kw">var</span> x: <span class="tok-type">i32</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L382">        <span class="tok-kw">var</span> y: <span class="tok-type">i32</span> = pixel_height - <span class="tok-number">1</span>;</span>
+<span class="line" id="L383">        <span class="tok-kw">while</span> (y &gt;= <span class="tok-number">0</span>) : (y -= <span class="tok-number">1</span>) {</span>
+<span class="line" id="L384">            <span class="tok-kw">const</span> scanline = y * pixel_width;</span>
+<span class="line" id="L385"></span>
+<span class="line" id="L386">            x = <span class="tok-number">0</span>;</span>
+<span class="line" id="L387">            <span class="tok-kw">while</span> (x &lt; pixel_width) : (x += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L388">                pixels[<span class="tok-builtin">@intCast</span>(scanline + x)] = <span class="tok-kw">try</span> utils.readStruct(reader, ColorBufferType, .little);</span>
+<span class="line" id="L389">            }</span>
+<span class="line" id="L390">        }</span>
+<span class="line" id="L391">    }</span>
+<span class="line" id="L392"></span>
+<span class="line" id="L393">    <span class="tok-kw">fn</span> <span class="tok-fn">writePixels</span>(writer: buffered_stream_source.DefaultBufferedStreamSourceWriter.Writer, pixels: color.PixelStorage, pixel_width: <span class="tok-type">i32</span>, pixel_height: <span class="tok-type">i32</span>) Image.WriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L394">        <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (pixels) {</span>
+<span class="line" id="L395">            .bgr24 =&gt; {</span>
+<span class="line" id="L396">                <span class="tok-kw">return</span> writePixelsInternal(pixels.bgr24, writer, pixel_width, pixel_height);</span>
+<span class="line" id="L397">            },</span>
+<span class="line" id="L398">            .bgra32 =&gt; {</span>
+<span class="line" id="L399">                <span class="tok-kw">return</span> writePixelsInternal(pixels.bgra32, writer, pixel_width, pixel_height);</span>
+<span class="line" id="L400">            },</span>
+<span class="line" id="L401">            <span class="tok-kw">else</span> =&gt; {</span>
+<span class="line" id="L402">                <span class="tok-kw">return</span> Image.WriteError.InvalidData;</span>
+<span class="line" id="L403">            },</span>
+<span class="line" id="L404">        };</span>
+<span class="line" id="L405">    }</span>
+<span class="line" id="L406"></span>
+<span class="line" id="L407">    <span class="tok-kw">fn</span> <span class="tok-fn">writePixelsInternal</span>(pixels: <span class="tok-kw">anytype</span>, writer: buffered_stream_source.DefaultBufferedStreamSourceWriter.Writer, pixel_width: <span class="tok-type">i32</span>, pixel_height: <span class="tok-type">i32</span>) Image.WriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L408">        <span class="tok-kw">var</span> x: <span class="tok-type">i32</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L409">        <span class="tok-kw">var</span> y: <span class="tok-type">i32</span> = pixel_height - <span class="tok-number">1</span>;</span>
+<span class="line" id="L410">        <span class="tok-kw">while</span> (y &gt;= <span class="tok-number">0</span>) : (y -= <span class="tok-number">1</span>) {</span>
+<span class="line" id="L411">            <span class="tok-kw">const</span> scanline = y * pixel_width;</span>
+<span class="line" id="L412"></span>
+<span class="line" id="L413">            x = <span class="tok-number">0</span>;</span>
+<span class="line" id="L414">            <span class="tok-kw">while</span> (x &lt; pixel_width) : (x += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L415">                <span class="tok-kw">try</span> utils.writeStruct(writer, pixels[<span class="tok-builtin">@intCast</span>(scanline + x)], .little);</span>
+<span class="line" id="L416">            }</span>
+<span class="line" id="L417">        }</span>
+<span class="line" id="L418">    }</span>
+<span class="line" id="L419">};</span>
+<span class="line" id="L420"></span>
+</code></pre></body>
+</html>

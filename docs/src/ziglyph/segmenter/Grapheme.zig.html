@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>segmenter/Grapheme.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-comment">//! `Grapheme` represents a Unicode grapheme cluster by its length and offset in the source bytes.</span></span>
+<span class="line" id="L2"></span>
+<span class="line" id="L3"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L4"><span class="tok-kw">const</span> unicode = std.unicode;</span>
+<span class="line" id="L5"></span>
+<span class="line" id="L6"><span class="tok-kw">const</span> CodePoint = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;CodePoint.zig&quot;</span>);</span>
+<span class="line" id="L7"><span class="tok-kw">const</span> CodePointIterator = CodePoint.CodePointIterator;</span>
+<span class="line" id="L8"><span class="tok-kw">const</span> readCodePoint = CodePoint.readCodePoint;</span>
+<span class="line" id="L9"><span class="tok-kw">const</span> emoji = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../autogen/emoji_data.zig&quot;</span>);</span>
+<span class="line" id="L10"><span class="tok-kw">const</span> gbp = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../autogen/grapheme_break_property.zig&quot;</span>);</span>
+<span class="line" id="L11"></span>
+<span class="line" id="L12"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> Grapheme = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L13"></span>
+<span class="line" id="L14">len: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L15">offset: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L16"></span>
+<span class="line" id="L17"><span class="tok-comment">/// `eql` comparse `str` with the bytes of this grapheme cluster in `src` for equality.</span></span>
+<span class="line" id="L18"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">eql</span>(self: Grapheme, src: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>, other: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L19">    <span class="tok-kw">return</span> std.mem.eql(<span class="tok-type">u8</span>, src[self.offset .. self.offset + self.len], other);</span>
+<span class="line" id="L20">}</span>
+<span class="line" id="L21"></span>
+<span class="line" id="L22"><span class="tok-comment">/// `slice` returns the bytes that correspond to this grapheme cluster in `src`.</span></span>
+<span class="line" id="L23"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">slice</span>(self: Grapheme, src: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) []<span class="tok-kw">const</span> <span class="tok-type">u8</span> {</span>
+<span class="line" id="L24">    <span class="tok-kw">return</span> src[self.offset .. self.offset + self.len];</span>
+<span class="line" id="L25">}</span>
+<span class="line" id="L26"></span>
+<span class="line" id="L27"><span class="tok-comment">/// `GraphemeIterator` iterates a sting of UTF-8 encoded bytes one grapheme cluster at-a-time.</span></span>
+<span class="line" id="L28"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> GraphemeIterator = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L29">    buf: [<span class="tok-number">2</span>]?CodePoint = [_]?CodePoint{ <span class="tok-null">null</span>, <span class="tok-null">null</span> },</span>
+<span class="line" id="L30">    cp_iter: CodePointIterator,</span>
+<span class="line" id="L31"></span>
+<span class="line" id="L32">    <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L33"></span>
+<span class="line" id="L34">    <span class="tok-comment">/// Assumes `src` is valid UTF-8.</span></span>
+<span class="line" id="L35">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">init</span>(str: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) Self {</span>
+<span class="line" id="L36">        <span class="tok-kw">var</span> self = Self{ .cp_iter = CodePointIterator{ .bytes = str } };</span>
+<span class="line" id="L37">        self.buf[<span class="tok-number">1</span>] = self.cp_iter.next();</span>
+<span class="line" id="L38"></span>
+<span class="line" id="L39">        <span class="tok-kw">return</span> self;</span>
+<span class="line" id="L40">    }</span>
+<span class="line" id="L41"></span>
+<span class="line" id="L42">    <span class="tok-kw">fn</span> <span class="tok-fn">advance</span>(self: *Self) <span class="tok-type">void</span> {</span>
+<span class="line" id="L43">        self.buf[<span class="tok-number">0</span>] = self.buf[<span class="tok-number">1</span>];</span>
+<span class="line" id="L44">        self.buf[<span class="tok-number">1</span>] = self.cp_iter.next();</span>
+<span class="line" id="L45">    }</span>
+<span class="line" id="L46"></span>
+<span class="line" id="L47">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">next</span>(self: *Self) ?Grapheme {</span>
+<span class="line" id="L48">        self.advance();</span>
+<span class="line" id="L49"></span>
+<span class="line" id="L50">        <span class="tok-comment">// If at end</span>
+</span>
+<span class="line" id="L51">        <span class="tok-kw">if</span> (self.buf[<span class="tok-number">0</span>] == <span class="tok-null">null</span>) <span class="tok-kw">return</span> <span class="tok-null">null</span>;</span>
+<span class="line" id="L52">        <span class="tok-kw">if</span> (self.buf[<span class="tok-number">1</span>] == <span class="tok-null">null</span>) <span class="tok-kw">return</span> Grapheme{ .len = self.buf[<span class="tok-number">0</span>].?.len, .offset = self.buf[<span class="tok-number">0</span>].?.offset };</span>
+<span class="line" id="L53"></span>
+<span class="line" id="L54">        <span class="tok-kw">const</span> gc_start = self.buf[<span class="tok-number">0</span>].?.offset;</span>
+<span class="line" id="L55">        <span class="tok-kw">var</span> gc_len: <span class="tok-type">usize</span> = self.buf[<span class="tok-number">0</span>].?.len;</span>
+<span class="line" id="L56">        <span class="tok-kw">var</span> state: <span class="tok-type">u3</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L57"></span>
+<span class="line" id="L58">        <span class="tok-kw">if</span> (graphemeBreak(</span>
+<span class="line" id="L59">            self.buf[<span class="tok-number">0</span>].?.code,</span>
+<span class="line" id="L60">            self.buf[<span class="tok-number">1</span>].?.code,</span>
+<span class="line" id="L61">            &amp;state,</span>
+<span class="line" id="L62">        )) <span class="tok-kw">return</span> Grapheme{ .len = gc_len, .offset = gc_start };</span>
+<span class="line" id="L63"></span>
+<span class="line" id="L64">        <span class="tok-kw">while</span> (<span class="tok-null">true</span>) {</span>
+<span class="line" id="L65">            self.advance();</span>
+<span class="line" id="L66">            <span class="tok-kw">if</span> (self.buf[<span class="tok-number">0</span>] == <span class="tok-null">null</span>) <span class="tok-kw">break</span>;</span>
+<span class="line" id="L67"></span>
+<span class="line" id="L68">            gc_len += self.buf[<span class="tok-number">0</span>].?.len;</span>
+<span class="line" id="L69"></span>
+<span class="line" id="L70">            <span class="tok-kw">if</span> (graphemeBreak(</span>
+<span class="line" id="L71">                self.buf[<span class="tok-number">0</span>].?.code,</span>
+<span class="line" id="L72">                <span class="tok-kw">if</span> (self.buf[<span class="tok-number">1</span>]) |ncp| ncp.code <span class="tok-kw">else</span> <span class="tok-number">0</span>,</span>
+<span class="line" id="L73">                &amp;state,</span>
+<span class="line" id="L74">            )) <span class="tok-kw">break</span>;</span>
+<span class="line" id="L75">        }</span>
+<span class="line" id="L76"></span>
+<span class="line" id="L77">        <span class="tok-kw">return</span> Grapheme{ .len = gc_len, .offset = gc_start };</span>
+<span class="line" id="L78">    }</span>
+<span class="line" id="L79">};</span>
+<span class="line" id="L80"></span>
+<span class="line" id="L81"><span class="tok-comment">/// `StreamingGraphemeIterator` iterates a `std.io.Reader` one grapheme cluster at-a-time.</span></span>
+<span class="line" id="L82"><span class="tok-comment">/// Note that, given the steaming context, each grapheme cluster is returned as a slice of bytes.</span></span>
+<span class="line" id="L83"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">StreamingGraphemeIterator</span>(<span class="tok-kw">comptime</span> T: <span class="tok-type">type</span>) <span class="tok-type">type</span> {</span>
+<span class="line" id="L84">    <span class="tok-kw">return</span> <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L85">        allocator: std.mem.Allocator,</span>
+<span class="line" id="L86">        buf: [<span class="tok-number">2</span>]?<span class="tok-type">u21</span> = [_]?<span class="tok-type">u21</span>{ <span class="tok-null">null</span>, <span class="tok-null">null</span> },</span>
+<span class="line" id="L87">        reader: T,</span>
+<span class="line" id="L88"></span>
+<span class="line" id="L89">        <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L90"></span>
+<span class="line" id="L91">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">init</span>(allocator: std.mem.Allocator, reader: <span class="tok-kw">anytype</span>) !Self {</span>
+<span class="line" id="L92">            <span class="tok-kw">var</span> self = Self{ .allocator = allocator, .reader = reader };</span>
+<span class="line" id="L93">            self.buf[<span class="tok-number">1</span>] = <span class="tok-kw">try</span> readCodePoint(self.reader);</span>
+<span class="line" id="L94"></span>
+<span class="line" id="L95">            <span class="tok-kw">return</span> self;</span>
+<span class="line" id="L96">        }</span>
+<span class="line" id="L97"></span>
+<span class="line" id="L98">        <span class="tok-comment">/// Caller must free returned bytes with `allocator` passed to `init`.</span></span>
+<span class="line" id="L99">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">next</span>(self: *Self) !?[]<span class="tok-type">u8</span> {</span>
+<span class="line" id="L100">            <span class="tok-kw">const</span> code = (<span class="tok-kw">try</span> self.advance()) <span class="tok-kw">orelse</span> <span class="tok-kw">return</span> <span class="tok-null">null</span>;</span>
+<span class="line" id="L101"></span>
+<span class="line" id="L102">            <span class="tok-kw">var</span> all_bytes = std.ArrayList(<span class="tok-type">u8</span>).init(self.allocator);</span>
+<span class="line" id="L103">            <span class="tok-kw">errdefer</span> all_bytes.deinit();</span>
+<span class="line" id="L104"></span>
+<span class="line" id="L105">            <span class="tok-kw">try</span> encode_and_append(code, &amp;all_bytes);</span>
+<span class="line" id="L106"></span>
+<span class="line" id="L107">            <span class="tok-comment">// If at end</span>
+</span>
+<span class="line" id="L108">            <span class="tok-kw">if</span> (self.buf[<span class="tok-number">1</span>] == <span class="tok-null">null</span>) <span class="tok-kw">return</span> <span class="tok-kw">try</span> all_bytes.toOwnedSlice();</span>
+<span class="line" id="L109"></span>
+<span class="line" id="L110">            <span class="tok-comment">// Instant breakers</span>
+</span>
+<span class="line" id="L111">            <span class="tok-comment">// CR</span>
+</span>
+<span class="line" id="L112">            <span class="tok-kw">if</span> (code == <span class="tok-str">'\x0d'</span>) {</span>
+<span class="line" id="L113">                <span class="tok-kw">if</span> (self.buf[<span class="tok-number">1</span>].? == <span class="tok-str">'\x0a'</span>) {</span>
+<span class="line" id="L114">                    <span class="tok-comment">// CRLF</span>
+</span>
+<span class="line" id="L115">                    <span class="tok-kw">try</span> encode_and_append(self.buf[<span class="tok-number">1</span>].?, &amp;all_bytes);</span>
+<span class="line" id="L116">                    _ = self.advance() <span class="tok-kw">catch</span> <span class="tok-kw">unreachable</span>;</span>
+<span class="line" id="L117">                }</span>
+<span class="line" id="L118"></span>
+<span class="line" id="L119">                <span class="tok-kw">return</span> <span class="tok-kw">try</span> all_bytes.toOwnedSlice();</span>
+<span class="line" id="L120">            }</span>
+<span class="line" id="L121">            <span class="tok-comment">// LF</span>
+</span>
+<span class="line" id="L122">            <span class="tok-kw">if</span> (code == <span class="tok-str">'\x0a'</span>) <span class="tok-kw">return</span> <span class="tok-kw">try</span> all_bytes.toOwnedSlice();</span>
+<span class="line" id="L123">            <span class="tok-comment">// Control</span>
+</span>
+<span class="line" id="L124">            <span class="tok-kw">if</span> (gbp.isControl(code)) <span class="tok-kw">return</span> <span class="tok-kw">try</span> all_bytes.toOwnedSlice();</span>
+<span class="line" id="L125"></span>
+<span class="line" id="L126">            <span class="tok-comment">// Common chars</span>
+</span>
+<span class="line" id="L127">            <span class="tok-kw">if</span> (code &lt; <span class="tok-number">0xa9</span>) {</span>
+<span class="line" id="L128">                <span class="tok-comment">// Extend / ignorables loop</span>
+</span>
+<span class="line" id="L129">                <span class="tok-kw">while</span> (self.buf[<span class="tok-number">1</span>]) |next_cp| {</span>
+<span class="line" id="L130">                    <span class="tok-kw">if</span> (next_cp &gt;= <span class="tok-number">0x300</span> <span class="tok-kw">and</span> isIgnorable(next_cp)) {</span>
+<span class="line" id="L131">                        <span class="tok-kw">try</span> encode_and_append(next_cp, &amp;all_bytes);</span>
+<span class="line" id="L132">                        _ = self.advance() <span class="tok-kw">catch</span> <span class="tok-kw">unreachable</span>;</span>
+<span class="line" id="L133">                    } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L134">                        <span class="tok-kw">break</span>;</span>
+<span class="line" id="L135">                    }</span>
+<span class="line" id="L136">                }</span>
+<span class="line" id="L137"></span>
+<span class="line" id="L138">                <span class="tok-kw">return</span> <span class="tok-kw">try</span> all_bytes.toOwnedSlice();</span>
+<span class="line" id="L139">            }</span>
+<span class="line" id="L140"></span>
+<span class="line" id="L141">            <span class="tok-kw">if</span> (emoji.isExtendedPictographic(code)) {</span>
+<span class="line" id="L142">                <span class="tok-kw">var</span> after_zwj = <span class="tok-null">false</span>;</span>
+<span class="line" id="L143"></span>
+<span class="line" id="L144">                <span class="tok-comment">// Extend / ignorables loop</span>
+</span>
+<span class="line" id="L145">                <span class="tok-kw">while</span> (self.buf[<span class="tok-number">1</span>]) |next_cp| {</span>
+<span class="line" id="L146">                    <span class="tok-kw">if</span> (next_cp &gt;= <span class="tok-number">0x300</span> <span class="tok-kw">and</span></span>
+<span class="line" id="L147">                        after_zwj <span class="tok-kw">and</span></span>
+<span class="line" id="L148">                        emoji.isExtendedPictographic(next_cp))</span>
+<span class="line" id="L149">                    {</span>
+<span class="line" id="L150">                        <span class="tok-kw">try</span> encode_and_append(next_cp, &amp;all_bytes);</span>
+<span class="line" id="L151">                        _ = self.advance() <span class="tok-kw">catch</span> <span class="tok-kw">unreachable</span>;</span>
+<span class="line" id="L152">                        after_zwj = <span class="tok-null">false</span>;</span>
+<span class="line" id="L153">                    } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (next_cp &gt;= <span class="tok-number">0x300</span> <span class="tok-kw">and</span> isIgnorable(next_cp)) {</span>
+<span class="line" id="L154">                        <span class="tok-kw">try</span> encode_and_append(next_cp, &amp;all_bytes);</span>
+<span class="line" id="L155">                        _ = self.advance() <span class="tok-kw">catch</span> <span class="tok-kw">unreachable</span>;</span>
+<span class="line" id="L156">                        <span class="tok-kw">if</span> (next_cp == <span class="tok-str">'\u{200d}'</span>) after_zwj = <span class="tok-null">true</span>;</span>
+<span class="line" id="L157">                    } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L158">                        <span class="tok-kw">break</span>;</span>
+<span class="line" id="L159">                    }</span>
+<span class="line" id="L160">                }</span>
+<span class="line" id="L161"></span>
+<span class="line" id="L162">                <span class="tok-kw">return</span> <span class="tok-kw">try</span> all_bytes.toOwnedSlice();</span>
+<span class="line" id="L163">            }</span>
+<span class="line" id="L164"></span>
+<span class="line" id="L165">            <span class="tok-kw">if</span> (<span class="tok-number">0x1100</span> &lt;= code <span class="tok-kw">and</span> code &lt;= <span class="tok-number">0xd7c6</span>) {</span>
+<span class="line" id="L166">                <span class="tok-kw">const</span> next_cp = self.buf[<span class="tok-number">1</span>].?;</span>
+<span class="line" id="L167"></span>
+<span class="line" id="L168">                <span class="tok-kw">if</span> (gbp.isL(code)) {</span>
+<span class="line" id="L169">                    <span class="tok-kw">if</span> (next_cp &gt;= <span class="tok-number">0x1100</span> <span class="tok-kw">and</span></span>
+<span class="line" id="L170">                        (gbp.isL(next_cp) <span class="tok-kw">or</span></span>
+<span class="line" id="L171">                        gbp.isV(next_cp) <span class="tok-kw">or</span></span>
+<span class="line" id="L172">                        gbp.isLv(next_cp) <span class="tok-kw">or</span></span>
+<span class="line" id="L173">                        gbp.isLvt(next_cp)))</span>
+<span class="line" id="L174">                    {</span>
+<span class="line" id="L175">                        <span class="tok-kw">try</span> encode_and_append(next_cp, &amp;all_bytes);</span>
+<span class="line" id="L176">                        _ = self.advance() <span class="tok-kw">catch</span> <span class="tok-kw">unreachable</span>;</span>
+<span class="line" id="L177">                    }</span>
+<span class="line" id="L178">                } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (gbp.isLv(code) <span class="tok-kw">or</span> gbp.isV(code)) {</span>
+<span class="line" id="L179">                    <span class="tok-kw">if</span> (next_cp &gt;= <span class="tok-number">0x1100</span> <span class="tok-kw">and</span></span>
+<span class="line" id="L180">                        (gbp.isV(next_cp) <span class="tok-kw">or</span></span>
+<span class="line" id="L181">                        gbp.isT(next_cp)))</span>
+<span class="line" id="L182">                    {</span>
+<span class="line" id="L183">                        <span class="tok-kw">try</span> encode_and_append(next_cp, &amp;all_bytes);</span>
+<span class="line" id="L184">                        _ = self.advance() <span class="tok-kw">catch</span> <span class="tok-kw">unreachable</span>;</span>
+<span class="line" id="L185">                    }</span>
+<span class="line" id="L186">                } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (gbp.isLvt(code) <span class="tok-kw">or</span> gbp.isT(code)) {</span>
+<span class="line" id="L187">                    <span class="tok-kw">if</span> (next_cp &gt;= <span class="tok-number">0x1100</span> <span class="tok-kw">and</span> gbp.isT(next_cp)) {</span>
+<span class="line" id="L188">                        <span class="tok-kw">try</span> encode_and_append(next_cp, &amp;all_bytes);</span>
+<span class="line" id="L189">                        _ = self.advance() <span class="tok-kw">catch</span> <span class="tok-kw">unreachable</span>;</span>
+<span class="line" id="L190">                    }</span>
+<span class="line" id="L191">                }</span>
+<span class="line" id="L192">            } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (<span class="tok-number">0x600</span> &lt;= code <span class="tok-kw">and</span> code &lt;= <span class="tok-number">0x11f02</span>) {</span>
+<span class="line" id="L193">                <span class="tok-kw">if</span> (gbp.isPrepend(code)) {</span>
+<span class="line" id="L194">                    <span class="tok-kw">const</span> next_cp = self.buf[<span class="tok-number">1</span>].?;</span>
+<span class="line" id="L195"></span>
+<span class="line" id="L196">                    <span class="tok-kw">if</span> (isBreaker(next_cp)) {</span>
+<span class="line" id="L197">                        <span class="tok-kw">return</span> <span class="tok-kw">try</span> all_bytes.toOwnedSlice();</span>
+<span class="line" id="L198">                    } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L199">                        <span class="tok-kw">try</span> encode_and_append(next_cp, &amp;all_bytes);</span>
+<span class="line" id="L200">                        _ = self.advance() <span class="tok-kw">catch</span> <span class="tok-kw">unreachable</span>;</span>
+<span class="line" id="L201">                    }</span>
+<span class="line" id="L202">                }</span>
+<span class="line" id="L203">            } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (<span class="tok-number">0x1f1e6</span> &lt;= code <span class="tok-kw">and</span> code &lt;= <span class="tok-number">0x1f1ff</span>) {</span>
+<span class="line" id="L204">                <span class="tok-kw">if</span> (gbp.isRegionalIndicator(code)) {</span>
+<span class="line" id="L205">                    <span class="tok-kw">const</span> next_cp = self.buf[<span class="tok-number">1</span>].?;</span>
+<span class="line" id="L206"></span>
+<span class="line" id="L207">                    <span class="tok-kw">if</span> (next_cp &gt;= <span class="tok-number">0x1f1e6</span> <span class="tok-kw">and</span> gbp.isRegionalIndicator(next_cp)) {</span>
+<span class="line" id="L208">                        <span class="tok-kw">try</span> encode_and_append(next_cp, &amp;all_bytes);</span>
+<span class="line" id="L209">                        _ = self.advance() <span class="tok-kw">catch</span> <span class="tok-kw">unreachable</span>;</span>
+<span class="line" id="L210">                    }</span>
+<span class="line" id="L211">                }</span>
+<span class="line" id="L212">            }</span>
+<span class="line" id="L213"></span>
+<span class="line" id="L214">            <span class="tok-comment">// Extend / ignorables loop</span>
+</span>
+<span class="line" id="L215">            <span class="tok-kw">while</span> (self.buf[<span class="tok-number">1</span>]) |next_cp| {</span>
+<span class="line" id="L216">                <span class="tok-kw">if</span> (next_cp &gt;= <span class="tok-number">0x300</span> <span class="tok-kw">and</span> isIgnorable(next_cp)) {</span>
+<span class="line" id="L217">                    <span class="tok-kw">try</span> encode_and_append(next_cp, &amp;all_bytes);</span>
+<span class="line" id="L218">                    _ = self.advance() <span class="tok-kw">catch</span> <span class="tok-kw">unreachable</span>;</span>
+<span class="line" id="L219">                } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L220">                    <span class="tok-kw">break</span>;</span>
+<span class="line" id="L221">                }</span>
+<span class="line" id="L222">            }</span>
+<span class="line" id="L223"></span>
+<span class="line" id="L224">            <span class="tok-kw">return</span> <span class="tok-kw">try</span> all_bytes.toOwnedSlice();</span>
+<span class="line" id="L225">        }</span>
+<span class="line" id="L226"></span>
+<span class="line" id="L227">        <span class="tok-kw">fn</span> <span class="tok-fn">advance</span>(self: *Self) !?<span class="tok-type">u21</span> {</span>
+<span class="line" id="L228">            self.buf[<span class="tok-number">0</span>] = self.buf[<span class="tok-number">1</span>];</span>
+<span class="line" id="L229">            self.buf[<span class="tok-number">1</span>] = <span class="tok-kw">try</span> readCodePoint(self.reader);</span>
+<span class="line" id="L230"></span>
+<span class="line" id="L231">            <span class="tok-kw">return</span> self.buf[<span class="tok-number">0</span>];</span>
+<span class="line" id="L232">        }</span>
+<span class="line" id="L233"></span>
+<span class="line" id="L234">        <span class="tok-kw">fn</span> <span class="tok-fn">peek</span>(self: Self) ?<span class="tok-type">u21</span> {</span>
+<span class="line" id="L235">            <span class="tok-kw">return</span> self.buf[<span class="tok-number">1</span>];</span>
+<span class="line" id="L236">        }</span>
+<span class="line" id="L237"></span>
+<span class="line" id="L238">        <span class="tok-kw">fn</span> <span class="tok-fn">encode_and_append</span>(cp: <span class="tok-type">u21</span>, list: *std.ArrayList(<span class="tok-type">u8</span>)) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L239">            <span class="tok-kw">var</span> tmp: [<span class="tok-number">4</span>]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L240">            <span class="tok-kw">const</span> len = <span class="tok-kw">try</span> unicode.utf8Encode(cp, &amp;tmp);</span>
+<span class="line" id="L241">            <span class="tok-kw">try</span> list.appendSlice(tmp[<span class="tok-number">0</span>..len]);</span>
+<span class="line" id="L242">        }</span>
+<span class="line" id="L243">    };</span>
+<span class="line" id="L244">}</span>
+<span class="line" id="L245"></span>
+<span class="line" id="L246"><span class="tok-comment">// Predicates</span>
+</span>
+<span class="line" id="L247"><span class="tok-kw">fn</span> <span class="tok-fn">isBreaker</span>(cp: <span class="tok-type">u21</span>) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L248">    <span class="tok-kw">return</span> cp == <span class="tok-str">'\x0d'</span> <span class="tok-kw">or</span> cp == <span class="tok-str">'\x0a'</span> <span class="tok-kw">or</span> gbp.isControl(cp);</span>
+<span class="line" id="L249">}</span>
+<span class="line" id="L250"></span>
+<span class="line" id="L251"><span class="tok-kw">fn</span> <span class="tok-fn">isIgnorable</span>(cp: <span class="tok-type">u21</span>) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L252">    <span class="tok-kw">return</span> gbp.isExtend(cp) <span class="tok-kw">or</span> gbp.isSpacingmark(cp) <span class="tok-kw">or</span> cp == <span class="tok-str">'\u{200d}'</span>;</span>
+<span class="line" id="L253">}</span>
+<span class="line" id="L254"></span>
+<span class="line" id="L255"><span class="tok-kw">test</span> <span class="tok-str">&quot;Segmentation comptime GraphemeIterator&quot;</span> {</span>
+<span class="line" id="L256">    <span class="tok-kw">const</span> want = [_][]<span class="tok-kw">const</span> <span class="tok-type">u8</span>{ <span class="tok-str">&quot;H&quot;</span>, <span class="tok-str">&quot;é&quot;</span>, <span class="tok-str">&quot;l&quot;</span>, <span class="tok-str">&quot;l&quot;</span>, <span class="tok-str">&quot;o&quot;</span> };</span>
+<span class="line" id="L257"></span>
+<span class="line" id="L258">    <span class="tok-kw">comptime</span> {</span>
+<span class="line" id="L259">        <span class="tok-kw">const</span> src = <span class="tok-str">&quot;Héllo&quot;</span>;</span>
+<span class="line" id="L260">        <span class="tok-kw">var</span> ct_iter = GraphemeIterator.init(src);</span>
+<span class="line" id="L261">        <span class="tok-kw">var</span> i = <span class="tok-number">0</span>;</span>
+<span class="line" id="L262">        <span class="tok-kw">while</span> (ct_iter.next()) |grapheme| : (i += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L263">            <span class="tok-kw">try</span> std.testing.expect(grapheme.eql(src, want[i]));</span>
+<span class="line" id="L264">        }</span>
+<span class="line" id="L265">    }</span>
+<span class="line" id="L266">}</span>
+<span class="line" id="L267"></span>
+<span class="line" id="L268"><span class="tok-kw">test</span> <span class="tok-str">&quot;Simple StreamingGraphemeIterator&quot;</span> {</span>
+<span class="line" id="L269">    <span class="tok-kw">var</span> buf = <span class="tok-str">&quot;abe\u{301}😹&quot;</span>.*;</span>
+<span class="line" id="L270">    <span class="tok-kw">var</span> fis = std.io.fixedBufferStream(&amp;buf);</span>
+<span class="line" id="L271">    <span class="tok-kw">const</span> reader = fis.reader();</span>
+<span class="line" id="L272">    <span class="tok-kw">var</span> iter = <span class="tok-kw">try</span> StreamingGraphemeIterator(<span class="tok-builtin">@TypeOf</span>(reader)).init(std.testing.allocator, reader);</span>
+<span class="line" id="L273">    <span class="tok-kw">const</span> want = [_][]<span class="tok-kw">const</span> <span class="tok-type">u8</span>{ <span class="tok-str">&quot;a&quot;</span>, <span class="tok-str">&quot;b&quot;</span>, <span class="tok-str">&quot;e\u{301}&quot;</span>, <span class="tok-str">&quot;😹&quot;</span> };</span>
+<span class="line" id="L274"></span>
+<span class="line" id="L275">    <span class="tok-kw">for</span> (want) |str| {</span>
+<span class="line" id="L276">        <span class="tok-kw">const</span> gc = (<span class="tok-kw">try</span> iter.next()).?;</span>
+<span class="line" id="L277">        <span class="tok-kw">defer</span> std.testing.allocator.free(gc);</span>
+<span class="line" id="L278">        <span class="tok-kw">try</span> std.testing.expectEqualStrings(gc, str);</span>
+<span class="line" id="L279">    }</span>
+<span class="line" id="L280"></span>
+<span class="line" id="L281">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(?[]<span class="tok-type">u8</span>, <span class="tok-null">null</span>), <span class="tok-kw">try</span> iter.next());</span>
+<span class="line" id="L282">}</span>
+<span class="line" id="L283"></span>
+<span class="line" id="L284"><span class="tok-kw">test</span> <span class="tok-str">&quot;Segmentation ZWJ and ZWSP emoji sequences&quot;</span> {</span>
+<span class="line" id="L285">    <span class="tok-kw">const</span> seq_1 = <span class="tok-str">&quot;\u{1F43B}\u{200D}\u{2744}\u{FE0F}&quot;</span>;</span>
+<span class="line" id="L286">    <span class="tok-kw">const</span> seq_2 = <span class="tok-str">&quot;\u{1F43B}\u{200D}\u{2744}\u{FE0F}&quot;</span>;</span>
+<span class="line" id="L287">    <span class="tok-kw">const</span> with_zwj = seq_1 ++ <span class="tok-str">&quot;\u{200D}&quot;</span> ++ seq_2;</span>
+<span class="line" id="L288">    <span class="tok-kw">const</span> with_zwsp = seq_1 ++ <span class="tok-str">&quot;\u{200B}&quot;</span> ++ seq_2;</span>
+<span class="line" id="L289">    <span class="tok-kw">const</span> no_joiner = seq_1 ++ seq_2;</span>
+<span class="line" id="L290"></span>
+<span class="line" id="L291">    <span class="tok-kw">var</span> ct_iter = GraphemeIterator.init(with_zwj);</span>
+<span class="line" id="L292">    <span class="tok-kw">var</span> i: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L293">    <span class="tok-kw">while</span> (ct_iter.next()) |_| : (i += <span class="tok-number">1</span>) {}</span>
+<span class="line" id="L294">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">usize</span>, <span class="tok-number">1</span>), i);</span>
+<span class="line" id="L295"></span>
+<span class="line" id="L296">    ct_iter = GraphemeIterator.init(with_zwsp);</span>
+<span class="line" id="L297">    i = <span class="tok-number">0</span>;</span>
+<span class="line" id="L298">    <span class="tok-kw">while</span> (ct_iter.next()) |_| : (i += <span class="tok-number">1</span>) {}</span>
+<span class="line" id="L299">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">usize</span>, <span class="tok-number">3</span>), i);</span>
+<span class="line" id="L300"></span>
+<span class="line" id="L301">    ct_iter = GraphemeIterator.init(no_joiner);</span>
+<span class="line" id="L302">    i = <span class="tok-number">0</span>;</span>
+<span class="line" id="L303">    <span class="tok-kw">while</span> (ct_iter.next()) |_| : (i += <span class="tok-number">1</span>) {}</span>
+<span class="line" id="L304">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">usize</span>, <span class="tok-number">2</span>), i);</span>
+<span class="line" id="L305">}</span>
+<span class="line" id="L306"></span>
+<span class="line" id="L307"><span class="tok-comment">// Grapheme break state.</span>
+</span>
+<span class="line" id="L308"><span class="tok-kw">fn</span> <span class="tok-fn">hasXpic</span>(state: *<span class="tok-kw">const</span> <span class="tok-type">u3</span>) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L309">    <span class="tok-kw">return</span> state.* &amp; <span class="tok-number">1</span> == <span class="tok-number">1</span>;</span>
+<span class="line" id="L310">}</span>
+<span class="line" id="L311"></span>
+<span class="line" id="L312"><span class="tok-kw">fn</span> <span class="tok-fn">setXpic</span>(state: *<span class="tok-type">u3</span>) <span class="tok-type">void</span> {</span>
+<span class="line" id="L313">    state.* |= <span class="tok-number">1</span>;</span>
+<span class="line" id="L314">}</span>
+<span class="line" id="L315"></span>
+<span class="line" id="L316"><span class="tok-kw">fn</span> <span class="tok-fn">unsetXpic</span>(state: *<span class="tok-type">u3</span>) <span class="tok-type">void</span> {</span>
+<span class="line" id="L317">    state.* ^= <span class="tok-number">1</span>;</span>
+<span class="line" id="L318">}</span>
+<span class="line" id="L319"></span>
+<span class="line" id="L320"><span class="tok-kw">fn</span> <span class="tok-fn">hasRegional</span>(state: *<span class="tok-kw">const</span> <span class="tok-type">u3</span>) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L321">    <span class="tok-kw">return</span> state.* &amp; <span class="tok-number">2</span> == <span class="tok-number">2</span>;</span>
+<span class="line" id="L322">}</span>
+<span class="line" id="L323"></span>
+<span class="line" id="L324"><span class="tok-kw">fn</span> <span class="tok-fn">setRegional</span>(state: *<span class="tok-type">u3</span>) <span class="tok-type">void</span> {</span>
+<span class="line" id="L325">    state.* |= <span class="tok-number">2</span>;</span>
+<span class="line" id="L326">}</span>
+<span class="line" id="L327"></span>
+<span class="line" id="L328"><span class="tok-kw">fn</span> <span class="tok-fn">unsetRegional</span>(state: *<span class="tok-type">u3</span>) <span class="tok-type">void</span> {</span>
+<span class="line" id="L329">    state.* ^= <span class="tok-number">2</span>;</span>
+<span class="line" id="L330">}</span>
+<span class="line" id="L331"></span>
+<span class="line" id="L332"><span class="tok-comment">/// `graphemeBreak` returns true only if a grapheme break point is required</span></span>
+<span class="line" id="L333"><span class="tok-comment">/// between `cp1` and `cp2`. `state` should start out as 0. If calling</span></span>
+<span class="line" id="L334"><span class="tok-comment">/// iteratively over a sequence of code points, this function must be called</span></span>
+<span class="line" id="L335"><span class="tok-comment">/// IN ORDER on ALL potential breaks in a string.</span></span>
+<span class="line" id="L336"><span class="tok-comment">/// Modeled after the API of utf8proc's `utf8proc_grapheme_break_stateful`.</span></span>
+<span class="line" id="L337"><span class="tok-comment">/// https://github.com/JuliaStrings/utf8proc/blob/2bbb1ba932f727aad1fab14fafdbc89ff9dc4604/utf8proc.h#L599-L617</span></span>
+<span class="line" id="L338"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">graphemeBreak</span>(</span>
+<span class="line" id="L339">    cp1: <span class="tok-type">u21</span>,</span>
+<span class="line" id="L340">    cp2: <span class="tok-type">u21</span>,</span>
+<span class="line" id="L341">    state: *<span class="tok-type">u3</span>,</span>
+<span class="line" id="L342">) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L343">    <span class="tok-comment">// GB11: Emoji Extend* ZWJ x Emoji</span>
+</span>
+<span class="line" id="L344">    <span class="tok-kw">if</span> (!hasXpic(state) <span class="tok-kw">and</span> emoji.isExtendedPictographic(cp1)) setXpic(state);</span>
+<span class="line" id="L345"></span>
+<span class="line" id="L346">    <span class="tok-comment">// GB3: CR x LF</span>
+</span>
+<span class="line" id="L347">    <span class="tok-kw">if</span> (cp1 == <span class="tok-str">'\r'</span> <span class="tok-kw">and</span> cp2 == <span class="tok-str">'\n'</span>) <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L348"></span>
+<span class="line" id="L349">    <span class="tok-comment">// GB4: Control</span>
+</span>
+<span class="line" id="L350">    <span class="tok-kw">if</span> (isBreaker(cp1)) <span class="tok-kw">return</span> <span class="tok-null">true</span>;</span>
+<span class="line" id="L351"></span>
+<span class="line" id="L352">    <span class="tok-comment">// GB6: Hangul L x (L|V|LV|VT)</span>
+</span>
+<span class="line" id="L353">    <span class="tok-kw">if</span> (gbp.isL(cp1)) {</span>
+<span class="line" id="L354">        <span class="tok-kw">if</span> (gbp.isL(cp2) <span class="tok-kw">or</span></span>
+<span class="line" id="L355">            gbp.isV(cp2) <span class="tok-kw">or</span></span>
+<span class="line" id="L356">            gbp.isLv(cp2) <span class="tok-kw">or</span></span>
+<span class="line" id="L357">            gbp.isLvt(cp2)) <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L358">    }</span>
+<span class="line" id="L359"></span>
+<span class="line" id="L360">    <span class="tok-comment">// GB7: Hangul (LV | V) x (V | T)</span>
+</span>
+<span class="line" id="L361">    <span class="tok-kw">if</span> (gbp.isLv(cp1) <span class="tok-kw">or</span> gbp.isV(cp1)) {</span>
+<span class="line" id="L362">        <span class="tok-kw">if</span> (gbp.isV(cp2) <span class="tok-kw">or</span></span>
+<span class="line" id="L363">            gbp.isT(cp2)) <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L364">    }</span>
+<span class="line" id="L365"></span>
+<span class="line" id="L366">    <span class="tok-comment">// GB8: Hangul (LVT | T) x T</span>
+</span>
+<span class="line" id="L367">    <span class="tok-kw">if</span> (gbp.isLvt(cp1) <span class="tok-kw">or</span> gbp.isT(cp1)) {</span>
+<span class="line" id="L368">        <span class="tok-kw">if</span> (gbp.isT(cp2)) <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L369">    }</span>
+<span class="line" id="L370"></span>
+<span class="line" id="L371">    <span class="tok-comment">// GB9b: x (Extend | ZWJ)</span>
+</span>
+<span class="line" id="L372">    <span class="tok-kw">if</span> (gbp.isExtend(cp2) <span class="tok-kw">or</span> gbp.isZwj(cp2)) <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L373"></span>
+<span class="line" id="L374">    <span class="tok-comment">// GB9a: x Spacing</span>
+</span>
+<span class="line" id="L375">    <span class="tok-kw">if</span> (gbp.isSpacingmark(cp2)) <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L376"></span>
+<span class="line" id="L377">    <span class="tok-comment">// GB9b: Prepend x</span>
+</span>
+<span class="line" id="L378">    <span class="tok-kw">if</span> (gbp.isPrepend(cp1) <span class="tok-kw">and</span> !isBreaker(cp2)) <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L379"></span>
+<span class="line" id="L380">    <span class="tok-comment">// GB12, GB13: RI x RI</span>
+</span>
+<span class="line" id="L381">    <span class="tok-kw">if</span> (gbp.isRegionalIndicator(cp1) <span class="tok-kw">and</span> gbp.isRegionalIndicator(cp2)) {</span>
+<span class="line" id="L382">        <span class="tok-kw">if</span> (hasRegional(state)) {</span>
+<span class="line" id="L383">            unsetRegional(state);</span>
+<span class="line" id="L384">            <span class="tok-kw">return</span> <span class="tok-null">true</span>;</span>
+<span class="line" id="L385">        } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L386">            setRegional(state);</span>
+<span class="line" id="L387">            <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L388">        }</span>
+<span class="line" id="L389">    }</span>
+<span class="line" id="L390"></span>
+<span class="line" id="L391">    <span class="tok-comment">// GB11: Emoji Extend* ZWJ x Emoji</span>
+</span>
+<span class="line" id="L392">    <span class="tok-kw">if</span> (hasXpic(state) <span class="tok-kw">and</span></span>
+<span class="line" id="L393">        gbp.isZwj(cp1) <span class="tok-kw">and</span></span>
+<span class="line" id="L394">        emoji.isExtendedPictographic(cp2))</span>
+<span class="line" id="L395">    {</span>
+<span class="line" id="L396">        unsetXpic(state);</span>
+<span class="line" id="L397">        <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L398">    }</span>
+<span class="line" id="L399"></span>
+<span class="line" id="L400">    <span class="tok-kw">return</span> <span class="tok-null">true</span>;</span>
+<span class="line" id="L401">}</span>
+<span class="line" id="L402"></span>
+</code></pre></body>
+</html>

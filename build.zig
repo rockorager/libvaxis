@@ -60,4 +60,14 @@ pub fn build(b: *std.Build) void {
 
     lints_step.dependOn(&lints.step);
     b.default_step.dependOn(lints_step);
+
+    // Docs
+    const vaxis_docs = tests;
+    const build_docs = b.addInstallDirectory(.{
+        .source_dir = vaxis_docs.getEmittedDocs(),
+        .install_dir = .prefix,
+        .install_subdir = "../docs",
+    });
+    const build_docs_step = b.step("docs", "Build the vaxis library docs");
+    build_docs_step.dependOn(&build_docs.step);
 }

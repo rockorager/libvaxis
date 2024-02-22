@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>src/formats/pam.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L2"><span class="tok-kw">const</span> io = std.io;</span>
+<span class="line" id="L3"><span class="tok-kw">const</span> mem = std.mem;</span>
+<span class="line" id="L4"><span class="tok-kw">const</span> math = std.math;</span>
+<span class="line" id="L5"><span class="tok-kw">const</span> ascii = std.ascii;</span>
+<span class="line" id="L6"><span class="tok-kw">const</span> fmt = std.fmt;</span>
+<span class="line" id="L7"><span class="tok-kw">const</span> meta = std.meta;</span>
+<span class="line" id="L8"><span class="tok-kw">const</span> Allocator = std.mem.Allocator;</span>
+<span class="line" id="L9"><span class="tok-kw">const</span> buffered_stream_source = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../buffered_stream_source.zig&quot;</span>);</span>
+<span class="line" id="L10"><span class="tok-kw">const</span> color = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../color.zig&quot;</span>);</span>
+<span class="line" id="L11"><span class="tok-kw">const</span> FormatInterface = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../FormatInterface.zig&quot;</span>);</span>
+<span class="line" id="L12"><span class="tok-kw">const</span> PixelStorage = color.PixelStorage;</span>
+<span class="line" id="L13"><span class="tok-kw">const</span> PixelFormat = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../pixel_format.zig&quot;</span>).PixelFormat;</span>
+<span class="line" id="L14"><span class="tok-kw">const</span> Image = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../Image.zig&quot;</span>);</span>
+<span class="line" id="L15"><span class="tok-kw">const</span> ImageError = Image.Error;</span>
+<span class="line" id="L16"><span class="tok-kw">const</span> ImageReadError = Image.ReadError;</span>
+<span class="line" id="L17"><span class="tok-kw">const</span> ImageWriteError = Image.WriteError;</span>
+<span class="line" id="L18"><span class="tok-kw">const</span> utils = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../utils.zig&quot;</span>);</span>
+<span class="line" id="L19"></span>
+<span class="line" id="L20"><span class="tok-comment">/// Represents all supported values for `TUPLTYPE`.</span></span>
+<span class="line" id="L21"><span class="tok-kw">const</span> TupleType = <span class="tok-kw">enum</span> {</span>
+<span class="line" id="L22">    mono,</span>
+<span class="line" id="L23">    mono_a,</span>
+<span class="line" id="L24">    gray,</span>
+<span class="line" id="L25">    gray_a,</span>
+<span class="line" id="L26">    rgb,</span>
+<span class="line" id="L27">    rgb_a,</span>
+<span class="line" id="L28"></span>
+<span class="line" id="L29">    <span class="tok-comment">/// Returns the `TupleType` corresponding to `string`, or</span></span>
+<span class="line" id="L30">    <span class="tok-comment">/// `error.Unsupported` if it is unknown.</span></span>
+<span class="line" id="L31">    <span class="tok-kw">fn</span> <span class="tok-fn">fromString</span>(string: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) <span class="tok-kw">error</span>{Unsupported}!TupleType {</span>
+<span class="line" id="L32">        <span class="tok-comment">// zig fmt: off</span>
+</span>
+<span class="line" id="L33">        <span class="tok-kw">return</span> <span class="tok-kw">if</span>(mem.eql(<span class="tok-type">u8</span>, string, <span class="tok-str">&quot;BLACKANDWHITE&quot;</span>)) .mono</span>
+<span class="line" id="L34">        <span class="tok-kw">else</span> <span class="tok-kw">if</span>(mem.eql(<span class="tok-type">u8</span>, string, <span class="tok-str">&quot;BLACKANDWHITE_ALPHA&quot;</span>)) .mono_a</span>
+<span class="line" id="L35">        <span class="tok-kw">else</span> <span class="tok-kw">if</span>(mem.eql(<span class="tok-type">u8</span>, string, <span class="tok-str">&quot;GRAYSCALE&quot;</span>)) .gray</span>
+<span class="line" id="L36">        <span class="tok-kw">else</span> <span class="tok-kw">if</span>(mem.eql(<span class="tok-type">u8</span>, string, <span class="tok-str">&quot;GRAYSCALE_ALPHA&quot;</span>)) .gray_a</span>
+<span class="line" id="L37">        <span class="tok-kw">else</span> <span class="tok-kw">if</span>(mem.eql(<span class="tok-type">u8</span>, string, <span class="tok-str">&quot;RGB&quot;</span>)) .rgb</span>
+<span class="line" id="L38">        <span class="tok-kw">else</span> <span class="tok-kw">if</span>(mem.eql(<span class="tok-type">u8</span>, string, <span class="tok-str">&quot;RGB_ALPHA&quot;</span>)) .rgb_a</span>
+<span class="line" id="L39">        <span class="tok-kw">else</span> <span class="tok-kw">error</span>.Unsupported; <span class="tok-comment">// Unknown tuple type</span>
+</span>
+<span class="line" id="L40">        <span class="tok-comment">// zig fmt: on</span>
+</span>
+<span class="line" id="L41">    }</span>
+<span class="line" id="L42"></span>
+<span class="line" id="L43">    <span class="tok-comment">/// Returns the `TUPLTYPE` string representation of `tuple_type`.</span></span>
+<span class="line" id="L44">    <span class="tok-kw">fn</span> <span class="tok-fn">toString</span>(tuple_type: TupleType) []<span class="tok-kw">const</span> <span class="tok-type">u8</span> {</span>
+<span class="line" id="L45">        <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (tuple_type) {</span>
+<span class="line" id="L46">            .mono =&gt; <span class="tok-str">&quot;BLACKANDWHITE&quot;</span>,</span>
+<span class="line" id="L47">            .mono_a =&gt; <span class="tok-str">&quot;BLACKANDWHITE_ALPHA&quot;</span>,</span>
+<span class="line" id="L48">            .gray =&gt; <span class="tok-str">&quot;GRAYSCALE&quot;</span>,</span>
+<span class="line" id="L49">            .gray_a =&gt; <span class="tok-str">&quot;GRAYSCALE_ALPHA&quot;</span>,</span>
+<span class="line" id="L50">            .rgb =&gt; <span class="tok-str">&quot;RGB&quot;</span>,</span>
+<span class="line" id="L51">            .rgb_a =&gt; <span class="tok-str">&quot;RGB_ALPHA&quot;</span>,</span>
+<span class="line" id="L52">        };</span>
+<span class="line" id="L53">    }</span>
+<span class="line" id="L54">};</span>
+<span class="line" id="L55"></span>
+<span class="line" id="L56"><span class="tok-comment">/// Represents a PAM header.</span></span>
+<span class="line" id="L57"><span class="tok-kw">const</span> Header = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L58">    <span class="tok-comment">/// Number of pixels in a row.</span></span>
+<span class="line" id="L59">    width: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L60">    <span class="tok-comment">/// Number of rows.</span></span>
+<span class="line" id="L61">    height: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L62">    <span class="tok-comment">/// Number of components per pixels.</span></span>
+<span class="line" id="L63">    depth: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L64">    <span class="tok-comment">/// Maximum value of a component.</span></span>
+<span class="line" id="L65">    maxval: <span class="tok-type">u16</span>,</span>
+<span class="line" id="L66">    <span class="tok-comment">/// Tuple type of the image.</span></span>
+<span class="line" id="L67">    tuple_type: TupleType,</span>
+<span class="line" id="L68">    <span class="tok-comment">/// Arbitrary text comments. Note that comment position inside the</span></span>
+<span class="line" id="L69">    <span class="tok-comment">/// header is not preserved.</span></span>
+<span class="line" id="L70">    comments: []<span class="tok-kw">const</span> []<span class="tok-kw">const</span> <span class="tok-type">u8</span>,</span>
+<span class="line" id="L71"></span>
+<span class="line" id="L72">    <span class="tok-comment">/// Reads a header from `reader`, using `allocator` to allocate</span></span>
+<span class="line" id="L73">    <span class="tok-comment">/// memory. Returns that header, `error.Unsupported` if the tuple</span></span>
+<span class="line" id="L74">    <span class="tok-comment">/// type is not known to us, `error.OutOfMemory` if allocation</span></span>
+<span class="line" id="L75">    <span class="tok-comment">/// fails, `error.InvalidData` if the header does not conform to</span></span>
+<span class="line" id="L76">    <span class="tok-comment">/// the PAM specification, or another error specific to `reader`</span></span>
+<span class="line" id="L77">    <span class="tok-comment">/// if reading fails.</span></span>
+<span class="line" id="L78">    <span class="tok-kw">fn</span> <span class="tok-fn">read</span>(allocator: Allocator, reader: <span class="tok-kw">anytype</span>) (<span class="tok-kw">error</span>{ InvalidData, Unsupported, OutOfMemory, EndOfStream, StreamTooLong } || <span class="tok-builtin">@TypeOf</span>(reader).Error)!Header {</span>
+<span class="line" id="L79">        <span class="tok-kw">var</span> maybe_width: ?<span class="tok-type">usize</span> = <span class="tok-null">null</span>;</span>
+<span class="line" id="L80">        <span class="tok-kw">var</span> maybe_height: ?<span class="tok-type">usize</span> = <span class="tok-null">null</span>;</span>
+<span class="line" id="L81">        <span class="tok-kw">var</span> maybe_depth: ?<span class="tok-type">usize</span> = <span class="tok-null">null</span>;</span>
+<span class="line" id="L82">        <span class="tok-kw">var</span> maybe_maxval: ?<span class="tok-type">u16</span> = <span class="tok-null">null</span>;</span>
+<span class="line" id="L83">        <span class="tok-kw">var</span> maybe_tuple_type: ?TupleType = <span class="tok-null">null</span>;</span>
+<span class="line" id="L84">        <span class="tok-kw">var</span> comments = std.ArrayListUnmanaged([]<span class="tok-kw">const</span> <span class="tok-type">u8</span>){};</span>
+<span class="line" id="L85">        <span class="tok-kw">defer</span> {</span>
+<span class="line" id="L86">            <span class="tok-kw">for</span> (comments.items) |comment| allocator.free(comment);</span>
+<span class="line" id="L87">            comments.deinit(allocator);</span>
+<span class="line" id="L88">        }</span>
+<span class="line" id="L89"></span>
+<span class="line" id="L90">        {</span>
+<span class="line" id="L91">            <span class="tok-kw">var</span> buf = <span class="tok-kw">try</span> std.ArrayList(<span class="tok-type">u8</span>).initCapacity(allocator, <span class="tok-number">32</span>);</span>
+<span class="line" id="L92">            <span class="tok-kw">defer</span> buf.deinit();</span>
+<span class="line" id="L93"></span>
+<span class="line" id="L94">            <span class="tok-kw">while</span> (<span class="tok-null">true</span>) {</span>
+<span class="line" id="L95">                <span class="tok-comment">// we fail on EOS here because a valid pam header must end with ENDHDR</span>
+</span>
+<span class="line" id="L96">                <span class="tok-kw">try</span> reader.readUntilDelimiterArrayList(&amp;buf, <span class="tok-str">'\n'</span>, math.maxInt(<span class="tok-type">usize</span>));</span>
+<span class="line" id="L97">                <span class="tok-kw">const</span> line = buf.items; <span class="tok-comment">// empty lines are meaningless</span>
+</span>
+<span class="line" id="L98">                <span class="tok-kw">if</span> (line.len == <span class="tok-number">0</span>) <span class="tok-kw">continue</span>;</span>
+<span class="line" id="L99">                <span class="tok-kw">if</span> (line[<span class="tok-number">0</span>] == <span class="tok-str">'#'</span>) { <span class="tok-comment">// comment</span>
+</span>
+<span class="line" id="L100">                    <span class="tok-kw">try</span> comments.append(allocator, <span class="tok-kw">try</span> allocator.dupe(<span class="tok-type">u8</span>, line[<span class="tok-number">1</span>..]));</span>
+<span class="line" id="L101">                    <span class="tok-kw">continue</span>;</span>
+<span class="line" id="L102">                }</span>
+<span class="line" id="L103"></span>
+<span class="line" id="L104">                <span class="tok-kw">var</span> tok_iter = mem.tokenize(<span class="tok-type">u8</span>, line, &amp;ascii.whitespace);</span>
+<span class="line" id="L105">                <span class="tok-kw">const</span> first_token = tok_iter.next() <span class="tok-kw">orelse</span> <span class="tok-kw">continue</span>; <span class="tok-comment">// lines with 0 tokens are meaningless</span>
+</span>
+<span class="line" id="L106"></span>
+<span class="line" id="L107">                <span class="tok-kw">if</span> (first_token.len &gt; <span class="tok-number">8</span>) <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidData; <span class="tok-comment">// the first token must be at most 8 bytes</span>
+</span>
+<span class="line" id="L108"></span>
+<span class="line" id="L109">                <span class="tok-kw">if</span> (mem.eql(<span class="tok-type">u8</span>, first_token, <span class="tok-str">&quot;ENDHDR&quot;</span>)) <span class="tok-kw">break</span>;</span>
+<span class="line" id="L110"></span>
+<span class="line" id="L111">                <span class="tok-kw">if</span> (mem.eql(<span class="tok-type">u8</span>, first_token, <span class="tok-str">&quot;TUPLTYPE&quot;</span>)) {</span>
+<span class="line" id="L112">                    maybe_tuple_type = <span class="tok-kw">try</span> TupleType.fromString(tok_iter.rest());</span>
+<span class="line" id="L113">                    <span class="tok-kw">continue</span>;</span>
+<span class="line" id="L114">                }</span>
+<span class="line" id="L115"></span>
+<span class="line" id="L116">                <span class="tok-kw">const</span> second_token = tok_iter.next() <span class="tok-kw">orelse</span> <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidData; <span class="tok-comment">// bad token</span>
+</span>
+<span class="line" id="L117"></span>
+<span class="line" id="L118">                <span class="tok-kw">if</span> (mem.eql(<span class="tok-type">u8</span>, first_token, <span class="tok-str">&quot;WIDTH&quot;</span>)) {</span>
+<span class="line" id="L119">                    maybe_width = fmt.parseUnsigned(<span class="tok-type">usize</span>, second_token, <span class="tok-number">10</span>) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidData; <span class="tok-comment">// bad width</span>
+</span>
+<span class="line" id="L120">                } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (mem.eql(<span class="tok-type">u8</span>, first_token, <span class="tok-str">&quot;HEIGHT&quot;</span>)) {</span>
+<span class="line" id="L121">                    maybe_height = fmt.parseUnsigned(<span class="tok-type">usize</span>, second_token, <span class="tok-number">10</span>) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidData; <span class="tok-comment">// bad height</span>
+</span>
+<span class="line" id="L122">                } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (mem.eql(<span class="tok-type">u8</span>, first_token, <span class="tok-str">&quot;DEPTH&quot;</span>)) {</span>
+<span class="line" id="L123">                    maybe_depth = fmt.parseUnsigned(<span class="tok-type">usize</span>, second_token, <span class="tok-number">10</span>) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidData; <span class="tok-comment">// bad depth</span>
+</span>
+<span class="line" id="L124">                } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (mem.eql(<span class="tok-type">u8</span>, first_token, <span class="tok-str">&quot;MAXVAL&quot;</span>)) {</span>
+<span class="line" id="L125">                    maybe_maxval = fmt.parseUnsigned(<span class="tok-type">u16</span>, second_token, <span class="tok-number">10</span>) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidData; <span class="tok-comment">// bad maxval</span>
+</span>
+<span class="line" id="L126">                } <span class="tok-kw">else</span> <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidData; <span class="tok-comment">// invalid first token</span>
+</span>
+<span class="line" id="L127">            }</span>
+<span class="line" id="L128">        }</span>
+<span class="line" id="L129"></span>
+<span class="line" id="L130">        <span class="tok-kw">if</span> (maybe_height == <span class="tok-null">null</span> <span class="tok-kw">or</span> maybe_width == <span class="tok-null">null</span> <span class="tok-kw">or</span> maybe_maxval == <span class="tok-null">null</span> <span class="tok-kw">or</span> maybe_depth == <span class="tok-null">null</span>) <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidData; <span class="tok-comment">// missing values</span>
+</span>
+<span class="line" id="L131">        <span class="tok-kw">if</span> (maybe_height.? &lt; <span class="tok-number">1</span> <span class="tok-kw">or</span> maybe_width.? &lt; <span class="tok-number">1</span> <span class="tok-kw">or</span> maybe_maxval.? &lt; <span class="tok-number">1</span>) <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidData; <span class="tok-comment">// bad width, height, or maxval</span>
+</span>
+<span class="line" id="L132">        <span class="tok-kw">if</span> (maybe_tuple_type == <span class="tok-null">null</span>) { <span class="tok-comment">// guess tuple type</span>
+</span>
+<span class="line" id="L133">            <span class="tok-kw">const</span> depth = maybe_depth.?;</span>
+<span class="line" id="L134">            <span class="tok-kw">const</span> maxval = maybe_maxval.?;</span>
+<span class="line" id="L135">            maybe_tuple_type = <span class="tok-kw">switch</span> (depth) {</span>
+<span class="line" id="L136">                <span class="tok-number">1</span> =&gt; <span class="tok-kw">if</span> (maxval == <span class="tok-number">1</span>) TupleType.mono <span class="tok-kw">else</span> TupleType.gray,</span>
+<span class="line" id="L137">                <span class="tok-number">2</span> =&gt; <span class="tok-kw">if</span> (maxval == <span class="tok-number">1</span>) TupleType.mono_a <span class="tok-kw">else</span> TupleType.gray_a,</span>
+<span class="line" id="L138">                <span class="tok-number">3</span> =&gt; TupleType.rgb,</span>
+<span class="line" id="L139">                <span class="tok-number">4</span> =&gt; TupleType.rgb_a,</span>
+<span class="line" id="L140">                <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Unsupported, <span class="tok-comment">// can't guess tuple type</span>
+</span>
+<span class="line" id="L141">            };</span>
+<span class="line" id="L142">        }</span>
+<span class="line" id="L143"></span>
+<span class="line" id="L144">        <span class="tok-kw">const</span> tuple_type_matches = <span class="tok-kw">if</span> (maybe_depth) |depth| <span class="tok-kw">if</span> (maybe_maxval) |maxval| <span class="tok-kw">switch</span> (maybe_tuple_type.?) {</span>
+<span class="line" id="L145">            .mono =&gt; depth == <span class="tok-number">1</span> <span class="tok-kw">and</span> maxval == <span class="tok-number">1</span>,</span>
+<span class="line" id="L146">            .mono_a =&gt; depth == <span class="tok-number">2</span> <span class="tok-kw">and</span> maxval == <span class="tok-number">1</span>,</span>
+<span class="line" id="L147">            .gray =&gt; depth == <span class="tok-number">1</span>,</span>
+<span class="line" id="L148">            .gray_a =&gt; depth == <span class="tok-number">2</span>,</span>
+<span class="line" id="L149">            .rgb =&gt; depth == <span class="tok-number">3</span>,</span>
+<span class="line" id="L150">            .rgb_a =&gt; depth == <span class="tok-number">4</span>,</span>
+<span class="line" id="L151">        } <span class="tok-kw">else</span> <span class="tok-kw">unreachable</span> <span class="tok-kw">else</span> <span class="tok-kw">unreachable</span>;</span>
+<span class="line" id="L152"></span>
+<span class="line" id="L153">        <span class="tok-kw">if</span> (!tuple_type_matches) <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidData; <span class="tok-comment">// tuple type does not match</span>
+</span>
+<span class="line" id="L154"></span>
+<span class="line" id="L155">        <span class="tok-kw">return</span> Header{</span>
+<span class="line" id="L156">            .width = maybe_width.?,</span>
+<span class="line" id="L157">            .height = maybe_height.?,</span>
+<span class="line" id="L158">            .maxval = maybe_maxval.?,</span>
+<span class="line" id="L159">            .depth = maybe_depth.?,</span>
+<span class="line" id="L160">            .tuple_type = maybe_tuple_type.?,</span>
+<span class="line" id="L161">            .comments = <span class="tok-kw">try</span> comments.toOwnedSlice(allocator),</span>
+<span class="line" id="L162">        };</span>
+<span class="line" id="L163">    }</span>
+<span class="line" id="L164"></span>
+<span class="line" id="L165">    <span class="tok-comment">/// Writes the PAM representation of `header` to `writer`. If</span></span>
+<span class="line" id="L166">    <span class="tok-comment">/// writing fails, returns an error specific to `writer`.</span></span>
+<span class="line" id="L167">    <span class="tok-kw">fn</span> <span class="tok-fn">write</span>(header: Header, writer: <span class="tok-kw">anytype</span>) <span class="tok-builtin">@TypeOf</span>(writer).Error!<span class="tok-type">void</span> {</span>
+<span class="line" id="L168">        <span class="tok-kw">try</span> writer.writeAll(<span class="tok-str">&quot;P7\n&quot;</span>);</span>
+<span class="line" id="L169"></span>
+<span class="line" id="L170">        <span class="tok-kw">for</span> (header.comments) |comment|</span>
+<span class="line" id="L171">            <span class="tok-kw">try</span> writer.print(<span class="tok-str">&quot;#{s}\n&quot;</span>, .{comment});</span>
+<span class="line" id="L172"></span>
+<span class="line" id="L173">        <span class="tok-kw">const</span> fmtstr =</span>
+<span class="line" id="L174">            <span class="tok-str">\\WIDTH {d}</span></span>
+
+<span class="line" id="L175">            <span class="tok-str">\\HEIGHT {d}</span></span>
+
+<span class="line" id="L176">            <span class="tok-str">\\DEPTH {d}</span></span>
+
+<span class="line" id="L177">            <span class="tok-str">\\MAXVAL {d}</span></span>
+
+<span class="line" id="L178">            <span class="tok-str">\\TUPLTYPE {s}</span></span>
+
+<span class="line" id="L179">            <span class="tok-str">\\ENDHDR</span></span>
+
+<span class="line" id="L180">            <span class="tok-str">\\</span></span>
+
+<span class="line" id="L181">        ;</span>
+<span class="line" id="L182">        <span class="tok-kw">try</span> writer.print(fmtstr, .{ header.width, header.height, header.depth, header.maxval, header.tuple_type.toString() });</span>
+<span class="line" id="L183">    }</span>
+<span class="line" id="L184"></span>
+<span class="line" id="L185">    <span class="tok-comment">/// Invalidates `header` and frees all comments with `allocator`.</span></span>
+<span class="line" id="L186">    <span class="tok-kw">fn</span> <span class="tok-fn">deinit</span>(header: *Header, allocator: Allocator) <span class="tok-type">void</span> {</span>
+<span class="line" id="L187">        <span class="tok-kw">for</span> (header.comments) |comment| {</span>
+<span class="line" id="L188">            allocator.free(comment);</span>
+<span class="line" id="L189">        }</span>
+<span class="line" id="L190">        allocator.free(header.comments);</span>
+<span class="line" id="L191">        header.* = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L192">    }</span>
+<span class="line" id="L193"></span>
+<span class="line" id="L194">    <span class="tok-kw">fn</span> <span class="tok-fn">hasTwoBytesPerComponent</span>(header: Header) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L195">        <span class="tok-kw">return</span> header.maxval &gt; math.maxInt(<span class="tok-type">u8</span>);</span>
+<span class="line" id="L196">    }</span>
+<span class="line" id="L197"></span>
+<span class="line" id="L198">    <span class="tok-kw">fn</span> <span class="tok-fn">getPixelFormat</span>(header: Header) PixelFormat {</span>
+<span class="line" id="L199">        <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (header.tuple_type) {</span>
+<span class="line" id="L200">            .mono =&gt; .grayscale1,</span>
+<span class="line" id="L201">            <span class="tok-comment">// TODO: is this conversion acceptable?</span>
+</span>
+<span class="line" id="L202">            .mono_a =&gt; .grayscale1,</span>
+<span class="line" id="L203">            .gray =&gt; <span class="tok-kw">if</span> (header.hasTwoBytesPerComponent()) .grayscale16 <span class="tok-kw">else</span> .grayscale8,</span>
+<span class="line" id="L204">            .gray_a =&gt; <span class="tok-kw">if</span> (header.hasTwoBytesPerComponent()) .grayscale16Alpha <span class="tok-kw">else</span> .grayscale8Alpha,</span>
+<span class="line" id="L205">            .rgb =&gt; <span class="tok-kw">if</span> (header.hasTwoBytesPerComponent()) .rgb48 <span class="tok-kw">else</span> .rgb24,</span>
+<span class="line" id="L206">            .rgb_a =&gt; <span class="tok-kw">if</span> (header.hasTwoBytesPerComponent()) .rgba64 <span class="tok-kw">else</span> .rgba32,</span>
+<span class="line" id="L207">        };</span>
+<span class="line" id="L208">    }</span>
+<span class="line" id="L209"></span>
+<span class="line" id="L210">    <span class="tok-comment">/// Initializes an `Image` with the values that `header`</span></span>
+<span class="line" id="L211">    <span class="tok-comment">/// contains. Returns `error.OutOfMemory` if allocation fails.</span></span>
+<span class="line" id="L212">    <span class="tok-kw">fn</span> <span class="tok-fn">initImage</span>(header: Header, allocator: Allocator) <span class="tok-kw">error</span>{OutOfMemory}!Image {</span>
+<span class="line" id="L213">        <span class="tok-kw">var</span> image = Image.init(allocator);</span>
+<span class="line" id="L214">        image.width = header.width;</span>
+<span class="line" id="L215">        image.height = header.height;</span>
+<span class="line" id="L216">        image.pixels = <span class="tok-kw">try</span> PixelStorage.init(allocator, header.getPixelFormat(), header.width * header.height);</span>
+<span class="line" id="L217">        <span class="tok-kw">return</span> image;</span>
+<span class="line" id="L218">    }</span>
+<span class="line" id="L219"></span>
+<span class="line" id="L220">    <span class="tok-comment">/// Initializes a `Header` from `image`. Returns</span></span>
+<span class="line" id="L221">    <span class="tok-comment">/// `error.Unsupported` if the pixel format of `image` cannot be</span></span>
+<span class="line" id="L222">    <span class="tok-comment">/// easily represented in PAM.</span></span>
+<span class="line" id="L223">    <span class="tok-kw">fn</span> <span class="tok-fn">fromImage</span>(image: Image) <span class="tok-kw">error</span>{Unsupported}!Header {</span>
+<span class="line" id="L224">        <span class="tok-kw">var</span> header: Header = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L225">        <span class="tok-kw">switch</span> (image.pixelFormat()) {</span>
+<span class="line" id="L226">            .invalid,</span>
+<span class="line" id="L227">            .indexed1,</span>
+<span class="line" id="L228">            .indexed2,</span>
+<span class="line" id="L229">            .indexed4,</span>
+<span class="line" id="L230">            .indexed8,</span>
+<span class="line" id="L231">            .indexed16,</span>
+<span class="line" id="L232">            .float32,</span>
+<span class="line" id="L233">            .rgb565,</span>
+<span class="line" id="L234">            =&gt; <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Unsupported, <span class="tok-comment">// unsupported pixel format</span>
+</span>
+<span class="line" id="L235"></span>
+<span class="line" id="L236">            .grayscale1 =&gt; {</span>
+<span class="line" id="L237">                header.depth = <span class="tok-number">1</span>;</span>
+<span class="line" id="L238">                header.maxval = <span class="tok-number">1</span>;</span>
+<span class="line" id="L239">                header.tuple_type = .mono;</span>
+<span class="line" id="L240">            },</span>
+<span class="line" id="L241">            .grayscale2 =&gt; {</span>
+<span class="line" id="L242">                header.depth = <span class="tok-number">1</span>;</span>
+<span class="line" id="L243">                header.maxval = math.maxInt(<span class="tok-type">u2</span>);</span>
+<span class="line" id="L244">                header.tuple_type = .gray;</span>
+<span class="line" id="L245">            },</span>
+<span class="line" id="L246">            .grayscale4 =&gt; {</span>
+<span class="line" id="L247">                header.depth = <span class="tok-number">1</span>;</span>
+<span class="line" id="L248">                header.maxval = math.maxInt(<span class="tok-type">u4</span>);</span>
+<span class="line" id="L249">                header.tuple_type = .gray;</span>
+<span class="line" id="L250">            },</span>
+<span class="line" id="L251">            .grayscale8 =&gt; {</span>
+<span class="line" id="L252">                header.depth = <span class="tok-number">1</span>;</span>
+<span class="line" id="L253">                header.maxval = math.maxInt(<span class="tok-type">u8</span>);</span>
+<span class="line" id="L254">                header.tuple_type = .gray;</span>
+<span class="line" id="L255">            },</span>
+<span class="line" id="L256">            .grayscale8Alpha =&gt; {</span>
+<span class="line" id="L257">                header.depth = <span class="tok-number">2</span>;</span>
+<span class="line" id="L258">                header.maxval = math.maxInt(<span class="tok-type">u8</span>);</span>
+<span class="line" id="L259">                header.tuple_type = .gray_a;</span>
+<span class="line" id="L260">            },</span>
+<span class="line" id="L261">            .grayscale16 =&gt; {</span>
+<span class="line" id="L262">                header.depth = <span class="tok-number">1</span>;</span>
+<span class="line" id="L263">                header.maxval = math.maxInt(<span class="tok-type">u16</span>);</span>
+<span class="line" id="L264">                header.tuple_type = .gray;</span>
+<span class="line" id="L265">            },</span>
+<span class="line" id="L266">            .grayscale16Alpha =&gt; {</span>
+<span class="line" id="L267">                header.depth = <span class="tok-number">2</span>;</span>
+<span class="line" id="L268">                header.maxval = math.maxInt(<span class="tok-type">u16</span>);</span>
+<span class="line" id="L269">                header.tuple_type = .gray_a;</span>
+<span class="line" id="L270">            },</span>
+<span class="line" id="L271">            .rgb555, .bgr555 =&gt; {</span>
+<span class="line" id="L272">                header.depth = <span class="tok-number">3</span>;</span>
+<span class="line" id="L273">                header.maxval = math.maxInt(<span class="tok-type">u5</span>);</span>
+<span class="line" id="L274">                header.tuple_type = .rgb;</span>
+<span class="line" id="L275">            },</span>
+<span class="line" id="L276">            .rgb24, .bgr24 =&gt; {</span>
+<span class="line" id="L277">                header.depth = <span class="tok-number">3</span>;</span>
+<span class="line" id="L278">                header.maxval = math.maxInt(<span class="tok-type">u8</span>);</span>
+<span class="line" id="L279">                header.tuple_type = .rgb;</span>
+<span class="line" id="L280">            },</span>
+<span class="line" id="L281">            .rgba32, .bgra32 =&gt; {</span>
+<span class="line" id="L282">                header.depth = <span class="tok-number">4</span>;</span>
+<span class="line" id="L283">                header.maxval = math.maxInt(<span class="tok-type">u8</span>);</span>
+<span class="line" id="L284">                header.tuple_type = .rgb_a;</span>
+<span class="line" id="L285">            },</span>
+<span class="line" id="L286">            .rgb48 =&gt; {</span>
+<span class="line" id="L287">                header.depth = <span class="tok-number">3</span>;</span>
+<span class="line" id="L288">                header.maxval = math.maxInt(<span class="tok-type">u16</span>);</span>
+<span class="line" id="L289">                header.tuple_type = .rgb;</span>
+<span class="line" id="L290">            },</span>
+<span class="line" id="L291">            .rgba64 =&gt; {</span>
+<span class="line" id="L292">                header.depth = <span class="tok-number">4</span>;</span>
+<span class="line" id="L293">                header.maxval = math.maxInt(<span class="tok-type">u16</span>);</span>
+<span class="line" id="L294">                header.tuple_type = .rgb_a;</span>
+<span class="line" id="L295">            },</span>
+<span class="line" id="L296">        }</span>
+<span class="line" id="L297">        header.comments = &amp;.{};</span>
+<span class="line" id="L298">        header.width = image.width;</span>
+<span class="line" id="L299">        header.height = image.height;</span>
+<span class="line" id="L300">        <span class="tok-kw">return</span> header;</span>
+<span class="line" id="L301">    }</span>
+<span class="line" id="L302">};</span>
+<span class="line" id="L303"></span>
+<span class="line" id="L304"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> PAM = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L305">    <span class="tok-comment">//! Portable AnyMap</span></span>
+<span class="line" id="L306">    <span class="tok-comment">//! currently, this only supports a subset of PAMs where:</span></span>
+<span class="line" id="L307">    <span class="tok-comment">//! - the tuple type is official (see `man 5 pam`) or easily inferred (and</span></span>
+<span class="line" id="L308">    <span class="tok-comment">//!   by extension, depth is 4 or less)</span></span>
+<span class="line" id="L309">    <span class="tok-comment">//! - all images in a sequence have the same dimensions and maxval (it is</span></span>
+<span class="line" id="L310">    <span class="tok-comment">//!   technically possible to support animations with different maxvals and</span></span>
+<span class="line" id="L311">    <span class="tok-comment">//!   tuple types as each `AnimationFrame` has its own `PixelStorage`, however,</span></span>
+<span class="line" id="L312">    <span class="tok-comment">//!   this is likely not expected by users of the library.</span></span>
+<span class="line" id="L313">    <span class="tok-comment">//! supported input pixel formats: `grayscale{1, 8, 16}, `grayscale{1, 8, 16}Alpha`, `rgb555`, `{rgb, bgr}{24, 48}`, `{bgr, rgb}a{32, 64}`</span></span>
+<span class="line" id="L314"></span>
+<span class="line" id="L315">    <span class="tok-kw">pub</span> <span class="tok-kw">const</span> EncoderOptions = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L316">        <span class="tok-comment">/// Free-form comments to be added to the header.</span></span>
+<span class="line" id="L317">        comments: []<span class="tok-kw">const</span> []<span class="tok-kw">const</span> <span class="tok-type">u8</span> = &amp;.{},</span>
+<span class="line" id="L318">        <span class="tok-comment">/// Whether to add the duration of each `Image.AnimationFrame`</span></span>
+<span class="line" id="L319">        <span class="tok-comment">/// and the `loop_count` of `Image.Animation` to the written file as a comment.</span></span>
+<span class="line" id="L320">        add_duration_as_comment: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L321">    };</span>
+<span class="line" id="L322"></span>
+<span class="line" id="L323">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">formatInterface</span>() FormatInterface {</span>
+<span class="line" id="L324">        <span class="tok-kw">return</span> FormatInterface{</span>
+<span class="line" id="L325">            .format = format,</span>
+<span class="line" id="L326">            .formatDetect = formatDetect,</span>
+<span class="line" id="L327">            .readImage = readImage,</span>
+<span class="line" id="L328">            .writeImage = writeImage,</span>
+<span class="line" id="L329">        };</span>
+<span class="line" id="L330">    }</span>
+<span class="line" id="L331"></span>
+<span class="line" id="L332">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">format</span>() Image.Format {</span>
+<span class="line" id="L333">        <span class="tok-kw">return</span> Image.Format.pam;</span>
+<span class="line" id="L334">    }</span>
+<span class="line" id="L335"></span>
+<span class="line" id="L336">    <span class="tok-comment">/// Returns `true` if the image will be able to be decoded, or a</span></span>
+<span class="line" id="L337">    <span class="tok-comment">/// `stream`-specific error if reading fails.</span></span>
+<span class="line" id="L338">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">formatDetect</span>(stream: *Image.Stream) ImageReadError!<span class="tok-type">bool</span> {</span>
+<span class="line" id="L339">        <span class="tok-kw">const</span> magic = <span class="tok-kw">try</span> stream.reader().readBytesNoEof(<span class="tok-number">3</span>);</span>
+<span class="line" id="L340">        <span class="tok-kw">return</span> mem.eql(<span class="tok-type">u8</span>, &amp;magic, <span class="tok-str">&quot;P7\n&quot;</span>); <span class="tok-comment">// no possibility of misdetecting xv thumbnails (magic &quot;P7 332&quot;)</span>
+</span>
+<span class="line" id="L341">    }</span>
+<span class="line" id="L342"></span>
+<span class="line" id="L343">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">readImage</span>(allocator: Allocator, stream: *Image.Stream) ImageReadError!Image {</span>
+<span class="line" id="L344">        <span class="tok-kw">var</span> buffered_stream = buffered_stream_source.bufferedStreamSourceReader(stream);</span>
+<span class="line" id="L345">        <span class="tok-kw">const</span> reader = buffered_stream.reader();</span>
+<span class="line" id="L346">        <span class="tok-kw">var</span> image: Image = <span class="tok-kw">try</span> readFrame(allocator, reader) <span class="tok-kw">orelse</span> <span class="tok-kw">return</span> ImageReadError.InvalidData; <span class="tok-comment">// empty stream</span>
+</span>
+<span class="line" id="L347">        <span class="tok-kw">errdefer</span> image.deinit();</span>
+<span class="line" id="L348"></span>
+<span class="line" id="L349">        <span class="tok-kw">while</span> (<span class="tok-kw">try</span> readFrame(allocator, reader)) |frame| {</span>
+<span class="line" id="L350">            <span class="tok-kw">if</span> (frame.width != image.width <span class="tok-kw">or</span> frame.height != image.height <span class="tok-kw">or</span> meta.activeTag(frame.pixels) != meta.activeTag(image.pixels)) {</span>
+<span class="line" id="L351">                <span class="tok-kw">return</span> ImageReadError.Unsupported; <span class="tok-comment">// no obvious way to have multiple frames with different dimensions</span>
+</span>
+<span class="line" id="L352">            }</span>
+<span class="line" id="L353">            <span class="tok-kw">try</span> image.animation.frames.append(allocator, Image.AnimationFrame{ .pixels = frame.pixels, .duration = <span class="tok-number">0</span> });</span>
+<span class="line" id="L354">        }</span>
+<span class="line" id="L355">        <span class="tok-kw">return</span> image;</span>
+<span class="line" id="L356">    }</span>
+<span class="line" id="L357"></span>
+<span class="line" id="L358">    <span class="tok-comment">/// Linearly maps `val` from [0..`src_maxval`] to</span></span>
+<span class="line" id="L359">    <span class="tok-comment">/// [0..`dst_maxval`]. If `val` is greater than `src_maxval`,</span></span>
+<span class="line" id="L360">    <span class="tok-comment">/// `error.OutOfBounds` is returned. If `val == src_maxval`,</span></span>
+<span class="line" id="L361">    <span class="tok-comment">/// `dst_maxval` is returned.</span></span>
+<span class="line" id="L362">    <span class="tok-kw">fn</span> <span class="tok-fn">mapValue</span>(<span class="tok-kw">comptime</span> T: <span class="tok-type">type</span>, val: T, src_maxval: T, dst_maxval: T) <span class="tok-kw">error</span>{InvalidData}!T {</span>
+<span class="line" id="L363">        <span class="tok-kw">if</span> (val &gt; src_maxval) <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidData; <span class="tok-comment">// component value exceeded maxval</span>
+</span>
+<span class="line" id="L364"></span>
+<span class="line" id="L365">        <span class="tok-kw">if</span> (src_maxval == dst_maxval) <span class="tok-kw">return</span> val;</span>
+<span class="line" id="L366"></span>
+<span class="line" id="L367">        <span class="tok-kw">const</span> W = meta.Int(.unsigned, <span class="tok-builtin">@bitSizeOf</span>(T) * <span class="tok-number">2</span>);</span>
+<span class="line" id="L368">        <span class="tok-kw">return</span> <span class="tok-builtin">@intCast</span>(<span class="tok-builtin">@min</span>(math.maxInt(T), <span class="tok-builtin">@as</span>(W, dst_maxval) * <span class="tok-builtin">@as</span>(W, val) / <span class="tok-builtin">@as</span>(W, src_maxval)));</span>
+<span class="line" id="L369">    }</span>
+<span class="line" id="L370"></span>
+<span class="line" id="L371">    <span class="tok-kw">fn</span> <span class="tok-fn">readFrame</span>(allocator: Allocator, reader: <span class="tok-kw">anytype</span>) ImageReadError!?Image {</span>
+<span class="line" id="L372">        <span class="tok-comment">// we don't use catch switch here because error.EndOfStream</span>
+</span>
+<span class="line" id="L373">        <span class="tok-comment">// might be the only possible error (and would thus trigger a</span>
+</span>
+<span class="line" id="L374">        <span class="tok-comment">// compile error because of an unreachable else prong)</span>
+</span>
+<span class="line" id="L375">        <span class="tok-kw">const</span> magic = reader.readBytesNoEof(<span class="tok-number">3</span>) <span class="tok-kw">catch</span> |e| <span class="tok-kw">return</span> <span class="tok-kw">if</span> (e == <span class="tok-kw">error</span>.EndOfStream) <span class="tok-null">null</span> <span class="tok-kw">else</span> e;</span>
+<span class="line" id="L376">        <span class="tok-kw">const</span> is_pam = mem.eql(<span class="tok-type">u8</span>, &amp;magic, <span class="tok-str">&quot;P7\n&quot;</span>);</span>
+<span class="line" id="L377">        <span class="tok-kw">if</span> (!is_pam) <span class="tok-kw">return</span> ImageReadError.InvalidData; <span class="tok-comment">// invalid magic number or extraneous data at eof</span>
+</span>
+<span class="line" id="L378"></span>
+<span class="line" id="L379">        <span class="tok-kw">var</span> header = <span class="tok-kw">try</span> Header.read(allocator, reader);</span>
+<span class="line" id="L380">        <span class="tok-kw">defer</span> header.deinit(allocator);</span>
+<span class="line" id="L381"></span>
+<span class="line" id="L382">        <span class="tok-kw">var</span> image: Image = <span class="tok-kw">try</span> header.initImage(allocator);</span>
+<span class="line" id="L383">        <span class="tok-kw">errdefer</span> image.deinit();</span>
+<span class="line" id="L384"></span>
+<span class="line" id="L385">        <span class="tok-kw">for</span> (<span class="tok-number">0</span>..image.height) |row| {</span>
+<span class="line" id="L386">            <span class="tok-kw">const</span> offset = row * image.width;</span>
+<span class="line" id="L387">            <span class="tok-kw">for</span> (<span class="tok-number">0</span>..image.width) |column| {</span>
+<span class="line" id="L388">                <span class="tok-kw">switch</span> (image.pixels) {</span>
+<span class="line" id="L389">                    .grayscale1 =&gt; |g| g[offset + column].value = <span class="tok-builtin">@intCast</span>(<span class="tok-kw">if</span> (header.tuple_type == .mono) <span class="tok-kw">try</span> mapValue(<span class="tok-type">u8</span>, <span class="tok-kw">try</span> reader.readByte(), <span class="tok-number">1</span>, <span class="tok-number">1</span>) <span class="tok-kw">else</span> <span class="tok-kw">try</span> mapValue(<span class="tok-type">u8</span>, <span class="tok-kw">try</span> reader.readByte(), <span class="tok-number">1</span>, <span class="tok-number">1</span>) &amp; <span class="tok-kw">try</span> mapValue(<span class="tok-type">u8</span>, <span class="tok-kw">try</span> reader.readByte(), <span class="tok-number">1</span>, <span class="tok-number">1</span>)),</span>
+<span class="line" id="L390">                    .grayscale8 =&gt; |g| g[offset + column].value = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u8</span>, <span class="tok-kw">try</span> reader.readByte(), <span class="tok-builtin">@as</span>(<span class="tok-type">u8</span>, <span class="tok-builtin">@intCast</span>(header.maxval)), math.maxInt(<span class="tok-type">u8</span>)),</span>
+<span class="line" id="L391">                    .grayscale8Alpha =&gt; |g| g[offset + column] = .{</span>
+<span class="line" id="L392">                        .value = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u8</span>, <span class="tok-kw">try</span> reader.readByte(), <span class="tok-builtin">@as</span>(<span class="tok-type">u8</span>, <span class="tok-builtin">@intCast</span>(header.maxval)), math.maxInt(<span class="tok-type">u8</span>)),</span>
+<span class="line" id="L393">                        .alpha = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u8</span>, <span class="tok-kw">try</span> reader.readByte(), <span class="tok-builtin">@as</span>(<span class="tok-type">u8</span>, <span class="tok-builtin">@intCast</span>(header.maxval)), math.maxInt(<span class="tok-type">u8</span>)),</span>
+<span class="line" id="L394">                    },</span>
+<span class="line" id="L395">                    .grayscale16 =&gt; |g| g[offset + column].value = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u16</span>, <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .little), header.maxval, math.maxInt(<span class="tok-type">u16</span>)),</span>
+<span class="line" id="L396">                    .grayscale16Alpha =&gt; |g| g[offset + column] = .{</span>
+<span class="line" id="L397">                        .value = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u16</span>, <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .little), header.maxval, math.maxInt(<span class="tok-type">u16</span>)),</span>
+<span class="line" id="L398">                        .alpha = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u16</span>, <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .little), header.maxval, math.maxInt(<span class="tok-type">u16</span>)),</span>
+<span class="line" id="L399">                    },</span>
+<span class="line" id="L400">                    .rgb24 =&gt; |x| x[offset + column] = .{</span>
+<span class="line" id="L401">                        .r = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u8</span>, <span class="tok-kw">try</span> reader.readByte(), <span class="tok-builtin">@as</span>(<span class="tok-type">u8</span>, <span class="tok-builtin">@intCast</span>(header.maxval)), math.maxInt(<span class="tok-type">u8</span>)),</span>
+<span class="line" id="L402">                        .g = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u8</span>, <span class="tok-kw">try</span> reader.readByte(), <span class="tok-builtin">@as</span>(<span class="tok-type">u8</span>, <span class="tok-builtin">@intCast</span>(header.maxval)), math.maxInt(<span class="tok-type">u8</span>)),</span>
+<span class="line" id="L403">                        .b = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u8</span>, <span class="tok-kw">try</span> reader.readByte(), <span class="tok-builtin">@as</span>(<span class="tok-type">u8</span>, <span class="tok-builtin">@intCast</span>(header.maxval)), math.maxInt(<span class="tok-type">u8</span>)),</span>
+<span class="line" id="L404">                    },</span>
+<span class="line" id="L405">                    .rgba32 =&gt; |x| x[offset + column] = .{</span>
+<span class="line" id="L406">                        .r = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u8</span>, <span class="tok-kw">try</span> reader.readByte(), <span class="tok-builtin">@as</span>(<span class="tok-type">u8</span>, <span class="tok-builtin">@intCast</span>(header.maxval)), math.maxInt(<span class="tok-type">u8</span>)),</span>
+<span class="line" id="L407">                        .g = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u8</span>, <span class="tok-kw">try</span> reader.readByte(), <span class="tok-builtin">@as</span>(<span class="tok-type">u8</span>, <span class="tok-builtin">@intCast</span>(header.maxval)), math.maxInt(<span class="tok-type">u8</span>)),</span>
+<span class="line" id="L408">                        .b = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u8</span>, <span class="tok-kw">try</span> reader.readByte(), <span class="tok-builtin">@as</span>(<span class="tok-type">u8</span>, <span class="tok-builtin">@intCast</span>(header.maxval)), math.maxInt(<span class="tok-type">u8</span>)),</span>
+<span class="line" id="L409">                        .a = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u8</span>, <span class="tok-kw">try</span> reader.readByte(), <span class="tok-builtin">@as</span>(<span class="tok-type">u8</span>, <span class="tok-builtin">@intCast</span>(header.maxval)), math.maxInt(<span class="tok-type">u8</span>)),</span>
+<span class="line" id="L410">                    },</span>
+<span class="line" id="L411">                    .rgb48 =&gt; |x| x[offset + column] = .{</span>
+<span class="line" id="L412">                        .r = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u16</span>, <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .little), header.maxval, math.maxInt(<span class="tok-type">u16</span>)),</span>
+<span class="line" id="L413">                        .g = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u16</span>, <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .little), header.maxval, math.maxInt(<span class="tok-type">u16</span>)),</span>
+<span class="line" id="L414">                        .b = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u16</span>, <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .little), header.maxval, math.maxInt(<span class="tok-type">u16</span>)),</span>
+<span class="line" id="L415">                    },</span>
+<span class="line" id="L416">                    .rgba64 =&gt; |x| x[offset + column] = .{</span>
+<span class="line" id="L417">                        .r = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u16</span>, <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .little), header.maxval, math.maxInt(<span class="tok-type">u16</span>)),</span>
+<span class="line" id="L418">                        .g = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u16</span>, <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .little), header.maxval, math.maxInt(<span class="tok-type">u16</span>)),</span>
+<span class="line" id="L419">                        .b = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u16</span>, <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .little), header.maxval, math.maxInt(<span class="tok-type">u16</span>)),</span>
+<span class="line" id="L420">                        .a = <span class="tok-kw">try</span> mapValue(<span class="tok-type">u16</span>, <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .little), header.maxval, math.maxInt(<span class="tok-type">u16</span>)),</span>
+<span class="line" id="L421">                    },</span>
+<span class="line" id="L422">                    <span class="tok-kw">else</span> =&gt; <span class="tok-kw">unreachable</span>,</span>
+<span class="line" id="L423">                }</span>
+<span class="line" id="L424">            }</span>
+<span class="line" id="L425">        }</span>
+<span class="line" id="L426">        <span class="tok-kw">return</span> image;</span>
+<span class="line" id="L427">    }</span>
+<span class="line" id="L428"></span>
+<span class="line" id="L429">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">writeImage</span>(allocator: Allocator, stream: *Image.Stream, image: Image, encoder_options: Image.EncoderOptions) ImageWriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L430">        <span class="tok-kw">var</span> buffered_stream = buffered_stream_source.bufferedStreamSourceWriter(stream);</span>
+<span class="line" id="L431">        <span class="tok-kw">const</span> writer = buffered_stream.writer();</span>
+<span class="line" id="L432"></span>
+<span class="line" id="L433">        <span class="tok-kw">var</span> comments = std.ArrayList([]<span class="tok-kw">const</span> <span class="tok-type">u8</span>).init(allocator);</span>
+<span class="line" id="L434">        <span class="tok-kw">defer</span> comments.deinit();</span>
+<span class="line" id="L435">        <span class="tok-kw">try</span> comments.appendSlice(<span class="tok-kw">switch</span> (encoder_options) {</span>
+<span class="line" id="L436">            .pam =&gt; |p| p.comments,</span>
+<span class="line" id="L437">            <span class="tok-kw">else</span> =&gt; &amp;.{},</span>
+<span class="line" id="L438">        });</span>
+<span class="line" id="L439"></span>
+<span class="line" id="L440">        <span class="tok-kw">var</span> duration_buffer: [<span class="tok-number">128</span>]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L441">        <span class="tok-kw">const</span> add_duration_as_comment = <span class="tok-kw">switch</span> (encoder_options) {</span>
+<span class="line" id="L442">            .pam =&gt; |p| p.add_duration_as_comment,</span>
+<span class="line" id="L443">            <span class="tok-kw">else</span> =&gt; <span class="tok-null">false</span>,</span>
+<span class="line" id="L444">        };</span>
+<span class="line" id="L445"></span>
+<span class="line" id="L446">        {</span>
+<span class="line" id="L447">            <span class="tok-kw">if</span> (add_duration_as_comment <span class="tok-kw">and</span> image.isAnimation()) {</span>
+<span class="line" id="L448">                <span class="tok-kw">try</span> comments.append(<span class="tok-kw">try</span> fmt.bufPrint(&amp;duration_buffer, <span class="tok-str">&quot;loop count: {d}&quot;</span>, .{image.animation.loop_count}));</span>
+<span class="line" id="L449">            }</span>
+<span class="line" id="L450">            <span class="tok-kw">defer</span> {</span>
+<span class="line" id="L451">                <span class="tok-kw">if</span> (add_duration_as_comment <span class="tok-kw">and</span> image.isAnimation()) _ = comments.pop();</span>
+<span class="line" id="L452">            }</span>
+<span class="line" id="L453"></span>
+<span class="line" id="L454">            <span class="tok-kw">try</span> writeFrame(writer, image, .{ .pam = .{ .comments = comments.items } });</span>
+<span class="line" id="L455">        }</span>
+<span class="line" id="L456"></span>
+<span class="line" id="L457">        <span class="tok-kw">for</span> (image.animation.frames.items) |frame| {</span>
+<span class="line" id="L458">            <span class="tok-kw">if</span> (add_duration_as_comment)</span>
+<span class="line" id="L459">                <span class="tok-kw">try</span> comments.append(<span class="tok-kw">try</span> fmt.bufPrint(&amp;duration_buffer, <span class="tok-str">&quot;duration: {d}&quot;</span>, .{frame.duration}));</span>
+<span class="line" id="L460">            <span class="tok-kw">defer</span> {</span>
+<span class="line" id="L461">                <span class="tok-kw">if</span> (add_duration_as_comment) _ = comments.pop();</span>
+<span class="line" id="L462">            }</span>
+<span class="line" id="L463"></span>
+<span class="line" id="L464">            <span class="tok-kw">const</span> frame_img = Image{ .pixels = frame.pixels, .width = image.width, .height = image.height, .allocator = image.allocator };</span>
+<span class="line" id="L465"></span>
+<span class="line" id="L466">            <span class="tok-kw">try</span> writeFrame(writer, frame_img, .{ .pam = .{ .comments = comments.items } });</span>
+<span class="line" id="L467">        }</span>
+<span class="line" id="L468"></span>
+<span class="line" id="L469">        <span class="tok-kw">try</span> buffered_stream.flush();</span>
+<span class="line" id="L470">    }</span>
+<span class="line" id="L471"></span>
+<span class="line" id="L472">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">writeFrame</span>(writer: <span class="tok-kw">anytype</span>, frame: Image, encoder_options: Image.EncoderOptions) ImageWriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L473">        <span class="tok-kw">var</span> header = <span class="tok-kw">try</span> Header.fromImage(frame);</span>
+<span class="line" id="L474">        header.comments = encoder_options.pam.comments;</span>
+<span class="line" id="L475">        <span class="tok-kw">try</span> header.write(writer);</span>
+<span class="line" id="L476">        <span class="tok-kw">for</span> (<span class="tok-number">0</span>..frame.height) |row| {</span>
+<span class="line" id="L477">            <span class="tok-kw">const</span> offset = row * frame.width;</span>
+<span class="line" id="L478">            <span class="tok-kw">for</span> (<span class="tok-number">0</span>..frame.width) |column| {</span>
+<span class="line" id="L479">                <span class="tok-kw">switch</span> (frame.pixels) {</span>
+<span class="line" id="L480">                    .grayscale1 =&gt; |x| <span class="tok-kw">try</span> writer.writeByte(x[offset + column].value),</span>
+<span class="line" id="L481">                    .grayscale4 =&gt; |x| <span class="tok-kw">try</span> writer.writeByte(x[offset + column].value),</span>
+<span class="line" id="L482">                    .grayscale8 =&gt; |x| <span class="tok-kw">try</span> writer.writeByte(x[offset + column].value),</span>
+<span class="line" id="L483">                    .grayscale16 =&gt; |x| <span class="tok-kw">try</span> writer.writeInt(<span class="tok-type">u16</span>, x[offset + column].value, .little),</span>
+<span class="line" id="L484">                    .grayscale8Alpha =&gt; |x| {</span>
+<span class="line" id="L485">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].value);</span>
+<span class="line" id="L486">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].alpha);</span>
+<span class="line" id="L487">                    },</span>
+<span class="line" id="L488">                    .grayscale16Alpha =&gt; |x| {</span>
+<span class="line" id="L489">                        <span class="tok-kw">try</span> writer.writeInt(<span class="tok-type">u16</span>, x[offset + column].value, .little);</span>
+<span class="line" id="L490">                        <span class="tok-kw">try</span> writer.writeInt(<span class="tok-type">u16</span>, x[offset + column].alpha, .little);</span>
+<span class="line" id="L491">                    },</span>
+<span class="line" id="L492">                    .bgr555 =&gt; |x| {</span>
+<span class="line" id="L493">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].r);</span>
+<span class="line" id="L494">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].g);</span>
+<span class="line" id="L495">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].b);</span>
+<span class="line" id="L496">                    },</span>
+<span class="line" id="L497">                    .rgb555 =&gt; |x| {</span>
+<span class="line" id="L498">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].r);</span>
+<span class="line" id="L499">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].g);</span>
+<span class="line" id="L500">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].b);</span>
+<span class="line" id="L501">                    },</span>
+<span class="line" id="L502">                    .rgb24 =&gt; |x| {</span>
+<span class="line" id="L503">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].r);</span>
+<span class="line" id="L504">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].g);</span>
+<span class="line" id="L505">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].b);</span>
+<span class="line" id="L506">                    },</span>
+<span class="line" id="L507">                    .rgba32 =&gt; |x| {</span>
+<span class="line" id="L508">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].r);</span>
+<span class="line" id="L509">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].g);</span>
+<span class="line" id="L510">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].b);</span>
+<span class="line" id="L511">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].a);</span>
+<span class="line" id="L512">                    },</span>
+<span class="line" id="L513">                    .bgr24 =&gt; |x| {</span>
+<span class="line" id="L514">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].r);</span>
+<span class="line" id="L515">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].g);</span>
+<span class="line" id="L516">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].b);</span>
+<span class="line" id="L517">                    },</span>
+<span class="line" id="L518">                    .bgra32 =&gt; |x| {</span>
+<span class="line" id="L519">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].r);</span>
+<span class="line" id="L520">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].g);</span>
+<span class="line" id="L521">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].b);</span>
+<span class="line" id="L522">                        <span class="tok-kw">try</span> writer.writeByte(x[offset + column].a);</span>
+<span class="line" id="L523">                    },</span>
+<span class="line" id="L524">                    .rgb48 =&gt; |x| {</span>
+<span class="line" id="L525">                        <span class="tok-kw">try</span> writer.writeInt(<span class="tok-type">u16</span>, x[offset + column].r, .little);</span>
+<span class="line" id="L526">                        <span class="tok-kw">try</span> writer.writeInt(<span class="tok-type">u16</span>, x[offset + column].g, .little);</span>
+<span class="line" id="L527">                        <span class="tok-kw">try</span> writer.writeInt(<span class="tok-type">u16</span>, x[offset + column].b, .little);</span>
+<span class="line" id="L528">                    },</span>
+<span class="line" id="L529">                    .rgba64 =&gt; |x| {</span>
+<span class="line" id="L530">                        <span class="tok-kw">try</span> writer.writeInt(<span class="tok-type">u16</span>, x[offset + column].r, .little);</span>
+<span class="line" id="L531">                        <span class="tok-kw">try</span> writer.writeInt(<span class="tok-type">u16</span>, x[offset + column].g, .little);</span>
+<span class="line" id="L532">                        <span class="tok-kw">try</span> writer.writeInt(<span class="tok-type">u16</span>, x[offset + column].b, .little);</span>
+<span class="line" id="L533">                        <span class="tok-kw">try</span> writer.writeInt(<span class="tok-type">u16</span>, x[offset + column].a, .little);</span>
+<span class="line" id="L534">                    },</span>
+<span class="line" id="L535">                    <span class="tok-kw">else</span> =&gt; <span class="tok-kw">unreachable</span>, <span class="tok-comment">// can't happen, already handled in fromImage</span>
+</span>
+<span class="line" id="L536">                }</span>
+<span class="line" id="L537">            }</span>
+<span class="line" id="L538">        }</span>
+<span class="line" id="L539">    }</span>
+<span class="line" id="L540">};</span>
+<span class="line" id="L541"></span>
+</code></pre></body>
+</html>
