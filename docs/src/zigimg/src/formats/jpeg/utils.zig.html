@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>src/formats/jpeg/utils.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-comment">//! general utilizies and constants</span></span>
+<span class="line" id="L2"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L3"></span>
+<span class="line" id="L4"><span class="tok-comment">// See figure A.6 in T.81.</span>
+</span>
+<span class="line" id="L5"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> ZigzagOffsets = blk: {</span>
+<span class="line" id="L6">    <span class="tok-kw">var</span> offsets: [<span class="tok-number">64</span>]<span class="tok-type">usize</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L7">    offsets[<span class="tok-number">0</span>] = <span class="tok-number">0</span>;</span>
+<span class="line" id="L8"></span>
+<span class="line" id="L9">    <span class="tok-kw">var</span> current_offset: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L10">    <span class="tok-kw">var</span> direction: <span class="tok-kw">enum</span> { north_east, south_west } = .north_east;</span>
+<span class="line" id="L11">    <span class="tok-kw">var</span> i: <span class="tok-type">usize</span> = <span class="tok-number">1</span>;</span>
+<span class="line" id="L12">    <span class="tok-kw">while</span> (i &lt; <span class="tok-number">64</span>) : (i += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L13">        <span class="tok-kw">switch</span> (direction) {</span>
+<span class="line" id="L14">            .north_east =&gt; {</span>
+<span class="line" id="L15">                <span class="tok-kw">if</span> (current_offset &lt; <span class="tok-number">8</span>) {</span>
+<span class="line" id="L16">                    <span class="tok-comment">// Hit top edge</span>
+</span>
+<span class="line" id="L17">                    current_offset += <span class="tok-number">1</span>;</span>
+<span class="line" id="L18">                    direction = .south_west;</span>
+<span class="line" id="L19">                } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (current_offset % <span class="tok-number">8</span> == <span class="tok-number">7</span>) {</span>
+<span class="line" id="L20">                    <span class="tok-comment">// Hit right edge</span>
+</span>
+<span class="line" id="L21">                    current_offset += <span class="tok-number">8</span>;</span>
+<span class="line" id="L22">                    direction = .south_west;</span>
+<span class="line" id="L23">                } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L24">                    current_offset -= <span class="tok-number">7</span>;</span>
+<span class="line" id="L25">                }</span>
+<span class="line" id="L26">            },</span>
+<span class="line" id="L27">            .south_west =&gt; {</span>
+<span class="line" id="L28">                <span class="tok-kw">if</span> (current_offset &gt;= <span class="tok-number">56</span>) {</span>
+<span class="line" id="L29">                    <span class="tok-comment">// Hit bottom edge</span>
+</span>
+<span class="line" id="L30">                    current_offset += <span class="tok-number">1</span>;</span>
+<span class="line" id="L31">                    direction = .north_east;</span>
+<span class="line" id="L32">                } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (current_offset % <span class="tok-number">8</span> == <span class="tok-number">0</span>) {</span>
+<span class="line" id="L33">                    <span class="tok-comment">// Hit left edge</span>
+</span>
+<span class="line" id="L34">                    current_offset += <span class="tok-number">8</span>;</span>
+<span class="line" id="L35">                    direction = .north_east;</span>
+<span class="line" id="L36">                } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L37">                    current_offset += <span class="tok-number">7</span>;</span>
+<span class="line" id="L38">                }</span>
+<span class="line" id="L39">            },</span>
+<span class="line" id="L40">        }</span>
+<span class="line" id="L41"></span>
+<span class="line" id="L42">        <span class="tok-kw">if</span> (current_offset &gt;= <span class="tok-number">64</span>) {</span>
+<span class="line" id="L43">            <span class="tok-builtin">@compileError</span>(std.fmt.comptimePrint(<span class="tok-str">&quot;ZigzagOffsets: Hit offset {} (&gt;= 64) at index {}!\n&quot;</span>, .{ current_offset, i }));</span>
+<span class="line" id="L44">        }</span>
+<span class="line" id="L45"></span>
+<span class="line" id="L46">        offsets[i] = current_offset;</span>
+<span class="line" id="L47">    }</span>
+<span class="line" id="L48"></span>
+<span class="line" id="L49">    <span class="tok-kw">break</span> :blk offsets;</span>
+<span class="line" id="L50">};</span>
+<span class="line" id="L51"></span>
+<span class="line" id="L52"><span class="tok-comment">/// The precalculated IDCT multipliers. This is possible because the only part of</span></span>
+<span class="line" id="L53"><span class="tok-comment">/// the IDCT calculation that changes between runs is the coefficients.</span></span>
+<span class="line" id="L54"><span class="tok-comment">/// see A.3.3 of t.81 1992</span></span>
+<span class="line" id="L55"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> IDCTMultipliers = blk: {</span>
+<span class="line" id="L56">    <span class="tok-kw">var</span> multipliers: [<span class="tok-number">8</span>][<span class="tok-number">8</span>][<span class="tok-number">8</span>][<span class="tok-number">8</span>]<span class="tok-type">f32</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L57">    <span class="tok-builtin">@setEvalBranchQuota</span>(<span class="tok-number">4700</span>);</span>
+<span class="line" id="L58"></span>
+<span class="line" id="L59">    <span class="tok-kw">var</span> y: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L60">    <span class="tok-kw">while</span> (y &lt; <span class="tok-number">8</span>) : (y += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L61">        <span class="tok-kw">var</span> x: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L62">        <span class="tok-kw">while</span> (x &lt; <span class="tok-number">8</span>) : (x += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L63">            <span class="tok-kw">var</span> u: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L64">            <span class="tok-kw">while</span> (u &lt; <span class="tok-number">8</span>) : (u += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L65">                <span class="tok-kw">var</span> v: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L66">                <span class="tok-kw">while</span> (v &lt; <span class="tok-number">8</span>) : (v += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L67">                    <span class="tok-kw">const</span> C_u: <span class="tok-type">f32</span> = <span class="tok-kw">if</span> (u == <span class="tok-number">0</span>) <span class="tok-number">1.0</span> / <span class="tok-builtin">@sqrt</span>(<span class="tok-number">2.0</span>) <span class="tok-kw">else</span> <span class="tok-number">1.0</span>;</span>
+<span class="line" id="L68">                    <span class="tok-kw">const</span> C_v: <span class="tok-type">f32</span> = <span class="tok-kw">if</span> (v == <span class="tok-number">0</span>) <span class="tok-number">1.0</span> / <span class="tok-builtin">@sqrt</span>(<span class="tok-number">2.0</span>) <span class="tok-kw">else</span> <span class="tok-number">1.0</span>;</span>
+<span class="line" id="L69"></span>
+<span class="line" id="L70">                    <span class="tok-kw">const</span> x_cosine = <span class="tok-builtin">@cos</span>(((<span class="tok-number">2</span> * <span class="tok-builtin">@as</span>(<span class="tok-type">f32</span>, <span class="tok-builtin">@floatFromInt</span>(x)) + <span class="tok-number">1</span>) * <span class="tok-builtin">@as</span>(<span class="tok-type">f32</span>, <span class="tok-builtin">@floatFromInt</span>(u)) * std.math.pi) / <span class="tok-number">16.0</span>);</span>
+<span class="line" id="L71">                    <span class="tok-kw">const</span> y_cosine = <span class="tok-builtin">@cos</span>(((<span class="tok-number">2</span> * <span class="tok-builtin">@as</span>(<span class="tok-type">f32</span>, <span class="tok-builtin">@floatFromInt</span>(y)) + <span class="tok-number">1</span>) * <span class="tok-builtin">@as</span>(<span class="tok-type">f32</span>, <span class="tok-builtin">@floatFromInt</span>(v)) * std.math.pi) / <span class="tok-number">16.0</span>);</span>
+<span class="line" id="L72">                    <span class="tok-kw">const</span> uv_value = C_u * C_v * x_cosine * y_cosine;</span>
+<span class="line" id="L73">                    multipliers[y][x][u][v] = uv_value;</span>
+<span class="line" id="L74">                }</span>
+<span class="line" id="L75">            }</span>
+<span class="line" id="L76">        }</span>
+<span class="line" id="L77">    }</span>
+<span class="line" id="L78"></span>
+<span class="line" id="L79">    <span class="tok-kw">break</span> :blk multipliers;</span>
+<span class="line" id="L80">};</span>
+<span class="line" id="L81"></span>
+<span class="line" id="L82"><span class="tok-comment">/// Marker codes, see t-81 section B.1.1.3</span></span>
+<span class="line" id="L83"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> Markers = <span class="tok-kw">enum</span>(<span class="tok-type">u16</span>) {</span>
+<span class="line" id="L84">    <span class="tok-comment">// Start of Frame markers, non-differential, Huffman coding</span>
+</span>
+<span class="line" id="L85">    sof0 = <span class="tok-number">0xFFC0</span>, <span class="tok-comment">// Baseline DCT</span>
+</span>
+<span class="line" id="L86">    sof1 = <span class="tok-number">0xFFC1</span>, <span class="tok-comment">// Extended sequential DCT</span>
+</span>
+<span class="line" id="L87">    sof2 = <span class="tok-number">0xFFC2</span>, <span class="tok-comment">// Progressive DCT</span>
+</span>
+<span class="line" id="L88">    sof3 = <span class="tok-number">0xFFC3</span>, <span class="tok-comment">// Lossless sequential</span>
+</span>
+<span class="line" id="L89"></span>
+<span class="line" id="L90">    <span class="tok-comment">// Start of Frame markers, differential, Huffman coding</span>
+</span>
+<span class="line" id="L91">    sof5 = <span class="tok-number">0xFFC5</span>, <span class="tok-comment">// Differential sequential DCT</span>
+</span>
+<span class="line" id="L92">    sof6 = <span class="tok-number">0xFFC6</span>, <span class="tok-comment">// Differential progressive DCT</span>
+</span>
+<span class="line" id="L93">    sof7 = <span class="tok-number">0xFFC7</span>, <span class="tok-comment">// Differential lossless sequential</span>
+</span>
+<span class="line" id="L94"></span>
+<span class="line" id="L95">    <span class="tok-comment">// Start of Frame markers, non-differential, arithmetic coding</span>
+</span>
+<span class="line" id="L96">    sof9 = <span class="tok-number">0xFFC9</span>, <span class="tok-comment">// Extended sequential DCT</span>
+</span>
+<span class="line" id="L97">    sof10 = <span class="tok-number">0xFFCA</span>, <span class="tok-comment">// Progressive DCT</span>
+</span>
+<span class="line" id="L98">    sof11 = <span class="tok-number">0xFFCB</span>, <span class="tok-comment">// Lossless sequential</span>
+</span>
+<span class="line" id="L99"></span>
+<span class="line" id="L100">    <span class="tok-comment">// Start of Frame markers, differential, arithmetic coding</span>
+</span>
+<span class="line" id="L101">    sof13 = <span class="tok-number">0xFFCD</span>, <span class="tok-comment">// Differential sequential DCT</span>
+</span>
+<span class="line" id="L102">    sof14 = <span class="tok-number">0xFFCE</span>, <span class="tok-comment">// Differential progressive DCT</span>
+</span>
+<span class="line" id="L103">    sof15 = <span class="tok-number">0xFFCF</span>, <span class="tok-comment">// Differential lossless sequential</span>
+</span>
+<span class="line" id="L104"></span>
+<span class="line" id="L105">    define_huffman_tables = <span class="tok-number">0xFFC4</span>,</span>
+<span class="line" id="L106">    define_arithmetic_coding = <span class="tok-number">0xFFCC</span>,</span>
+<span class="line" id="L107"></span>
+<span class="line" id="L108">    <span class="tok-comment">// 0xFFD0-0xFFD7: Restart markers</span>
+</span>
+<span class="line" id="L109">    restart0 = <span class="tok-number">0xFFD0</span>,</span>
+<span class="line" id="L110">    restart1 = <span class="tok-number">0xFFD1</span>,</span>
+<span class="line" id="L111">    restart2 = <span class="tok-number">0xFFD2</span>,</span>
+<span class="line" id="L112">    restart3 = <span class="tok-number">0xFFD3</span>,</span>
+<span class="line" id="L113">    restart4 = <span class="tok-number">0xFFD4</span>,</span>
+<span class="line" id="L114">    restart5 = <span class="tok-number">0xFFD5</span>,</span>
+<span class="line" id="L115">    restart6 = <span class="tok-number">0xFFD6</span>,</span>
+<span class="line" id="L116">    restart7 = <span class="tok-number">0xFFD7</span>,</span>
+<span class="line" id="L117"></span>
+<span class="line" id="L118">    start_of_image = <span class="tok-number">0xFFD8</span>,</span>
+<span class="line" id="L119">    end_of_image = <span class="tok-number">0xFFD9</span>,</span>
+<span class="line" id="L120">    start_of_scan = <span class="tok-number">0xFFDA</span>,</span>
+<span class="line" id="L121">    define_quantization_tables = <span class="tok-number">0xFFDB</span>,</span>
+<span class="line" id="L122">    define_number_of_lines = <span class="tok-number">0xFFDC</span>,</span>
+<span class="line" id="L123">    define_restart_interval = <span class="tok-number">0xFFDD</span>,</span>
+<span class="line" id="L124">    define_hierarchical_progression = <span class="tok-number">0xFFDE</span>,</span>
+<span class="line" id="L125">    expand_reference_components = <span class="tok-number">0xFFDF</span>,</span>
+<span class="line" id="L126"></span>
+<span class="line" id="L127">    <span class="tok-comment">// 0xFFE0-0xFFEF application segments markers add 0-15 as needed.</span>
+</span>
+<span class="line" id="L128">    application0 = <span class="tok-number">0xFFE0</span>,</span>
+<span class="line" id="L129"></span>
+<span class="line" id="L130">    <span class="tok-comment">// 0xFFF0-0xFFFD jpeg extension markers add 0-13 as needed.</span>
+</span>
+<span class="line" id="L131">    jpeg_extension0 = <span class="tok-number">0xFFF0</span>,</span>
+<span class="line" id="L132">    comment = <span class="tok-number">0xFFFE</span>,</span>
+<span class="line" id="L133"></span>
+<span class="line" id="L134">    <span class="tok-comment">// reserved markers from 0xFF01-0xFFBF, add as needed</span>
+</span>
+<span class="line" id="L135">};</span>
+<span class="line" id="L136"></span>
+<span class="line" id="L137"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> MAX_COMPONENTS = <span class="tok-number">3</span>;</span>
+<span class="line" id="L138"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> MAX_BLOCKS = <span class="tok-number">8</span>;</span>
+<span class="line" id="L139"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> MCU = [<span class="tok-number">64</span>]<span class="tok-type">i32</span>;</span>
+<span class="line" id="L140"></span>
+</code></pre></body>
+</html>

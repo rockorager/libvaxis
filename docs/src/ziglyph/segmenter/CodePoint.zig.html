@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>segmenter/CodePoint.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-comment">//! `CodePoint` represents a Unicode code point by its code, length, and offset in the source bytes.</span></span>
+<span class="line" id="L2"></span>
+<span class="line" id="L3"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L4"></span>
+<span class="line" id="L5">code: <span class="tok-type">u21</span>,</span>
+<span class="line" id="L6">len: <span class="tok-type">u3</span>,</span>
+<span class="line" id="L7">offset: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L8"></span>
+<span class="line" id="L9"><span class="tok-kw">const</span> CodePoint = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L10"></span>
+<span class="line" id="L11"><span class="tok-comment">/// `CodePointIterator` iterates a string one `CodePoint` at-a-time.</span></span>
+<span class="line" id="L12"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> CodePointIterator = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L13">    bytes: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>,</span>
+<span class="line" id="L14">    i: <span class="tok-type">usize</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L15"></span>
+<span class="line" id="L16">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">next</span>(self: *CodePointIterator) ?CodePoint {</span>
+<span class="line" id="L17">        <span class="tok-kw">if</span> (self.i &gt;= self.bytes.len) <span class="tok-kw">return</span> <span class="tok-null">null</span>;</span>
+<span class="line" id="L18"></span>
+<span class="line" id="L19">        <span class="tok-kw">if</span> (self.bytes[self.i] &lt; <span class="tok-number">128</span>) {</span>
+<span class="line" id="L20">            <span class="tok-comment">// ASCII fast path</span>
+</span>
+<span class="line" id="L21">            <span class="tok-kw">const</span> cp = CodePoint{</span>
+<span class="line" id="L22">                .code = self.bytes[self.i],</span>
+<span class="line" id="L23">                .len = <span class="tok-number">1</span>,</span>
+<span class="line" id="L24">                .offset = self.i,</span>
+<span class="line" id="L25">            };</span>
+<span class="line" id="L26"></span>
+<span class="line" id="L27">            self.i += <span class="tok-number">1</span>;</span>
+<span class="line" id="L28"></span>
+<span class="line" id="L29">            <span class="tok-kw">return</span> cp;</span>
+<span class="line" id="L30">        }</span>
+<span class="line" id="L31"></span>
+<span class="line" id="L32">        <span class="tok-kw">var</span> cp = CodePoint{</span>
+<span class="line" id="L33">            .code = <span class="tok-null">undefined</span>,</span>
+<span class="line" id="L34">            .len = blk: {</span>
+<span class="line" id="L35">                <span class="tok-kw">break</span> :blk <span class="tok-kw">switch</span> (self.bytes[self.i]) {</span>
+<span class="line" id="L36">                    <span class="tok-number">0b0000_0000</span>...<span class="tok-number">0b0111_1111</span> =&gt; <span class="tok-number">1</span>,</span>
+<span class="line" id="L37">                    <span class="tok-number">0b1100_0000</span>...<span class="tok-number">0b1101_1111</span> =&gt; <span class="tok-number">2</span>,</span>
+<span class="line" id="L38">                    <span class="tok-number">0b1110_0000</span>...<span class="tok-number">0b1110_1111</span> =&gt; <span class="tok-number">3</span>,</span>
+<span class="line" id="L39">                    <span class="tok-number">0b1111_0000</span>...<span class="tok-number">0b1111_0111</span> =&gt; <span class="tok-number">4</span>,</span>
+<span class="line" id="L40">                    <span class="tok-kw">else</span> =&gt; <span class="tok-kw">unreachable</span>,</span>
+<span class="line" id="L41">                };</span>
+<span class="line" id="L42">            },</span>
+<span class="line" id="L43">            .offset = self.i,</span>
+<span class="line" id="L44">        };</span>
+<span class="line" id="L45"></span>
+<span class="line" id="L46">        self.i += cp.len;</span>
+<span class="line" id="L47">        <span class="tok-kw">const</span> cp_bytes = self.bytes[self.i - cp.len .. self.i];</span>
+<span class="line" id="L48"></span>
+<span class="line" id="L49">        cp.code = <span class="tok-kw">switch</span> (cp.len) {</span>
+<span class="line" id="L50">            <span class="tok-number">2</span> =&gt; (<span class="tok-builtin">@as</span>(<span class="tok-type">u21</span>, (cp_bytes[<span class="tok-number">0</span>] &amp; <span class="tok-number">0b00011111</span>)) &lt;&lt; <span class="tok-number">6</span>) | (cp_bytes[<span class="tok-number">1</span>] &amp; <span class="tok-number">0b00111111</span>),</span>
+<span class="line" id="L51"></span>
+<span class="line" id="L52">            <span class="tok-number">3</span> =&gt; (((<span class="tok-builtin">@as</span>(<span class="tok-type">u21</span>, (cp_bytes[<span class="tok-number">0</span>] &amp; <span class="tok-number">0b00001111</span>)) &lt;&lt; <span class="tok-number">6</span>) |</span>
+<span class="line" id="L53">                (cp_bytes[<span class="tok-number">1</span>] &amp; <span class="tok-number">0b00111111</span>)) &lt;&lt; <span class="tok-number">6</span>) |</span>
+<span class="line" id="L54">                (cp_bytes[<span class="tok-number">2</span>] &amp; <span class="tok-number">0b00111111</span>),</span>
+<span class="line" id="L55"></span>
+<span class="line" id="L56">            <span class="tok-number">4</span> =&gt; (((((<span class="tok-builtin">@as</span>(<span class="tok-type">u21</span>, (cp_bytes[<span class="tok-number">0</span>] &amp; <span class="tok-number">0b00000111</span>)) &lt;&lt; <span class="tok-number">6</span>) |</span>
+<span class="line" id="L57">                (cp_bytes[<span class="tok-number">1</span>] &amp; <span class="tok-number">0b00111111</span>)) &lt;&lt; <span class="tok-number">6</span>) |</span>
+<span class="line" id="L58">                (cp_bytes[<span class="tok-number">2</span>] &amp; <span class="tok-number">0b00111111</span>)) &lt;&lt; <span class="tok-number">6</span>) |</span>
+<span class="line" id="L59">                (cp_bytes[<span class="tok-number">3</span>] &amp; <span class="tok-number">0b00111111</span>),</span>
+<span class="line" id="L60"></span>
+<span class="line" id="L61">            <span class="tok-kw">else</span> =&gt; <span class="tok-kw">unreachable</span>,</span>
+<span class="line" id="L62">        };</span>
+<span class="line" id="L63"></span>
+<span class="line" id="L64">        <span class="tok-kw">return</span> cp;</span>
+<span class="line" id="L65">    }</span>
+<span class="line" id="L66"></span>
+<span class="line" id="L67">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">peek</span>(self: *CodePointIterator) ?CodePoint {</span>
+<span class="line" id="L68">        <span class="tok-kw">const</span> saved_i = self.i;</span>
+<span class="line" id="L69">        <span class="tok-kw">defer</span> self.i = saved_i;</span>
+<span class="line" id="L70">        <span class="tok-kw">return</span> self.next();</span>
+<span class="line" id="L71">    }</span>
+<span class="line" id="L72">};</span>
+<span class="line" id="L73"></span>
+<span class="line" id="L74"><span class="tok-kw">test</span> <span class="tok-str">&quot;CodePointIterator peek&quot;</span> {</span>
+<span class="line" id="L75">    <span class="tok-kw">var</span> iter = CodePointIterator{ .bytes = <span class="tok-str">&quot;Hi&quot;</span> };</span>
+<span class="line" id="L76"></span>
+<span class="line" id="L77">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">u21</span>, <span class="tok-str">'H'</span>), iter.next().?.code);</span>
+<span class="line" id="L78">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">u21</span>, <span class="tok-str">'i'</span>), iter.peek().?.code);</span>
+<span class="line" id="L79">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">u21</span>, <span class="tok-str">'i'</span>), iter.next().?.code);</span>
+<span class="line" id="L80">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(?CodePoint, <span class="tok-null">null</span>), iter.peek());</span>
+<span class="line" id="L81">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(?CodePoint, <span class="tok-null">null</span>), iter.next());</span>
+<span class="line" id="L82">}</span>
+<span class="line" id="L83"></span>
+<span class="line" id="L84"><span class="tok-comment">/// `readCodePoint` returns the next code point code as a `u21` in the given reader, or null at end-of-input.</span></span>
+<span class="line" id="L85"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">readCodePoint</span>(reader: <span class="tok-kw">anytype</span>) !?<span class="tok-type">u21</span> {</span>
+<span class="line" id="L86">    <span class="tok-kw">var</span> buf: [<span class="tok-number">4</span>]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L87"></span>
+<span class="line" id="L88">    buf[<span class="tok-number">0</span>] = reader.readByte() <span class="tok-kw">catch</span> |err| <span class="tok-kw">switch</span> (err) {</span>
+<span class="line" id="L89">        <span class="tok-kw">error</span>.EndOfStream =&gt; <span class="tok-kw">return</span> <span class="tok-null">null</span>,</span>
+<span class="line" id="L90">        <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> err,</span>
+<span class="line" id="L91">    };</span>
+<span class="line" id="L92"></span>
+<span class="line" id="L93">    <span class="tok-kw">if</span> (buf[<span class="tok-number">0</span>] &lt; <span class="tok-number">128</span>) <span class="tok-kw">return</span> <span class="tok-builtin">@as</span>(<span class="tok-type">u21</span>, buf[<span class="tok-number">0</span>]);</span>
+<span class="line" id="L94"></span>
+<span class="line" id="L95">    <span class="tok-kw">const</span> len: <span class="tok-type">u3</span> = <span class="tok-kw">switch</span> (buf[<span class="tok-number">0</span>]) {</span>
+<span class="line" id="L96">        <span class="tok-number">0b1100_0000</span>...<span class="tok-number">0b1101_1111</span> =&gt; <span class="tok-number">2</span>,</span>
+<span class="line" id="L97">        <span class="tok-number">0b1110_0000</span>...<span class="tok-number">0b1110_1111</span> =&gt; <span class="tok-number">3</span>,</span>
+<span class="line" id="L98">        <span class="tok-number">0b1111_0000</span>...<span class="tok-number">0b1111_0111</span> =&gt; <span class="tok-number">4</span>,</span>
+<span class="line" id="L99">        <span class="tok-kw">else</span> =&gt; <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidUtf8,</span>
+<span class="line" id="L100">    };</span>
+<span class="line" id="L101"></span>
+<span class="line" id="L102">    <span class="tok-kw">const</span> read = <span class="tok-kw">try</span> reader.read(buf[<span class="tok-number">1</span>..len]);</span>
+<span class="line" id="L103"></span>
+<span class="line" id="L104">    <span class="tok-kw">if</span> (read &lt; len - <span class="tok-number">1</span>) <span class="tok-kw">return</span> <span class="tok-kw">error</span>.InvalidUtf8;</span>
+<span class="line" id="L105"></span>
+<span class="line" id="L106">    <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (len) {</span>
+<span class="line" id="L107">        <span class="tok-number">2</span> =&gt; (<span class="tok-builtin">@as</span>(<span class="tok-type">u21</span>, (buf[<span class="tok-number">0</span>] &amp; <span class="tok-number">0b00011111</span>)) &lt;&lt; <span class="tok-number">6</span>) | (buf[<span class="tok-number">1</span>] &amp; <span class="tok-number">0b00111111</span>),</span>
+<span class="line" id="L108"></span>
+<span class="line" id="L109">        <span class="tok-number">3</span> =&gt; (((<span class="tok-builtin">@as</span>(<span class="tok-type">u21</span>, (buf[<span class="tok-number">0</span>] &amp; <span class="tok-number">0b00001111</span>)) &lt;&lt; <span class="tok-number">6</span>) |</span>
+<span class="line" id="L110">            (buf[<span class="tok-number">1</span>] &amp; <span class="tok-number">0b00111111</span>)) &lt;&lt; <span class="tok-number">6</span>) |</span>
+<span class="line" id="L111">            (buf[<span class="tok-number">2</span>] &amp; <span class="tok-number">0b00111111</span>),</span>
+<span class="line" id="L112"></span>
+<span class="line" id="L113">        <span class="tok-number">4</span> =&gt; (((((<span class="tok-builtin">@as</span>(<span class="tok-type">u21</span>, (buf[<span class="tok-number">0</span>] &amp; <span class="tok-number">0b00000111</span>)) &lt;&lt; <span class="tok-number">6</span>) |</span>
+<span class="line" id="L114">            (buf[<span class="tok-number">1</span>] &amp; <span class="tok-number">0b00111111</span>)) &lt;&lt; <span class="tok-number">6</span>) |</span>
+<span class="line" id="L115">            (buf[<span class="tok-number">2</span>] &amp; <span class="tok-number">0b00111111</span>)) &lt;&lt; <span class="tok-number">6</span>) |</span>
+<span class="line" id="L116">            (buf[<span class="tok-number">3</span>] &amp; <span class="tok-number">0b00111111</span>),</span>
+<span class="line" id="L117"></span>
+<span class="line" id="L118">        <span class="tok-kw">else</span> =&gt; <span class="tok-kw">unreachable</span>,</span>
+<span class="line" id="L119">    };</span>
+<span class="line" id="L120">}</span>
+<span class="line" id="L121"></span>
+<span class="line" id="L122"><span class="tok-kw">test</span> <span class="tok-str">&quot;readCodePoint&quot;</span> {</span>
+<span class="line" id="L123">    <span class="tok-kw">var</span> buf = <span class="tok-str">&quot;abé😹&quot;</span>.*;</span>
+<span class="line" id="L124">    <span class="tok-kw">var</span> fis = std.io.fixedBufferStream(&amp;buf);</span>
+<span class="line" id="L125">    <span class="tok-kw">const</span> reader = fis.reader();</span>
+<span class="line" id="L126"></span>
+<span class="line" id="L127">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">u21</span>, <span class="tok-str">'a'</span>), (<span class="tok-kw">try</span> readCodePoint(reader)).?);</span>
+<span class="line" id="L128">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">u21</span>, <span class="tok-str">'b'</span>), (<span class="tok-kw">try</span> readCodePoint(reader)).?);</span>
+<span class="line" id="L129">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">u21</span>, <span class="tok-str">'é'</span>), (<span class="tok-kw">try</span> readCodePoint(reader)).?);</span>
+<span class="line" id="L130">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(<span class="tok-type">u21</span>, <span class="tok-str">'😹'</span>), (<span class="tok-kw">try</span> readCodePoint(reader)).?);</span>
+<span class="line" id="L131">    <span class="tok-kw">try</span> std.testing.expectEqual(<span class="tok-builtin">@as</span>(?<span class="tok-type">u21</span>, <span class="tok-null">null</span>), <span class="tok-kw">try</span> readCodePoint(reader));</span>
+<span class="line" id="L132">}</span>
+<span class="line" id="L133"></span>
+</code></pre></body>
+</html>

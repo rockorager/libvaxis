@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>src/formats/jpeg/JFIFHeader.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-comment">//! this module implements the JFIF header</span></span>
+<span class="line" id="L2"><span class="tok-comment">//! specified in https://www.w3.org/Graphics/JPEG/itu-t81.pdf</span></span>
+<span class="line" id="L3"><span class="tok-comment">//! section B.2.1 and assumes that there will be an application0 segment.</span></span>
+<span class="line" id="L4"></span>
+<span class="line" id="L5"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L6"></span>
+<span class="line" id="L7"><span class="tok-kw">const</span> buffered_stream_source = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../../buffered_stream_source.zig&quot;</span>);</span>
+<span class="line" id="L8"><span class="tok-kw">const</span> Image = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;../../Image.zig&quot;</span>);</span>
+<span class="line" id="L9"><span class="tok-kw">const</span> Markers = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;./utils.zig&quot;</span>).Markers;</span>
+<span class="line" id="L10"></span>
+<span class="line" id="L11"><span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L12"></span>
+<span class="line" id="L13"><span class="tok-comment">/// see https://www.ecma-international.org/wp-content/uploads/ECMA_TR-98_1st_edition_june_2009.pdf</span></span>
+<span class="line" id="L14"><span class="tok-comment">/// chapt 10.</span></span>
+<span class="line" id="L15"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> DensityUnit = <span class="tok-kw">enum</span>(<span class="tok-type">u8</span>) {</span>
+<span class="line" id="L16">    pixels = <span class="tok-number">0</span>,</span>
+<span class="line" id="L17">    dots_per_inch = <span class="tok-number">1</span>,</span>
+<span class="line" id="L18">    dots_per_cm = <span class="tok-number">2</span>,</span>
+<span class="line" id="L19">};</span>
+<span class="line" id="L20"></span>
+<span class="line" id="L21">jfif_revision: <span class="tok-type">u16</span>,</span>
+<span class="line" id="L22">density_unit: DensityUnit,</span>
+<span class="line" id="L23">x_density: <span class="tok-type">u16</span>,</span>
+<span class="line" id="L24">y_density: <span class="tok-type">u16</span>,</span>
+<span class="line" id="L25"></span>
+<span class="line" id="L26"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">read</span>(buffered_stream: *buffered_stream_source.DefaultBufferedStreamSourceReader) !Self {</span>
+<span class="line" id="L27">    <span class="tok-comment">// Read the first APP0 header.</span>
+</span>
+<span class="line" id="L28">    <span class="tok-kw">const</span> reader = buffered_stream.reader();</span>
+<span class="line" id="L29">    <span class="tok-kw">try</span> buffered_stream.seekTo(<span class="tok-number">2</span>);</span>
+<span class="line" id="L30">    <span class="tok-kw">const</span> maybe_app0_marker = <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .big);</span>
+<span class="line" id="L31">    <span class="tok-kw">if</span> (maybe_app0_marker != <span class="tok-builtin">@intFromEnum</span>(Markers.application0)) {</span>
+<span class="line" id="L32">        <span class="tok-kw">return</span> <span class="tok-kw">error</span>.App0MarkerDoesNotExist;</span>
+<span class="line" id="L33">    }</span>
+<span class="line" id="L34"></span>
+<span class="line" id="L35">    <span class="tok-comment">// Header length</span>
+</span>
+<span class="line" id="L36">    _ = <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .big);</span>
+<span class="line" id="L37"></span>
+<span class="line" id="L38">    <span class="tok-kw">var</span> identifier_buffer: [<span class="tok-number">4</span>]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L39">    _ = <span class="tok-kw">try</span> reader.read(identifier_buffer[<span class="tok-number">0</span>..]);</span>
+<span class="line" id="L40"></span>
+<span class="line" id="L41">    <span class="tok-kw">if</span> (!std.mem.eql(<span class="tok-type">u8</span>, identifier_buffer[<span class="tok-number">0</span>..], <span class="tok-str">&quot;JFIF&quot;</span>)) {</span>
+<span class="line" id="L42">        <span class="tok-kw">return</span> <span class="tok-kw">error</span>.JfifIdentifierNotSet;</span>
+<span class="line" id="L43">    }</span>
+<span class="line" id="L44"></span>
+<span class="line" id="L45">    <span class="tok-comment">// NUL byte after JFIF</span>
+</span>
+<span class="line" id="L46">    _ = <span class="tok-kw">try</span> reader.readByte();</span>
+<span class="line" id="L47"></span>
+<span class="line" id="L48">    <span class="tok-kw">const</span> jfif_revision = <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .big);</span>
+<span class="line" id="L49">    <span class="tok-kw">const</span> density_unit: DensityUnit = <span class="tok-builtin">@enumFromInt</span>(<span class="tok-kw">try</span> reader.readByte());</span>
+<span class="line" id="L50">    <span class="tok-kw">const</span> x_density = <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .big);</span>
+<span class="line" id="L51">    <span class="tok-kw">const</span> y_density = <span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .big);</span>
+<span class="line" id="L52"></span>
+<span class="line" id="L53">    <span class="tok-kw">const</span> thumbnailWidth = <span class="tok-kw">try</span> reader.readByte();</span>
+<span class="line" id="L54">    <span class="tok-kw">const</span> thumbnailHeight = <span class="tok-kw">try</span> reader.readByte();</span>
+<span class="line" id="L55"></span>
+<span class="line" id="L56">    <span class="tok-kw">if</span> (thumbnailWidth != <span class="tok-number">0</span> <span class="tok-kw">or</span> thumbnailHeight != <span class="tok-number">0</span>) {</span>
+<span class="line" id="L57">        <span class="tok-comment">// TODO: Support thumbnails (not important)</span>
+</span>
+<span class="line" id="L58">        <span class="tok-kw">return</span> <span class="tok-kw">error</span>.ThumbnailImagesUnsupported;</span>
+<span class="line" id="L59">    }</span>
+<span class="line" id="L60"></span>
+<span class="line" id="L61">    <span class="tok-comment">// Make sure there are no application markers after us.</span>
+</span>
+<span class="line" id="L62">    <span class="tok-comment">// TODO: Support application markers, present in versions 1.02 and above.</span>
+</span>
+<span class="line" id="L63">    <span class="tok-comment">// see https://www.ecma-international.org/wp-content/uploads/ECMA_TR-98_1st_edition_june_2009.pdf</span>
+</span>
+<span class="line" id="L64">    <span class="tok-comment">// chapt 10.1</span>
+</span>
+<span class="line" id="L65">    <span class="tok-kw">if</span> (((<span class="tok-kw">try</span> reader.readInt(<span class="tok-type">u16</span>, .big)) &amp; <span class="tok-number">0xFFF0</span>) == <span class="tok-builtin">@intFromEnum</span>(Markers.application0)) {</span>
+<span class="line" id="L66">        <span class="tok-kw">return</span> <span class="tok-kw">error</span>.ExtraneousApplicationMarker;</span>
+<span class="line" id="L67">    }</span>
+<span class="line" id="L68"></span>
+<span class="line" id="L69">    <span class="tok-kw">try</span> buffered_stream.seekBy(-<span class="tok-number">2</span>);</span>
+<span class="line" id="L70"></span>
+<span class="line" id="L71">    <span class="tok-kw">return</span> Self{</span>
+<span class="line" id="L72">        .jfif_revision = jfif_revision,</span>
+<span class="line" id="L73">        .density_unit = density_unit,</span>
+<span class="line" id="L74">        .x_density = x_density,</span>
+<span class="line" id="L75">        .y_density = y_density,</span>
+<span class="line" id="L76">    };</span>
+<span class="line" id="L77">}</span>
+<span class="line" id="L78"></span>
+</code></pre></body>
+</html>

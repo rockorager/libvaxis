@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>vaxis.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L2"><span class="tok-kw">const</span> atomic = std.atomic;</span>
+<span class="line" id="L3"><span class="tok-kw">const</span> base64 = std.base64.standard.Encoder;</span>
+<span class="line" id="L4"></span>
+<span class="line" id="L5"><span class="tok-kw">const</span> Queue = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;queue.zig&quot;</span>).Queue;</span>
+<span class="line" id="L6"><span class="tok-kw">const</span> ctlseqs = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ctlseqs.zig&quot;</span>);</span>
+<span class="line" id="L7"><span class="tok-kw">const</span> Tty = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;Tty.zig&quot;</span>);</span>
+<span class="line" id="L8"><span class="tok-kw">const</span> Winsize = Tty.Winsize;</span>
+<span class="line" id="L9"><span class="tok-kw">const</span> Key = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;Key.zig&quot;</span>);</span>
+<span class="line" id="L10"><span class="tok-kw">const</span> Screen = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;Screen.zig&quot;</span>);</span>
+<span class="line" id="L11"><span class="tok-kw">const</span> InternalScreen = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;InternalScreen.zig&quot;</span>);</span>
+<span class="line" id="L12"><span class="tok-kw">const</span> Window = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;Window.zig&quot;</span>);</span>
+<span class="line" id="L13"><span class="tok-kw">const</span> Options = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;Options.zig&quot;</span>);</span>
+<span class="line" id="L14"><span class="tok-kw">const</span> Style = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;Cell.zig&quot;</span>).Style;</span>
+<span class="line" id="L15"><span class="tok-kw">const</span> Hyperlink = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;Cell.zig&quot;</span>).Hyperlink;</span>
+<span class="line" id="L16"><span class="tok-kw">const</span> gwidth = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;gwidth.zig&quot;</span>);</span>
+<span class="line" id="L17"><span class="tok-kw">const</span> Shape = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;Mouse.zig&quot;</span>).Shape;</span>
+<span class="line" id="L18"><span class="tok-kw">const</span> Image = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;Image.zig&quot;</span>);</span>
+<span class="line" id="L19"><span class="tok-kw">const</span> zigimg = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;zigimg&quot;</span>);</span>
+<span class="line" id="L20"></span>
+<span class="line" id="L21"><span class="tok-comment">/// Vaxis is the entrypoint for a Vaxis application. The provided type T should</span></span>
+<span class="line" id="L22"><span class="tok-comment">/// be a tagged union which contains all of the events the application will</span></span>
+<span class="line" id="L23"><span class="tok-comment">/// handle. Vaxis will look for the following fields on the union and, if</span></span>
+<span class="line" id="L24"><span class="tok-comment">/// found, emit them via the &quot;nextEvent&quot; method</span></span>
+<span class="line" id="L25"><span class="tok-comment">///</span></span>
+<span class="line" id="L26"><span class="tok-comment">/// The following events are available:</span></span>
+<span class="line" id="L27"><span class="tok-comment">/// - `key_press: Key`, for key press events</span></span>
+<span class="line" id="L28"><span class="tok-comment">/// - `winsize: Winsize`, for resize events. Must call app.resize when receiving</span></span>
+<span class="line" id="L29"><span class="tok-comment">///    this event</span></span>
+<span class="line" id="L30"><span class="tok-comment">/// - `focus_in` and `focus_out` for focus events</span></span>
+<span class="line" id="L31"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">Vaxis</span>(<span class="tok-kw">comptime</span> T: <span class="tok-type">type</span>) <span class="tok-type">type</span> {</span>
+<span class="line" id="L32">    <span class="tok-kw">return</span> <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L33">        <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L34"></span>
+<span class="line" id="L35">        <span class="tok-kw">const</span> log = std.log.scoped(.vaxis);</span>
+<span class="line" id="L36"></span>
+<span class="line" id="L37">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> Event = T;</span>
+<span class="line" id="L38"></span>
+<span class="line" id="L39">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> Capabilities = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L40">            kitty_keyboard: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L41">            kitty_graphics: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L42">            rgb: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L43">            unicode: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L44">        };</span>
+<span class="line" id="L45"></span>
+<span class="line" id="L46">        <span class="tok-comment">/// the event queue for Vaxis</span></span>
+<span class="line" id="L47">        <span class="tok-comment">//</span>
+</span>
+<span class="line" id="L48">        <span class="tok-comment">// TODO: is 512 ok?</span>
+</span>
+<span class="line" id="L49">        queue: Queue(T, <span class="tok-number">512</span>),</span>
+<span class="line" id="L50"></span>
+<span class="line" id="L51">        tty: ?Tty,</span>
+<span class="line" id="L52"></span>
+<span class="line" id="L53">        <span class="tok-comment">/// the screen we write to</span></span>
+<span class="line" id="L54">        screen: Screen,</span>
+<span class="line" id="L55">        <span class="tok-comment">/// The last screen we drew. We keep this so we can efficiently update on</span></span>
+<span class="line" id="L56">        <span class="tok-comment">/// the next render</span></span>
+<span class="line" id="L57">        screen_last: InternalScreen = <span class="tok-null">undefined</span>,</span>
+<span class="line" id="L58"></span>
+<span class="line" id="L59">        state: <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L60">            <span class="tok-comment">/// if we are in the alt screen</span></span>
+<span class="line" id="L61">            alt_screen: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L62">            <span class="tok-comment">/// if we have entered kitty keyboard</span></span>
+<span class="line" id="L63">            kitty_keyboard: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L64">            bracketed_paste: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L65">            mouse: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L66">        } = .{},</span>
+<span class="line" id="L67"></span>
+<span class="line" id="L68">        caps: Capabilities = .{},</span>
+<span class="line" id="L69"></span>
+<span class="line" id="L70">        <span class="tok-comment">/// if we should redraw the entire screen on the next render</span></span>
+<span class="line" id="L71">        refresh: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L72"></span>
+<span class="line" id="L73">        <span class="tok-comment">/// blocks the main thread until a DA1 query has been received, or the</span></span>
+<span class="line" id="L74">        <span class="tok-comment">/// futex times out</span></span>
+<span class="line" id="L75">        query_futex: atomic.Value(<span class="tok-type">u32</span>) = atomic.Value(<span class="tok-type">u32</span>).init(<span class="tok-number">0</span>),</span>
+<span class="line" id="L76"></span>
+<span class="line" id="L77">        <span class="tok-comment">// images</span>
+</span>
+<span class="line" id="L78">        next_img_id: <span class="tok-type">u32</span> = <span class="tok-number">1</span>,</span>
+<span class="line" id="L79"></span>
+<span class="line" id="L80">        <span class="tok-comment">// statistics</span>
+</span>
+<span class="line" id="L81">        renders: <span class="tok-type">usize</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L82">        render_dur: <span class="tok-type">i128</span> = <span class="tok-number">0</span>,</span>
+<span class="line" id="L83"></span>
+<span class="line" id="L84">        <span class="tok-comment">/// Initialize Vaxis with runtime options</span></span>
+<span class="line" id="L85">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">init</span>(_: Options) !Self {</span>
+<span class="line" id="L86">            <span class="tok-kw">return</span> .{</span>
+<span class="line" id="L87">                .queue = .{},</span>
+<span class="line" id="L88">                .tty = <span class="tok-null">null</span>,</span>
+<span class="line" id="L89">                .screen = .{},</span>
+<span class="line" id="L90">                .screen_last = .{},</span>
+<span class="line" id="L91">            };</span>
+<span class="line" id="L92">        }</span>
+<span class="line" id="L93"></span>
+<span class="line" id="L94">        <span class="tok-comment">/// Resets the terminal to it's original state. If an allocator is</span></span>
+<span class="line" id="L95">        <span class="tok-comment">/// passed, this will free resources associated with Vaxis. This is left as an</span></span>
+<span class="line" id="L96">        <span class="tok-comment">/// optional so applications can choose to not free resources when the</span></span>
+<span class="line" id="L97">        <span class="tok-comment">/// application will be exiting anyways</span></span>
+<span class="line" id="L98">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">deinit</span>(self: *Self, alloc: ?std.mem.Allocator) <span class="tok-type">void</span> {</span>
+<span class="line" id="L99">            <span class="tok-kw">if</span> (self.tty) |_| {</span>
+<span class="line" id="L100">                <span class="tok-kw">var</span> tty = &amp;self.tty.?;</span>
+<span class="line" id="L101">                <span class="tok-kw">if</span> (self.state.kitty_keyboard) {</span>
+<span class="line" id="L102">                    _ = tty.write(ctlseqs.csi_u_pop) <span class="tok-kw">catch</span> {};</span>
+<span class="line" id="L103">                }</span>
+<span class="line" id="L104">                <span class="tok-kw">if</span> (self.state.mouse) {</span>
+<span class="line" id="L105">                    _ = tty.write(ctlseqs.mouse_reset) <span class="tok-kw">catch</span> {};</span>
+<span class="line" id="L106">                }</span>
+<span class="line" id="L107">                <span class="tok-kw">if</span> (self.state.bracketed_paste) {</span>
+<span class="line" id="L108">                    _ = tty.write(ctlseqs.bp_reset) <span class="tok-kw">catch</span> {};</span>
+<span class="line" id="L109">                }</span>
+<span class="line" id="L110">                <span class="tok-kw">if</span> (self.state.alt_screen) {</span>
+<span class="line" id="L111">                    _ = tty.write(ctlseqs.rmcup) <span class="tok-kw">catch</span> {};</span>
+<span class="line" id="L112">                }</span>
+<span class="line" id="L113">                tty.flush() <span class="tok-kw">catch</span> {};</span>
+<span class="line" id="L114">                tty.deinit();</span>
+<span class="line" id="L115">            }</span>
+<span class="line" id="L116">            <span class="tok-kw">if</span> (alloc) |a| {</span>
+<span class="line" id="L117">                self.screen.deinit(a);</span>
+<span class="line" id="L118">                self.screen_last.deinit(a);</span>
+<span class="line" id="L119">            }</span>
+<span class="line" id="L120">            <span class="tok-kw">if</span> (self.renders &gt; <span class="tok-number">0</span>) {</span>
+<span class="line" id="L121">                <span class="tok-kw">const</span> tpr = <span class="tok-builtin">@divTrunc</span>(self.render_dur, self.renders);</span>
+<span class="line" id="L122">                log.info(<span class="tok-str">&quot;total renders = {d}&quot;</span>, .{self.renders});</span>
+<span class="line" id="L123">                log.info(<span class="tok-str">&quot;microseconds per render = {d}&quot;</span>, .{tpr});</span>
+<span class="line" id="L124">            }</span>
+<span class="line" id="L125">        }</span>
+<span class="line" id="L126"></span>
+<span class="line" id="L127">        <span class="tok-comment">/// spawns the input thread to start listening to the tty for input</span></span>
+<span class="line" id="L128">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">startReadThread</span>(self: *Self) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L129">            self.tty = <span class="tok-kw">try</span> Tty.init();</span>
+<span class="line" id="L130">            <span class="tok-comment">// run our tty read loop in it's own thread</span>
+</span>
+<span class="line" id="L131">            <span class="tok-kw">const</span> read_thread = <span class="tok-kw">try</span> std.Thread.spawn(.{}, Tty.run, .{ &amp;self.tty.?, T, self });</span>
+<span class="line" id="L132">            <span class="tok-kw">try</span> read_thread.setName(<span class="tok-str">&quot;tty&quot;</span>);</span>
+<span class="line" id="L133">        }</span>
+<span class="line" id="L134"></span>
+<span class="line" id="L135">        <span class="tok-comment">/// stops reading from the tty</span></span>
+<span class="line" id="L136">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">stopReadThread</span>(self: *Self) <span class="tok-type">void</span> {</span>
+<span class="line" id="L137">            <span class="tok-kw">if</span> (self.tty) |_| {</span>
+<span class="line" id="L138">                <span class="tok-kw">var</span> tty = &amp;self.tty.?;</span>
+<span class="line" id="L139">                tty.stop();</span>
+<span class="line" id="L140">            }</span>
+<span class="line" id="L141">        }</span>
+<span class="line" id="L142"></span>
+<span class="line" id="L143">        <span class="tok-comment">/// returns the next available event, blocking until one is available</span></span>
+<span class="line" id="L144">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">nextEvent</span>(self: *Self) T {</span>
+<span class="line" id="L145">            <span class="tok-kw">return</span> self.queue.pop();</span>
+<span class="line" id="L146">        }</span>
+<span class="line" id="L147"></span>
+<span class="line" id="L148">        <span class="tok-comment">/// posts an event into the event queue. Will block if there is not</span></span>
+<span class="line" id="L149">        <span class="tok-comment">/// capacity for the event</span></span>
+<span class="line" id="L150">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">postEvent</span>(self: *Self, event: T) <span class="tok-type">void</span> {</span>
+<span class="line" id="L151">            self.queue.push(event);</span>
+<span class="line" id="L152">        }</span>
+<span class="line" id="L153"></span>
+<span class="line" id="L154">        <span class="tok-comment">/// resize allocates a slice of cells equal to the number of cells</span></span>
+<span class="line" id="L155">        <span class="tok-comment">/// required to display the screen (ie width x height). Any previous screen is</span></span>
+<span class="line" id="L156">        <span class="tok-comment">/// freed when resizing</span></span>
+<span class="line" id="L157">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">resize</span>(self: *Self, alloc: std.mem.Allocator, winsize: Winsize) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L158">            log.debug(<span class="tok-str">&quot;resizing screen: width={d} height={d}&quot;</span>, .{ winsize.cols, winsize.rows });</span>
+<span class="line" id="L159">            self.screen.deinit(alloc);</span>
+<span class="line" id="L160">            self.screen = <span class="tok-kw">try</span> Screen.init(alloc, winsize);</span>
+<span class="line" id="L161">            self.screen.unicode = self.caps.unicode;</span>
+<span class="line" id="L162">            <span class="tok-comment">// try self.screen.int(alloc, winsize.cols, winsize.rows);</span>
+</span>
+<span class="line" id="L163">            <span class="tok-comment">// we only init our current screen. This has the effect of redrawing</span>
+</span>
+<span class="line" id="L164">            <span class="tok-comment">// every cell</span>
+</span>
+<span class="line" id="L165">            self.screen_last.deinit(alloc);</span>
+<span class="line" id="L166">            self.screen_last = <span class="tok-kw">try</span> InternalScreen.init(alloc, winsize.cols, winsize.rows);</span>
+<span class="line" id="L167">            <span class="tok-comment">// try self.screen_last.resize(alloc, winsize.cols, winsize.rows);</span>
+</span>
+<span class="line" id="L168">        }</span>
+<span class="line" id="L169"></span>
+<span class="line" id="L170">        <span class="tok-comment">/// returns a Window comprising of the entire terminal screen</span></span>
+<span class="line" id="L171">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">window</span>(self: *Self) Window {</span>
+<span class="line" id="L172">            <span class="tok-kw">return</span> .{</span>
+<span class="line" id="L173">                .x_off = <span class="tok-number">0</span>,</span>
+<span class="line" id="L174">                .y_off = <span class="tok-number">0</span>,</span>
+<span class="line" id="L175">                .width = self.screen.width,</span>
+<span class="line" id="L176">                .height = self.screen.height,</span>
+<span class="line" id="L177">                .screen = &amp;self.screen,</span>
+<span class="line" id="L178">            };</span>
+<span class="line" id="L179">        }</span>
+<span class="line" id="L180"></span>
+<span class="line" id="L181">        <span class="tok-comment">/// enter the alternate screen. The alternate screen will automatically</span></span>
+<span class="line" id="L182">        <span class="tok-comment">/// be exited if calling deinit while in the alt screen</span></span>
+<span class="line" id="L183">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">enterAltScreen</span>(self: *Self) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L184">            <span class="tok-kw">if</span> (self.state.alt_screen) <span class="tok-kw">return</span>;</span>
+<span class="line" id="L185">            <span class="tok-kw">var</span> tty = self.tty <span class="tok-kw">orelse</span> <span class="tok-kw">return</span>;</span>
+<span class="line" id="L186">            _ = <span class="tok-kw">try</span> tty.write(ctlseqs.smcup);</span>
+<span class="line" id="L187">            <span class="tok-kw">try</span> tty.flush();</span>
+<span class="line" id="L188">            self.state.alt_screen = <span class="tok-null">true</span>;</span>
+<span class="line" id="L189">        }</span>
+<span class="line" id="L190"></span>
+<span class="line" id="L191">        <span class="tok-comment">/// exit the alternate screen</span></span>
+<span class="line" id="L192">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">exitAltScreen</span>(self: *Self) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L193">            <span class="tok-kw">if</span> (!self.state.alt_screen) <span class="tok-kw">return</span>;</span>
+<span class="line" id="L194">            <span class="tok-kw">var</span> tty = self.tty <span class="tok-kw">orelse</span> <span class="tok-kw">return</span>;</span>
+<span class="line" id="L195">            _ = <span class="tok-kw">try</span> tty.write(ctlseqs.rmcup);</span>
+<span class="line" id="L196">            <span class="tok-kw">try</span> tty.flush();</span>
+<span class="line" id="L197">            self.state.alt_screen = <span class="tok-null">false</span>;</span>
+<span class="line" id="L198">        }</span>
+<span class="line" id="L199"></span>
+<span class="line" id="L200">        <span class="tok-comment">/// write queries to the terminal to determine capabilities. Individual</span></span>
+<span class="line" id="L201">        <span class="tok-comment">/// capabilities will be delivered to the client and possibly intercepted by</span></span>
+<span class="line" id="L202">        <span class="tok-comment">/// Vaxis to enable features</span></span>
+<span class="line" id="L203">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">queryTerminal</span>(self: *Self) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L204">            <span class="tok-kw">var</span> tty = self.tty <span class="tok-kw">orelse</span> <span class="tok-kw">return</span>;</span>
+<span class="line" id="L205"></span>
+<span class="line" id="L206">            <span class="tok-kw">const</span> colorterm = std.os.getenv(<span class="tok-str">&quot;COLORTERM&quot;</span>) <span class="tok-kw">orelse</span> <span class="tok-str">&quot;&quot;</span>;</span>
+<span class="line" id="L207">            <span class="tok-kw">if</span> (std.mem.eql(<span class="tok-type">u8</span>, colorterm, <span class="tok-str">&quot;truecolor&quot;</span>) <span class="tok-kw">or</span></span>
+<span class="line" id="L208">                std.mem.eql(<span class="tok-type">u8</span>, colorterm, <span class="tok-str">&quot;24bit&quot;</span>))</span>
+<span class="line" id="L209">            {</span>
+<span class="line" id="L210">                <span class="tok-kw">if</span> (<span class="tok-builtin">@hasField</span>(Event, <span class="tok-str">&quot;cap_rgb&quot;</span>)) {</span>
+<span class="line" id="L211">                    self.postEvent(.cap_rgb);</span>
+<span class="line" id="L212">                }</span>
+<span class="line" id="L213">            }</span>
+<span class="line" id="L214"></span>
+<span class="line" id="L215">            <span class="tok-comment">// TODO: decide if we actually want to query for focus and sync. It</span>
+</span>
+<span class="line" id="L216">            <span class="tok-comment">// doesn't hurt to blindly use them</span>
+</span>
+<span class="line" id="L217">            <span class="tok-comment">// _ = try tty.write(ctlseqs.decrqm_focus);</span>
+</span>
+<span class="line" id="L218">            <span class="tok-comment">// _ = try tty.write(ctlseqs.decrqm_sync);</span>
+</span>
+<span class="line" id="L219">            _ = <span class="tok-kw">try</span> tty.write(ctlseqs.decrqm_unicode);</span>
+<span class="line" id="L220">            _ = <span class="tok-kw">try</span> tty.write(ctlseqs.decrqm_color_theme);</span>
+<span class="line" id="L221">            <span class="tok-comment">// TODO: XTVERSION has a DCS response. uncomment when we can parse</span>
+</span>
+<span class="line" id="L222">            <span class="tok-comment">// that</span>
+</span>
+<span class="line" id="L223">            <span class="tok-comment">// _ = try tty.write(ctlseqs.xtversion);</span>
+</span>
+<span class="line" id="L224">            _ = <span class="tok-kw">try</span> tty.write(ctlseqs.csi_u_query);</span>
+<span class="line" id="L225">            _ = <span class="tok-kw">try</span> tty.write(ctlseqs.kitty_graphics_query);</span>
+<span class="line" id="L226">            <span class="tok-comment">// TODO: sixel geometry query interferes with F4 keys.</span>
+</span>
+<span class="line" id="L227">            <span class="tok-comment">// _ = try tty.write(ctlseqs.sixel_geometry_query);</span>
+</span>
+<span class="line" id="L228"></span>
+<span class="line" id="L229">            <span class="tok-comment">// TODO: XTGETTCAP queries (&quot;RGB&quot;, &quot;Smulx&quot;)</span>
+</span>
+<span class="line" id="L230"></span>
+<span class="line" id="L231">            _ = <span class="tok-kw">try</span> tty.write(ctlseqs.primary_device_attrs);</span>
+<span class="line" id="L232">            <span class="tok-kw">try</span> tty.flush();</span>
+<span class="line" id="L233"></span>
+<span class="line" id="L234">            <span class="tok-comment">// 1 second timeout</span>
+</span>
+<span class="line" id="L235">            std.Thread.Futex.timedWait(&amp;self.query_futex, <span class="tok-number">0</span>, <span class="tok-number">1</span> * std.time.ns_per_s) <span class="tok-kw">catch</span> {};</span>
+<span class="line" id="L236"></span>
+<span class="line" id="L237">            <span class="tok-comment">// enable detected features</span>
+</span>
+<span class="line" id="L238">            <span class="tok-kw">if</span> (self.caps.kitty_keyboard) {</span>
+<span class="line" id="L239">                <span class="tok-kw">try</span> self.enableKittyKeyboard(.{});</span>
+<span class="line" id="L240">            }</span>
+<span class="line" id="L241">            <span class="tok-kw">if</span> (self.caps.unicode) {</span>
+<span class="line" id="L242">                _ = <span class="tok-kw">try</span> tty.write(ctlseqs.unicode_set);</span>
+<span class="line" id="L243">            }</span>
+<span class="line" id="L244">        }</span>
+<span class="line" id="L245"></span>
+<span class="line" id="L246">        <span class="tok-comment">// the next render call will refresh the entire screen</span>
+</span>
+<span class="line" id="L247">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">queueRefresh</span>(self: *Self) <span class="tok-type">void</span> {</span>
+<span class="line" id="L248">            self.refresh = <span class="tok-null">true</span>;</span>
+<span class="line" id="L249">        }</span>
+<span class="line" id="L250"></span>
+<span class="line" id="L251">        <span class="tok-comment">/// draws the screen to the terminal</span></span>
+<span class="line" id="L252">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">render</span>(self: *Self) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L253">            <span class="tok-kw">var</span> tty = self.tty <span class="tok-kw">orelse</span> <span class="tok-kw">return</span>;</span>
+<span class="line" id="L254">            self.renders += <span class="tok-number">1</span>;</span>
+<span class="line" id="L255">            <span class="tok-kw">const</span> timer_start = std.time.microTimestamp();</span>
+<span class="line" id="L256">            <span class="tok-kw">defer</span> {</span>
+<span class="line" id="L257">                self.render_dur += std.time.microTimestamp() - timer_start;</span>
+<span class="line" id="L258">            }</span>
+<span class="line" id="L259"></span>
+<span class="line" id="L260">            <span class="tok-kw">defer</span> self.refresh = <span class="tok-null">false</span>;</span>
+<span class="line" id="L261">            <span class="tok-kw">defer</span> tty.flush() <span class="tok-kw">catch</span> {};</span>
+<span class="line" id="L262"></span>
+<span class="line" id="L263">            <span class="tok-comment">// Set up sync before we write anything</span>
+</span>
+<span class="line" id="L264">            <span class="tok-comment">// TODO: optimize sync so we only sync _when we have changes_. This</span>
+</span>
+<span class="line" id="L265">            <span class="tok-comment">// requires a smarter buffered writer, we'll probably have to write</span>
+</span>
+<span class="line" id="L266">            <span class="tok-comment">// our own</span>
+</span>
+<span class="line" id="L267">            _ = <span class="tok-kw">try</span> tty.write(ctlseqs.sync_set);</span>
+<span class="line" id="L268">            <span class="tok-kw">defer</span> _ = tty.write(ctlseqs.sync_reset) <span class="tok-kw">catch</span> {};</span>
+<span class="line" id="L269"></span>
+<span class="line" id="L270">            <span class="tok-comment">// Send the cursor to 0,0</span>
+</span>
+<span class="line" id="L271">            <span class="tok-comment">// TODO: this needs to move after we optimize writes. We only do</span>
+</span>
+<span class="line" id="L272">            <span class="tok-comment">// this if we have an update to make. We also need to hide cursor</span>
+</span>
+<span class="line" id="L273">            <span class="tok-comment">// and then reshow it if needed</span>
+</span>
+<span class="line" id="L274">            _ = <span class="tok-kw">try</span> tty.write(ctlseqs.hide_cursor);</span>
+<span class="line" id="L275">            _ = <span class="tok-kw">try</span> tty.write(ctlseqs.home);</span>
+<span class="line" id="L276">            _ = <span class="tok-kw">try</span> tty.write(ctlseqs.sgr_reset);</span>
+<span class="line" id="L277"></span>
+<span class="line" id="L278">            <span class="tok-comment">// initialize some variables</span>
+</span>
+<span class="line" id="L279">            <span class="tok-kw">var</span> reposition: <span class="tok-type">bool</span> = <span class="tok-null">false</span>;</span>
+<span class="line" id="L280">            <span class="tok-kw">var</span> row: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L281">            <span class="tok-kw">var</span> col: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L282">            <span class="tok-kw">var</span> cursor: Style = .{};</span>
+<span class="line" id="L283">            <span class="tok-kw">var</span> link: Hyperlink = .{};</span>
+<span class="line" id="L284"></span>
+<span class="line" id="L285">            <span class="tok-comment">// Clear all images</span>
+</span>
+<span class="line" id="L286">            _ = <span class="tok-kw">try</span> tty.write(ctlseqs.kitty_graphics_clear);</span>
+<span class="line" id="L287"></span>
+<span class="line" id="L288">            <span class="tok-kw">var</span> i: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L289">            <span class="tok-kw">while</span> (i &lt; self.screen.buf.len) {</span>
+<span class="line" id="L290">                <span class="tok-kw">const</span> cell = self.screen.buf[i];</span>
+<span class="line" id="L291">                <span class="tok-kw">defer</span> {</span>
+<span class="line" id="L292">                    <span class="tok-comment">// advance by the width of this char mod 1</span>
+</span>
+<span class="line" id="L293">                    <span class="tok-kw">const</span> w = blk: {</span>
+<span class="line" id="L294">                        <span class="tok-kw">if</span> (cell.char.width != <span class="tok-number">0</span>) <span class="tok-kw">break</span> :blk cell.char.width;</span>
+<span class="line" id="L295"></span>
+<span class="line" id="L296">                        <span class="tok-kw">const</span> method: gwidth.Method = <span class="tok-kw">if</span> (self.caps.unicode) .unicode <span class="tok-kw">else</span> .wcwidth;</span>
+<span class="line" id="L297">                        <span class="tok-kw">break</span> :blk gwidth.gwidth(cell.char.grapheme, method) <span class="tok-kw">catch</span> <span class="tok-number">1</span>;</span>
+<span class="line" id="L298">                    };</span>
+<span class="line" id="L299">                    <span class="tok-kw">var</span> j = i + <span class="tok-number">1</span>;</span>
+<span class="line" id="L300">                    <span class="tok-kw">while</span> (j &lt; i + w) : (j += <span class="tok-number">1</span>) {</span>
+<span class="line" id="L301">                        self.screen_last.buf[j].skipped = <span class="tok-null">true</span>;</span>
+<span class="line" id="L302">                    }</span>
+<span class="line" id="L303">                    col += w;</span>
+<span class="line" id="L304">                    i += w;</span>
+<span class="line" id="L305">                }</span>
+<span class="line" id="L306">                <span class="tok-kw">if</span> (col &gt;= self.screen.width) {</span>
+<span class="line" id="L307">                    row += <span class="tok-number">1</span>;</span>
+<span class="line" id="L308">                    col = <span class="tok-number">0</span>;</span>
+<span class="line" id="L309">                }</span>
+<span class="line" id="L310">                <span class="tok-comment">// If cell is the same as our last frame, we don't need to do</span>
+</span>
+<span class="line" id="L311">                <span class="tok-comment">// anything</span>
+</span>
+<span class="line" id="L312">                <span class="tok-kw">const</span> last = self.screen_last.buf[i];</span>
+<span class="line" id="L313">                <span class="tok-kw">if</span> (!self.refresh <span class="tok-kw">and</span> last.eql(cell) <span class="tok-kw">and</span> !last.skipped <span class="tok-kw">and</span> cell.image == <span class="tok-null">null</span>) {</span>
+<span class="line" id="L314">                    reposition = <span class="tok-null">true</span>;</span>
+<span class="line" id="L315">                    <span class="tok-comment">// Close any osc8 sequence we might be in before</span>
+</span>
+<span class="line" id="L316">                    <span class="tok-comment">// repositioning</span>
+</span>
+<span class="line" id="L317">                    <span class="tok-kw">if</span> (link.uri.len &gt; <span class="tok-number">0</span>) {</span>
+<span class="line" id="L318">                        _ = <span class="tok-kw">try</span> tty.write(ctlseqs.osc8_clear);</span>
+<span class="line" id="L319">                    }</span>
+<span class="line" id="L320">                    <span class="tok-kw">continue</span>;</span>
+<span class="line" id="L321">                }</span>
+<span class="line" id="L322">                self.screen_last.buf[i].skipped = <span class="tok-null">false</span>;</span>
+<span class="line" id="L323">                <span class="tok-kw">defer</span> {</span>
+<span class="line" id="L324">                    cursor = cell.style;</span>
+<span class="line" id="L325">                    link = cell.link;</span>
+<span class="line" id="L326">                }</span>
+<span class="line" id="L327">                <span class="tok-comment">// Set this cell in the last frame</span>
+</span>
+<span class="line" id="L328">                self.screen_last.writeCell(col, row, cell);</span>
+<span class="line" id="L329"></span>
+<span class="line" id="L330">                <span class="tok-comment">// reposition the cursor, if needed</span>
+</span>
+<span class="line" id="L331">                <span class="tok-kw">if</span> (reposition) {</span>
+<span class="line" id="L332">                    <span class="tok-kw">try</span> std.fmt.format(tty.buffered_writer.writer(), ctlseqs.cup, .{ row + <span class="tok-number">1</span>, col + <span class="tok-number">1</span> });</span>
+<span class="line" id="L333">                }</span>
+<span class="line" id="L334"></span>
+<span class="line" id="L335">                <span class="tok-kw">if</span> (cell.image) |img| {</span>
+<span class="line" id="L336">                    <span class="tok-kw">if</span> (img.size) |size| {</span>
+<span class="line" id="L337">                        <span class="tok-kw">try</span> std.fmt.format(</span>
+<span class="line" id="L338">                            tty.buffered_writer.writer(),</span>
+<span class="line" id="L339">                            ctlseqs.kitty_graphics_scale,</span>
+<span class="line" id="L340">                            .{ img.img_id, img.z_index, size.cols, size.rows },</span>
+<span class="line" id="L341">                        );</span>
+<span class="line" id="L342">                    } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L343">                        <span class="tok-kw">try</span> std.fmt.format(</span>
+<span class="line" id="L344">                            tty.buffered_writer.writer(),</span>
+<span class="line" id="L345">                            ctlseqs.kitty_graphics_place,</span>
+<span class="line" id="L346">                            .{ img.img_id, img.z_index },</span>
+<span class="line" id="L347">                        );</span>
+<span class="line" id="L348">                    }</span>
+<span class="line" id="L349">                }</span>
+<span class="line" id="L350"></span>
+<span class="line" id="L351">                <span class="tok-comment">// something is different, so let's loop through everything and</span>
+</span>
+<span class="line" id="L352">                <span class="tok-comment">// find out what</span>
+</span>
+<span class="line" id="L353"></span>
+<span class="line" id="L354">                <span class="tok-comment">// foreground</span>
+</span>
+<span class="line" id="L355">                <span class="tok-kw">if</span> (!std.meta.eql(cursor.fg, cell.style.fg)) {</span>
+<span class="line" id="L356">                    <span class="tok-kw">const</span> writer = tty.buffered_writer.writer();</span>
+<span class="line" id="L357">                    <span class="tok-kw">switch</span> (cell.style.fg) {</span>
+<span class="line" id="L358">                        .default =&gt; _ = <span class="tok-kw">try</span> tty.write(ctlseqs.fg_reset),</span>
+<span class="line" id="L359">                        .index =&gt; |idx| {</span>
+<span class="line" id="L360">                            <span class="tok-kw">switch</span> (idx) {</span>
+<span class="line" id="L361">                                <span class="tok-number">0</span>...<span class="tok-number">7</span> =&gt; <span class="tok-kw">try</span> std.fmt.format(writer, ctlseqs.fg_base, .{idx}),</span>
+<span class="line" id="L362">                                <span class="tok-number">8</span>...<span class="tok-number">15</span> =&gt; <span class="tok-kw">try</span> std.fmt.format(writer, ctlseqs.fg_bright, .{idx - <span class="tok-number">8</span>}),</span>
+<span class="line" id="L363">                                <span class="tok-kw">else</span> =&gt; <span class="tok-kw">try</span> std.fmt.format(writer, ctlseqs.fg_indexed, .{idx}),</span>
+<span class="line" id="L364">                            }</span>
+<span class="line" id="L365">                        },</span>
+<span class="line" id="L366">                        .rgb =&gt; |rgb| {</span>
+<span class="line" id="L367">                            <span class="tok-kw">try</span> std.fmt.format(writer, ctlseqs.fg_rgb, .{ rgb[<span class="tok-number">0</span>], rgb[<span class="tok-number">1</span>], rgb[<span class="tok-number">2</span>] });</span>
+<span class="line" id="L368">                        },</span>
+<span class="line" id="L369">                    }</span>
+<span class="line" id="L370">                }</span>
+<span class="line" id="L371">                <span class="tok-comment">// background</span>
+</span>
+<span class="line" id="L372">                <span class="tok-kw">if</span> (!std.meta.eql(cursor.bg, cell.style.bg)) {</span>
+<span class="line" id="L373">                    <span class="tok-kw">const</span> writer = tty.buffered_writer.writer();</span>
+<span class="line" id="L374">                    <span class="tok-kw">switch</span> (cell.style.bg) {</span>
+<span class="line" id="L375">                        .default =&gt; _ = <span class="tok-kw">try</span> tty.write(ctlseqs.bg_reset),</span>
+<span class="line" id="L376">                        .index =&gt; |idx| {</span>
+<span class="line" id="L377">                            <span class="tok-kw">switch</span> (idx) {</span>
+<span class="line" id="L378">                                <span class="tok-number">0</span>...<span class="tok-number">7</span> =&gt; <span class="tok-kw">try</span> std.fmt.format(writer, ctlseqs.bg_base, .{idx}),</span>
+<span class="line" id="L379">                                <span class="tok-number">8</span>...<span class="tok-number">15</span> =&gt; <span class="tok-kw">try</span> std.fmt.format(writer, ctlseqs.bg_bright, .{idx - <span class="tok-number">8</span>}),</span>
+<span class="line" id="L380">                                <span class="tok-kw">else</span> =&gt; <span class="tok-kw">try</span> std.fmt.format(writer, ctlseqs.bg_indexed, .{idx}),</span>
+<span class="line" id="L381">                            }</span>
+<span class="line" id="L382">                        },</span>
+<span class="line" id="L383">                        .rgb =&gt; |rgb| {</span>
+<span class="line" id="L384">                            <span class="tok-kw">try</span> std.fmt.format(writer, ctlseqs.bg_rgb, .{ rgb[<span class="tok-number">0</span>], rgb[<span class="tok-number">1</span>], rgb[<span class="tok-number">2</span>] });</span>
+<span class="line" id="L385">                        },</span>
+<span class="line" id="L386">                    }</span>
+<span class="line" id="L387">                }</span>
+<span class="line" id="L388">                <span class="tok-comment">// underline color</span>
+</span>
+<span class="line" id="L389">                <span class="tok-kw">if</span> (!std.meta.eql(cursor.ul, cell.style.ul)) {</span>
+<span class="line" id="L390">                    <span class="tok-kw">const</span> writer = tty.buffered_writer.writer();</span>
+<span class="line" id="L391">                    <span class="tok-kw">switch</span> (cell.style.bg) {</span>
+<span class="line" id="L392">                        .default =&gt; _ = <span class="tok-kw">try</span> tty.write(ctlseqs.ul_reset),</span>
+<span class="line" id="L393">                        .index =&gt; |idx| {</span>
+<span class="line" id="L394">                            <span class="tok-kw">try</span> std.fmt.format(writer, ctlseqs.ul_indexed, .{idx});</span>
+<span class="line" id="L395">                        },</span>
+<span class="line" id="L396">                        .rgb =&gt; |rgb| {</span>
+<span class="line" id="L397">                            <span class="tok-kw">try</span> std.fmt.format(writer, ctlseqs.ul_rgb, .{ rgb[<span class="tok-number">0</span>], rgb[<span class="tok-number">1</span>], rgb[<span class="tok-number">2</span>] });</span>
+<span class="line" id="L398">                        },</span>
+<span class="line" id="L399">                    }</span>
+<span class="line" id="L400">                }</span>
+<span class="line" id="L401">                <span class="tok-comment">// underline style</span>
+</span>
+<span class="line" id="L402">                <span class="tok-kw">if</span> (!std.meta.eql(cursor.ul_style, cell.style.ul_style)) {</span>
+<span class="line" id="L403">                    <span class="tok-kw">const</span> seq = <span class="tok-kw">switch</span> (cell.style.ul_style) {</span>
+<span class="line" id="L404">                        .off =&gt; ctlseqs.ul_off,</span>
+<span class="line" id="L405">                        .single =&gt; ctlseqs.ul_single,</span>
+<span class="line" id="L406">                        .double =&gt; ctlseqs.ul_double,</span>
+<span class="line" id="L407">                        .curly =&gt; ctlseqs.ul_curly,</span>
+<span class="line" id="L408">                        .dotted =&gt; ctlseqs.ul_dotted,</span>
+<span class="line" id="L409">                        .dashed =&gt; ctlseqs.ul_dashed,</span>
+<span class="line" id="L410">                    };</span>
+<span class="line" id="L411">                    _ = <span class="tok-kw">try</span> tty.write(seq);</span>
+<span class="line" id="L412">                }</span>
+<span class="line" id="L413">                <span class="tok-comment">// bold</span>
+</span>
+<span class="line" id="L414">                <span class="tok-kw">if</span> (cursor.bold != cell.style.bold) {</span>
+<span class="line" id="L415">                    <span class="tok-kw">const</span> seq = <span class="tok-kw">switch</span> (cell.style.bold) {</span>
+<span class="line" id="L416">                        <span class="tok-null">true</span> =&gt; ctlseqs.bold_set,</span>
+<span class="line" id="L417">                        <span class="tok-null">false</span> =&gt; ctlseqs.bold_dim_reset,</span>
+<span class="line" id="L418">                    };</span>
+<span class="line" id="L419">                    _ = <span class="tok-kw">try</span> tty.write(seq);</span>
+<span class="line" id="L420">                    <span class="tok-kw">if</span> (cell.style.dim) {</span>
+<span class="line" id="L421">                        _ = <span class="tok-kw">try</span> tty.write(ctlseqs.dim_set);</span>
+<span class="line" id="L422">                    }</span>
+<span class="line" id="L423">                }</span>
+<span class="line" id="L424">                <span class="tok-comment">// dim</span>
+</span>
+<span class="line" id="L425">                <span class="tok-kw">if</span> (cursor.dim != cell.style.dim) {</span>
+<span class="line" id="L426">                    <span class="tok-kw">const</span> seq = <span class="tok-kw">switch</span> (cell.style.dim) {</span>
+<span class="line" id="L427">                        <span class="tok-null">true</span> =&gt; ctlseqs.dim_set,</span>
+<span class="line" id="L428">                        <span class="tok-null">false</span> =&gt; ctlseqs.bold_dim_reset,</span>
+<span class="line" id="L429">                    };</span>
+<span class="line" id="L430">                    _ = <span class="tok-kw">try</span> tty.write(seq);</span>
+<span class="line" id="L431">                    <span class="tok-kw">if</span> (cell.style.bold) {</span>
+<span class="line" id="L432">                        _ = <span class="tok-kw">try</span> tty.write(ctlseqs.bold_set);</span>
+<span class="line" id="L433">                    }</span>
+<span class="line" id="L434">                }</span>
+<span class="line" id="L435">                <span class="tok-comment">// dim</span>
+</span>
+<span class="line" id="L436">                <span class="tok-kw">if</span> (cursor.italic != cell.style.italic) {</span>
+<span class="line" id="L437">                    <span class="tok-kw">const</span> seq = <span class="tok-kw">switch</span> (cell.style.italic) {</span>
+<span class="line" id="L438">                        <span class="tok-null">true</span> =&gt; ctlseqs.italic_set,</span>
+<span class="line" id="L439">                        <span class="tok-null">false</span> =&gt; ctlseqs.italic_reset,</span>
+<span class="line" id="L440">                    };</span>
+<span class="line" id="L441">                    _ = <span class="tok-kw">try</span> tty.write(seq);</span>
+<span class="line" id="L442">                }</span>
+<span class="line" id="L443">                <span class="tok-comment">// dim</span>
+</span>
+<span class="line" id="L444">                <span class="tok-kw">if</span> (cursor.blink != cell.style.blink) {</span>
+<span class="line" id="L445">                    <span class="tok-kw">const</span> seq = <span class="tok-kw">switch</span> (cell.style.blink) {</span>
+<span class="line" id="L446">                        <span class="tok-null">true</span> =&gt; ctlseqs.blink_set,</span>
+<span class="line" id="L447">                        <span class="tok-null">false</span> =&gt; ctlseqs.blink_reset,</span>
+<span class="line" id="L448">                    };</span>
+<span class="line" id="L449">                    _ = <span class="tok-kw">try</span> tty.write(seq);</span>
+<span class="line" id="L450">                }</span>
+<span class="line" id="L451">                <span class="tok-comment">// reverse</span>
+</span>
+<span class="line" id="L452">                <span class="tok-kw">if</span> (cursor.reverse != cell.style.reverse) {</span>
+<span class="line" id="L453">                    <span class="tok-kw">const</span> seq = <span class="tok-kw">switch</span> (cell.style.reverse) {</span>
+<span class="line" id="L454">                        <span class="tok-null">true</span> =&gt; ctlseqs.reverse_set,</span>
+<span class="line" id="L455">                        <span class="tok-null">false</span> =&gt; ctlseqs.reverse_reset,</span>
+<span class="line" id="L456">                    };</span>
+<span class="line" id="L457">                    _ = <span class="tok-kw">try</span> tty.write(seq);</span>
+<span class="line" id="L458">                }</span>
+<span class="line" id="L459">                <span class="tok-comment">// invisible</span>
+</span>
+<span class="line" id="L460">                <span class="tok-kw">if</span> (cursor.invisible != cell.style.invisible) {</span>
+<span class="line" id="L461">                    <span class="tok-kw">const</span> seq = <span class="tok-kw">switch</span> (cell.style.invisible) {</span>
+<span class="line" id="L462">                        <span class="tok-null">true</span> =&gt; ctlseqs.invisible_set,</span>
+<span class="line" id="L463">                        <span class="tok-null">false</span> =&gt; ctlseqs.invisible_reset,</span>
+<span class="line" id="L464">                    };</span>
+<span class="line" id="L465">                    _ = <span class="tok-kw">try</span> tty.write(seq);</span>
+<span class="line" id="L466">                }</span>
+<span class="line" id="L467">                <span class="tok-comment">// strikethrough</span>
+</span>
+<span class="line" id="L468">                <span class="tok-kw">if</span> (cursor.strikethrough != cell.style.strikethrough) {</span>
+<span class="line" id="L469">                    <span class="tok-kw">const</span> seq = <span class="tok-kw">switch</span> (cell.style.strikethrough) {</span>
+<span class="line" id="L470">                        <span class="tok-null">true</span> =&gt; ctlseqs.strikethrough_set,</span>
+<span class="line" id="L471">                        <span class="tok-null">false</span> =&gt; ctlseqs.strikethrough_reset,</span>
+<span class="line" id="L472">                    };</span>
+<span class="line" id="L473">                    _ = <span class="tok-kw">try</span> tty.write(seq);</span>
+<span class="line" id="L474">                }</span>
+<span class="line" id="L475"></span>
+<span class="line" id="L476">                <span class="tok-comment">// url</span>
+</span>
+<span class="line" id="L477">                <span class="tok-kw">if</span> (!std.meta.eql(link.uri, cell.link.uri)) {</span>
+<span class="line" id="L478">                    <span class="tok-kw">var</span> ps = cell.link.params;</span>
+<span class="line" id="L479">                    <span class="tok-kw">if</span> (cell.link.uri.len == <span class="tok-number">0</span>) {</span>
+<span class="line" id="L480">                        <span class="tok-comment">// Empty out the params no matter what if we don't have</span>
+</span>
+<span class="line" id="L481">                        <span class="tok-comment">// a url</span>
+</span>
+<span class="line" id="L482">                        ps = <span class="tok-str">&quot;&quot;</span>;</span>
+<span class="line" id="L483">                    }</span>
+<span class="line" id="L484">                    <span class="tok-kw">const</span> writer = tty.buffered_writer.writer();</span>
+<span class="line" id="L485">                    <span class="tok-kw">try</span> std.fmt.format(writer, ctlseqs.osc8, .{ ps, cell.link.uri });</span>
+<span class="line" id="L486">                }</span>
+<span class="line" id="L487">                _ = <span class="tok-kw">try</span> tty.write(cell.char.grapheme);</span>
+<span class="line" id="L488">            }</span>
+<span class="line" id="L489">            <span class="tok-kw">if</span> (self.screen.cursor_vis) {</span>
+<span class="line" id="L490">                <span class="tok-kw">try</span> std.fmt.format(</span>
+<span class="line" id="L491">                    tty.buffered_writer.writer(),</span>
+<span class="line" id="L492">                    ctlseqs.cup,</span>
+<span class="line" id="L493">                    .{</span>
+<span class="line" id="L494">                        self.screen.cursor_row + <span class="tok-number">1</span>,</span>
+<span class="line" id="L495">                        self.screen.cursor_col + <span class="tok-number">1</span>,</span>
+<span class="line" id="L496">                    },</span>
+<span class="line" id="L497">                );</span>
+<span class="line" id="L498">                _ = <span class="tok-kw">try</span> tty.write(ctlseqs.show_cursor);</span>
+<span class="line" id="L499">            }</span>
+<span class="line" id="L500">            <span class="tok-kw">if</span> (self.screen.mouse_shape != self.screen_last.mouse_shape) {</span>
+<span class="line" id="L501">                <span class="tok-kw">try</span> std.fmt.format(</span>
+<span class="line" id="L502">                    tty.buffered_writer.writer(),</span>
+<span class="line" id="L503">                    ctlseqs.osc22_mouse_shape,</span>
+<span class="line" id="L504">                    .{<span class="tok-builtin">@tagName</span>(self.screen.mouse_shape)},</span>
+<span class="line" id="L505">                );</span>
+<span class="line" id="L506">            }</span>
+<span class="line" id="L507">        }</span>
+<span class="line" id="L508"></span>
+<span class="line" id="L509">        <span class="tok-kw">fn</span> <span class="tok-fn">enableKittyKeyboard</span>(self: *Self, flags: Key.KittyFlags) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L510">            self.state.kitty_keyboard = <span class="tok-null">true</span>;</span>
+<span class="line" id="L511">            <span class="tok-kw">const</span> flag_int: <span class="tok-type">u5</span> = <span class="tok-builtin">@bitCast</span>(flags);</span>
+<span class="line" id="L512">            <span class="tok-kw">try</span> std.fmt.format(</span>
+<span class="line" id="L513">                self.tty.?.buffered_writer.writer(),</span>
+<span class="line" id="L514">                ctlseqs.csi_u_push,</span>
+<span class="line" id="L515">                .{</span>
+<span class="line" id="L516">                    flag_int,</span>
+<span class="line" id="L517">                },</span>
+<span class="line" id="L518">            );</span>
+<span class="line" id="L519">            <span class="tok-kw">try</span> self.tty.?.flush();</span>
+<span class="line" id="L520">        }</span>
+<span class="line" id="L521"></span>
+<span class="line" id="L522">        <span class="tok-comment">/// send a system notification</span></span>
+<span class="line" id="L523">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">notify</span>(self: *Self, title: ?[]<span class="tok-kw">const</span> <span class="tok-type">u8</span>, body: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L524">            <span class="tok-kw">if</span> (self.tty == <span class="tok-null">null</span>) <span class="tok-kw">return</span>;</span>
+<span class="line" id="L525">            <span class="tok-kw">if</span> (title) |t| {</span>
+<span class="line" id="L526">                <span class="tok-kw">try</span> std.fmt.format(</span>
+<span class="line" id="L527">                    self.tty.?.buffered_writer.writer(),</span>
+<span class="line" id="L528">                    ctlseqs.osc777_notify,</span>
+<span class="line" id="L529">                    .{ t, body },</span>
+<span class="line" id="L530">                );</span>
+<span class="line" id="L531">            } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L532">                <span class="tok-kw">try</span> std.fmt.format(</span>
+<span class="line" id="L533">                    self.tty.?.buffered_writer.writer(),</span>
+<span class="line" id="L534">                    ctlseqs.osc9_notify,</span>
+<span class="line" id="L535">                    .{body},</span>
+<span class="line" id="L536">                );</span>
+<span class="line" id="L537">            }</span>
+<span class="line" id="L538">            <span class="tok-kw">try</span> self.tty.?.flush();</span>
+<span class="line" id="L539">        }</span>
+<span class="line" id="L540"></span>
+<span class="line" id="L541">        <span class="tok-comment">/// sets the window title</span></span>
+<span class="line" id="L542">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">setTitle</span>(self: *Self, title: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L543">            <span class="tok-kw">if</span> (self.tty == <span class="tok-null">null</span>) <span class="tok-kw">return</span>;</span>
+<span class="line" id="L544">            <span class="tok-kw">try</span> std.fmt.format(</span>
+<span class="line" id="L545">                self.tty.?.buffered_writer.writer(),</span>
+<span class="line" id="L546">                ctlseqs.osc2_set_title,</span>
+<span class="line" id="L547">                .{title},</span>
+<span class="line" id="L548">            );</span>
+<span class="line" id="L549">            <span class="tok-kw">try</span> self.tty.?.flush();</span>
+<span class="line" id="L550">        }</span>
+<span class="line" id="L551"></span>
+<span class="line" id="L552">        <span class="tok-comment">// turn bracketed paste on or off. An event will be sent at the</span>
+</span>
+<span class="line" id="L553">        <span class="tok-comment">// beginning and end of a detected paste. All keystrokes between these</span>
+</span>
+<span class="line" id="L554">        <span class="tok-comment">// events were pasted</span>
+</span>
+<span class="line" id="L555">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">setBracketedPaste</span>(self: *Self, enable: <span class="tok-type">bool</span>) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L556">            <span class="tok-kw">if</span> (self.tty == <span class="tok-null">null</span>) <span class="tok-kw">return</span>;</span>
+<span class="line" id="L557">            self.state.bracketed_paste = enable;</span>
+<span class="line" id="L558">            <span class="tok-kw">const</span> seq = <span class="tok-kw">if</span> (enable) {</span>
+<span class="line" id="L559">                self.state.bracketed_paste = <span class="tok-null">true</span>;</span>
+<span class="line" id="L560">                ctlseqs.bp_set;</span>
+<span class="line" id="L561">            } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L562">                self.state.bracketed_paste = <span class="tok-null">true</span>;</span>
+<span class="line" id="L563">                ctlseqs.bp_reset;</span>
+<span class="line" id="L564">            };</span>
+<span class="line" id="L565">            _ = <span class="tok-kw">try</span> self.tty.?.write(seq);</span>
+<span class="line" id="L566">            <span class="tok-kw">try</span> self.tty.?.flush();</span>
+<span class="line" id="L567">        }</span>
+<span class="line" id="L568"></span>
+<span class="line" id="L569">        <span class="tok-comment">/// set the mouse shape</span></span>
+<span class="line" id="L570">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">setMouseShape</span>(self: *Self, shape: Shape) <span class="tok-type">void</span> {</span>
+<span class="line" id="L571">            self.screen.mouse_shape = shape;</span>
+<span class="line" id="L572">        }</span>
+<span class="line" id="L573"></span>
+<span class="line" id="L574">        <span class="tok-comment">/// turn mouse reporting on or off</span></span>
+<span class="line" id="L575">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">setMouseMode</span>(self: *Self, enable: <span class="tok-type">bool</span>) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L576">            <span class="tok-kw">var</span> tty = self.tty <span class="tok-kw">orelse</span> <span class="tok-kw">return</span>;</span>
+<span class="line" id="L577">            self.state.mouse = enable;</span>
+<span class="line" id="L578">            <span class="tok-kw">if</span> (enable) {</span>
+<span class="line" id="L579">                _ = <span class="tok-kw">try</span> tty.write(ctlseqs.mouse_set);</span>
+<span class="line" id="L580">                <span class="tok-kw">try</span> tty.flush();</span>
+<span class="line" id="L581">            } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L582">                _ = <span class="tok-kw">try</span> tty.write(ctlseqs.mouse_reset);</span>
+<span class="line" id="L583">                <span class="tok-kw">try</span> tty.flush();</span>
+<span class="line" id="L584">            }</span>
+<span class="line" id="L585">        }</span>
+<span class="line" id="L586"></span>
+<span class="line" id="L587">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">loadImage</span>(</span>
+<span class="line" id="L588">            self: *Self,</span>
+<span class="line" id="L589">            alloc: std.mem.Allocator,</span>
+<span class="line" id="L590">            src: Image.Source,</span>
+<span class="line" id="L591">        ) !Image {</span>
+<span class="line" id="L592">            <span class="tok-kw">if</span> (!self.caps.kitty_graphics) <span class="tok-kw">return</span> <span class="tok-kw">error</span>.NoGraphicsCapability;</span>
+<span class="line" id="L593">            <span class="tok-kw">var</span> tty = self.tty <span class="tok-kw">orelse</span> <span class="tok-kw">return</span> <span class="tok-kw">error</span>.NoTTY;</span>
+<span class="line" id="L594">            <span class="tok-kw">defer</span> self.next_img_id += <span class="tok-number">1</span>;</span>
+<span class="line" id="L595"></span>
+<span class="line" id="L596">            <span class="tok-kw">const</span> writer = tty.buffered_writer.writer();</span>
+<span class="line" id="L597"></span>
+<span class="line" id="L598">            <span class="tok-kw">var</span> img = <span class="tok-kw">switch</span> (src) {</span>
+<span class="line" id="L599">                .path =&gt; |path| <span class="tok-kw">try</span> zigimg.Image.fromFilePath(alloc, path),</span>
+<span class="line" id="L600">                .mem =&gt; |bytes| <span class="tok-kw">try</span> zigimg.Image.fromMemory(alloc, bytes),</span>
+<span class="line" id="L601">            };</span>
+<span class="line" id="L602">            <span class="tok-kw">defer</span> img.deinit();</span>
+<span class="line" id="L603">            <span class="tok-kw">const</span> png_buf = <span class="tok-kw">try</span> alloc.alloc(<span class="tok-type">u8</span>, img.imageByteSize());</span>
+<span class="line" id="L604">            <span class="tok-kw">defer</span> alloc.free(png_buf);</span>
+<span class="line" id="L605">            <span class="tok-kw">const</span> png = <span class="tok-kw">try</span> img.writeToMemory(png_buf, .{ .png = .{} });</span>
+<span class="line" id="L606">            <span class="tok-kw">const</span> b64_buf = <span class="tok-kw">try</span> alloc.alloc(<span class="tok-type">u8</span>, base64.calcSize(png.len));</span>
+<span class="line" id="L607">            <span class="tok-kw">const</span> encoded = base64.encode(b64_buf, png);</span>
+<span class="line" id="L608">            <span class="tok-kw">defer</span> alloc.free(b64_buf);</span>
+<span class="line" id="L609"></span>
+<span class="line" id="L610">            <span class="tok-kw">const</span> id = self.next_img_id;</span>
+<span class="line" id="L611"></span>
+<span class="line" id="L612">            log.debug(<span class="tok-str">&quot;transmitting kitty image: id={d}, len={d}&quot;</span>, .{ id, encoded.len });</span>
+<span class="line" id="L613"></span>
+<span class="line" id="L614">            <span class="tok-kw">if</span> (encoded.len &lt; <span class="tok-number">4096</span>) {</span>
+<span class="line" id="L615">                <span class="tok-kw">try</span> std.fmt.format(</span>
+<span class="line" id="L616">                    writer,</span>
+<span class="line" id="L617">                    <span class="tok-str">&quot;\x1b_Gf=100,i={d};{s}\x1b\\&quot;</span>,</span>
+<span class="line" id="L618">                    .{</span>
+<span class="line" id="L619">                        id,</span>
+<span class="line" id="L620">                        encoded,</span>
+<span class="line" id="L621">                    },</span>
+<span class="line" id="L622">                );</span>
+<span class="line" id="L623">            } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L624">                <span class="tok-kw">var</span> n: <span class="tok-type">usize</span> = <span class="tok-number">4096</span>;</span>
+<span class="line" id="L625"></span>
+<span class="line" id="L626">                <span class="tok-kw">try</span> std.fmt.format(</span>
+<span class="line" id="L627">                    writer,</span>
+<span class="line" id="L628">                    <span class="tok-str">&quot;\x1b_Gf=100,i={d},m=1;{s}\x1b\\&quot;</span>,</span>
+<span class="line" id="L629">                    .{ id, encoded[<span class="tok-number">0</span>..n] },</span>
+<span class="line" id="L630">                );</span>
+<span class="line" id="L631">                <span class="tok-kw">while</span> (n &lt; encoded.len) : (n += <span class="tok-number">4096</span>) {</span>
+<span class="line" id="L632">                    <span class="tok-kw">const</span> end: <span class="tok-type">usize</span> = <span class="tok-builtin">@min</span>(n + <span class="tok-number">4096</span>, encoded.len);</span>
+<span class="line" id="L633">                    <span class="tok-kw">const</span> m: <span class="tok-type">u2</span> = <span class="tok-kw">if</span> (end == encoded.len) <span class="tok-number">0</span> <span class="tok-kw">else</span> <span class="tok-number">1</span>;</span>
+<span class="line" id="L634">                    <span class="tok-kw">try</span> std.fmt.format(</span>
+<span class="line" id="L635">                        writer,</span>
+<span class="line" id="L636">                        <span class="tok-str">&quot;\x1b_Gm={d};{s}\x1b\\&quot;</span>,</span>
+<span class="line" id="L637">                        .{</span>
+<span class="line" id="L638">                            m,</span>
+<span class="line" id="L639">                            encoded[n..end],</span>
+<span class="line" id="L640">                        },</span>
+<span class="line" id="L641">                    );</span>
+<span class="line" id="L642">                }</span>
+<span class="line" id="L643">            }</span>
+<span class="line" id="L644">            <span class="tok-kw">try</span> tty.buffered_writer.flush();</span>
+<span class="line" id="L645">            <span class="tok-kw">return</span> .{</span>
+<span class="line" id="L646">                .id = id,</span>
+<span class="line" id="L647">                .width = img.width,</span>
+<span class="line" id="L648">                .height = img.height,</span>
+<span class="line" id="L649">            };</span>
+<span class="line" id="L650">        }</span>
+<span class="line" id="L651"></span>
+<span class="line" id="L652">        <span class="tok-comment">/// deletes an image from the terminal's memory</span></span>
+<span class="line" id="L653">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">freeImage</span>(self: Self, id: <span class="tok-type">u32</span>) <span class="tok-type">void</span> {</span>
+<span class="line" id="L654">            <span class="tok-kw">var</span> tty = self.tty <span class="tok-kw">orelse</span> <span class="tok-kw">return</span>;</span>
+<span class="line" id="L655">            <span class="tok-kw">const</span> writer = tty.buffered_writer.writer();</span>
+<span class="line" id="L656">            std.fmt.format(writer, <span class="tok-str">&quot;\x1b_Ga=d,d=I,i={d};\x1b\\&quot;</span>, .{id}) <span class="tok-kw">catch</span> |err| {</span>
+<span class="line" id="L657">                log.err(<span class="tok-str">&quot;couldn't delete image {d}: {}&quot;</span>, .{ id, err });</span>
+<span class="line" id="L658">                <span class="tok-kw">return</span>;</span>
+<span class="line" id="L659">            };</span>
+<span class="line" id="L660">            tty.buffered_writer.flush() <span class="tok-kw">catch</span> |err| {</span>
+<span class="line" id="L661">                log.err(<span class="tok-str">&quot;couldn't flush writer: {}&quot;</span>, .{err});</span>
+<span class="line" id="L662">            };</span>
+<span class="line" id="L663">        }</span>
+<span class="line" id="L664">    };</span>
+<span class="line" id="L665">}</span>
+<span class="line" id="L666"></span>
+<span class="line" id="L667"><span class="tok-kw">test</span> <span class="tok-str">&quot;Vaxis: event queueing&quot;</span> {</span>
+<span class="line" id="L668">    <span class="tok-kw">const</span> Event = <span class="tok-kw">union</span>(<span class="tok-kw">enum</span>) {</span>
+<span class="line" id="L669">        key,</span>
+<span class="line" id="L670">    };</span>
+<span class="line" id="L671">    <span class="tok-kw">var</span> vx: Vaxis(Event) = <span class="tok-kw">try</span> Vaxis(Event).init(.{});</span>
+<span class="line" id="L672">    <span class="tok-kw">defer</span> vx.deinit(<span class="tok-null">null</span>);</span>
+<span class="line" id="L673">    vx.postEvent(.key);</span>
+<span class="line" id="L674">    <span class="tok-kw">const</span> event = vx.nextEvent();</span>
+<span class="line" id="L675">    <span class="tok-kw">try</span> std.testing.expect(event == .key);</span>
+<span class="line" id="L676">}</span>
+<span class="line" id="L677"></span>
+</code></pre></body>
+</html>
