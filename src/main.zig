@@ -10,6 +10,7 @@ pub const Style = Cell.Style;
 pub const Image = @import("Image.zig");
 pub const Mouse = @import("Mouse.zig");
 pub const Winsize = @import("Tty.zig").Winsize;
+pub const Window = @import("Window.zig");
 
 pub const widgets = @import("widgets.zig");
 
