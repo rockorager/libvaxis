@@ -3,6 +3,7 @@ const std = @import("std");
 pub const Vaxis = @import("vaxis.zig").Vaxis;
 pub const Options = @import("Options.zig");
 
+pub const Queue = @import("queue.zig").Queue;
 pub const Key = @import("Key.zig");
 pub const Cell = @import("Cell.zig");
 pub const Style = Cell.Style;
