@@ -20,8 +20,8 @@ pub fn main() !void {
 
     // Start the read loop. This puts the terminal in raw mode and begins
     // reading user input
-    try vx.start();
-    defer vx.stop();
+    try vx.startReadThread();
+    defer vx.stopReadThread();
 
     // Optionally enter the alternate screen
     try vx.enterAltScreen();
