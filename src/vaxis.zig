@@ -119,8 +119,8 @@ pub fn Vaxis(comptime T: type) type {
             }
             if (self.renders > 0) {
                 const tpr = @divTrunc(self.render_dur, self.renders);
-                log.info("total renders = {d}", .{self.renders});
-                log.info("microseconds per render = {d}", .{tpr});
+                log.debug("total renders = {d}", .{self.renders});
+                log.debug("microseconds per render = {d}", .{tpr});
             }
         }
 
