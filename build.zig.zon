@@ -8,8 +8,8 @@
             .hash = "1220e097fbfb3a15a6f3484cf507f1f10ab571d1bcf519c3b5447ca727782b7a5264",
         },
         .zigimg = .{
-            .url = "https://github.com/zigimg/zigimg/archive/2224f91.tar.gz",
-            .hash = "12207067e4892c48369415268648380859baa89c324748ae5bfda414a12868c9fc8b",
+            .url = "https://github.com/rockorager/zigimg/archive/19a49a7.tar.gz",
+            .hash = "1220ebfa8587cfd644995fc08e218dbb3ebd7344fb8e129ff02bc5a6d52a2325370d",
         },
     },
 }
