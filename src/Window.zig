@@ -3,14 +3,14 @@ const ziglyph = @import("ziglyph");
 const WordIterator = ziglyph.WordIterator;
 const GraphemeIterator = ziglyph.GraphemeIterator;
 
-const Screen = @import("Screen.zig");
+pub const Screen = @import("Screen.zig");
 const Cell = @import("Cell.zig");
 const Segment = @import("Cell.zig").Segment;
 const gw = @import("gwidth.zig");
 
 const log = std.log.scoped(.window);
 
-const Window = @This();
+pub const Window = @This();
 
 pub const Size = union(enum) {
     expand,
