@@ -57,9 +57,6 @@ pub fn matches(self: Key, cp: u21, mods: Modifiers) bool {
     // rule 3
     if (self.matchShiftedCodepoint(cp, mods)) return true;
 
-    // rule 4
-    if (self.matchShiftedCodepoint(cp, mods)) return true;
-
     return false;
 }
 
