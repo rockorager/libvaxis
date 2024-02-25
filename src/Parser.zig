@@ -81,8 +81,11 @@ pub fn parse(self: *Parser, input: []const u8) !Result {
                 const key: Key = switch (b) {
                     0x00 => .{ .codepoint = '@', .mods = .{ .ctrl = true } },
                     0x08 => .{ .codepoint = Key.backspace },
+                    0x09 => .{ .codepoint = Key.tab },
+                    0x0D => .{ .codepoint = Key.enter },
                     0x01...0x07,
-                    0x09...0x1A,
+                    0x0A...0x0C,
+                    0x0E...0x1A,
                     => .{ .codepoint = b + 0x60, .mods = .{ .ctrl = true } },
                     0x1B => escape: {
                         // NOTE: This could be an errant escape at the end
