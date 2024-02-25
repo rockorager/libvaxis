@@ -60,6 +60,14 @@ pub fn matches(self: Key, cp: u21, mods: Modifiers) bool {
     return false;
 }
 
+// matches against any of the provided codepoints.
+pub fn matchesAny(self: Key, cps: []const u21, mods: Modifiers) bool {
+    for (cps) |cp| {
+        if (self.matches(cp, mods)) return true;
+    }
+    return false;
+}
+
 // matches base layout codes, useful for shortcut matching when an alternate key
 // layout is used
 pub fn matchShortcut(self: Key, cp: u21, mods: Modifiers) bool {
