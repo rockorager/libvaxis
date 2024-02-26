@@ -9,7 +9,11 @@ const vaxis = @import("vaxis");
 const log = std.log.scoped(.main);
 
 /// Active TUI Section
+<<<<<<< HEAD
 const ActiveSection = enum {
+=======
+const ActiveSection = enum{
+>>>>>>> b015a5d (Added the `table.zig` example)
     top,
     mid,
     btm,
@@ -95,9 +99,10 @@ pub fn main() !void {
                     break :keyEvt;
                 }
                 // Command State
-                if (active != .btm and
-                    key.matchesAny(&.{ ':', '/', 'g', 'G' }, .{}))
-                {
+                if (
+                    active != .btm and
+                    key.matchesAny(&.{ ':', '/', 'g', 'G' }, .{})
+                ) {
                     active = .btm;
                     for (0..cmd_input.buf.items.len) |_| _ = cmd_input.buf.orderedRemove(0);
                     try cmd_input.update(.{ .key_press = key });
@@ -127,9 +132,11 @@ pub fn main() !void {
                         // Run Command and Clear Command Bar
                         else if (key.matchExact(vaxis.Key.enter, .{})) {
                             const cmd = cmd_input.buf.items;
-                            if (mem.eql(u8, ":q", cmd) or
+                            if (
+                                mem.eql(u8, ":q", cmd) or
                                 mem.eql(u8, ":quit", cmd) or
-                                mem.eql(u8, ":exit", cmd)) return;
+                                mem.eql(u8, ":exit", cmd)
+                            ) return;
                             if (mem.eql(u8, "G", cmd)) {
                                 demo_tbl.row = user_list.items.len - 1;
                                 active = .mid;
@@ -141,7 +148,8 @@ pub fn main() !void {
                             }
                             for (0..cmd_input.buf.items.len) |_| _ = cmd_input.buf.orderedRemove(0);
                             cmd_input.cursor_idx = 0;
-                        } else try cmd_input.update(.{ .key_press = key });
+                        }
+                        else try cmd_input.update(.{ .key_press = key });
                     },
                 }
                 moving = false;
@@ -165,9 +173,9 @@ pub fn main() !void {
         );
         for (title_segs[0..]) |*title_seg|
             title_seg.*.style.bg = if (active == .top) selected_bg else other_bg;
-        top_bar.fill(.{ .style = .{
-            .bg = if (active == .top) selected_bg else other_bg,
-        } });
+        top_bar.fill(.{ 
+            .style = .{ .bg = if (active == .top) selected_bg else other_bg, }
+        });
         const logo_bar = vaxis.widgets.alignment.center(
             top_bar,
             44,
@@ -200,7 +208,9 @@ pub fn main() !void {
             .{ .limit = win.width },
             .{ .limit = 1 },
         );
-        if (active == .btm) bottom_bar.fill(.{ .style = .{ .bg = selected_bg } });
+        if (active == .btm) bottom_bar.fill(.{
+            .style = .{ .bg = selected_bg }
+        });
         cmd_input.draw(bottom_bar);
 
         // Render the screen
@@ -209,7 +219,7 @@ pub fn main() !void {
 }
 
 /// User Struct
-pub const User = struct {
+pub const User = struct{
     first: []const u8,
     last: []const u8,
     user: []const u8,
