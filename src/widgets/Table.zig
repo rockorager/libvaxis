@@ -1,13 +1,16 @@
 const std = @import("std");
+const ascii = std.ascii;
 const fmt = std.fmt;
+const fs = std.fs;
 const heap = std.heap;
+const log = std.log;
 const mem = std.mem;
 const meta = std.meta;
 
 const vaxis = @import("../main.zig");
 
 /// Table Context for maintaining state and drawing Tables with `drawTable()`.
-pub const TableContext = struct {
+pub const TableContext = struct{
     /// Current selected Row of the Table.
     row: usize = 0,
     /// Current selected Column of the Table.
@@ -61,7 +64,9 @@ pub fn drawTable(
     if (table_ctx.col > headers.len - 1) table_ctx.*.col = headers.len - 1;
     for (headers[0..], 0..) |hdr_txt, idx| {
         const hdr_bg =
-            if (table_ctx.active and idx == table_ctx.col) table_ctx.selected_bg else if (idx % 2 == 0) table_ctx.hdr_bg_1 else table_ctx.hdr_bg_2;
+            if (table_ctx.active and idx == table_ctx.col) table_ctx.selected_bg
+            else if (idx % 2 == 0) table_ctx.hdr_bg_1
+            else table_ctx.hdr_bg_2;
         const hdr_win = table_win.initChild(
             idx * item_width,
             0,
@@ -70,14 +75,14 @@ pub fn drawTable(
         );
         var hdr = vaxis.widgets.alignment.center(hdr_win, @min(item_width - 1, hdr_txt.len), 1);
         hdr_win.fill(.{ .style = .{ .bg = hdr_bg } });
-        var seg = [_]vaxis.Cell.Segment{.{
+        var seg = [_]vaxis.Cell.Segment{ .{
             .text = hdr_txt,
             .style = .{
                 .bg = hdr_bg,
                 .bold = true,
                 .ul_style = if (idx == table_ctx.col) .single else .dotted,
             },
-        }};
+        } };
         try hdr.wrap(seg[0..]);
     }
 
@@ -99,7 +104,9 @@ pub fn drawTable(
     if (end > data_list.items.len) end = data_list.items.len;
     for (data_list.items[table_ctx.start..end], 0..) |data, idx| {
         const row_bg =
-            if (table_ctx.active and table_ctx.start + idx == table_ctx.row) table_ctx.selected_bg else if (idx % 2 == 0) table_ctx.row_bg_1 else table_ctx.row_bg_2;
+            if (table_ctx.active and table_ctx.start + idx == table_ctx.row) table_ctx.selected_bg
+            else if (idx % 2 == 0) table_ctx.row_bg_1
+            else table_ctx.row_bg_2;
 
         const row_win = table_win.initChild(
             0,
@@ -119,28 +126,32 @@ pub fn drawTable(
                 .{ .limit = 1 },
             );
             item_win.fill(.{ .style = .{ .bg = row_bg } });
-            var seg = [_]vaxis.Cell.Segment{.{
-                .text = switch (ItemT) {
+            var seg = [_]vaxis.Cell.Segment{ .{
+                .text = switch(ItemT) {
                     []const u8 => item,
                     else => nonStr: {
                         switch (@typeInfo(ItemT)) {
                             .Optional => {
                                 const opt_item = item orelse break :nonStr "-";
-                                switch (@typeInfo(ItemT).Optional.child) {
+                                switch(@typeInfo(ItemT).Optional.child) {
                                     []const u8 => break :nonStr opt_item,
                                     else => {
-                                        break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{opt_item}) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
-                                    },
+                                        break :nonStr
+                                            if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{ opt_item })
+                                            else fmt.comptimePrint("[unsupported ({s})]", .{ @typeName(DataT) });
+                                    }
                                 }
                             },
                             else => {
-                                break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{item}) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
-                            },
+                                break :nonStr
+                                    if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{ item })
+                                    else fmt.comptimePrint("[unsupported ({s})]", .{ @typeName(DataT) });
+                            }
                         }
                     },
                 },
                 .style = .{ .bg = row_bg },
-            }};
+            } };
             try item_win.wrap(seg[0..]);
         }
     }
