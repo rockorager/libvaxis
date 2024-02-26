@@ -184,189 +184,190 @@
 <span class="line" id="L69">                        }</span>
 <span class="line" id="L70">                    } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (amt &lt; <span class="tok-number">0</span>) {</span>
 <span class="line" id="L71">                        <span class="tok-kw">const</span> absolute_amt = <span class="tok-builtin">@abs</span>(amt);</span>
-<span class="line" id="L72">                        <span class="tok-kw">if</span> (absolute_amt &lt;= self.buffered_reader.start) {</span>
-<span class="line" id="L73">                            self.buffered_reader.start -%= absolute_amt;</span>
-<span class="line" id="L74">                        } <span class="tok-kw">else</span> {</span>
-<span class="line" id="L75">                            <span class="tok-kw">try</span> self.buffered_reader.unbuffered_reader.context.seekBy(amt - <span class="tok-builtin">@as</span>(<span class="tok-type">i64</span>, <span class="tok-builtin">@intCast</span>(bytes_availables)));</span>
-<span class="line" id="L76">                            self.resetBufferedReader();</span>
-<span class="line" id="L77">                        }</span>
-<span class="line" id="L78">                    }</span>
-<span class="line" id="L79">                },</span>
-<span class="line" id="L80">            }</span>
-<span class="line" id="L81">        }</span>
-<span class="line" id="L82"></span>
-<span class="line" id="L83">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">getEndPos</span>(self: *Self) GetSeekPosError!<span class="tok-type">u64</span> {</span>
-<span class="line" id="L84">            <span class="tok-kw">return</span> self.buffered_reader.unbuffered_reader.context.getEndPos();</span>
-<span class="line" id="L85">        }</span>
-<span class="line" id="L86"></span>
-<span class="line" id="L87">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">getPos</span>(self: *Self) GetSeekPosError!<span class="tok-type">u64</span> {</span>
-<span class="line" id="L88">            <span class="tok-kw">switch</span> (self.buffered_reader.unbuffered_reader.context.*) {</span>
-<span class="line" id="L89">                .buffer =&gt; |*actual_reader| {</span>
-<span class="line" id="L90">                    <span class="tok-kw">return</span> actual_reader.getPos();</span>
-<span class="line" id="L91">                },</span>
-<span class="line" id="L92">                .const_buffer =&gt; |*actual_reader| {</span>
-<span class="line" id="L93">                    <span class="tok-kw">return</span> actual_reader.getPos();</span>
-<span class="line" id="L94">                },</span>
-<span class="line" id="L95">                .file =&gt; {</span>
-<span class="line" id="L96">                    <span class="tok-kw">if</span> (self.buffered_reader.unbuffered_reader.context.getPos()) |position| {</span>
-<span class="line" id="L97">                        <span class="tok-kw">return</span> position - (self.buffered_reader.end - self.buffered_reader.start);</span>
-<span class="line" id="L98">                    } <span class="tok-kw">else</span> |err| {</span>
-<span class="line" id="L99">                        <span class="tok-kw">return</span> err;</span>
-<span class="line" id="L100">                    }</span>
-<span class="line" id="L101">                },</span>
-<span class="line" id="L102">            }</span>
-<span class="line" id="L103">        }</span>
-<span class="line" id="L104"></span>
-<span class="line" id="L105">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">reader</span>(self: *Self) Reader {</span>
-<span class="line" id="L106">            <span class="tok-kw">return</span> .{ .context = self };</span>
-<span class="line" id="L107">        }</span>
-<span class="line" id="L108"></span>
-<span class="line" id="L109">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">seekableStream</span>(self: *Self) SeekableStream {</span>
-<span class="line" id="L110">            <span class="tok-kw">return</span> .{ .context = self };</span>
-<span class="line" id="L111">        }</span>
-<span class="line" id="L112"></span>
-<span class="line" id="L113">        <span class="tok-kw">fn</span> <span class="tok-fn">resetBufferedReader</span>(self: *Self) <span class="tok-type">void</span> {</span>
-<span class="line" id="L114">            self.buffered_reader.start = <span class="tok-number">0</span>;</span>
-<span class="line" id="L115">            self.buffered_reader.end = <span class="tok-number">0</span>;</span>
-<span class="line" id="L116">        }</span>
-<span class="line" id="L117">    };</span>
-<span class="line" id="L118">}</span>
-<span class="line" id="L119"></span>
-<span class="line" id="L120"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">bufferedStreamSourceReader</span>(stream: *std.io.StreamSource) BufferedStreamSourceReader(DefaultBufferSize) {</span>
-<span class="line" id="L121">    <span class="tok-kw">return</span> .{ .buffered_reader = .{ .unbuffered_reader = stream.reader() } };</span>
-<span class="line" id="L122">}</span>
-<span class="line" id="L123"></span>
-<span class="line" id="L124"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">bufferedStreamSourceReaderWithSize</span>(<span class="tok-kw">comptime</span> buffer_size: <span class="tok-type">usize</span>, stream: *std.io.StreamSource) BufferedStreamSourceReader(buffer_size) {</span>
-<span class="line" id="L125">    <span class="tok-kw">return</span> .{ .buffered_reader = .{ .unbuffered_reader = stream.reader() } };</span>
-<span class="line" id="L126">}</span>
-<span class="line" id="L127"></span>
-<span class="line" id="L128"><span class="tok-comment">// An buffered stream that can writer and seek StreamSource</span>
+<span class="line" id="L72">                        <span class="tok-kw">const</span> absolute_amt_usize = std.math.cast(<span class="tok-type">usize</span>, absolute_amt) <span class="tok-kw">orelse</span> std.math.maxInt(<span class="tok-type">usize</span>);</span>
+<span class="line" id="L73">                        <span class="tok-kw">if</span> (absolute_amt_usize &lt;= self.buffered_reader.start) {</span>
+<span class="line" id="L74">                            self.buffered_reader.start -%= absolute_amt_usize;</span>
+<span class="line" id="L75">                        } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L76">                            <span class="tok-kw">try</span> self.buffered_reader.unbuffered_reader.context.seekBy(amt - <span class="tok-builtin">@as</span>(<span class="tok-type">i64</span>, <span class="tok-builtin">@intCast</span>(bytes_availables)));</span>
+<span class="line" id="L77">                            self.resetBufferedReader();</span>
+<span class="line" id="L78">                        }</span>
+<span class="line" id="L79">                    }</span>
+<span class="line" id="L80">                },</span>
+<span class="line" id="L81">            }</span>
+<span class="line" id="L82">        }</span>
+<span class="line" id="L83"></span>
+<span class="line" id="L84">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">getEndPos</span>(self: *Self) GetSeekPosError!<span class="tok-type">u64</span> {</span>
+<span class="line" id="L85">            <span class="tok-kw">return</span> self.buffered_reader.unbuffered_reader.context.getEndPos();</span>
+<span class="line" id="L86">        }</span>
+<span class="line" id="L87"></span>
+<span class="line" id="L88">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">getPos</span>(self: *Self) GetSeekPosError!<span class="tok-type">u64</span> {</span>
+<span class="line" id="L89">            <span class="tok-kw">switch</span> (self.buffered_reader.unbuffered_reader.context.*) {</span>
+<span class="line" id="L90">                .buffer =&gt; |*actual_reader| {</span>
+<span class="line" id="L91">                    <span class="tok-kw">return</span> actual_reader.getPos();</span>
+<span class="line" id="L92">                },</span>
+<span class="line" id="L93">                .const_buffer =&gt; |*actual_reader| {</span>
+<span class="line" id="L94">                    <span class="tok-kw">return</span> actual_reader.getPos();</span>
+<span class="line" id="L95">                },</span>
+<span class="line" id="L96">                .file =&gt; {</span>
+<span class="line" id="L97">                    <span class="tok-kw">if</span> (self.buffered_reader.unbuffered_reader.context.getPos()) |position| {</span>
+<span class="line" id="L98">                        <span class="tok-kw">return</span> position - (self.buffered_reader.end - self.buffered_reader.start);</span>
+<span class="line" id="L99">                    } <span class="tok-kw">else</span> |err| {</span>
+<span class="line" id="L100">                        <span class="tok-kw">return</span> err;</span>
+<span class="line" id="L101">                    }</span>
+<span class="line" id="L102">                },</span>
+<span class="line" id="L103">            }</span>
+<span class="line" id="L104">        }</span>
+<span class="line" id="L105"></span>
+<span class="line" id="L106">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">reader</span>(self: *Self) Reader {</span>
+<span class="line" id="L107">            <span class="tok-kw">return</span> .{ .context = self };</span>
+<span class="line" id="L108">        }</span>
+<span class="line" id="L109"></span>
+<span class="line" id="L110">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">seekableStream</span>(self: *Self) SeekableStream {</span>
+<span class="line" id="L111">            <span class="tok-kw">return</span> .{ .context = self };</span>
+<span class="line" id="L112">        }</span>
+<span class="line" id="L113"></span>
+<span class="line" id="L114">        <span class="tok-kw">fn</span> <span class="tok-fn">resetBufferedReader</span>(self: *Self) <span class="tok-type">void</span> {</span>
+<span class="line" id="L115">            self.buffered_reader.start = <span class="tok-number">0</span>;</span>
+<span class="line" id="L116">            self.buffered_reader.end = <span class="tok-number">0</span>;</span>
+<span class="line" id="L117">        }</span>
+<span class="line" id="L118">    };</span>
+<span class="line" id="L119">}</span>
+<span class="line" id="L120"></span>
+<span class="line" id="L121"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">bufferedStreamSourceReader</span>(stream: *std.io.StreamSource) BufferedStreamSourceReader(DefaultBufferSize) {</span>
+<span class="line" id="L122">    <span class="tok-kw">return</span> .{ .buffered_reader = .{ .unbuffered_reader = stream.reader() } };</span>
+<span class="line" id="L123">}</span>
+<span class="line" id="L124"></span>
+<span class="line" id="L125"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">bufferedStreamSourceReaderWithSize</span>(<span class="tok-kw">comptime</span> buffer_size: <span class="tok-type">usize</span>, stream: *std.io.StreamSource) BufferedStreamSourceReader(buffer_size) {</span>
+<span class="line" id="L126">    <span class="tok-kw">return</span> .{ .buffered_reader = .{ .unbuffered_reader = stream.reader() } };</span>
+<span class="line" id="L127">}</span>
+<span class="line" id="L128"></span>
+<span class="line" id="L129"><span class="tok-comment">// An buffered stream that can writer and seek StreamSource</span>
 </span>
-<span class="line" id="L129"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">BufferedStreamSourceWriter</span>(<span class="tok-kw">comptime</span> BufferSize: <span class="tok-type">usize</span>) <span class="tok-type">type</span> {</span>
-<span class="line" id="L130">    <span class="tok-kw">return</span> <span class="tok-kw">struct</span> {</span>
-<span class="line" id="L131">        buffered_writer: std.io.BufferedWriter(BufferSize, std.io.StreamSource.Writer),</span>
-<span class="line" id="L132"></span>
-<span class="line" id="L133">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> WriteError = std.io.StreamSource.WriteError;</span>
-<span class="line" id="L134">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> SeekError = std.io.StreamSource.SeekError;</span>
-<span class="line" id="L135">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> GetSeekPosError = std.io.StreamSource.GetSeekPosError;</span>
-<span class="line" id="L136"></span>
-<span class="line" id="L137">        <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
-<span class="line" id="L138"></span>
-<span class="line" id="L139">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> Writer = std.io.Writer(*Self, WriteError, write);</span>
-<span class="line" id="L140">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> SeekableStream = std.io.SeekableStream(</span>
-<span class="line" id="L141">            *Self,</span>
-<span class="line" id="L142">            SeekError,</span>
-<span class="line" id="L143">            GetSeekPosError,</span>
-<span class="line" id="L144">            seekTo,</span>
-<span class="line" id="L145">            seekBy,</span>
-<span class="line" id="L146">            getPos,</span>
-<span class="line" id="L147">            getEndPos,</span>
-<span class="line" id="L148">        );</span>
-<span class="line" id="L149"></span>
-<span class="line" id="L150">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">write</span>(self: *Self, bytes: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) WriteError!<span class="tok-type">usize</span> {</span>
-<span class="line" id="L151">            <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (self.buffered_writer.unbuffered_writer.context.*) {</span>
-<span class="line" id="L152">                .buffer =&gt; |*actual_writer| actual_writer.write(bytes),</span>
-<span class="line" id="L153">                .const_buffer =&gt; <span class="tok-kw">error</span>.AccessDenied,</span>
-<span class="line" id="L154">                .file =&gt; self.buffered_writer.write(bytes),</span>
-<span class="line" id="L155">            };</span>
-<span class="line" id="L156">        }</span>
-<span class="line" id="L157"></span>
-<span class="line" id="L158">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">seekTo</span>(self: *Self, pos: <span class="tok-type">u64</span>) SeekError!<span class="tok-type">void</span> {</span>
-<span class="line" id="L159">            <span class="tok-kw">switch</span> (self.buffered_writer.unbuffered_writer.context.*) {</span>
-<span class="line" id="L160">                .buffer =&gt; |*actual_writer| {</span>
-<span class="line" id="L161">                    <span class="tok-kw">return</span> actual_writer.seekTo(pos);</span>
-<span class="line" id="L162">                },</span>
-<span class="line" id="L163">                .const_buffer =&gt; |*actual_writer| {</span>
-<span class="line" id="L164">                    <span class="tok-kw">return</span> actual_writer.seekTo(pos);</span>
-<span class="line" id="L165">                },</span>
-<span class="line" id="L166">                .file =&gt; {</span>
-<span class="line" id="L167">                    <span class="tok-kw">try</span> self.buffered_writer.flush();</span>
-<span class="line" id="L168">                    <span class="tok-kw">try</span> self.buffered_writer.buffered_writer.context.seekTo(pos);</span>
-<span class="line" id="L169">                },</span>
-<span class="line" id="L170">            }</span>
-<span class="line" id="L171">        }</span>
-<span class="line" id="L172"></span>
-<span class="line" id="L173">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">seekBy</span>(self: *Self, amt: <span class="tok-type">i64</span>) SeekError!<span class="tok-type">void</span> {</span>
-<span class="line" id="L174">            <span class="tok-kw">switch</span> (self.buffered_writer.unbuffered_writer.context.*) {</span>
-<span class="line" id="L175">                .buffer =&gt; |*actual_writer| {</span>
-<span class="line" id="L176">                    <span class="tok-kw">return</span> actual_writer.seekBy(amt);</span>
-<span class="line" id="L177">                },</span>
-<span class="line" id="L178">                .const_buffer =&gt; |*actual_writer| {</span>
-<span class="line" id="L179">                    <span class="tok-kw">return</span> actual_writer.seekBy(amt);</span>
-<span class="line" id="L180">                },</span>
-<span class="line" id="L181">                .file =&gt; {</span>
-<span class="line" id="L182">                    <span class="tok-kw">if</span> (amt &lt; <span class="tok-number">0</span>) {</span>
-<span class="line" id="L183">                        <span class="tok-kw">const</span> abs_amt = <span class="tok-builtin">@abs</span>(amt);</span>
-<span class="line" id="L184">                        <span class="tok-kw">if</span> (abs_amt &lt;= self.buffered_writer.end) {</span>
-<span class="line" id="L185">                            self.buffered_writer.end -= abs_amt;</span>
-<span class="line" id="L186">                        } <span class="tok-kw">else</span> {</span>
-<span class="line" id="L187">                            self.buffered_writer.flush() <span class="tok-kw">catch</span> {</span>
-<span class="line" id="L188">                                <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Unseekable;</span>
-<span class="line" id="L189">                            };</span>
-<span class="line" id="L190">                            <span class="tok-kw">try</span> self.buffered_writer.unbuffered_writer.context.seekBy(amt);</span>
-<span class="line" id="L191">                        }</span>
-<span class="line" id="L192">                    } <span class="tok-kw">else</span> {</span>
-<span class="line" id="L193">                        <span class="tok-kw">const</span> amt_usize: <span class="tok-type">usize</span> = <span class="tok-builtin">@intCast</span>(amt);</span>
-<span class="line" id="L194"></span>
-<span class="line" id="L195">                        <span class="tok-kw">if</span> (self.buffered_writer.end + amt_usize &lt; self.buffered_writer.buf.len) {</span>
-<span class="line" id="L196">                            self.buffered_writer.end += amt_usize;</span>
-<span class="line" id="L197">                        } <span class="tok-kw">else</span> {</span>
-<span class="line" id="L198">                            self.buffered_writer.flush() <span class="tok-kw">catch</span> {</span>
-<span class="line" id="L199">                                <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Unseekable;</span>
-<span class="line" id="L200">                            };</span>
-<span class="line" id="L201">                            <span class="tok-kw">try</span> self.buffered_writer.unbuffered_writer.context.seekBy(amt);</span>
-<span class="line" id="L202">                        }</span>
-<span class="line" id="L203">                    }</span>
-<span class="line" id="L204">                },</span>
-<span class="line" id="L205">            }</span>
-<span class="line" id="L206">        }</span>
-<span class="line" id="L207"></span>
-<span class="line" id="L208">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">getEndPos</span>(self: *Self) GetSeekPosError!<span class="tok-type">u64</span> {</span>
-<span class="line" id="L209">            <span class="tok-kw">return</span> self.buffered_writer.unbuffered_writer.context.getEndPos();</span>
-<span class="line" id="L210">        }</span>
-<span class="line" id="L211"></span>
-<span class="line" id="L212">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">getPos</span>(self: *Self) GetSeekPosError!<span class="tok-type">u64</span> {</span>
-<span class="line" id="L213">            <span class="tok-kw">switch</span> (self.buffered_writer.unbuffered_writer.context.*) {</span>
-<span class="line" id="L214">                .buffer =&gt; |*actual_writer| {</span>
-<span class="line" id="L215">                    <span class="tok-kw">return</span> actual_writer.getPos();</span>
-<span class="line" id="L216">                },</span>
-<span class="line" id="L217">                .const_buffer =&gt; |*actual_writer| {</span>
-<span class="line" id="L218">                    <span class="tok-kw">return</span> actual_writer.getPos();</span>
-<span class="line" id="L219">                },</span>
-<span class="line" id="L220">                .file =&gt; {</span>
-<span class="line" id="L221">                    <span class="tok-kw">if</span> (self.buffered_writer.unbuffered_writer.context.getPos()) |position| {</span>
-<span class="line" id="L222">                        <span class="tok-kw">return</span> position + self.buffered_writer.end;</span>
-<span class="line" id="L223">                    } <span class="tok-kw">else</span> |err| {</span>
-<span class="line" id="L224">                        <span class="tok-kw">return</span> err;</span>
-<span class="line" id="L225">                    }</span>
-<span class="line" id="L226">                },</span>
-<span class="line" id="L227">            }</span>
-<span class="line" id="L228">        }</span>
-<span class="line" id="L229"></span>
-<span class="line" id="L230">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">writer</span>(self: *Self) Writer {</span>
-<span class="line" id="L231">            <span class="tok-kw">return</span> .{ .context = self };</span>
-<span class="line" id="L232">        }</span>
-<span class="line" id="L233"></span>
-<span class="line" id="L234">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">seekableStream</span>(self: *Self) SeekableStream {</span>
-<span class="line" id="L235">            <span class="tok-kw">return</span> .{ .context = self };</span>
-<span class="line" id="L236">        }</span>
-<span class="line" id="L237"></span>
-<span class="line" id="L238">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">flush</span>(self: *Self) WriteError!<span class="tok-type">void</span> {</span>
-<span class="line" id="L239">            <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (self.buffered_writer.unbuffered_writer.context.*) {</span>
-<span class="line" id="L240">                .file =&gt; self.buffered_writer.flush(),</span>
-<span class="line" id="L241">                <span class="tok-kw">else</span> =&gt; {},</span>
-<span class="line" id="L242">            };</span>
-<span class="line" id="L243">        }</span>
-<span class="line" id="L244">    };</span>
-<span class="line" id="L245">}</span>
-<span class="line" id="L246"></span>
-<span class="line" id="L247"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">bufferedStreamSourceWriter</span>(stream: *std.io.StreamSource) BufferedStreamSourceWriter(DefaultBufferSize) {</span>
-<span class="line" id="L248">    <span class="tok-kw">return</span> .{ .buffered_writer = .{ .unbuffered_writer = stream.writer() } };</span>
-<span class="line" id="L249">}</span>
-<span class="line" id="L250"></span>
-<span class="line" id="L251"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">bufferedStreamSourceWriterWithSize</span>(<span class="tok-kw">comptime</span> buffer_size: <span class="tok-type">usize</span>, stream: *std.io.StreamSource) BufferedStreamSourceWriter(buffer_size) {</span>
-<span class="line" id="L252">    <span class="tok-kw">return</span> .{ .buffered_writer = .{ .unbuffered_writer = stream.writer() } };</span>
-<span class="line" id="L253">}</span>
-<span class="line" id="L254"></span>
+<span class="line" id="L130"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">BufferedStreamSourceWriter</span>(<span class="tok-kw">comptime</span> BufferSize: <span class="tok-type">usize</span>) <span class="tok-type">type</span> {</span>
+<span class="line" id="L131">    <span class="tok-kw">return</span> <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L132">        buffered_writer: std.io.BufferedWriter(BufferSize, std.io.StreamSource.Writer),</span>
+<span class="line" id="L133"></span>
+<span class="line" id="L134">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> WriteError = std.io.StreamSource.WriteError;</span>
+<span class="line" id="L135">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> SeekError = std.io.StreamSource.SeekError;</span>
+<span class="line" id="L136">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> GetSeekPosError = std.io.StreamSource.GetSeekPosError;</span>
+<span class="line" id="L137"></span>
+<span class="line" id="L138">        <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L139"></span>
+<span class="line" id="L140">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> Writer = std.io.Writer(*Self, WriteError, write);</span>
+<span class="line" id="L141">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> SeekableStream = std.io.SeekableStream(</span>
+<span class="line" id="L142">            *Self,</span>
+<span class="line" id="L143">            SeekError,</span>
+<span class="line" id="L144">            GetSeekPosError,</span>
+<span class="line" id="L145">            seekTo,</span>
+<span class="line" id="L146">            seekBy,</span>
+<span class="line" id="L147">            getPos,</span>
+<span class="line" id="L148">            getEndPos,</span>
+<span class="line" id="L149">        );</span>
+<span class="line" id="L150"></span>
+<span class="line" id="L151">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">write</span>(self: *Self, bytes: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) WriteError!<span class="tok-type">usize</span> {</span>
+<span class="line" id="L152">            <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (self.buffered_writer.unbuffered_writer.context.*) {</span>
+<span class="line" id="L153">                .buffer =&gt; |*actual_writer| actual_writer.write(bytes),</span>
+<span class="line" id="L154">                .const_buffer =&gt; <span class="tok-kw">error</span>.AccessDenied,</span>
+<span class="line" id="L155">                .file =&gt; self.buffered_writer.write(bytes),</span>
+<span class="line" id="L156">            };</span>
+<span class="line" id="L157">        }</span>
+<span class="line" id="L158"></span>
+<span class="line" id="L159">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">seekTo</span>(self: *Self, pos: <span class="tok-type">u64</span>) SeekError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L160">            <span class="tok-kw">switch</span> (self.buffered_writer.unbuffered_writer.context.*) {</span>
+<span class="line" id="L161">                .buffer =&gt; |*actual_writer| {</span>
+<span class="line" id="L162">                    <span class="tok-kw">return</span> actual_writer.seekTo(pos);</span>
+<span class="line" id="L163">                },</span>
+<span class="line" id="L164">                .const_buffer =&gt; |*actual_writer| {</span>
+<span class="line" id="L165">                    <span class="tok-kw">return</span> actual_writer.seekTo(pos);</span>
+<span class="line" id="L166">                },</span>
+<span class="line" id="L167">                .file =&gt; {</span>
+<span class="line" id="L168">                    <span class="tok-kw">try</span> self.buffered_writer.flush();</span>
+<span class="line" id="L169">                    <span class="tok-kw">try</span> self.buffered_writer.buffered_writer.context.seekTo(pos);</span>
+<span class="line" id="L170">                },</span>
+<span class="line" id="L171">            }</span>
+<span class="line" id="L172">        }</span>
+<span class="line" id="L173"></span>
+<span class="line" id="L174">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">seekBy</span>(self: *Self, amt: <span class="tok-type">i64</span>) SeekError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L175">            <span class="tok-kw">switch</span> (self.buffered_writer.unbuffered_writer.context.*) {</span>
+<span class="line" id="L176">                .buffer =&gt; |*actual_writer| {</span>
+<span class="line" id="L177">                    <span class="tok-kw">return</span> actual_writer.seekBy(amt);</span>
+<span class="line" id="L178">                },</span>
+<span class="line" id="L179">                .const_buffer =&gt; |*actual_writer| {</span>
+<span class="line" id="L180">                    <span class="tok-kw">return</span> actual_writer.seekBy(amt);</span>
+<span class="line" id="L181">                },</span>
+<span class="line" id="L182">                .file =&gt; {</span>
+<span class="line" id="L183">                    <span class="tok-kw">if</span> (amt &lt; <span class="tok-number">0</span>) {</span>
+<span class="line" id="L184">                        <span class="tok-kw">const</span> abs_amt = <span class="tok-builtin">@abs</span>(amt);</span>
+<span class="line" id="L185">                        <span class="tok-kw">if</span> (abs_amt &lt;= self.buffered_writer.end) {</span>
+<span class="line" id="L186">                            self.buffered_writer.end -= abs_amt;</span>
+<span class="line" id="L187">                        } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L188">                            self.buffered_writer.flush() <span class="tok-kw">catch</span> {</span>
+<span class="line" id="L189">                                <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Unseekable;</span>
+<span class="line" id="L190">                            };</span>
+<span class="line" id="L191">                            <span class="tok-kw">try</span> self.buffered_writer.unbuffered_writer.context.seekBy(amt);</span>
+<span class="line" id="L192">                        }</span>
+<span class="line" id="L193">                    } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L194">                        <span class="tok-kw">const</span> amt_usize: <span class="tok-type">usize</span> = <span class="tok-builtin">@intCast</span>(amt);</span>
+<span class="line" id="L195"></span>
+<span class="line" id="L196">                        <span class="tok-kw">if</span> (self.buffered_writer.end + amt_usize &lt; self.buffered_writer.buf.len) {</span>
+<span class="line" id="L197">                            self.buffered_writer.end += amt_usize;</span>
+<span class="line" id="L198">                        } <span class="tok-kw">else</span> {</span>
+<span class="line" id="L199">                            self.buffered_writer.flush() <span class="tok-kw">catch</span> {</span>
+<span class="line" id="L200">                                <span class="tok-kw">return</span> <span class="tok-kw">error</span>.Unseekable;</span>
+<span class="line" id="L201">                            };</span>
+<span class="line" id="L202">                            <span class="tok-kw">try</span> self.buffered_writer.unbuffered_writer.context.seekBy(amt);</span>
+<span class="line" id="L203">                        }</span>
+<span class="line" id="L204">                    }</span>
+<span class="line" id="L205">                },</span>
+<span class="line" id="L206">            }</span>
+<span class="line" id="L207">        }</span>
+<span class="line" id="L208"></span>
+<span class="line" id="L209">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">getEndPos</span>(self: *Self) GetSeekPosError!<span class="tok-type">u64</span> {</span>
+<span class="line" id="L210">            <span class="tok-kw">return</span> self.buffered_writer.unbuffered_writer.context.getEndPos();</span>
+<span class="line" id="L211">        }</span>
+<span class="line" id="L212"></span>
+<span class="line" id="L213">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">getPos</span>(self: *Self) GetSeekPosError!<span class="tok-type">u64</span> {</span>
+<span class="line" id="L214">            <span class="tok-kw">switch</span> (self.buffered_writer.unbuffered_writer.context.*) {</span>
+<span class="line" id="L215">                .buffer =&gt; |*actual_writer| {</span>
+<span class="line" id="L216">                    <span class="tok-kw">return</span> actual_writer.getPos();</span>
+<span class="line" id="L217">                },</span>
+<span class="line" id="L218">                .const_buffer =&gt; |*actual_writer| {</span>
+<span class="line" id="L219">                    <span class="tok-kw">return</span> actual_writer.getPos();</span>
+<span class="line" id="L220">                },</span>
+<span class="line" id="L221">                .file =&gt; {</span>
+<span class="line" id="L222">                    <span class="tok-kw">if</span> (self.buffered_writer.unbuffered_writer.context.getPos()) |position| {</span>
+<span class="line" id="L223">                        <span class="tok-kw">return</span> position + self.buffered_writer.end;</span>
+<span class="line" id="L224">                    } <span class="tok-kw">else</span> |err| {</span>
+<span class="line" id="L225">                        <span class="tok-kw">return</span> err;</span>
+<span class="line" id="L226">                    }</span>
+<span class="line" id="L227">                },</span>
+<span class="line" id="L228">            }</span>
+<span class="line" id="L229">        }</span>
+<span class="line" id="L230"></span>
+<span class="line" id="L231">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">writer</span>(self: *Self) Writer {</span>
+<span class="line" id="L232">            <span class="tok-kw">return</span> .{ .context = self };</span>
+<span class="line" id="L233">        }</span>
+<span class="line" id="L234"></span>
+<span class="line" id="L235">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">seekableStream</span>(self: *Self) SeekableStream {</span>
+<span class="line" id="L236">            <span class="tok-kw">return</span> .{ .context = self };</span>
+<span class="line" id="L237">        }</span>
+<span class="line" id="L238"></span>
+<span class="line" id="L239">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">flush</span>(self: *Self) WriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L240">            <span class="tok-kw">return</span> <span class="tok-kw">switch</span> (self.buffered_writer.unbuffered_writer.context.*) {</span>
+<span class="line" id="L241">                .file =&gt; self.buffered_writer.flush(),</span>
+<span class="line" id="L242">                <span class="tok-kw">else</span> =&gt; {},</span>
+<span class="line" id="L243">            };</span>
+<span class="line" id="L244">        }</span>
+<span class="line" id="L245">    };</span>
+<span class="line" id="L246">}</span>
+<span class="line" id="L247"></span>
+<span class="line" id="L248"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">bufferedStreamSourceWriter</span>(stream: *std.io.StreamSource) BufferedStreamSourceWriter(DefaultBufferSize) {</span>
+<span class="line" id="L249">    <span class="tok-kw">return</span> .{ .buffered_writer = .{ .unbuffered_writer = stream.writer() } };</span>
+<span class="line" id="L250">}</span>
+<span class="line" id="L251"></span>
+<span class="line" id="L252"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">bufferedStreamSourceWriterWithSize</span>(<span class="tok-kw">comptime</span> buffer_size: <span class="tok-type">usize</span>, stream: *std.io.StreamSource) BufferedStreamSourceWriter(buffer_size) {</span>
+<span class="line" id="L253">    <span class="tok-kw">return</span> .{ .buffered_writer = .{ .unbuffered_writer = stream.writer() } };</span>
+<span class="line" id="L254">}</span>
+<span class="line" id="L255"></span>
 </code></pre></body>
 </html>

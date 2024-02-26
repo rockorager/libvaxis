@@ -160,7 +160,7 @@
 <span class="line" id="L46">            .specified =&gt; |f| f,</span>
 <span class="line" id="L47">        };</span>
 <span class="line" id="L48"></span>
-<span class="line" id="L49">        <span class="tok-kw">try</span> writer.writeByte(<span class="tok-builtin">@intFromEnum</span>(filter_type));</span>
+<span class="line" id="L49">        writer.writeByte(<span class="tok-builtin">@intFromEnum</span>(filter_type)) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Image.WriteError.InvalidData;</span>
 <span class="line" id="L50"></span>
 <span class="line" id="L51">        <span class="tok-kw">for</span> (<span class="tok-number">0</span>..scanline.asBytes().len) |byte_index| {</span>
 <span class="line" id="L52">            <span class="tok-kw">const</span> i = <span class="tok-kw">if</span> (builtin.target.cpu.arch.endian() == .little) pixelByteSwappedIndex(scanline, byte_index) <span class="tok-kw">else</span> byte_index;</span>
@@ -178,7 +178,7 @@
 <span class="line" id="L64">                .paeth =&gt; sample -% paeth(previous, above, above_previous),</span>
 <span class="line" id="L65">            };</span>
 <span class="line" id="L66"></span>
-<span class="line" id="L67">            <span class="tok-kw">try</span> writer.writeByte(byte);</span>
+<span class="line" id="L67">            writer.writeByte(byte) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> Image.WriteError.InvalidData;</span>
 <span class="line" id="L68">        }</span>
 <span class="line" id="L69">        previous_scanline = scanline;</span>
 <span class="line" id="L70">    }</span>

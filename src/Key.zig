@@ -3,6 +3,7 @@ const testing = std.testing;
 
 const Key = @This();
 
+/// Modifier Keys for a Key Match Event.
 pub const Modifiers = packed struct(u8) {
     shift: bool = false,
     alt: bool = false,
@@ -14,6 +15,7 @@ pub const Modifiers = packed struct(u8) {
     num_lock: bool = false,
 };
 
+/// Flags for the Kitty Protocol.
 pub const KittyFlags = packed struct(u5) {
     disambiguate: bool = true,
     report_events: bool = false,
@@ -61,7 +63,7 @@ pub fn matches(self: Key, cp: u21, mods: Modifiers) bool {
     return false;
 }
 
-// matches against any of the provided codepoints.
+/// matches against any of the provided codepoints.
 pub fn matchesAny(self: Key, cps: []const u21, mods: Modifiers) bool {
     for (cps) |cp| {
         if (self.matches(cp, mods)) return true;
@@ -69,16 +71,16 @@ pub fn matchesAny(self: Key, cps: []const u21, mods: Modifiers) bool {
     return false;
 }
 
-// matches base layout codes, useful for shortcut matching when an alternate key
-// layout is used
+/// matches base layout codes, useful for shortcut matching when an alternate key
+/// layout is used
 pub fn matchShortcut(self: Key, cp: u21, mods: Modifiers) bool {
     if (self.base_layout_codepoint == null) return false;
     return cp == self.base_layout_codepoint.? and std.meta.eql(self.mods, mods);
 }
 
-// matches keys that aren't upper case versions when shifted. For example, shift
-// + semicolon produces a colon. The key can be matched against shift +
-// semicolon or just colon...or shift + ctrl + ; or just ctrl + :
+/// matches keys that aren't upper case versions when shifted. For example, shift
+/// + semicolon produces a colon. The key can be matched against shift +
+/// semicolon or just colon...or shift + ctrl + ; or just ctrl + :
 pub fn matchShiftedCodepoint(self: Key, cp: u21, mods: Modifiers) bool {
     if (self.shifted_codepoint == null) return false;
     if (!self.mods.shift) return false;
@@ -92,8 +94,8 @@ pub fn matchShiftedCodepoint(self: Key, cp: u21, mods: Modifiers) bool {
     return cp == self.shifted_codepoint.? and std.meta.eql(self_mods, mods);
 }
 
-// matches when the utf8 encoding of the codepoint and relevant mods matches the
-// text of the key. This function will consume Shift and Caps Lock when matching
+/// matches when the utf8 encoding of the codepoint and relevant mods matches the
+/// text of the key. This function will consume Shift and Caps Lock when matching
 pub fn matchText(self: Key, cp: u21, mods: Modifiers) bool {
     // return early if we have no text
     if (self.text == null) return false;
@@ -147,8 +149,8 @@ pub const space: u21 = 0x20;
 pub const enter: u21 = 0x6D;
 pub const backspace: u21 = 0x7F;
 
-// multicodepoint is a key which generated text but cannot be expressed as a
-// single codepoint. The value is the maximum unicode codepoint + 1
+/// multicodepoint is a key which generated text but cannot be expressed as a
+/// single codepoint. The value is the maximum unicode codepoint + 1
 pub const multicodepoint: u21 = 1_114_112 + 1;
 
 // kitty encodes these keys directly in the private use area. We reuse those

@@ -12,7 +12,6 @@ const log = std.log.scoped(.tty);
 const Tty = @This();
 
 const Writer = std.io.Writer(posix.fd_t, posix.WriteError, posix.write);
-
 const BufferedWriter = std.io.BufferedWriter(4096, Writer);
 
 /// the original state of the terminal, prior to calling makeRaw

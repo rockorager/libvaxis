@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Tty.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L2"><span class="tok-kw">const</span> builtin = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;builtin&quot;</span>);</span>
+<span class="line" id="L3"><span class="tok-kw">const</span> os = std.os;</span>
+<span class="line" id="L4"></span>
+<span class="line" id="L5"><span class="tok-kw">const</span> BufferedWriter = std.io.BufferedWriter(<span class="tok-number">4096</span>, Writer);</span>
+<span class="line" id="L6"><span class="tok-kw">const</span> Writer = std.io.Writer(os.fd_t, os.WriteError, os.write);</span>
+<span class="line" id="L7"></span>
+<span class="line" id="L8"><span class="tok-kw">const</span> Vaxis = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;vaxis.zig&quot;</span>).Vaxis;</span>
+<span class="line" id="L9"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> Parser = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;Parser.zig&quot;</span>);</span>
+<span class="line" id="L10"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> GraphemeCache = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;GraphemeCache.zig&quot;</span>);</span>
+<span class="line" id="L11"></span>
+<span class="line" id="L12"><span class="tok-kw">const</span> log = std.log.scoped(.tty);</span>
+<span class="line" id="L13"></span>
+<span class="line" id="L14"><span class="tok-kw">const</span> Tty = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L15"></span>
+<span class="line" id="L16"></span>
+<span class="line" id="L17"><span class="tok-comment">/// the original state of the terminal, prior to calling makeRaw</span></span>
+<span class="line" id="L18">termios: os.termios,</span>
+<span class="line" id="L19"></span>
+<span class="line" id="L20"><span class="tok-comment">/// The file descriptor we are using for I/O</span></span>
+<span class="line" id="L21">fd: os.fd_t,</span>
+<span class="line" id="L22"></span>
+<span class="line" id="L23"><span class="tok-comment">/// the write end of a pipe to signal the tty should exit it's run loop</span></span>
+<span class="line" id="L24">quit_fd: ?os.fd_t = <span class="tok-null">null</span>,</span>
+<span class="line" id="L25"></span>
+<span class="line" id="L26">buffered_writer: BufferedWriter,</span>
+<span class="line" id="L27"></span>
+<span class="line" id="L28"><span class="tok-comment">/// initializes a Tty instance by opening /dev/tty and &quot;making it raw&quot;</span></span>
+<span class="line" id="L29"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">init</span>() !Tty {</span>
+<span class="line" id="L30">    <span class="tok-comment">// Open our tty</span>
+</span>
+<span class="line" id="L31">    <span class="tok-kw">const</span> fd = <span class="tok-kw">try</span> os.open(<span class="tok-str">&quot;/dev/tty&quot;</span>, .{ .ACCMODE = .RDWR }, <span class="tok-number">0</span>);</span>
+<span class="line" id="L32"></span>
+<span class="line" id="L33">    <span class="tok-comment">// Set the termios of the tty</span>
+</span>
+<span class="line" id="L34">    <span class="tok-kw">const</span> termios = <span class="tok-kw">try</span> makeRaw(fd);</span>
+<span class="line" id="L35"></span>
+<span class="line" id="L36">    <span class="tok-kw">return</span> Tty{</span>
+<span class="line" id="L37">        .fd = fd,</span>
+<span class="line" id="L38">        .termios = termios,</span>
+<span class="line" id="L39">        .buffered_writer = std.io.bufferedWriter(Writer{ .context = fd }),</span>
+<span class="line" id="L40">    };</span>
+<span class="line" id="L41">}</span>
+<span class="line" id="L42"></span>
+<span class="line" id="L43"><span class="tok-comment">/// release resources associated with the Tty return it to it's original state</span></span>
+<span class="line" id="L44"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">deinit</span>(self: *Tty) <span class="tok-type">void</span> {</span>
+<span class="line" id="L45">    os.tcsetattr(self.fd, .FLUSH, self.termios) <span class="tok-kw">catch</span> |err| {</span>
+<span class="line" id="L46">        log.err(<span class="tok-str">&quot;couldn't restore terminal: {}&quot;</span>, .{err});</span>
+<span class="line" id="L47">    };</span>
+<span class="line" id="L48">    os.close(self.fd);</span>
+<span class="line" id="L49">}</span>
+<span class="line" id="L50"></span>
+<span class="line" id="L51"><span class="tok-comment">/// stops the run loop</span></span>
+<span class="line" id="L52"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">stop</span>(self: *Tty) <span class="tok-type">void</span> {</span>
+<span class="line" id="L53">    <span class="tok-kw">if</span> (self.quit_fd) |fd| {</span>
+<span class="line" id="L54">        _ = std.os.write(fd, <span class="tok-str">&quot;q&quot;</span>) <span class="tok-kw">catch</span> {};</span>
+<span class="line" id="L55">    }</span>
+<span class="line" id="L56">}</span>
+<span class="line" id="L57"></span>
+<span class="line" id="L58"><span class="tok-comment">/// read input from the tty</span></span>
+<span class="line" id="L59"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">run</span>(</span>
+<span class="line" id="L60">    self: *Tty,</span>
+<span class="line" id="L61">    <span class="tok-kw">comptime</span> Event: <span class="tok-type">type</span>,</span>
+<span class="line" id="L62">    vx: *Vaxis(Event),</span>
+<span class="line" id="L63">) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L64">    <span class="tok-comment">// create a pipe so we can signal to exit the run loop</span>
+</span>
+<span class="line" id="L65">    <span class="tok-kw">const</span> pipe = <span class="tok-kw">try</span> os.pipe();</span>
+<span class="line" id="L66">    <span class="tok-kw">defer</span> os.close(pipe[<span class="tok-number">0</span>]);</span>
+<span class="line" id="L67">    <span class="tok-kw">defer</span> os.close(pipe[<span class="tok-number">1</span>]);</span>
+<span class="line" id="L68"></span>
+<span class="line" id="L69">    <span class="tok-comment">// get our initial winsize</span>
+</span>
+<span class="line" id="L70">    <span class="tok-kw">const</span> winsize = <span class="tok-kw">try</span> getWinsize(self.fd);</span>
+<span class="line" id="L71">    <span class="tok-kw">if</span> (<span class="tok-builtin">@hasField</span>(Event, <span class="tok-str">&quot;winsize&quot;</span>)) {</span>
+<span class="line" id="L72">        vx.postEvent(.{ .winsize = winsize });</span>
+<span class="line" id="L73">    }</span>
+<span class="line" id="L74"></span>
+<span class="line" id="L75">    <span class="tok-comment">// assign the write end of the pipe to our quit_fd</span>
+</span>
+<span class="line" id="L76">    self.quit_fd = pipe[<span class="tok-number">1</span>];</span>
+<span class="line" id="L77"></span>
+<span class="line" id="L78">    <span class="tok-comment">// Build a winch handler. We need build this struct to get an anonymous</span>
+</span>
+<span class="line" id="L79">    <span class="tok-comment">// function which can post the winsize event</span>
+</span>
+<span class="line" id="L80">    <span class="tok-comment">// TODO: more signals, move this outside of this function?</span>
+</span>
+<span class="line" id="L81">    <span class="tok-kw">const</span> WinchHandler = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L82">        <span class="tok-kw">const</span> Self = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L83"></span>
+<span class="line" id="L84">        <span class="tok-kw">var</span> vx_winch: *Vaxis(Event) = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L85">        <span class="tok-kw">var</span> fd: os.fd_t = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L86"></span>
+<span class="line" id="L87">        <span class="tok-kw">fn</span> <span class="tok-fn">init</span>(vx_arg: *Vaxis(Event), fd_arg: os.fd_t) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L88">            vx_winch = vx_arg;</span>
+<span class="line" id="L89">            fd = fd_arg;</span>
+<span class="line" id="L90">            <span class="tok-kw">var</span> act = os.Sigaction{</span>
+<span class="line" id="L91">                .handler = .{ .handler = Self.handleWinch },</span>
+<span class="line" id="L92">                .mask = <span class="tok-kw">switch</span> (builtin.os.tag) {</span>
+<span class="line" id="L93">                    .macos =&gt; <span class="tok-number">0</span>,</span>
+<span class="line" id="L94">                    .linux =&gt; std.os.empty_sigset,</span>
+<span class="line" id="L95">                    <span class="tok-kw">else</span> =&gt; <span class="tok-builtin">@compileError</span>(<span class="tok-str">&quot;os not supported&quot;</span>),</span>
+<span class="line" id="L96">                },</span>
+<span class="line" id="L97">                .flags = <span class="tok-number">0</span>,</span>
+<span class="line" id="L98">            };</span>
+<span class="line" id="L99"></span>
+<span class="line" id="L100">            <span class="tok-kw">try</span> os.sigaction(os.SIG.WINCH, &amp;act, <span class="tok-null">null</span>);</span>
+<span class="line" id="L101">        }</span>
+<span class="line" id="L102"></span>
+<span class="line" id="L103">        <span class="tok-kw">fn</span> <span class="tok-fn">handleWinch</span>(_: <span class="tok-type">c_int</span>) <span class="tok-kw">callconv</span>(.C) <span class="tok-type">void</span> {</span>
+<span class="line" id="L104">            <span class="tok-kw">const</span> ws = getWinsize(fd) <span class="tok-kw">catch</span> {</span>
+<span class="line" id="L105">                <span class="tok-kw">return</span>;</span>
+<span class="line" id="L106">            };</span>
+<span class="line" id="L107">            <span class="tok-kw">if</span> (<span class="tok-builtin">@hasField</span>(Event, <span class="tok-str">&quot;winsize&quot;</span>)) {</span>
+<span class="line" id="L108">                vx_winch.postEvent(.{ .winsize = ws });</span>
+<span class="line" id="L109">            }</span>
+<span class="line" id="L110">        }</span>
+<span class="line" id="L111">    };</span>
+<span class="line" id="L112">    <span class="tok-kw">try</span> WinchHandler.init(vx, self.fd);</span>
+<span class="line" id="L113"></span>
+<span class="line" id="L114">    <span class="tok-comment">// initialize a grapheme cache</span>
+</span>
+<span class="line" id="L115">    <span class="tok-kw">var</span> cache: GraphemeCache = .{};</span>
+<span class="line" id="L116"></span>
+<span class="line" id="L117">    <span class="tok-comment">// Set up fds for polling</span>
+</span>
+<span class="line" id="L118">    <span class="tok-kw">var</span> pollfds: [<span class="tok-number">2</span>]std.os.pollfd = .{</span>
+<span class="line" id="L119">        .{ .fd = self.fd, .events = std.os.POLL.IN, .revents = <span class="tok-null">undefined</span> },</span>
+<span class="line" id="L120">        .{ .fd = pipe[<span class="tok-number">0</span>], .events = std.os.POLL.IN, .revents = <span class="tok-null">undefined</span> },</span>
+<span class="line" id="L121">    };</span>
+<span class="line" id="L122"></span>
+<span class="line" id="L123">    <span class="tok-kw">var</span> parser: Parser = .{};</span>
+<span class="line" id="L124"></span>
+<span class="line" id="L125">    <span class="tok-comment">// initialize the read buffer</span>
+</span>
+<span class="line" id="L126">    <span class="tok-kw">var</span> buf: [<span class="tok-number">1024</span>]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L127">    <span class="tok-comment">// read loop</span>
+</span>
+<span class="line" id="L128">    <span class="tok-kw">while</span> (<span class="tok-null">true</span>) {</span>
+<span class="line" id="L129">        _ = <span class="tok-kw">try</span> std.os.poll(&amp;pollfds, -<span class="tok-number">1</span>);</span>
+<span class="line" id="L130">        <span class="tok-kw">if</span> (pollfds[<span class="tok-number">1</span>].revents &amp; std.os.POLL.IN != <span class="tok-number">0</span>) {</span>
+<span class="line" id="L131">            log.info(<span class="tok-str">&quot;quitting read thread&quot;</span>, .{});</span>
+<span class="line" id="L132">            <span class="tok-kw">return</span>;</span>
+<span class="line" id="L133">        }</span>
+<span class="line" id="L134"></span>
+<span class="line" id="L135">        <span class="tok-kw">const</span> n = <span class="tok-kw">try</span> os.read(self.fd, &amp;buf);</span>
+<span class="line" id="L136">        <span class="tok-kw">var</span> start: <span class="tok-type">usize</span> = <span class="tok-number">0</span>;</span>
+<span class="line" id="L137">        <span class="tok-kw">while</span> (start &lt; n) {</span>
+<span class="line" id="L138">            <span class="tok-kw">const</span> result = <span class="tok-kw">try</span> parser.parse(buf[start..n]);</span>
+<span class="line" id="L139">            start += result.n;</span>
+<span class="line" id="L140">            <span class="tok-comment">// TODO: if we get 0 byte read, copy the remaining bytes to the</span>
+</span>
+<span class="line" id="L141">            <span class="tok-comment">// beginning of the buffer and read mmore? this should only happen</span>
+</span>
+<span class="line" id="L142">            <span class="tok-comment">// if we are in the middle of a grapheme at and filled our</span>
+</span>
+<span class="line" id="L143">            <span class="tok-comment">// buffer. Probably can happen on large pastes so needs to be</span>
+</span>
+<span class="line" id="L144">            <span class="tok-comment">// implemented but low priority</span>
+</span>
+<span class="line" id="L145"></span>
+<span class="line" id="L146">            <span class="tok-kw">const</span> event = result.event <span class="tok-kw">orelse</span> <span class="tok-kw">continue</span>;</span>
+<span class="line" id="L147">            <span class="tok-kw">switch</span> (event) {</span>
+<span class="line" id="L148">                .key_press =&gt; |key| {</span>
+<span class="line" id="L149">                    <span class="tok-kw">if</span> (<span class="tok-builtin">@hasField</span>(Event, <span class="tok-str">&quot;key_press&quot;</span>)) {</span>
+<span class="line" id="L150">                        <span class="tok-comment">// HACK: yuck. there has to be a better way</span>
+</span>
+<span class="line" id="L151">                        <span class="tok-kw">var</span> mut_key = key;</span>
+<span class="line" id="L152">                        <span class="tok-kw">if</span> (key.text) |text| {</span>
+<span class="line" id="L153">                            mut_key.text = cache.put(text);</span>
+<span class="line" id="L154">                        }</span>
+<span class="line" id="L155">                        vx.postEvent(.{ .key_press = mut_key });</span>
+<span class="line" id="L156">                    }</span>
+<span class="line" id="L157">                },</span>
+<span class="line" id="L158">                .mouse =&gt; |mouse| {</span>
+<span class="line" id="L159">                    <span class="tok-kw">if</span> (<span class="tok-builtin">@hasField</span>(Event, <span class="tok-str">&quot;mouse&quot;</span>)) {</span>
+<span class="line" id="L160">                        vx.postEvent(.{ .mouse = mouse });</span>
+<span class="line" id="L161">                    }</span>
+<span class="line" id="L162">                },</span>
+<span class="line" id="L163">                .focus_in =&gt; {</span>
+<span class="line" id="L164">                    <span class="tok-kw">if</span> (<span class="tok-builtin">@hasField</span>(Event, <span class="tok-str">&quot;focus_in&quot;</span>)) {</span>
+<span class="line" id="L165">                        vx.postEvent(.focus_in);</span>
+<span class="line" id="L166">                    }</span>
+<span class="line" id="L167">                },</span>
+<span class="line" id="L168">                .focus_out =&gt; {</span>
+<span class="line" id="L169">                    <span class="tok-kw">if</span> (<span class="tok-builtin">@hasField</span>(Event, <span class="tok-str">&quot;focus_out&quot;</span>)) {</span>
+<span class="line" id="L170">                        vx.postEvent(.focus_out);</span>
+<span class="line" id="L171">                    }</span>
+<span class="line" id="L172">                },</span>
+<span class="line" id="L173">                .paste_start =&gt; {</span>
+<span class="line" id="L174">                    <span class="tok-kw">if</span> (<span class="tok-builtin">@hasField</span>(Event, <span class="tok-str">&quot;paste_start&quot;</span>)) {</span>
+<span class="line" id="L175">                        vx.postEvent(.paste_start);</span>
+<span class="line" id="L176">                    }</span>
+<span class="line" id="L177">                },</span>
+<span class="line" id="L178">                .paste_end =&gt; {</span>
+<span class="line" id="L179">                    <span class="tok-kw">if</span> (<span class="tok-builtin">@hasField</span>(Event, <span class="tok-str">&quot;paste_end&quot;</span>)) {</span>
+<span class="line" id="L180">                        vx.postEvent(.paste_end);</span>
+<span class="line" id="L181">                    }</span>
+<span class="line" id="L182">                },</span>
+<span class="line" id="L183">                .cap_kitty_keyboard =&gt; {</span>
+<span class="line" id="L184">                    log.info(<span class="tok-str">&quot;kitty keyboard capability detected&quot;</span>, .{});</span>
+<span class="line" id="L185">                    vx.caps.kitty_keyboard = <span class="tok-null">true</span>;</span>
+<span class="line" id="L186">                },</span>
+<span class="line" id="L187">                .cap_kitty_graphics =&gt; {</span>
+<span class="line" id="L188">                    <span class="tok-kw">if</span> (!vx.caps.kitty_graphics) {</span>
+<span class="line" id="L189">                        log.info(<span class="tok-str">&quot;kitty graphics capability detected&quot;</span>, .{});</span>
+<span class="line" id="L190">                        vx.caps.kitty_graphics = <span class="tok-null">true</span>;</span>
+<span class="line" id="L191">                    }</span>
+<span class="line" id="L192">                },</span>
+<span class="line" id="L193">                .cap_rgb =&gt; {</span>
+<span class="line" id="L194">                    log.info(<span class="tok-str">&quot;rgb capability detected&quot;</span>, .{});</span>
+<span class="line" id="L195">                    vx.caps.rgb = <span class="tok-null">true</span>;</span>
+<span class="line" id="L196">                },</span>
+<span class="line" id="L197">                .cap_unicode =&gt; {</span>
+<span class="line" id="L198">                    log.info(<span class="tok-str">&quot;unicode capability detected&quot;</span>, .{});</span>
+<span class="line" id="L199">                    vx.caps.unicode = <span class="tok-null">true</span>;</span>
+<span class="line" id="L200">                    vx.screen.unicode = <span class="tok-null">true</span>;</span>
+<span class="line" id="L201">                },</span>
+<span class="line" id="L202">                .cap_da1 =&gt; {</span>
+<span class="line" id="L203">                    std.Thread.Futex.wake(&amp;vx.query_futex, <span class="tok-number">10</span>);</span>
+<span class="line" id="L204">                },</span>
+<span class="line" id="L205">            }</span>
+<span class="line" id="L206">        }</span>
+<span class="line" id="L207">    }</span>
+<span class="line" id="L208">}</span>
+<span class="line" id="L209"></span>
+<span class="line" id="L210"><span class="tok-comment">/// write to the tty. These writes are buffered and require calling flush to</span></span>
+<span class="line" id="L211"><span class="tok-comment">/// flush writes to the tty</span></span>
+<span class="line" id="L212"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">write</span>(self: *Tty, bytes: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>) !<span class="tok-type">usize</span> {</span>
+<span class="line" id="L213">    <span class="tok-kw">return</span> self.buffered_writer.write(bytes);</span>
+<span class="line" id="L214">}</span>
+<span class="line" id="L215"></span>
+<span class="line" id="L216"><span class="tok-comment">/// flushes the write buffer to the tty</span></span>
+<span class="line" id="L217"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">flush</span>(self: *Tty) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L218">    <span class="tok-kw">try</span> self.buffered_writer.flush();</span>
+<span class="line" id="L219">}</span>
+<span class="line" id="L220"></span>
+<span class="line" id="L221"><span class="tok-comment">/// makeRaw enters the raw state for the terminal.</span></span>
+<span class="line" id="L222"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">makeRaw</span>(fd: os.fd_t) !os.termios {</span>
+<span class="line" id="L223">    <span class="tok-kw">const</span> state = <span class="tok-kw">try</span> os.tcgetattr(fd);</span>
+<span class="line" id="L224">    <span class="tok-kw">var</span> raw = state;</span>
+<span class="line" id="L225">    <span class="tok-comment">// see termios(3)</span>
+</span>
+<span class="line" id="L226">    raw.iflag.IGNBRK = <span class="tok-null">false</span>;</span>
+<span class="line" id="L227">    raw.iflag.BRKINT = <span class="tok-null">false</span>;</span>
+<span class="line" id="L228">    raw.iflag.ISTRIP = <span class="tok-null">false</span>;</span>
+<span class="line" id="L229">    raw.iflag.INLCR = <span class="tok-null">false</span>;</span>
+<span class="line" id="L230">    raw.iflag.IGNCR = <span class="tok-null">false</span>;</span>
+<span class="line" id="L231">    raw.iflag.ICRNL = <span class="tok-null">false</span>;</span>
+<span class="line" id="L232">    raw.iflag.IXON = <span class="tok-null">false</span>;</span>
+<span class="line" id="L233"></span>
+<span class="line" id="L234">    raw.oflag.OPOST = <span class="tok-null">false</span>;</span>
+<span class="line" id="L235"></span>
+<span class="line" id="L236">    raw.lflag.ECHO = <span class="tok-null">false</span>;</span>
+<span class="line" id="L237">    raw.lflag.ECHONL = <span class="tok-null">false</span>;</span>
+<span class="line" id="L238">    raw.lflag.ICANON = <span class="tok-null">false</span>;</span>
+<span class="line" id="L239">    raw.lflag.IEXTEN = <span class="tok-null">false</span>;</span>
+<span class="line" id="L240"></span>
+<span class="line" id="L241">    raw.cflag.CSIZE = .CS8;</span>
+<span class="line" id="L242">    raw.cflag.PARENB = <span class="tok-null">false</span>;</span>
+<span class="line" id="L243"></span>
+<span class="line" id="L244">    raw.cc[<span class="tok-builtin">@intFromEnum</span>(std.posix.V.MIN)] = <span class="tok-number">1</span>;</span>
+<span class="line" id="L245">    raw.cc[<span class="tok-builtin">@intFromEnum</span>(std.posix.V.TIME)] = <span class="tok-number">0</span>;</span>
+<span class="line" id="L246">    <span class="tok-kw">try</span> os.tcsetattr(fd, .FLUSH, raw);</span>
+<span class="line" id="L247">    <span class="tok-kw">return</span> state;</span>
+<span class="line" id="L248">}</span>
+<span class="line" id="L249"></span>
+<span class="line" id="L250"><span class="tok-comment">/// The size of the terminal screen</span></span>
+<span class="line" id="L251"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> Winsize = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L252">    rows: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L253">    cols: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L254">    x_pixel: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L255">    y_pixel: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L256">};</span>
+<span class="line" id="L257"></span>
+<span class="line" id="L258"><span class="tok-kw">fn</span> <span class="tok-fn">getWinsize</span>(fd: os.fd_t) !Winsize {</span>
+<span class="line" id="L259">    <span class="tok-kw">var</span> winsize = os.winsize{</span>
+<span class="line" id="L260">        .ws_row = <span class="tok-number">0</span>,</span>
+<span class="line" id="L261">        .ws_col = <span class="tok-number">0</span>,</span>
+<span class="line" id="L262">        .ws_xpixel = <span class="tok-number">0</span>,</span>
+<span class="line" id="L263">        .ws_ypixel = <span class="tok-number">0</span>,</span>
+<span class="line" id="L264">    };</span>
+<span class="line" id="L265"></span>
+<span class="line" id="L266">    <span class="tok-kw">const</span> err = os.system.ioctl(fd, os.T.IOCGWINSZ, <span class="tok-builtin">@intFromPtr</span>(&amp;winsize));</span>
+<span class="line" id="L267">    <span class="tok-kw">if</span> (os.errno(err) == .SUCCESS)</span>
+<span class="line" id="L268">        <span class="tok-kw">return</span> Winsize{</span>
+<span class="line" id="L269">            .rows = winsize.ws_row,</span>
+<span class="line" id="L270">            .cols = winsize.ws_col,</span>
+<span class="line" id="L271">            .x_pixel = winsize.ws_xpixel,</span>
+<span class="line" id="L272">            .y_pixel = winsize.ws_ypixel,</span>
+<span class="line" id="L273">        };</span>
+<span class="line" id="L274">    <span class="tok-kw">return</span> <span class="tok-kw">error</span>.IoctlError;</span>
+<span class="line" id="L275">}</span>
+<span class="line" id="L276"></span>
+</code></pre></body>
+</html>

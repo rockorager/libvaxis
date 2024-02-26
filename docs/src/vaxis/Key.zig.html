@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Key.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L2"><span class="tok-kw">const</span> testing = std.testing;</span>
+<span class="line" id="L3"></span>
+<span class="line" id="L4"><span class="tok-kw">const</span> ziglyph = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;ziglyph&quot;</span>);</span>
+<span class="line" id="L5"></span>
+<span class="line" id="L6"><span class="tok-kw">const</span> Key = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L7"></span>
+<span class="line" id="L8"><span class="tok-comment">/// Modifier Keys for a Key Match Event.</span></span>
+<span class="line" id="L9"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> Modifiers = <span class="tok-kw">packed</span> <span class="tok-kw">struct</span>(<span class="tok-type">u8</span>) {</span>
+<span class="line" id="L10">    shift: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L11">    alt: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L12">    ctrl: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L13">    super: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L14">    hyper: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L15">    meta: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L16">    caps_lock: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L17">    num_lock: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L18">};</span>
+<span class="line" id="L19"></span>
+<span class="line" id="L20"><span class="tok-comment">/// Flags for the Kitty Protocol.</span></span>
+<span class="line" id="L21"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> KittyFlags = <span class="tok-kw">packed</span> <span class="tok-kw">struct</span>(<span class="tok-type">u5</span>) {</span>
+<span class="line" id="L22">    disambiguate: <span class="tok-type">bool</span> = <span class="tok-null">true</span>,</span>
+<span class="line" id="L23">    report_events: <span class="tok-type">bool</span> = <span class="tok-null">false</span>,</span>
+<span class="line" id="L24">    report_alternate_keys: <span class="tok-type">bool</span> = <span class="tok-null">true</span>,</span>
+<span class="line" id="L25">    report_all_as_ctl_seqs: <span class="tok-type">bool</span> = <span class="tok-null">true</span>,</span>
+<span class="line" id="L26">    report_text: <span class="tok-type">bool</span> = <span class="tok-null">true</span>,</span>
+<span class="line" id="L27">};</span>
+<span class="line" id="L28"></span>
+<span class="line" id="L29"><span class="tok-comment">/// the unicode codepoint of the key event.</span></span>
+<span class="line" id="L30">codepoint: <span class="tok-type">u21</span>,</span>
+<span class="line" id="L31"></span>
+<span class="line" id="L32"><span class="tok-comment">/// the text generated from the key event. The underlying slice has a limited</span></span>
+<span class="line" id="L33"><span class="tok-comment">/// lifetime. Vaxis maintains an internal ring buffer to temporarily store text.</span></span>
+<span class="line" id="L34"><span class="tok-comment">/// If the application needs these values longer than the lifetime of the event</span></span>
+<span class="line" id="L35"><span class="tok-comment">/// it must copy the data.</span></span>
+<span class="line" id="L36">text: ?[]<span class="tok-kw">const</span> <span class="tok-type">u8</span> = <span class="tok-null">null</span>,</span>
+<span class="line" id="L37"></span>
+<span class="line" id="L38"><span class="tok-comment">/// the shifted codepoint of this key event. This will only be present if the</span></span>
+<span class="line" id="L39"><span class="tok-comment">/// Shift modifier was used to generate the event</span></span>
+<span class="line" id="L40">shifted_codepoint: ?<span class="tok-type">u21</span> = <span class="tok-null">null</span>,</span>
+<span class="line" id="L41"></span>
+<span class="line" id="L42"><span class="tok-comment">/// the key that would have been pressed on a standard keyboard layout. This is</span></span>
+<span class="line" id="L43"><span class="tok-comment">/// useful for shortcut matching</span></span>
+<span class="line" id="L44">base_layout_codepoint: ?<span class="tok-type">u21</span> = <span class="tok-null">null</span>,</span>
+<span class="line" id="L45"></span>
+<span class="line" id="L46">mods: Modifiers = .{},</span>
+<span class="line" id="L47"></span>
+<span class="line" id="L48"><span class="tok-comment">/// matches follows a loose matching algorithm for key matches.</span></span>
+<span class="line" id="L49"><span class="tok-comment">/// 1. If the codepoint and modifiers are exact matches</span></span>
+<span class="line" id="L50"><span class="tok-comment">/// 2. If the utf8 encoding of the codepoint matches the text</span></span>
+<span class="line" id="L51"><span class="tok-comment">/// 3. If there is a shifted codepoint and it matches after removing the shift</span></span>
+<span class="line" id="L52"><span class="tok-comment">///    modifier from self</span></span>
+<span class="line" id="L53"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">matches</span>(self: Key, cp: <span class="tok-type">u21</span>, mods: Modifiers) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L54">    <span class="tok-comment">// rule 1</span>
+</span>
+<span class="line" id="L55">    <span class="tok-kw">if</span> (self.matchExact(cp, mods)) <span class="tok-kw">return</span> <span class="tok-null">true</span>;</span>
+<span class="line" id="L56"></span>
+<span class="line" id="L57">    <span class="tok-comment">// rule 2</span>
+</span>
+<span class="line" id="L58">    <span class="tok-kw">if</span> (self.matchText(cp, mods)) <span class="tok-kw">return</span> <span class="tok-null">true</span>;</span>
+<span class="line" id="L59"></span>
+<span class="line" id="L60">    <span class="tok-comment">// rule 3</span>
+</span>
+<span class="line" id="L61">    <span class="tok-kw">if</span> (self.matchShiftedCodepoint(cp, mods)) <span class="tok-kw">return</span> <span class="tok-null">true</span>;</span>
+<span class="line" id="L62"></span>
+<span class="line" id="L63">    <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L64">}</span>
+<span class="line" id="L65"></span>
+<span class="line" id="L66"><span class="tok-comment">/// matches against any of the provided codepoints.</span></span>
+<span class="line" id="L67"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">matchesAny</span>(self: Key, cps: []<span class="tok-kw">const</span> <span class="tok-type">u21</span>, mods: Modifiers) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L68">    <span class="tok-kw">for</span> (cps) |cp| {</span>
+<span class="line" id="L69">        <span class="tok-kw">if</span> (self.matches(cp, mods)) <span class="tok-kw">return</span> <span class="tok-null">true</span>;</span>
+<span class="line" id="L70">    }</span>
+<span class="line" id="L71">    <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L72">}</span>
+<span class="line" id="L73"></span>
+<span class="line" id="L74"><span class="tok-comment">/// matches base layout codes, useful for shortcut matching when an alternate key</span></span>
+<span class="line" id="L75"><span class="tok-comment">/// layout is used</span></span>
+<span class="line" id="L76"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">matchShortcut</span>(self: Key, cp: <span class="tok-type">u21</span>, mods: Modifiers) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L77">    <span class="tok-kw">if</span> (self.base_layout_codepoint == <span class="tok-null">null</span>) <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L78">    <span class="tok-kw">return</span> cp == self.base_layout_codepoint.? <span class="tok-kw">and</span> std.meta.eql(self.mods, mods);</span>
+<span class="line" id="L79">}</span>
+<span class="line" id="L80"></span>
+<span class="line" id="L81"><span class="tok-comment">/// matches keys that aren't upper case versions when shifted. For example, shift</span></span>
+<span class="line" id="L82"><span class="tok-comment">/// + semicolon produces a colon. The key can be matched against shift +</span></span>
+<span class="line" id="L83"><span class="tok-comment">/// semicolon or just colon...or shift + ctrl + ; or just ctrl + :</span></span>
+<span class="line" id="L84"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">matchShiftedCodepoint</span>(self: Key, cp: <span class="tok-type">u21</span>, mods: Modifiers) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L85">    <span class="tok-kw">if</span> (self.shifted_codepoint == <span class="tok-null">null</span>) <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L86">    <span class="tok-kw">if</span> (!self.mods.shift) <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L87">    <span class="tok-kw">var</span> self_mods = self.mods;</span>
+<span class="line" id="L88">    self_mods.shift = <span class="tok-null">false</span>;</span>
+<span class="line" id="L89">    <span class="tok-kw">return</span> cp == self.shifted_codepoint.? <span class="tok-kw">and</span> std.meta.eql(self_mods, mods);</span>
+<span class="line" id="L90">}</span>
+<span class="line" id="L91"></span>
+<span class="line" id="L92"><span class="tok-comment">/// matches when the utf8 encoding of the codepoint and relevant mods matches the</span></span>
+<span class="line" id="L93"><span class="tok-comment">/// text of the key. This function will consume Shift and Caps Lock when matching</span></span>
+<span class="line" id="L94"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">matchText</span>(self: Key, cp: <span class="tok-type">u21</span>, mods: Modifiers) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L95">    <span class="tok-comment">// return early if we have no text</span>
+</span>
+<span class="line" id="L96">    <span class="tok-kw">if</span> (self.text == <span class="tok-null">null</span>) <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L97"></span>
+<span class="line" id="L98">    <span class="tok-kw">var</span> self_mods = self.mods;</span>
+<span class="line" id="L99">    <span class="tok-kw">var</span> arg_mods = mods;</span>
+<span class="line" id="L100">    <span class="tok-kw">var</span> code = cp;</span>
+<span class="line" id="L101">    <span class="tok-comment">// if the passed codepoint is upper, we consume all shift and caps mods for</span>
+</span>
+<span class="line" id="L102">    <span class="tok-comment">// checking</span>
+</span>
+<span class="line" id="L103">    <span class="tok-kw">if</span> (ziglyph.isUpper(cp)) {</span>
+<span class="line" id="L104">        <span class="tok-comment">// consume mods</span>
+</span>
+<span class="line" id="L105">        self_mods.shift = <span class="tok-null">false</span>;</span>
+<span class="line" id="L106">        self_mods.caps_lock = <span class="tok-null">false</span>;</span>
+<span class="line" id="L107">        arg_mods.shift = <span class="tok-null">false</span>;</span>
+<span class="line" id="L108">        arg_mods.caps_lock = <span class="tok-null">false</span>;</span>
+<span class="line" id="L109">    } <span class="tok-kw">else</span> <span class="tok-kw">if</span> (mods.shift <span class="tok-kw">or</span> mods.caps_lock) {</span>
+<span class="line" id="L110">        <span class="tok-comment">// uppercase the cp and consume all mods</span>
+</span>
+<span class="line" id="L111">        code = ziglyph.toUpper(cp);</span>
+<span class="line" id="L112">        self_mods.shift = <span class="tok-null">false</span>;</span>
+<span class="line" id="L113">        self_mods.caps_lock = <span class="tok-null">false</span>;</span>
+<span class="line" id="L114">        arg_mods.shift = <span class="tok-null">false</span>;</span>
+<span class="line" id="L115">        arg_mods.caps_lock = <span class="tok-null">false</span>;</span>
+<span class="line" id="L116">    }</span>
+<span class="line" id="L117"></span>
+<span class="line" id="L118">    <span class="tok-kw">var</span> buf: [<span class="tok-number">4</span>]<span class="tok-type">u8</span> = <span class="tok-null">undefined</span>;</span>
+<span class="line" id="L119">    <span class="tok-kw">const</span> n = std.unicode.utf8Encode(cp, buf[<span class="tok-number">0</span>..]) <span class="tok-kw">catch</span> <span class="tok-kw">return</span> <span class="tok-null">false</span>;</span>
+<span class="line" id="L120">    <span class="tok-kw">return</span> std.mem.eql(<span class="tok-type">u8</span>, self.text.?, buf[<span class="tok-number">0</span>..n]) <span class="tok-kw">and</span> std.meta.eql(self_mods, arg_mods);</span>
+<span class="line" id="L121">}</span>
+<span class="line" id="L122"></span>
+<span class="line" id="L123"><span class="tok-comment">/// The key must exactly match the codepoint and modifiers</span></span>
+<span class="line" id="L124"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">matchExact</span>(self: Key, cp: <span class="tok-type">u21</span>, mods: Modifiers) <span class="tok-type">bool</span> {</span>
+<span class="line" id="L125">    <span class="tok-kw">return</span> self.codepoint == cp <span class="tok-kw">and</span> std.meta.eql(self.mods, mods);</span>
+<span class="line" id="L126">}</span>
+<span class="line" id="L127"></span>
+<span class="line" id="L128"><span class="tok-comment">// a few special keys that we encode as their actual ascii value</span>
+</span>
+<span class="line" id="L129"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> tab: <span class="tok-type">u21</span> = <span class="tok-number">0x09</span>;</span>
+<span class="line" id="L130"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> escape: <span class="tok-type">u21</span> = <span class="tok-number">0x1B</span>;</span>
+<span class="line" id="L131"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> space: <span class="tok-type">u21</span> = <span class="tok-number">0x20</span>;</span>
+<span class="line" id="L132"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> enter: <span class="tok-type">u21</span> = <span class="tok-number">0x6D</span>;</span>
+<span class="line" id="L133"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> backspace: <span class="tok-type">u21</span> = <span class="tok-number">0x7F</span>;</span>
+<span class="line" id="L134"></span>
+<span class="line" id="L135"><span class="tok-comment">/// multicodepoint is a key which generated text but cannot be expressed as a</span></span>
+<span class="line" id="L136"><span class="tok-comment">/// single codepoint. The value is the maximum unicode codepoint + 1</span></span>
+<span class="line" id="L137"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> multicodepoint: <span class="tok-type">u21</span> = <span class="tok-number">1_114_112</span> + <span class="tok-number">1</span>;</span>
+<span class="line" id="L138"></span>
+<span class="line" id="L139"><span class="tok-comment">// kitty encodes these keys directly in the private use area. We reuse those</span>
+</span>
+<span class="line" id="L140"><span class="tok-comment">// mappings</span>
+</span>
+<span class="line" id="L141"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> insert: <span class="tok-type">u21</span> = <span class="tok-number">57348</span>;</span>
+<span class="line" id="L142"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> delete: <span class="tok-type">u21</span> = <span class="tok-number">57349</span>;</span>
+<span class="line" id="L143"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> left: <span class="tok-type">u21</span> = <span class="tok-number">57350</span>;</span>
+<span class="line" id="L144"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> right: <span class="tok-type">u21</span> = <span class="tok-number">57351</span>;</span>
+<span class="line" id="L145"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> up: <span class="tok-type">u21</span> = <span class="tok-number">57352</span>;</span>
+<span class="line" id="L146"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> down: <span class="tok-type">u21</span> = <span class="tok-number">57353</span>;</span>
+<span class="line" id="L147"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> page_up: <span class="tok-type">u21</span> = <span class="tok-number">57354</span>;</span>
+<span class="line" id="L148"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> page_down: <span class="tok-type">u21</span> = <span class="tok-number">57355</span>;</span>
+<span class="line" id="L149"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> home: <span class="tok-type">u21</span> = <span class="tok-number">57356</span>;</span>
+<span class="line" id="L150"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> end: <span class="tok-type">u21</span> = <span class="tok-number">57357</span>;</span>
+<span class="line" id="L151"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> caps_lock: <span class="tok-type">u21</span> = <span class="tok-number">57358</span>;</span>
+<span class="line" id="L152"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> scroll_lock: <span class="tok-type">u21</span> = <span class="tok-number">57359</span>;</span>
+<span class="line" id="L153"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> num_lock: <span class="tok-type">u21</span> = <span class="tok-number">57360</span>;</span>
+<span class="line" id="L154"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> print_screen: <span class="tok-type">u21</span> = <span class="tok-number">57361</span>;</span>
+<span class="line" id="L155"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> pause: <span class="tok-type">u21</span> = <span class="tok-number">57362</span>;</span>
+<span class="line" id="L156"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> menu: <span class="tok-type">u21</span> = <span class="tok-number">57363</span>;</span>
+<span class="line" id="L157"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f1: <span class="tok-type">u21</span> = <span class="tok-number">57364</span>;</span>
+<span class="line" id="L158"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f2: <span class="tok-type">u21</span> = <span class="tok-number">57365</span>;</span>
+<span class="line" id="L159"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f3: <span class="tok-type">u21</span> = <span class="tok-number">57366</span>;</span>
+<span class="line" id="L160"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f4: <span class="tok-type">u21</span> = <span class="tok-number">57367</span>;</span>
+<span class="line" id="L161"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f5: <span class="tok-type">u21</span> = <span class="tok-number">57368</span>;</span>
+<span class="line" id="L162"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f6: <span class="tok-type">u21</span> = <span class="tok-number">57369</span>;</span>
+<span class="line" id="L163"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f7: <span class="tok-type">u21</span> = <span class="tok-number">57370</span>;</span>
+<span class="line" id="L164"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f8: <span class="tok-type">u21</span> = <span class="tok-number">57371</span>;</span>
+<span class="line" id="L165"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f9: <span class="tok-type">u21</span> = <span class="tok-number">57372</span>;</span>
+<span class="line" id="L166"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f10: <span class="tok-type">u21</span> = <span class="tok-number">57373</span>;</span>
+<span class="line" id="L167"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f11: <span class="tok-type">u21</span> = <span class="tok-number">57374</span>;</span>
+<span class="line" id="L168"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f12: <span class="tok-type">u21</span> = <span class="tok-number">57375</span>;</span>
+<span class="line" id="L169"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f13: <span class="tok-type">u21</span> = <span class="tok-number">57376</span>;</span>
+<span class="line" id="L170"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f14: <span class="tok-type">u21</span> = <span class="tok-number">57377</span>;</span>
+<span class="line" id="L171"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f15: <span class="tok-type">u21</span> = <span class="tok-number">57378</span>;</span>
+<span class="line" id="L172"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> @&quot;f16&quot;: <span class="tok-type">u21</span> = <span class="tok-number">57379</span>;</span>
+<span class="line" id="L173"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f17: <span class="tok-type">u21</span> = <span class="tok-number">57380</span>;</span>
+<span class="line" id="L174"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f18: <span class="tok-type">u21</span> = <span class="tok-number">57381</span>;</span>
+<span class="line" id="L175"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f19: <span class="tok-type">u21</span> = <span class="tok-number">57382</span>;</span>
+<span class="line" id="L176"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f20: <span class="tok-type">u21</span> = <span class="tok-number">57383</span>;</span>
+<span class="line" id="L177"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f21: <span class="tok-type">u21</span> = <span class="tok-number">57384</span>;</span>
+<span class="line" id="L178"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f22: <span class="tok-type">u21</span> = <span class="tok-number">57385</span>;</span>
+<span class="line" id="L179"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f23: <span class="tok-type">u21</span> = <span class="tok-number">57386</span>;</span>
+<span class="line" id="L180"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f24: <span class="tok-type">u21</span> = <span class="tok-number">57387</span>;</span>
+<span class="line" id="L181"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f25: <span class="tok-type">u21</span> = <span class="tok-number">57388</span>;</span>
+<span class="line" id="L182"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f26: <span class="tok-type">u21</span> = <span class="tok-number">57389</span>;</span>
+<span class="line" id="L183"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f27: <span class="tok-type">u21</span> = <span class="tok-number">57390</span>;</span>
+<span class="line" id="L184"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f28: <span class="tok-type">u21</span> = <span class="tok-number">57391</span>;</span>
+<span class="line" id="L185"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f29: <span class="tok-type">u21</span> = <span class="tok-number">57392</span>;</span>
+<span class="line" id="L186"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f30: <span class="tok-type">u21</span> = <span class="tok-number">57393</span>;</span>
+<span class="line" id="L187"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f31: <span class="tok-type">u21</span> = <span class="tok-number">57394</span>;</span>
+<span class="line" id="L188"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> @&quot;f32&quot;: <span class="tok-type">u21</span> = <span class="tok-number">57395</span>;</span>
+<span class="line" id="L189"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f33: <span class="tok-type">u21</span> = <span class="tok-number">57396</span>;</span>
+<span class="line" id="L190"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f34: <span class="tok-type">u21</span> = <span class="tok-number">57397</span>;</span>
+<span class="line" id="L191"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> f35: <span class="tok-type">u21</span> = <span class="tok-number">57398</span>;</span>
+<span class="line" id="L192"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_0: <span class="tok-type">u21</span> = <span class="tok-number">57399</span>;</span>
+<span class="line" id="L193"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_1: <span class="tok-type">u21</span> = <span class="tok-number">57400</span>;</span>
+<span class="line" id="L194"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_2: <span class="tok-type">u21</span> = <span class="tok-number">57401</span>;</span>
+<span class="line" id="L195"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_3: <span class="tok-type">u21</span> = <span class="tok-number">57402</span>;</span>
+<span class="line" id="L196"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_4: <span class="tok-type">u21</span> = <span class="tok-number">57403</span>;</span>
+<span class="line" id="L197"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_5: <span class="tok-type">u21</span> = <span class="tok-number">57404</span>;</span>
+<span class="line" id="L198"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_6: <span class="tok-type">u21</span> = <span class="tok-number">57405</span>;</span>
+<span class="line" id="L199"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_7: <span class="tok-type">u21</span> = <span class="tok-number">57406</span>;</span>
+<span class="line" id="L200"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_8: <span class="tok-type">u21</span> = <span class="tok-number">57407</span>;</span>
+<span class="line" id="L201"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_9: <span class="tok-type">u21</span> = <span class="tok-number">57408</span>;</span>
+<span class="line" id="L202"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_decimal: <span class="tok-type">u21</span> = <span class="tok-number">57409</span>;</span>
+<span class="line" id="L203"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_divide: <span class="tok-type">u21</span> = <span class="tok-number">57410</span>;</span>
+<span class="line" id="L204"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_multiply: <span class="tok-type">u21</span> = <span class="tok-number">57411</span>;</span>
+<span class="line" id="L205"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_subtract: <span class="tok-type">u21</span> = <span class="tok-number">57412</span>;</span>
+<span class="line" id="L206"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_add: <span class="tok-type">u21</span> = <span class="tok-number">57413</span>;</span>
+<span class="line" id="L207"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_enter: <span class="tok-type">u21</span> = <span class="tok-number">57414</span>;</span>
+<span class="line" id="L208"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_equal: <span class="tok-type">u21</span> = <span class="tok-number">57415</span>;</span>
+<span class="line" id="L209"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_separator: <span class="tok-type">u21</span> = <span class="tok-number">57416</span>;</span>
+<span class="line" id="L210"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_left: <span class="tok-type">u21</span> = <span class="tok-number">57417</span>;</span>
+<span class="line" id="L211"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_right: <span class="tok-type">u21</span> = <span class="tok-number">57418</span>;</span>
+<span class="line" id="L212"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_up: <span class="tok-type">u21</span> = <span class="tok-number">57419</span>;</span>
+<span class="line" id="L213"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_down: <span class="tok-type">u21</span> = <span class="tok-number">57420</span>;</span>
+<span class="line" id="L214"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_page_up: <span class="tok-type">u21</span> = <span class="tok-number">57421</span>;</span>
+<span class="line" id="L215"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_page_down: <span class="tok-type">u21</span> = <span class="tok-number">57422</span>;</span>
+<span class="line" id="L216"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_home: <span class="tok-type">u21</span> = <span class="tok-number">57423</span>;</span>
+<span class="line" id="L217"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_end: <span class="tok-type">u21</span> = <span class="tok-number">57424</span>;</span>
+<span class="line" id="L218"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_insert: <span class="tok-type">u21</span> = <span class="tok-number">57425</span>;</span>
+<span class="line" id="L219"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_delete: <span class="tok-type">u21</span> = <span class="tok-number">57426</span>;</span>
+<span class="line" id="L220"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> kp_begin: <span class="tok-type">u21</span> = <span class="tok-number">57427</span>;</span>
+<span class="line" id="L221"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> media_play: <span class="tok-type">u21</span> = <span class="tok-number">57428</span>;</span>
+<span class="line" id="L222"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> media_pause: <span class="tok-type">u21</span> = <span class="tok-number">57429</span>;</span>
+<span class="line" id="L223"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> media_play_pause: <span class="tok-type">u21</span> = <span class="tok-number">57430</span>;</span>
+<span class="line" id="L224"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> media_reverse: <span class="tok-type">u21</span> = <span class="tok-number">57431</span>;</span>
+<span class="line" id="L225"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> media_stop: <span class="tok-type">u21</span> = <span class="tok-number">57432</span>;</span>
+<span class="line" id="L226"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> media_fast_forward: <span class="tok-type">u21</span> = <span class="tok-number">57433</span>;</span>
+<span class="line" id="L227"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> media_rewind: <span class="tok-type">u21</span> = <span class="tok-number">57434</span>;</span>
+<span class="line" id="L228"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> media_track_next: <span class="tok-type">u21</span> = <span class="tok-number">57435</span>;</span>
+<span class="line" id="L229"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> media_track_previous: <span class="tok-type">u21</span> = <span class="tok-number">57436</span>;</span>
+<span class="line" id="L230"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> media_record: <span class="tok-type">u21</span> = <span class="tok-number">57437</span>;</span>
+<span class="line" id="L231"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> lower_volume: <span class="tok-type">u21</span> = <span class="tok-number">57438</span>;</span>
+<span class="line" id="L232"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> raise_volume: <span class="tok-type">u21</span> = <span class="tok-number">57439</span>;</span>
+<span class="line" id="L233"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> mute_volume: <span class="tok-type">u21</span> = <span class="tok-number">57440</span>;</span>
+<span class="line" id="L234"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> left_shift: <span class="tok-type">u21</span> = <span class="tok-number">57441</span>;</span>
+<span class="line" id="L235"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> left_control: <span class="tok-type">u21</span> = <span class="tok-number">57442</span>;</span>
+<span class="line" id="L236"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> left_alt: <span class="tok-type">u21</span> = <span class="tok-number">57443</span>;</span>
+<span class="line" id="L237"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> left_super: <span class="tok-type">u21</span> = <span class="tok-number">57444</span>;</span>
+<span class="line" id="L238"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> left_hyper: <span class="tok-type">u21</span> = <span class="tok-number">57445</span>;</span>
+<span class="line" id="L239"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> left_meta: <span class="tok-type">u21</span> = <span class="tok-number">57446</span>;</span>
+<span class="line" id="L240"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> right_shift: <span class="tok-type">u21</span> = <span class="tok-number">57447</span>;</span>
+<span class="line" id="L241"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> right_control: <span class="tok-type">u21</span> = <span class="tok-number">57448</span>;</span>
+<span class="line" id="L242"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> right_alt: <span class="tok-type">u21</span> = <span class="tok-number">57449</span>;</span>
+<span class="line" id="L243"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> right_super: <span class="tok-type">u21</span> = <span class="tok-number">57450</span>;</span>
+<span class="line" id="L244"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> right_hyper: <span class="tok-type">u21</span> = <span class="tok-number">57451</span>;</span>
+<span class="line" id="L245"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> right_meta: <span class="tok-type">u21</span> = <span class="tok-number">57452</span>;</span>
+<span class="line" id="L246"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> iso_level_3_shift: <span class="tok-type">u21</span> = <span class="tok-number">57453</span>;</span>
+<span class="line" id="L247"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> iso_level_5_shift: <span class="tok-type">u21</span> = <span class="tok-number">57454</span>;</span>
+<span class="line" id="L248"></span>
+<span class="line" id="L249"><span class="tok-kw">test</span> <span class="tok-str">&quot;matches 'a'&quot;</span> {</span>
+<span class="line" id="L250">    <span class="tok-kw">const</span> key: Key = .{</span>
+<span class="line" id="L251">        .codepoint = <span class="tok-str">'a'</span>,</span>
+<span class="line" id="L252">    };</span>
+<span class="line" id="L253">    <span class="tok-kw">try</span> testing.expect(key.matches(<span class="tok-str">'a'</span>, .{}));</span>
+<span class="line" id="L254">}</span>
+<span class="line" id="L255"></span>
+<span class="line" id="L256"><span class="tok-kw">test</span> <span class="tok-str">&quot;matches 'shift+a'&quot;</span> {</span>
+<span class="line" id="L257">    <span class="tok-kw">const</span> key: Key = .{</span>
+<span class="line" id="L258">        .codepoint = <span class="tok-str">'a'</span>,</span>
+<span class="line" id="L259">        .mods = .{ .shift = <span class="tok-null">true</span> },</span>
+<span class="line" id="L260">        .text = <span class="tok-str">&quot;A&quot;</span>,</span>
+<span class="line" id="L261">    };</span>
+<span class="line" id="L262">    <span class="tok-kw">try</span> testing.expect(key.matches(<span class="tok-str">'a'</span>, .{ .shift = <span class="tok-null">true</span> }));</span>
+<span class="line" id="L263">    <span class="tok-kw">try</span> testing.expect(key.matches(<span class="tok-str">'A'</span>, .{}));</span>
+<span class="line" id="L264">    <span class="tok-kw">try</span> testing.expect(!key.matches(<span class="tok-str">'A'</span>, .{ .ctrl = <span class="tok-null">true</span> }));</span>
+<span class="line" id="L265">}</span>
+<span class="line" id="L266"></span>
+<span class="line" id="L267"><span class="tok-kw">test</span> <span class="tok-str">&quot;matches 'shift+tab'&quot;</span> {</span>
+<span class="line" id="L268">    <span class="tok-kw">const</span> key: Key = .{</span>
+<span class="line" id="L269">        .codepoint = Key.tab,</span>
+<span class="line" id="L270">        .mods = .{ .shift = <span class="tok-null">true</span> },</span>
+<span class="line" id="L271">    };</span>
+<span class="line" id="L272">    <span class="tok-kw">try</span> testing.expect(key.matches(Key.tab, .{ .shift = <span class="tok-null">true</span> }));</span>
+<span class="line" id="L273">    <span class="tok-kw">try</span> testing.expect(!key.matches(Key.tab, .{}));</span>
+<span class="line" id="L274">}</span>
+<span class="line" id="L275"></span>
+<span class="line" id="L276"><span class="tok-kw">test</span> <span class="tok-str">&quot;matches 'shift+;'&quot;</span> {</span>
+<span class="line" id="L277">    <span class="tok-kw">const</span> key: Key = .{</span>
+<span class="line" id="L278">        .codepoint = <span class="tok-str">';'</span>,</span>
+<span class="line" id="L279">        .shifted_codepoint = <span class="tok-str">':'</span>,</span>
+<span class="line" id="L280">        .mods = .{ .shift = <span class="tok-null">true</span> },</span>
+<span class="line" id="L281">        .text = <span class="tok-str">&quot;:&quot;</span>,</span>
+<span class="line" id="L282">    };</span>
+<span class="line" id="L283">    <span class="tok-kw">try</span> testing.expect(key.matches(<span class="tok-str">';'</span>, .{ .shift = <span class="tok-null">true</span> }));</span>
+<span class="line" id="L284">    <span class="tok-kw">try</span> testing.expect(key.matches(<span class="tok-str">':'</span>, .{}));</span>
+<span class="line" id="L285"></span>
+<span class="line" id="L286">    <span class="tok-kw">const</span> colon: Key = .{</span>
+<span class="line" id="L287">        .codepoint = <span class="tok-str">':'</span>,</span>
+<span class="line" id="L288">        .mods = .{},</span>
+<span class="line" id="L289">    };</span>
+<span class="line" id="L290">    <span class="tok-kw">try</span> testing.expect(colon.matches(<span class="tok-str">':'</span>, .{}));</span>
+<span class="line" id="L291">}</span>
+<span class="line" id="L292"></span>
+</code></pre></body>
+</html>
