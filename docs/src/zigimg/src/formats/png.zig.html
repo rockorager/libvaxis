@@ -190,7 +190,7 @@
 <span class="line" id="L72">        <span class="tok-kw">return</span> load(stream, allocator, default_options.get());</span>
 <span class="line" id="L73">    }</span>
 <span class="line" id="L74"></span>
-<span class="line" id="L75">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">writeImage</span>(allocator: Allocator, write_stream: *Image.Stream, image: Image, encoder_options: Image.EncoderOptions) ImageWriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L75">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">writeImage</span>(_: Allocator, write_stream: *Image.Stream, image: Image, encoder_options: Image.EncoderOptions) ImageWriteError!<span class="tok-type">void</span> {</span>
 <span class="line" id="L76">        <span class="tok-kw">const</span> options = encoder_options.png;</span>
 <span class="line" id="L77"></span>
 <span class="line" id="L78">        <span class="tok-kw">try</span> ensureWritable(image);</span>
@@ -207,10 +207,10 @@
 <span class="line" id="L89"></span>
 <span class="line" id="L90">        std.debug.assert(header.isValid());</span>
 <span class="line" id="L91"></span>
-<span class="line" id="L92">        <span class="tok-kw">try</span> write(allocator, write_stream, image.pixels, header, options.filter_choice);</span>
+<span class="line" id="L92">        <span class="tok-kw">try</span> write(write_stream, image.pixels, header, options.filter_choice);</span>
 <span class="line" id="L93">    }</span>
 <span class="line" id="L94"></span>
-<span class="line" id="L95">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">write</span>(allocator: Allocator, write_stream: *Image.Stream, pixels: color.PixelStorage, header: HeaderData, filter_choice: filter.FilterChoice) ImageWriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L95">    <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">write</span>(write_stream: *Image.Stream, pixels: color.PixelStorage, header: HeaderData, filter_choice: filter.FilterChoice) ImageWriteError!<span class="tok-type">void</span> {</span>
 <span class="line" id="L96">        <span class="tok-kw">if</span> (header.interlace_method != .none)</span>
 <span class="line" id="L97">            <span class="tok-kw">return</span> ImageWriteError.Unsupported;</span>
 <span class="line" id="L98">        <span class="tok-kw">if</span> (header.compression_method != .deflate)</span>
@@ -227,7 +227,7 @@
 <span class="line" id="L109">            <span class="tok-kw">try</span> writeTransparencyInfo(writer, pixels); <span class="tok-comment">// TODO: pixel format where there is no transparency</span>
 </span>
 <span class="line" id="L110">        }</span>
-<span class="line" id="L111">        <span class="tok-kw">try</span> writeData(allocator, writer, pixels, header, filter_choice);</span>
+<span class="line" id="L111">        <span class="tok-kw">try</span> writeData(writer, pixels, header, filter_choice);</span>
 <span class="line" id="L112">        <span class="tok-kw">try</span> writeTrailer(writer);</span>
 <span class="line" id="L113">    }</span>
 <span class="line" id="L114"></span>
@@ -273,7 +273,7 @@
 <span class="line" id="L151"></span>
 <span class="line" id="L152">    <span class="tok-comment">// IDAT (multiple maybe)</span>
 </span>
-<span class="line" id="L153">    <span class="tok-kw">fn</span> <span class="tok-fn">writeData</span>(allocator: Allocator, writer: <span class="tok-kw">anytype</span>, pixels: color.PixelStorage, header: HeaderData, filter_choice: filter.FilterChoice) ImageWriteError!<span class="tok-type">void</span> {</span>
+<span class="line" id="L153">    <span class="tok-kw">fn</span> <span class="tok-fn">writeData</span>(writer: <span class="tok-kw">anytype</span>, pixels: color.PixelStorage, header: HeaderData, filter_choice: filter.FilterChoice) ImageWriteError!<span class="tok-type">void</span> {</span>
 <span class="line" id="L154">        <span class="tok-comment">// Note: there may be more than 1 chunk</span>
 </span>
 <span class="line" id="L155">        <span class="tok-comment">// TODO: provide choice of how much it buffers (how much data per idat chunk)</span>
@@ -282,7 +282,7 @@
 <span class="line" id="L157">        <span class="tok-kw">const</span> chunk_wr = chunks.writer();</span>
 <span class="line" id="L158"></span>
 <span class="line" id="L159">        <span class="tok-kw">var</span> zlib: ZlibCompressor(<span class="tok-builtin">@TypeOf</span>(chunk_wr)) = <span class="tok-null">undefined</span>;</span>
-<span class="line" id="L160">        <span class="tok-kw">try</span> zlib.init(allocator, chunk_wr);</span>
+<span class="line" id="L160">        <span class="tok-kw">try</span> zlib.init(chunk_wr);</span>
 <span class="line" id="L161"></span>
 <span class="line" id="L162">        <span class="tok-kw">try</span> zlib.begin();</span>
 <span class="line" id="L163">        <span class="tok-kw">try</span> filter.filter(zlib.writer(), pixels, filter_choice, header);</span>

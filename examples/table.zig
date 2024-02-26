@@ -8,12 +8,7 @@ const vaxis = @import("vaxis");
 
 const log = std.log.scoped(.main);
 
-/// Active TUI Section
-<<<<<<< HEAD
-const ActiveSection = enum {
-=======
 const ActiveSection = enum{
->>>>>>> b015a5d (Added the `table.zig` example)
     top,
     mid,
     btm,

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Image.zig - source view</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVR4AWMYWuD7EllJIM4G4g4g5oIJ/odhOJ8wToOxSTXgNxDHoeiBMfA4+wGShjyYOCkG/IGqWQziEzYAoUAeiF9D5U+DxEg14DRU7jWIT5IBIOdCxf+A+CQZAAoopEB7QJwBCBwHiip8UYmRdrAlDpIMgApwQZNnNii5Dq0MBgCxxycBnwEd+wAAAABJRU5ErkJggg==">
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTMgMTQwIj48ZyBmaWxsPSIjRjdBNDFEIj48Zz48cG9seWdvbiBwb2ludHM9IjQ2LDIyIDI4LDQ0IDE5LDMwIi8+PHBvbHlnb24gcG9pbnRzPSI0NiwyMiAzMywzMyAyOCw0NCAyMiw0NCAyMiw5NSAzMSw5NSAyMCwxMDAgMTIsMTE3IDAsMTE3IDAsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMzEsOTUgMTIsMTE3IDQsMTA2Ii8+PC9nPjxnPjxwb2x5Z29uIHBvaW50cz0iNTYsMjIgNjIsMzYgMzcsNDQiLz48cG9seWdvbiBwb2ludHM9IjU2LDIyIDExMSwyMiAxMTEsNDQgMzcsNDQgNTYsMzIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTE2LDk1IDk3LDExNyA5MCwxMDQiLz48cG9seWdvbiBwb2ludHM9IjExNiw5NSAxMDAsMTA0IDk3LDExNyA0MiwxMTcgNDIsOTUiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTUwLDAgNTIsMTE3IDMsMTQwIDEwMSwyMiIvPjwvZz48Zz48cG9seWdvbiBwb2ludHM9IjE0MSwyMiAxNDAsNDAgMTIyLDQ1Ii8+PHBvbHlnb24gcG9pbnRzPSIxNTMsMjIgMTUzLDExNyAxMDYsMTE3IDEyMCwxMDUgMTI1LDk1IDEzMSw5NSAxMzEsNDUgMTIyLDQ1IDEzMiwzNiAxNDEsMjIiIHNoYXBlLXJlbmRlcmluZz0iY3Jpc3BFZGdlcyIvPjxwb2x5Z29uIHBvaW50cz0iMTI1LDk1IDEzMCwxMTAgMTA2LDExNyIvPjwvZz48L2c+PC9zdmc+">
+    <style>
+      body{
+        font-family: system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      pre > code {
+        display: block;
+        overflow: auto;
+        line-height: normal;
+        margin: 0em;
+      }
+      .tok-kw {
+          color: #333;
+          font-weight: bold;
+      }
+      .tok-str {
+          color: #d14;
+      }
+      .tok-builtin {
+          color: #005C7A;
+      }
+      .tok-comment {
+          color: #545454;
+          font-style: italic;
+      }
+      .tok-fn {
+          color: #900;
+          font-weight: bold;
+      }
+      .tok-null {
+          color: #005C5C;
+      }
+      .tok-number {
+          color: #005C5C;
+      }
+      .tok-type {
+          color: #458;
+          font-weight: bold;
+      }
+      pre {
+        counter-reset: line;
+      }
+      pre .line:before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        padding-right: 1em;
+        width: 2em;
+        text-align: right;
+        color: #999;
+      }
+      
+      .line {
+        width: 100%;
+        display: inline-block;
+      }
+      .line:target {
+        border-top: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
+        background: #fafafa;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body{
+            background:#222;
+            color: #ccc;
+        }
+        pre > code {
+            color: #ccc;
+            background: #222;
+            border: unset;
+        }
+        .line:target {
+            border-top: 1px solid #444;
+            border-bottom: 1px solid #444;
+            background: #333;
+        }
+        .tok-kw {
+            color: #eee;
+        }
+        .tok-str {
+            color: #2e5;
+        }
+        .tok-builtin {
+            color: #ff894c;
+        }
+        .tok-comment {
+            color: #aa7;
+        }
+        .tok-fn {
+            color: #B1A0F8;
+        }
+        .tok-null {
+            color: #ff8080;
+        }
+        .tok-number {
+            color: #ff8080;
+        }
+        .tok-type {
+            color: #68f;
+        }
+      }
+    </style>
+</head>
+<body>
+<pre><code><span class="line" id="L1"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
+<span class="line" id="L2"><span class="tok-kw">const</span> fmt = std.fmt;</span>
+<span class="line" id="L3"><span class="tok-kw">const</span> math = std.math;</span>
+<span class="line" id="L4"><span class="tok-kw">const</span> testing = std.testing;</span>
+<span class="line" id="L5"><span class="tok-kw">const</span> base64 = std.base64.standard.Encoder;</span>
+<span class="line" id="L6"><span class="tok-kw">const</span> zigimg = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;zigimg&quot;</span>);</span>
+<span class="line" id="L7"></span>
+<span class="line" id="L8"><span class="tok-kw">const</span> Window = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;Window.zig&quot;</span>);</span>
+<span class="line" id="L9"></span>
+<span class="line" id="L10"><span class="tok-kw">const</span> log = std.log.scoped(.image);</span>
+<span class="line" id="L11"></span>
+<span class="line" id="L12"><span class="tok-kw">const</span> Image = <span class="tok-builtin">@This</span>();</span>
+<span class="line" id="L13"></span>
+<span class="line" id="L14"><span class="tok-kw">const</span> transmit_opener = <span class="tok-str">&quot;\x1b_Gf=32,i={d},s={d},v={d},m={d};&quot;</span>;</span>
+<span class="line" id="L15"></span>
+<span class="line" id="L16"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> Source = <span class="tok-kw">union</span>(<span class="tok-kw">enum</span>) {</span>
+<span class="line" id="L17">    path: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>,</span>
+<span class="line" id="L18">    mem: []<span class="tok-kw">const</span> <span class="tok-type">u8</span>,</span>
+<span class="line" id="L19">};</span>
+<span class="line" id="L20"></span>
+<span class="line" id="L21"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> Placement = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L22">    img_id: <span class="tok-type">u32</span>,</span>
+<span class="line" id="L23">    z_index: <span class="tok-type">i32</span>,</span>
+<span class="line" id="L24">    size: ?CellSize = <span class="tok-null">null</span>,</span>
+<span class="line" id="L25">};</span>
+<span class="line" id="L26"></span>
+<span class="line" id="L27"><span class="tok-kw">pub</span> <span class="tok-kw">const</span> CellSize = <span class="tok-kw">struct</span> {</span>
+<span class="line" id="L28">    rows: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L29">    cols: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L30">};</span>
+<span class="line" id="L31"></span>
+<span class="line" id="L32"><span class="tok-comment">/// unique identifier for this image. This will be managed by the screen.</span></span>
+<span class="line" id="L33">id: <span class="tok-type">u32</span>,</span>
+<span class="line" id="L34"></span>
+<span class="line" id="L35"><span class="tok-comment">// width in pixels</span>
+</span>
+<span class="line" id="L36">width: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L37"><span class="tok-comment">// height in pixels</span>
+</span>
+<span class="line" id="L38">height: <span class="tok-type">usize</span>,</span>
+<span class="line" id="L39"></span>
+<span class="line" id="L40"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">draw</span>(self: Image, win: Window, scale: <span class="tok-type">bool</span>, z_index: <span class="tok-type">i32</span>) <span class="tok-type">void</span> {</span>
+<span class="line" id="L41">    <span class="tok-kw">const</span> p = Placement{</span>
+<span class="line" id="L42">        .img_id = self.id,</span>
+<span class="line" id="L43">        .z_index = z_index,</span>
+<span class="line" id="L44">        .size = sz: {</span>
+<span class="line" id="L45">            <span class="tok-kw">if</span> (!scale) <span class="tok-kw">break</span> :sz <span class="tok-null">null</span>;</span>
+<span class="line" id="L46">            <span class="tok-kw">break</span> :sz CellSize{</span>
+<span class="line" id="L47">                .rows = win.height,</span>
+<span class="line" id="L48">                .cols = win.width,</span>
+<span class="line" id="L49">            };</span>
+<span class="line" id="L50">        },</span>
+<span class="line" id="L51">    };</span>
+<span class="line" id="L52">    win.writeCell(<span class="tok-number">0</span>, <span class="tok-number">0</span>, .{ .image = p });</span>
+<span class="line" id="L53">}</span>
+<span class="line" id="L54"></span>
+<span class="line" id="L55"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">cellSize</span>(self: Image, win: Window) !CellSize {</span>
+<span class="line" id="L56">    <span class="tok-comment">// cell geometry</span>
+</span>
+<span class="line" id="L57">    <span class="tok-kw">const</span> x_pix = win.screen.width_pix;</span>
+<span class="line" id="L58">    <span class="tok-kw">const</span> y_pix = win.screen.height_pix;</span>
+<span class="line" id="L59">    <span class="tok-kw">const</span> w = win.screen.width;</span>
+<span class="line" id="L60">    <span class="tok-kw">const</span> h = win.screen.height;</span>
+<span class="line" id="L61"></span>
+<span class="line" id="L62">    <span class="tok-kw">const</span> pix_per_col = <span class="tok-kw">try</span> std.math.divCeil(<span class="tok-type">usize</span>, x_pix, w);</span>
+<span class="line" id="L63">    <span class="tok-kw">const</span> pix_per_row = <span class="tok-kw">try</span> std.math.divCeil(<span class="tok-type">usize</span>, y_pix, h);</span>
+<span class="line" id="L64"></span>
+<span class="line" id="L65">    <span class="tok-kw">const</span> cell_width = std.math.divCeil(<span class="tok-type">usize</span>, self.width, pix_per_col) <span class="tok-kw">catch</span> <span class="tok-number">0</span>;</span>
+<span class="line" id="L66">    <span class="tok-kw">const</span> cell_height = std.math.divCeil(<span class="tok-type">usize</span>, self.height, pix_per_row) <span class="tok-kw">catch</span> <span class="tok-number">0</span>;</span>
+<span class="line" id="L67">    <span class="tok-kw">return</span> .{</span>
+<span class="line" id="L68">        .rows = cell_height,</span>
+<span class="line" id="L69">        .cols = cell_width,</span>
+<span class="line" id="L70">    };</span>
+<span class="line" id="L71">}</span>
+<span class="line" id="L72"></span>
+</code></pre></body>
+</html>
