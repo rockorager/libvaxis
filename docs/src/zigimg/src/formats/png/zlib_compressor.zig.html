@@ -114,7 +114,7 @@
 <body>
 <pre><code><span class="line" id="L1"><span class="tok-kw">const</span> std = <span class="tok-builtin">@import</span>(<span class="tok-str">&quot;std&quot;</span>);</span>
 <span class="line" id="L2"><span class="tok-kw">const</span> io = std.io;</span>
-<span class="line" id="L3"><span class="tok-kw">const</span> deflate = std.compress.deflate;</span>
+<span class="line" id="L3"><span class="tok-kw">const</span> deflate = std.compress.flate;</span>
 <span class="line" id="L4"></span>
 <span class="line" id="L5"><span class="tok-comment">/// Zlib Compressor (Deflate) with a writer interface</span></span>
 <span class="line" id="L6"><span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">ZlibCompressor</span>(<span class="tok-kw">comptime</span> WriterType: <span class="tok-type">type</span>) <span class="tok-type">type</span> {</span>
@@ -129,9 +129,9 @@
 </span>
 <span class="line" id="L15">        <span class="tok-comment">/// Inits a zlibcompressor</span></span>
 <span class="line" id="L16">        <span class="tok-comment">/// This is made this way because not doing it in place segfaults for a reason</span></span>
-<span class="line" id="L17">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">init</span>(self: *Self, alloc: std.mem.Allocator, stream: WriterType) !<span class="tok-type">void</span> {</span>
+<span class="line" id="L17">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">init</span>(self: *Self, stream: WriterType) !<span class="tok-type">void</span> {</span>
 <span class="line" id="L18">            self.raw_writer = stream;</span>
-<span class="line" id="L19">            self.compressor = <span class="tok-kw">try</span> deflate.compressor(alloc, self.raw_writer, .{});</span>
+<span class="line" id="L19">            self.compressor = <span class="tok-kw">try</span> deflate.compressor(self.raw_writer, .{});</span>
 <span class="line" id="L20">            self.adler = std.hash.Adler32.init();</span>
 <span class="line" id="L21">        }</span>
 <span class="line" id="L22"></span>
@@ -158,7 +158,7 @@
 <span class="line" id="L38">            <span class="tok-kw">try</span> wr.writeByte(compression_flags);</span>
 <span class="line" id="L39">        }</span>
 <span class="line" id="L40"></span>
-<span class="line" id="L41">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> Error = WriterType.Error;</span>
+<span class="line" id="L41">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> Error = deflate.Compressor(WriterType).Error;</span>
 <span class="line" id="L42">        <span class="tok-kw">pub</span> <span class="tok-kw">const</span> Writer = std.io.Writer(*Self, Error, write);</span>
 <span class="line" id="L43"></span>
 <span class="line" id="L44">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">writer</span>(self: *Self) Writer {</span>
@@ -173,14 +173,13 @@
 <span class="line" id="L53"></span>
 <span class="line" id="L54">        <span class="tok-comment">/// Ends a zlib block with the checksum</span></span>
 <span class="line" id="L55">        <span class="tok-kw">pub</span> <span class="tok-kw">fn</span> <span class="tok-fn">end</span>(self: *Self) !<span class="tok-type">void</span> {</span>
-<span class="line" id="L56">            <span class="tok-kw">try</span> self.compressor.close();</span>
-<span class="line" id="L57">            self.compressor.deinit();</span>
-<span class="line" id="L58">            <span class="tok-comment">// Write the checksum</span>
+<span class="line" id="L56">            <span class="tok-comment">// Write the checksum</span>
 </span>
-<span class="line" id="L59">            <span class="tok-kw">try</span> self.raw_writer.writeInt(<span class="tok-type">u32</span>, self.adler.final(), .big);</span>
-<span class="line" id="L60">        }</span>
-<span class="line" id="L61">    };</span>
-<span class="line" id="L62">}</span>
-<span class="line" id="L63"></span>
+<span class="line" id="L57">            <span class="tok-kw">try</span> self.compressor.finish();</span>
+<span class="line" id="L58">            <span class="tok-kw">try</span> self.raw_writer.writeInt(<span class="tok-type">u32</span>, self.adler.final(), .big);</span>
+<span class="line" id="L59">        }</span>
+<span class="line" id="L60">    };</span>
+<span class="line" id="L61">}</span>
+<span class="line" id="L62"></span>
 </code></pre></body>
 </html>

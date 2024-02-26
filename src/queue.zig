@@ -17,7 +17,7 @@ pub fn Queue(
         write_index: usize = 0,
 
         mutex: std.Thread.Mutex = .{},
-        // blocks when the buffer is full or empty
+        /// blocks when the buffer is full or empty
         futex: atomic.Value(u32) = atomic.Value(u32).init(0),
 
         const Self = @This();

@@ -2,21 +2,31 @@ const std = @import("std");
 const atomic = std.atomic;
 const base64 = std.base64.standard.Encoder;
 
-const Queue = @import("queue.zig").Queue;
-const ctlseqs = @import("ctlseqs.zig");
-const Tty = @import("Tty.zig");
-const Winsize = Tty.Winsize;
-const Key = @import("Key.zig");
-const Screen = @import("Screen.zig");
-const InternalScreen = @import("InternalScreen.zig");
-const Window = @import("Window.zig");
-const Options = @import("Options.zig");
-const Style = @import("Cell.zig").Style;
-const Hyperlink = @import("Cell.zig").Hyperlink;
-const gwidth = @import("gwidth.zig");
-const Shape = @import("Mouse.zig").Shape;
-const Image = @import("Image.zig");
+pub const Cell = @import("Cell.zig");
+pub const Image = @import("Image.zig");
+pub const InternalScreen = @import("InternalScreen.zig");
+pub const Key = @import("Key.zig");
+pub const Mouse = @import("Mouse.zig");
+pub const Options = @import("Options.zig");
+pub const Queue = @import("queue.zig").Queue;
+pub const Screen = @import("Screen.zig");
+pub const Tty = @import("Tty.zig");
+pub const Window = @import("Window.zig");
+
+pub const ctlseqs = @import("ctlseqs.zig");
+pub const gwidth = @import("gwidth.zig");
+pub const widgets = @import("widgets.zig");
+
 const zigimg = @import("zigimg");
+
+
+/// Initialize a Vaxis application.
+pub fn init(comptime Event: type, opts: Options) !Vaxis(Event) {
+    return Vaxis(Event).init(opts);
+}
+test {
+    std.testing.refAllDecls(@This());
+}
 
 /// Vaxis is the entrypoint for a Vaxis application. The provided type T should
 /// be a tagged union which contains all of the events the application will
@@ -154,7 +164,7 @@ pub fn Vaxis(comptime T: type) type {
         /// resize allocates a slice of cells equal to the number of cells
         /// required to display the screen (ie width x height). Any previous screen is
         /// freed when resizing
-        pub fn resize(self: *Self, alloc: std.mem.Allocator, winsize: Winsize) !void {
+        pub fn resize(self: *Self, alloc: std.mem.Allocator, winsize: Tty.Winsize) !void {
             log.debug("resizing screen: width={d} height={d}", .{ winsize.cols, winsize.rows });
             self.screen.deinit(alloc);
             self.screen = try Screen.init(alloc, winsize);
@@ -279,8 +289,8 @@ pub fn Vaxis(comptime T: type) type {
             var reposition: bool = false;
             var row: usize = 0;
             var col: usize = 0;
-            var cursor: Style = .{};
-            var link: Hyperlink = .{};
+            var cursor: Cell.Style = .{};
+            var link: Cell.Hyperlink = .{};
 
             // Clear all images
             _ = try tty.write(ctlseqs.kitty_graphics_clear);
@@ -567,7 +577,7 @@ pub fn Vaxis(comptime T: type) type {
         }
 
         /// set the mouse shape
-        pub fn setMouseShape(self: *Self, shape: Shape) void {
+        pub fn setMouseShape(self: *Self, shape: Mouse.Shape) void {
             self.screen.mouse_shape = shape;
         }
 

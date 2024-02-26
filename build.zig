@@ -3,7 +3,7 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
-    const root_source_file = std.Build.LazyPath.relative("src/main.zig");
+    const root_source_file = std.Build.LazyPath.relative("src/vaxis.zig");
 
     // Dependencies
     const ziglyph_dep = b.dependency("ziglyph", .{

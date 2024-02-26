@@ -1,17 +1,18 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const os = std.os;
+
+const BufferedWriter = std.io.BufferedWriter(4096, Writer);
+const Writer = std.io.Writer(os.fd_t, os.WriteError, os.write);
+
 const Vaxis = @import("vaxis.zig").Vaxis;
-const Parser = @import("Parser.zig");
-const GraphemeCache = @import("GraphemeCache.zig");
+pub const Parser = @import("Parser.zig");
+pub const GraphemeCache = @import("GraphemeCache.zig");
 
 const log = std.log.scoped(.tty);
 
 const Tty = @This();
 
-const Writer = std.io.Writer(os.fd_t, os.WriteError, os.write);
-
-const BufferedWriter = std.io.BufferedWriter(4096, Writer);
 
 /// the original state of the terminal, prior to calling makeRaw
 termios: os.termios,

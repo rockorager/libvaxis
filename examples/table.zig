@@ -28,7 +28,7 @@ pub fn main() !void {
     var vx = try vaxis.init(
         union(enum){
             key_press: vaxis.Key,
-            winsize: vaxis.Winsize,
+            winsize: vaxis.Tty.Winsize,
         },
         .{},
     );
