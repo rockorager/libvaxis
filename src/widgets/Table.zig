@@ -1,9 +1,6 @@
 const std = @import("std");
-const ascii = std.ascii;
 const fmt = std.fmt;
-const fs = std.fs;
 const heap = std.heap;
-const log = std.log;
 const mem = std.mem;
 const meta = std.meta;
 
