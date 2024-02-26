@@ -32,11 +32,11 @@ pub fn main() !void {
         },
         .{},
     );
-    try vx.queryTerminal();
     defer vx.deinit(alloc);
 
     try vx.startReadThread();
     defer vx.stopReadThread();
+    try vx.queryTerminal();
     try vx.enterAltScreen();
 
     const logo =
@@ -52,7 +52,11 @@ pub fn main() !void {
         .text = "===A Demo of the the Vaxis Table Widget!===",
         .style = .{},
     };
-    var title_segs = [_]vaxis.Cell.Segment{ title_logo, title_info };
+    const title_disclaimer = vaxis.Cell.Segment{
+        .text = "(All data is non-sensical & LLM generated.)",
+        .style = .{},
+    };
+    var title_segs = [_]vaxis.Cell.Segment{ title_logo, title_info, title_disclaimer };
 
     var cmd_input = vaxis.widgets.TextInput.init(alloc);
     defer cmd_input.deinit();
@@ -175,7 +179,6 @@ pub fn main() !void {
             44,
             top_bar.height - (top_bar.height / 3),
         );
-        //title_img.draw(top_bar, true, 0);
         try logo_bar.wrap(title_segs[0..]);
 
         // - Middle
@@ -241,7 +244,7 @@ const users = [_]User{
     .{ .first = "Lisa", .last = "Johnson", .user = "tina28", .email = null, .phone = "850-606-2978x1081" },
     .{ .first = "Zachary", .last = "Hopkins", .user = "vargasmichael", .email = null, .phone = null },
     .{ .first = "Joshua", .last = "Kidd", .user = "ghanna", .email = "jbrown@yahoo.com", .phone = null },
-    .{ .first = "Dawn", .last = "Jones", .user = "alisonlindsey", .email = "null", .phone = "null" },
+    .{ .first = "Dawn", .last = "Jones", .user = "alisonlindsey", .email = null, .phone = null },
     .{ .first = "Monica", .last = "Berry", .user = "barbara40", .email = "michael00@hotmail.com", .phone = "(295)346-6453x343" },
     .{ .first = "Shannon", .last = "Roberts", .user = "krystal37", .email = null, .phone = "980-920-9386x454" },
     .{ .first = "Thomas", .last = "Mitchell", .user = "williamscorey", .email = "richardduncan@roberts.com", .phone = null },
