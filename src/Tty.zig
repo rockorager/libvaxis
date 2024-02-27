@@ -128,7 +128,7 @@ pub fn run(
     while (true) {
         _ = try std.os.poll(&pollfds, -1);
         if (pollfds[1].revents & std.os.POLL.IN != 0) {
-            log.info("quitting read thread", .{});
+            log.debug("quitting read thread", .{});
             return;
         }
 
