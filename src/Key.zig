@@ -127,9 +127,9 @@ pub fn matchExact(self: Key, cp: u21, mods: Modifiers) bool {
 
 // a few special keys that we encode as their actual ascii value
 pub const tab: u21 = 0x09;
+pub const enter: u21 = 0x0D;
 pub const escape: u21 = 0x1B;
 pub const space: u21 = 0x20;
-pub const enter: u21 = 0x6D;
 pub const backspace: u21 = 0x7F;
 
 /// multicodepoint is a key which generated text but cannot be expressed as a
