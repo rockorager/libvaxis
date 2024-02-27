@@ -67,7 +67,7 @@ pub fn build(b: *std.Build) void {
     const build_docs = b.addInstallDirectory(.{
         .source_dir = vaxis_docs.getEmittedDocs(),
         .install_dir = .prefix,
-        .install_subdir = "../docs",
+        .install_subdir = "docs",
     });
     const build_docs_step = b.step("docs", "Build the vaxis library docs");
     build_docs_step.dependOn(&build_docs.step);

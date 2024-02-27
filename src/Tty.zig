@@ -225,6 +225,7 @@ pub fn makeRaw(fd: os.fd_t) !os.termios {
     // see termios(3)
     raw.iflag.IGNBRK = false;
     raw.iflag.BRKINT = false;
+    raw.iflag.PARMRK = false;
     raw.iflag.ISTRIP = false;
     raw.iflag.INLCR = false;
     raw.iflag.IGNCR = false;
@@ -236,6 +237,7 @@ pub fn makeRaw(fd: os.fd_t) !os.termios {
     raw.lflag.ECHO = false;
     raw.lflag.ECHONL = false;
     raw.lflag.ICANON = false;
+    raw.lflag.ISIG = false;
     raw.lflag.IEXTEN = false;
 
     raw.cflag.CSIZE = .CS8;
