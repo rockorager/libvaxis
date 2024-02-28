@@ -28,5 +28,5 @@ pub fn all(win: Window, style: Style) Window {
         win.writeCell(i, 0, .{ .char = horizontal, .style = style });
         win.writeCell(i, h - 1, .{ .char = horizontal, .style = style });
     }
-    return win.initChild(1, 1, .{ .limit = w - 2 }, .{ .limit = w - 2 });
+    return win.initChild(1, 1, .{ .limit = w - 2 }, .{ .limit = h - 2 });
 }
