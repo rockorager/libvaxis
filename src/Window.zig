@@ -39,19 +39,19 @@ pub fn initChild(
     height: Size,
 ) Window {
     const resolved_width = switch (width) {
-        .expand => self.width - x_off,
+        .expand => self.width -| x_off,
         .limit => |w| blk: {
             if (w + x_off > self.width) {
-                break :blk self.width - x_off;
+                break :blk self.width -| x_off;
             }
             break :blk w;
         },
     };
     const resolved_height = switch (height) {
-        .expand => self.height - y_off,
+        .expand => self.height -| y_off,
         .limit => |h| blk: {
             if (h + y_off > self.height) {
-                break :blk self.height - y_off;
+                break :blk self.height -| y_off;
             }
             break :blk h;
         },
@@ -109,7 +109,7 @@ pub fn showCursor(self: Window, col: usize, row: usize) void {
 }
 
 /// prints text in the window with simple word wrapping.
-pub fn wrap(self: Window, segments: []Segment) !void {
+pub fn wrap(self: Window, segments: []const Segment) !void {
     // pub fn wrap(self: Window, str: []const u8) !void {
     var row: usize = 0;
     var col: usize = 0;

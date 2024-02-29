@@ -3,6 +3,7 @@ const testing = std.testing;
 const Event = @import("event.zig").Event;
 const Key = @import("Key.zig");
 const Mouse = @import("Mouse.zig");
+
 const CodePointIterator = @import("ziglyph").CodePointIterator;
 const graphemeBreak = @import("ziglyph").graphemeBreak;
 
