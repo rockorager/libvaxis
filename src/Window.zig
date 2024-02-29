@@ -288,7 +288,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
                     if (row >= self.height) break :blk true;
                     const s = grapheme.bytes(segment.text);
                     if (std.mem.eql(u8, s, "\n")) {
-                        row += 1;
+                        row +|= 1;
                         col = 0;
                         continue;
                     }
@@ -433,7 +433,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
                         .style = segment.style,
                         .link = segment.link,
                     });
-                    col += w;
+                    col +|= w;
                 }
             } else false;
             return .{
