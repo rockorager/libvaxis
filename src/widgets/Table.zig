@@ -70,7 +70,7 @@ pub fn drawTable(
             .{ .limit = item_width },
             .{ .limit = 1 },
         );
-        var hdr = vaxis.widgets.alignment.center(hdr_win, @min(item_width - 1, hdr_txt.len), 1);
+        var hdr = vaxis.widgets.alignment.center(hdr_win, @min(item_width - 1, hdr_txt.len + 1), 1);
         hdr_win.fill(.{ .style = .{ .bg = hdr_bg } });
         var seg = [_]vaxis.Cell.Segment{ .{
             .text = hdr_txt,
