@@ -30,3 +30,13 @@ pub fn all(win: Window, style: Style) Window {
     }
     return win.initChild(1, 1, .{ .limit = w - 2 }, .{ .limit = h - 2 });
 }
+
+pub fn right(win: Window, style: Style) Window {
+    const h = win.height;
+    const w = win.width;
+    var i: usize = 0;
+    while (i < h) : (i += 1) {
+        win.writeCell(w - 1, i, .{ .char = vertical, .style = style });
+    }
+    return win.initChild(0, 0, .{ .limit = w - 1 }, .expand);
+}
