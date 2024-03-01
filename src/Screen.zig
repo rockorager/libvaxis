@@ -60,3 +60,17 @@ pub fn writeCell(self: *Screen, col: usize, row: usize, cell: Cell) void {
     assert(i < self.buf.len);
     self.buf[i] = cell;
 }
+
+pub fn readCell(self: *Screen, col: usize, row: usize) ?Cell {
+    if (self.width < col) {
+        // column out of bounds
+        return null;
+    }
+    if (self.height < row) {
+        // height out of bounds
+        return null;
+    }
+    const i = (row * self.width) + col;
+    assert(i < self.buf.len);
+    return self.buf[i];
+}
