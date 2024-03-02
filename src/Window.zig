@@ -48,10 +48,10 @@ pub fn initChild(
         },
     };
     const resolved_height = switch (height) {
-        .expand => self.height - y_off,
+        .expand => self.height -| y_off,
         .limit => |h| blk: {
             if (h + y_off > self.height) {
-                break :blk self.height - y_off;
+                break :blk self.height -| y_off;
             }
             break :blk h;
         },
