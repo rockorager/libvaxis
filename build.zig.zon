@@ -4,8 +4,8 @@
     .paths = .{""},
     .dependencies = .{
         .ziglyph = .{
-            .url = "https://codeberg.org/dude_the_builder/ziglyph/archive/ac50ab06c9.tar.gz",
-            .hash = "1220e097fbfb3a15a6f3484cf507f1f10ab571d1bcf519c3b5447ca727782b7a5264",
+            .url = "https://codeberg.org/dude_the_builder/ziglyph/archive/947ed39203.tar.gz",
+            .hash = "12208b23d1eb6dcb929e85346524db8f8b8aa1401bdf8a97dee1e0cfb55da8d5fb42",
         },
         .zigimg = .{
             .url = "https://github.com/rockorager/zigimg/archive/19a49a7.tar.gz",
