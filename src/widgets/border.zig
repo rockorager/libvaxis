@@ -40,3 +40,13 @@ pub fn right(win: Window, style: Style) Window {
     }
     return win.initChild(0, 0, .{ .limit = w - 1 }, .expand);
 }
+
+pub fn bottom(win: Window, style: Style) Window {
+    const h = win.height;
+    const w = win.width;
+    var i: usize = 0;
+    while (i < w) : (i += 1) {
+        win.writeCell(i, h - 1, .{ .char = horizontal, .style = style });
+    }
+    return win.initChild(0, 0, .expand, .{ .limit = h - 1 });
+}
