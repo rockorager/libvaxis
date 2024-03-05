@@ -174,7 +174,7 @@ pub fn print(self: Window, segments: []Segment, opts: PrintOptions) !bool {
                     // break lines when we can't fit this word, and the word isn't longer
                     // than our width
                     const word_width = self.gwidth(word.bytes);
-                    if (word_width + col >= self.width and word_width < self.width) {
+                    if (word_width + col > self.width and word_width < self.width) {
                         row += 1;
                         col = 0;
                         wrapped = true;
