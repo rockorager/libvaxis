@@ -300,6 +300,7 @@ pub fn Vaxis(comptime T: type) type {
                     std.debug.assert(w > 0);
                     var j = i + 1;
                     while (j < i + w) : (j += 1) {
+                        if (j >= self.screen_last.buf.len) break;
                         self.screen_last.buf[j].skipped = true;
                     }
                     col += w;
