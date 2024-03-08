@@ -309,6 +309,7 @@ pub fn Vaxis(comptime T: type) type {
                 if (col >= self.screen.width) {
                     row += 1;
                     col = 0;
+                    reposition = true;
                 }
                 // If cell is the same as our last frame, we don't need to do
                 // anything
