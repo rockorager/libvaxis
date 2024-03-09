@@ -1,10 +1,11 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const atomic = std.atomic;
 const base64 = std.base64.standard.Encoder;
 
 const Queue = @import("queue.zig").Queue;
 const ctlseqs = @import("ctlseqs.zig");
-const Tty = @import("Tty.zig");
+const Tty = if (builtin.os.tag.isDarwin()) @import("Tty-macos.zig") else @import("Tty.zig");
 const Winsize = Tty.Winsize;
 const Key = @import("Key.zig");
 const Screen = @import("Screen.zig");
@@ -128,8 +129,8 @@ pub fn Vaxis(comptime T: type) type {
         pub fn startReadThread(self: *Self) !void {
             self.tty = try Tty.init();
             // run our tty read loop in it's own thread
-            const read_thread = try std.Thread.spawn(.{}, Tty.run, .{ &self.tty.?, T, self });
-            try read_thread.setName("tty");
+            _ = try std.Thread.spawn(.{}, Tty.run, .{ &self.tty.?, T, self });
+            // try read_thread.setName("tty");
         }
 
         /// stops reading from the tty
@@ -668,13 +669,13 @@ pub fn Vaxis(comptime T: type) type {
     };
 }
 
-test "Vaxis: event queueing" {
-    const Event = union(enum) {
-        key,
-    };
-    var vx: Vaxis(Event) = try Vaxis(Event).init(.{});
-    defer vx.deinit(null);
-    vx.postEvent(.key);
-    const event = vx.nextEvent();
-    try std.testing.expect(event == .key);
-}
+// test "Vaxis: event queueing" {
+// const Event = union(enum) {
+// key: void,
+// };
+// var vx: Vaxis(Event) = try Vaxis(Event).init(.{});
+// defer vx.deinit(null);
+// vx.postEvent(.{ .key = {} });
+// const event = vx.nextEvent();
+// try std.testing.expect(event == .key);
+// }

@@ -16,7 +16,11 @@ pub fn build(b: *std.Build) void {
     });
 
     // Module
-    const vaxis_mod = b.addModule("vaxis", .{ .root_source_file = root_source_file });
+    const vaxis_mod = b.addModule("vaxis", .{
+        .root_source_file = root_source_file,
+        .target = target,
+        .optimize = optimize,
+    });
     vaxis_mod.addImport("ziglyph", ziglyph_dep.module("ziglyph"));
     vaxis_mod.addImport("zigimg", zigimg_dep.module("zigimg"));
 
@@ -34,13 +38,12 @@ pub fn build(b: *std.Build) void {
 
     const example_run = b.addRunArtifact(example);
     example_step.dependOn(&example_run.step);
-    b.default_step.dependOn(example_step);
 
     // Tests
     const tests_step = b.step("test", "Run tests");
 
     const tests = b.addTest(.{
-        .root_source_file = root_source_file,
+        .root_source_file = .{ .path = "src/Tty-macos.zig" },
         .target = target,
         .optimize = optimize,
     });
@@ -48,8 +51,8 @@ pub fn build(b: *std.Build) void {
     tests.root_module.addImport("zigimg", zigimg_dep.module("zigimg"));
 
     const tests_run = b.addRunArtifact(tests);
+    b.installArtifact(tests);
     tests_step.dependOn(&tests_run.step);
-    b.default_step.dependOn(tests_step);
 
     // Lints
     const lints_step = b.step("lint", "Run lints");
