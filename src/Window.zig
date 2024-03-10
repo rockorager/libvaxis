@@ -232,7 +232,7 @@ pub fn print(self: Window, segments: []Segment, opts: PrintOptions) !bool {
 
 /// prints text in the window with simple word wrapping.
 pub fn wrap(self: Window, segments: []Segment) !void {
-    return self.print(segments, .{ .wrap = .word });
+    _ = try self.print(segments, .{ .wrap = .word });
 }
 
 test "Window size set" {
