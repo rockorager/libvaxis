@@ -3,6 +3,7 @@ const Key = @import("../Key.zig");
 const Cell = @import("../Cell.zig");
 const Window = @import("../Window.zig");
 const GraphemeIterator = @import("ziglyph").GraphemeIterator;
+const GapBuffer = @import("../gap_buffer.zig").GapBuffer;
 
 const log = std.log.scoped(.text_input);
 
@@ -16,15 +17,11 @@ const Event = union(enum) {
 // Index of our cursor
 cursor_idx: usize = 0,
 grapheme_count: usize = 0,
-
-// TODO: an ArrayList is not great for this. orderedRemove is O(n) and we can
-// only remove one byte at a time. Make a bespoke ArrayList which allows removal
-// of a slice at a time, or truncating even would be nice
-buf: std.ArrayList(u8),
+buf: GapBuffer(u8),
 
 pub fn init(alloc: std.mem.Allocator) TextInput {
     return TextInput{
-        .buf = std.ArrayList(u8).init(alloc),
+        .buf = GapBuffer(u8).init(alloc),
     };
 }
 
@@ -50,15 +47,11 @@ pub fn update(self: *TextInput, event: Event) !void {
             } else if (key.matches('e', .{ .ctrl = true })) {
                 self.cursor_idx = self.grapheme_count;
             } else if (key.matches('k', .{ .ctrl = true })) {
-                while (self.cursor_idx < self.grapheme_count) {
-                    self.deleteAtCursor();
-                }
+                self.deleteToEnd();
             } else if (key.matches('u', .{ .ctrl = true })) {
-                while (self.cursor_idx > 0) {
-                    self.deleteBeforeCursor();
-                }
+                self.deleteToStart();
             } else if (key.text) |text| {
-                try self.buf.insertSlice(self.byteOffsetToCursor(), text);
+                try self.buf.insertSliceBefore(self.byteOffsetToCursor(), text);
                 self.cursor_idx += 1;
                 self.grapheme_count += 1;
             }
@@ -67,12 +60,29 @@ pub fn update(self: *TextInput, event: Event) !void {
 }
 
 pub fn draw(self: *TextInput, win: Window) void {
-    var iter = GraphemeIterator.init(self.buf.items);
+    // assumption!! the gap is never within a grapheme
+    // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
+    var first_iter = GraphemeIterator.init(self.buf.items);
     var col: usize = 0;
     var i: usize = 0;
     var cursor_idx: usize = 0;
-    while (iter.next()) |grapheme| {
+    while (first_iter.next()) |grapheme| {
         const g = grapheme.slice(self.buf.items);
+        const w = win.gwidth(g);
+        win.writeCell(col, 0, .{
+            .char = .{
+                .grapheme = g,
+                .width = w,
+            },
+        });
+        col += w;
+        i += 1;
+        if (i == self.cursor_idx) cursor_idx = col;
+    }
+    const second_half = self.buf.secondHalf();
+    var second_iter = GraphemeIterator.init(second_half);
+    while (second_iter.next()) |grapheme| {
+        const g = grapheme.slice(second_half);
         const w = win.gwidth(g);
         win.writeCell(col, 0, .{
             .char = .{
@@ -88,7 +98,11 @@ pub fn draw(self: *TextInput, win: Window) void {
 }
 
 // returns the number of bytes before the cursor
+// (since GapBuffers are strictly speaking not contiguous, this is a number in 0..realLength()
+// which would need to be fed to realIndex() to get an actual offset into self.buf.items.ptr)
 fn byteOffsetToCursor(self: TextInput) usize {
+    // assumption! the gap is never in the middle of a grapheme
+    // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
     var iter = GraphemeIterator.init(self.buf.items);
     var offset: usize = 0;
     var i: usize = 0;
@@ -96,43 +110,86 @@ fn byteOffsetToCursor(self: TextInput) usize {
         if (i == self.cursor_idx) break;
         offset += grapheme.len;
         i += 1;
+    } else {
+        var second_iter = GraphemeIterator.init(self.buf.secondHalf());
+        while (second_iter.next()) |grapheme| {
+            if (i == self.cursor_idx) break;
+            offset += grapheme.len;
+            i += 1;
+        }
     }
     return offset;
 }
 
+fn deleteToEnd(self: *TextInput) void {
+    self.cursor_idx += 1;
+    const offset = self.byteOffsetToCursor();
+    self.buf.replaceRangeAfter(offset, self.buf.realLength(), &.{});
+    self.grapheme_count = self.cursor_idx;
+    self.cursor_idx -= 1;
+}
+
+fn deleteToStart(self: *TextInput) void {
+    const offset = self.byteOffsetToCursor();
+    self.buf.replaceRangeBefore(0, offset, &.{});
+    self.grapheme_count -= self.cursor_idx;
+    self.cursor_idx = 0;
+}
+
 fn deleteBeforeCursor(self: *TextInput) void {
+    // assumption! the gap is never in the middle of a grapheme
+    // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
     var iter = GraphemeIterator.init(self.buf.items);
     var offset: usize = 0;
     var i: usize = 1;
     while (iter.next()) |grapheme| {
         if (i == self.cursor_idx) {
-            var j: usize = 0;
-            while (j < grapheme.len) : (j += 1) {
-                _ = self.buf.orderedRemove(offset);
-            }
+            self.buf.replaceRangeBefore(offset, grapheme.len, &.{});
             self.cursor_idx -= 1;
             self.grapheme_count -= 1;
             return;
         }
         offset += grapheme.len;
         i += 1;
+    } else {
+        var second_iter = GraphemeIterator.init(self.secondHalf());
+        while (second_iter.next()) |grapheme| {
+            if (i == self.cursor_idx) {
+                self.buf.replaceRangeBefore(offset, grapheme.len, &.{});
+                self.cursor_idx -= 1;
+                self.grapheme_count -= 1;
+                return;
+            }
+            offset += grapheme.len;
+            i += 1;
+        }
     }
 }
 
 fn deleteAtCursor(self: *TextInput) void {
+    // assumption! the gap is never in the middle of a grapheme
+    // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
     var iter = GraphemeIterator.init(self.buf.items);
     var offset: usize = 0;
     var i: usize = 1;
     while (iter.next()) |grapheme| {
         if (i == self.cursor_idx + 1) {
-            var j: usize = 0;
-            while (j < grapheme.len) : (j += 1) {
-                _ = self.buf.orderedRemove(offset);
-            }
+            self.buf.replaceRangeAfter(offset, grapheme.len, &.{});
             self.grapheme_count -= 1;
             return;
         }
         offset += grapheme.len;
         i += 1;
+    } else {
+        var second_iter = GraphemeIterator.init(self.secondHalf());
+        while (second_iter.next()) |grapheme| {
+            if (i == self.cursor_idx + 1) {
+                self.buf.replaceRangeAfter(offset, grapheme.len, &.{});
+                self.grapheme_count -= 1;
+                return;
+            }
+            offset += grapheme.len;
+            i += 1;
+        }
     }
 }
