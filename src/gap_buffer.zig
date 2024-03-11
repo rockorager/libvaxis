@@ -287,9 +287,8 @@ pub fn GapBufferAligned(comptime T: type, comptime alignment: ?u29) type {
         /// Invalidates pre-existing pointers to elements at and after `index`.
         /// Invalidates all pre-existing element pointers if capacity must be increased
         /// to accomodate the new elements.
-        pub fn addManyAtBefore(self: *Self, index: usize, count: usize) Allocator.Error![]T {
-            const new_len = try addOrOom(self.realLength(), count);
-            try self.ensureTotalCapacity(new_len);
+            pub fn addManyAtBefore(self: *Self, index: usize, count: usize) Allocator.Error![]T {
+                try self.ensureUnusedCapacity(count);
             return addManyAtBeforeAssumeCapacity(self, index, count);
         }
 
@@ -301,9 +300,8 @@ pub fn GapBufferAligned(comptime T: type, comptime alignment: ?u29) type {
         /// Invalidates pre-existing pointers to elements at and after `index`,
         /// and may move the gap.
         /// Asserts that the index is in bounds or equal to the length.
-        pub fn addManyAtBeforeAssumeCapacity(self: *Self, index: usize, count: usize) []T {
-            const new_len = self.items.len + count;
-            assert(self.second_start >= new_len);
+            pub fn addManyAtBeforeAssumeCapacity(self: *Self, index: usize, count: usize) []T {
+            assert(self.realLength() + count <= self.capacity);
             self.moveGap(index);
             const res = self.items.ptr[index..][0..count];
             @memset(res, undefined);
@@ -735,7 +733,8 @@ pub fn GapBufferAligned(comptime T: type, comptime alignment: ?u29) type {
             const second_half = self.secondHalf();
             if (self.allocator.resize(old_memory, new_capacity)) {
                 self.capacity = new_capacity;
-                mem.copyBackwards(T, self.items.ptr[new_capacity - second_half.len .. new_capacity], second_half);
+                self.second_start = new_capacity - second_half.len;
+                mem.copyBackwards(T, self.items.ptr[self.second_start..][0..second_half.len], second_half);
             } else {
                 const new_memory = try self.allocator.alignedAlloc(T, alignment, new_capacity);
                 @memcpy(new_memory[0..self.items.len], self.items);
@@ -1219,9 +1218,8 @@ pub fn GapBufferAlignedUnmanaged(comptime T: type, comptime alignment: ?u29) typ
         /// Invalidates pre-existing pointers to elements at and after `index`.
         /// Invalidates all pre-existing element pointers if capacity must be increased
         /// to accomodate the new elements.
-        pub fn addManyAtBefore(self: *Self, allocator: Allocator, index: usize, count: usize) Allocator.Error![]T {
-            const new_len = try addOrOom(self.realLength(), count);
-            try self.ensureTotalCapacity(allocator, new_len);
+            pub fn addManyAtBefore(self: *Self, allocator: Allocator, index: usize, count: usize) Allocator.Error![]T {
+                try self.ensureUnusedCapacity(allocator, count);
             return addManyAtBeforeAssumeCapacity(self, index, count);
         }
 
@@ -1234,8 +1232,7 @@ pub fn GapBufferAlignedUnmanaged(comptime T: type, comptime alignment: ?u29) typ
         /// and may move the gap.
         /// Asserts that the index is in bounds or equal to the length.
         pub fn addManyAtBeforeAssumeCapacity(self: *Self, index: usize, count: usize) []T {
-            const new_len = self.items.len + count;
-            assert(self.second_start >= new_len);
+            assert(self.realLength() + count <= self.capacity);
             self.moveGap(index);
             const res = self.items.ptr[index..][0..count];
             @memset(res, undefined);
@@ -1865,7 +1862,8 @@ pub fn GapBufferAlignedUnmanaged(comptime T: type, comptime alignment: ?u29) typ
             const second_half = self.secondHalf();
             if (allocator.resize(old_memory, new_capacity)) {
                 self.capacity = new_capacity;
-                mem.copyBackwards(T, self.items.ptr[new_capacity - second_half.len .. new_capacity], second_half);
+                self.second_start = new_capacity - second_half.len;
+                mem.copyBackwards(T, self.items.ptr[self.second_start..][0..second_half.len], second_half);
             } else {
                 const new_memory = try allocator.alignedAlloc(T, alignment, new_capacity);
                 @memcpy(new_memory[0..self.items.len], self.items);

@@ -193,3 +193,16 @@ fn deleteAtCursor(self: *TextInput) !void {
         }
     }
 }
+
+test "assertion" {
+    const astronaut = "👩‍🚀";
+    const astronaut_emoji: Key = .{
+        .text = astronaut,
+        .codepoint = try std.unicode.utf8Decode(astronaut[0..4]),
+    };
+    var input = TextInput.init(std.testing.allocator);
+    defer input.deinit();
+    for (0..6) |_| {
+        try input.update(.{ .key_press = astronaut_emoji });
+    }
+}
