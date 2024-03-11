@@ -146,6 +146,17 @@ pub fn Vaxis(comptime T: type) type {
             return self.queue.pop();
         }
 
+        /// blocks until an event is available. Useful when your application is
+        /// operating on a poll + drain architecture (see tryEvent)
+        pub fn pollEvent(self: *Self) void {
+            self.queue.poll();
+        }
+
+        /// returns an event if one is available, otherwise null. Non-blocking.
+        pub fn tryEvent(self: *Self) ?Event {
+            return self.queue.tryPop();
+        }
+
         /// posts an event into the event queue. Will block if there is not
         /// capacity for the event
         pub fn postEvent(self: *Self, event: T) void {

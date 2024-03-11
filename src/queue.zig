@@ -87,6 +87,16 @@ pub fn Queue(
             return self.pop();
         }
 
+        /// Poll the queue. This call blocks until events are in the queue
+        pub fn poll(self: *Self) void {
+            self.mutex.lock();
+            defer self.mutex.unlock();
+            while (self.isEmptyLH()) {
+                self.not_empty.wait(&self.mutex);
+            }
+            std.debug.assert(!self.isEmptyLH());
+        }
+
         fn isEmptyLH(self: Self) bool {
             return self.write_index == self.read_index;
         }
