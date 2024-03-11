@@ -36,8 +36,9 @@ pub const TableContext = struct{
 /// Draw a Table for the TUI.
 pub fn drawTable(
     /// This should be an ArenaAllocator that can be deinitialized after each event call.
-    /// The Allocator is only used if a row field is a non-String.
-    /// If the Allocator is not provided, those fields will show "[unsupported (TypeName)]".
+    /// The Allocator is only used in two cases: 
+    /// 1. If a cell is a non-String. If the Allocator is not provided, those cells will show "[unsupported (TypeName)]".
+    /// 2. To show that a value is too large to fit into a cell. If the Allocator is not provided, they'll just be cutoff.
     alloc: ?mem.Allocator,
     /// The parent Window to draw to.
     win: vaxis.Window,
@@ -70,10 +71,13 @@ pub fn drawTable(
             .{ .limit = item_width },
             .{ .limit = 1 },
         );
-        var hdr = vaxis.widgets.alignment.center(hdr_win, @min(item_width - 1, hdr_txt.len + 1), 1);
+        var hdr = vaxis.widgets.alignment.center(hdr_win, @min(item_width -| 1, hdr_txt.len +| 1), 1);
         hdr_win.fill(.{ .style = .{ .bg = hdr_bg } });
-        var seg = [_]vaxis.Cell.Segment{ .{
-            .text = hdr_txt,
+        var seg = [_]vaxis.Cell.Segment{.{
+            .text = 
+                if (hdr_txt.len > item_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{ hdr_txt[0..(item_width -| 4)] })
+                else hdr_txt
+            ,
             .style = .{
                 .bg = hdr_bg,
                 .bold = true,
@@ -83,7 +87,7 @@ pub fn drawTable(
         try hdr.wrap(seg[0..]);
     }
 
-    const max_items = if (data_list.items.len > table_win.height - 1) table_win.height - 1 else data_list.items.len;
+    const max_items = if (data_list.items.len > table_win.height -| 1) table_win.height -| 1 else data_list.items.len;
     var end = table_ctx.*.start + max_items;
     if (end > data_list.items.len) end = data_list.items.len;
     table_ctx.*.start = tableStart: {
@@ -122,31 +126,31 @@ pub fn drawTable(
                 .{ .limit = item_width },
                 .{ .limit = 1 },
             );
-            item_win.fill(.{ .style = .{ .bg = row_bg } });
-            var seg = [_]vaxis.Cell.Segment{ .{
-                .text = switch(ItemT) {
-                    []const u8 => item,
-                    else => nonStr: {
-                        switch (@typeInfo(ItemT)) {
-                            .Optional => {
-                                const opt_item = item orelse break :nonStr "-";
-                                switch(@typeInfo(ItemT).Optional.child) {
-                                    []const u8 => break :nonStr opt_item,
-                                    else => {
-                                        break :nonStr
-                                            if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{ opt_item })
-                                            else fmt.comptimePrint("[unsupported ({s})]", .{ @typeName(DataT) });
-                                    }
-                                }
-                            },
-                            else => {
-                                break :nonStr
-                                    if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{ item })
-                                    else fmt.comptimePrint("[unsupported ({s})]", .{ @typeName(DataT) });
+            const item_txt = switch (ItemT) {
+                []const u8 => item,
+                else => nonStr: {
+                    switch (@typeInfo(ItemT)) {
+                        .Optional => {
+                            const opt_item = item orelse break :nonStr "-";
+                            switch (@typeInfo(ItemT).Optional.child) {
+                                []const u8 => break :nonStr opt_item,
+                                else => {
+                                    break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{ opt_item }) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
+                                },
                             }
-                        }
-                    },
+                        },
+                        else => {
+                            break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{ item }) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
+                        },
+                    }
                 },
+            };
+            item_win.fill(.{ .style = .{ .bg = row_bg } });
+            var seg = [_]vaxis.Cell.Segment{.{
+                .text = 
+                    if (item_txt.len > item_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{ item_txt[0..(item_width -| 4)] })
+                    else item_txt
+                ,
                 .style = .{ .bg = row_bg },
             } };
             try item_win.wrap(seg[0..]);
