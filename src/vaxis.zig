@@ -13,6 +13,8 @@ pub const Queue = @import("queue.zig").Queue;
 pub const Screen = @import("Screen.zig");
 pub const Tty = @import("Tty.zig");
 pub const Window = @import("Window.zig");
+pub const Winsize = Tty.Winsize;
+pub const Style = Cell.Style;
 
 pub const ctlseqs = @import("ctlseqs.zig");
 pub const gwidth = @import("gwidth.zig");
@@ -60,8 +62,7 @@ pub fn Vaxis(comptime T: type) type {
         queue: Queue(T, 512),
 
         tty: ?Tty,
-
-        read_thread: ?std.Thread,
+        read_thread: ?std.Thread = null,
 
         /// the screen we write to
         screen: Screen,
@@ -76,6 +77,8 @@ pub fn Vaxis(comptime T: type) type {
             kitty_keyboard: bool = false,
             bracketed_paste: bool = false,
             mouse: bool = false,
+            /// if our read thread is running
+            reading: bool = false,
         } = .{},
 
         caps: Capabilities = .{},
@@ -112,8 +115,7 @@ pub fn Vaxis(comptime T: type) type {
         /// optional so applications can choose to not free resources when the
         /// application will be exiting anyways
         pub fn deinit(self: *Self, alloc: ?std.mem.Allocator) void {
-            if (self.tty) |_| {
-                var tty = &self.tty.?;
+            if (self.tty) |*tty| {
                 if (self.state.kitty_keyboard) {
                     _ = tty.write(ctlseqs.csi_u_pop) catch {};
                 }
@@ -144,21 +146,23 @@ pub fn Vaxis(comptime T: type) type {
 
         /// spawns the input thread to start listening to the tty for input
         pub fn startReadThread(self: *Self) !void {
+            if (self.state.reading) return;
             self.tty = try Tty.init();
             // run our tty read loop in it's own thread
             self.read_thread = try std.Thread.spawn(.{}, Tty.run, .{ &self.tty.?, T, self });
+            try self.read_thread.?.setName("vaxis_tty");
+            self.state.reading = true;
         }
 
         /// stops reading from the tty
         pub fn stopReadThread(self: *Self) void {
-            if (self.tty) |_| {
-                var tty = &self.tty.?;
-                tty.stop();
-                if (self.read_thread) |thread| {
-                    thread.join();
-                    self.read_thread = null;
-                }
+            if (!self.state.reading) return;
+            if (self.tty) |*tty| tty.stop();
+            if (self.read_thread) |*read| { 
+                read.join();
+                self.read_thread = null;
             }
+            self.state.reading = false;
         }
 
         /// returns the next available event, blocking until one is available
