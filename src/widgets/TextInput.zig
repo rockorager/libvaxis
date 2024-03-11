@@ -34,10 +34,10 @@ pub fn update(self: *TextInput, event: Event) !void {
         .key_press => |key| {
             if (key.matches(Key.backspace, .{})) {
                 if (self.cursor_idx == 0) return;
-                self.deleteBeforeCursor();
+                try self.deleteBeforeCursor();
             } else if (key.matches(Key.delete, .{}) or key.matches('d', .{ .ctrl = true })) {
                 if (self.cursor_idx == self.grapheme_count) return;
-                self.deleteAtCursor();
+                try self.deleteAtCursor();
             } else if (key.matches(Key.left, .{}) or key.matches('b', .{ .ctrl = true })) {
                 if (self.cursor_idx > 0) self.cursor_idx -= 1;
             } else if (key.matches(Key.right, .{}) or key.matches('f', .{ .ctrl = true })) {
@@ -47,9 +47,9 @@ pub fn update(self: *TextInput, event: Event) !void {
             } else if (key.matches('e', .{ .ctrl = true })) {
                 self.cursor_idx = self.grapheme_count;
             } else if (key.matches('k', .{ .ctrl = true })) {
-                self.deleteToEnd();
+                try self.deleteToEnd();
             } else if (key.matches('u', .{ .ctrl = true })) {
-                self.deleteToStart();
+                try self.deleteToStart();
             } else if (key.text) |text| {
                 try self.buf.insertSliceBefore(self.byteOffsetToCursor(), text);
                 self.cursor_idx += 1;
@@ -121,22 +121,22 @@ fn byteOffsetToCursor(self: TextInput) usize {
     return offset;
 }
 
-fn deleteToEnd(self: *TextInput) void {
+fn deleteToEnd(self: *TextInput) !void {
     self.cursor_idx += 1;
     const offset = self.byteOffsetToCursor();
-    self.buf.replaceRangeAfter(offset, self.buf.realLength(), &.{});
+    try self.buf.replaceRangeAfter(offset, self.buf.realLength(), &.{});
     self.grapheme_count = self.cursor_idx;
     self.cursor_idx -= 1;
 }
 
-fn deleteToStart(self: *TextInput) void {
+fn deleteToStart(self: *TextInput) !void {
     const offset = self.byteOffsetToCursor();
-    self.buf.replaceRangeBefore(0, offset, &.{});
+    try self.buf.replaceRangeBefore(0, offset, &.{});
     self.grapheme_count -= self.cursor_idx;
     self.cursor_idx = 0;
 }
 
-fn deleteBeforeCursor(self: *TextInput) void {
+fn deleteBeforeCursor(self: *TextInput) !void {
     // assumption! the gap is never in the middle of a grapheme
     // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
     var iter = GraphemeIterator.init(self.buf.items);
@@ -144,7 +144,7 @@ fn deleteBeforeCursor(self: *TextInput) void {
     var i: usize = 1;
     while (iter.next()) |grapheme| {
         if (i == self.cursor_idx) {
-            self.buf.replaceRangeBefore(offset, grapheme.len, &.{});
+            try self.buf.replaceRangeBefore(offset, grapheme.len, &.{});
             self.cursor_idx -= 1;
             self.grapheme_count -= 1;
             return;
@@ -152,10 +152,10 @@ fn deleteBeforeCursor(self: *TextInput) void {
         offset += grapheme.len;
         i += 1;
     } else {
-        var second_iter = GraphemeIterator.init(self.secondHalf());
+        var second_iter = GraphemeIterator.init(self.buf.secondHalf());
         while (second_iter.next()) |grapheme| {
             if (i == self.cursor_idx) {
-                self.buf.replaceRangeBefore(offset, grapheme.len, &.{});
+                try self.buf.replaceRangeBefore(offset, grapheme.len, &.{});
                 self.cursor_idx -= 1;
                 self.grapheme_count -= 1;
                 return;
@@ -166,7 +166,7 @@ fn deleteBeforeCursor(self: *TextInput) void {
     }
 }
 
-fn deleteAtCursor(self: *TextInput) void {
+fn deleteAtCursor(self: *TextInput) !void {
     // assumption! the gap is never in the middle of a grapheme
     // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
     var iter = GraphemeIterator.init(self.buf.items);
@@ -174,17 +174,17 @@ fn deleteAtCursor(self: *TextInput) void {
     var i: usize = 1;
     while (iter.next()) |grapheme| {
         if (i == self.cursor_idx + 1) {
-            self.buf.replaceRangeAfter(offset, grapheme.len, &.{});
+            try self.buf.replaceRangeAfter(offset, grapheme.len, &.{});
             self.grapheme_count -= 1;
             return;
         }
         offset += grapheme.len;
         i += 1;
     } else {
-        var second_iter = GraphemeIterator.init(self.secondHalf());
+        var second_iter = GraphemeIterator.init(self.buf.secondHalf());
         while (second_iter.next()) |grapheme| {
             if (i == self.cursor_idx + 1) {
-                self.buf.replaceRangeAfter(offset, grapheme.len, &.{});
+                try self.buf.replaceRangeAfter(offset, grapheme.len, &.{});
                 self.grapheme_count -= 1;
                 return;
             }
