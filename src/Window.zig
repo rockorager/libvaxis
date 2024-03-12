@@ -146,6 +146,7 @@ pub fn print(self: Window, segments: []Segment, opts: PrintOptions) !bool {
                         continue;
                     }
                     const w = self.gwidth(s);
+                    if (w == 0) continue;
                     self.writeCell(col, row, .{
                         .char = .{
                             .grapheme = s,
@@ -174,6 +175,7 @@ pub fn print(self: Window, segments: []Segment, opts: PrintOptions) !bool {
                     // break lines when we can't fit this word, and the word isn't longer
                     // than our width
                     const word_width = self.gwidth(word.bytes);
+                    if (word_width == 0) continue;
                     if (word_width + col > self.width and word_width < self.width) {
                         row += 1;
                         col = 0;
@@ -214,6 +216,7 @@ pub fn print(self: Window, segments: []Segment, opts: PrintOptions) !bool {
                     const s = grapheme.slice(segment.text);
                     if (std.mem.eql(u8, s, "\n")) return true;
                     const w = self.gwidth(s);
+                    if (w == 0) continue;
                     self.writeCell(col, row, .{
                         .char = .{
                             .grapheme = s,
