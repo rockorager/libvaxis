@@ -14,6 +14,10 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .target = target,
     });
+    const gap_buffer_dep = b.dependency("gap_buffer", .{
+        .optimize = optimize,
+        .target = target,
+    });
 
     // Module
     const vaxis_mod = b.addModule("vaxis", .{
@@ -23,6 +27,7 @@ pub fn build(b: *std.Build) void {
     });
     vaxis_mod.addImport("ziglyph", ziglyph_dep.module("ziglyph"));
     vaxis_mod.addImport("zigimg", zigimg_dep.module("zigimg"));
+    vaxis_mod.addImport("gap_buffer", gap_buffer_dep.module("gap_buffer"));
 
     // Examples
     const example_step = b.step("example", "Run examples");
@@ -49,6 +54,7 @@ pub fn build(b: *std.Build) void {
     });
     tests.root_module.addImport("ziglyph", ziglyph_dep.module("ziglyph"));
     tests.root_module.addImport("zigimg", zigimg_dep.module("zigimg"));
+    tests.root_module.addImport("gap_buffer", gap_buffer_dep.module("gap_buffer"));
 
     const tests_run = b.addRunArtifact(tests);
     b.installArtifact(tests);
