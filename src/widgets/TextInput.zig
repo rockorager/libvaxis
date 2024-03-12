@@ -3,7 +3,7 @@ const Key = @import("../Key.zig");
 const Cell = @import("../Cell.zig");
 const Window = @import("../Window.zig");
 const GraphemeIterator = @import("ziglyph").GraphemeIterator;
-const GapBuffer = @import("../gap_buffer.zig").GapBuffer;
+const GapBuffer = @import("gap_buffer").GapBuffer;
 
 const log = std.log.scoped(.text_input);
 

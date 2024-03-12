@@ -11,5 +11,9 @@
             .url = "https://github.com/rockorager/zigimg/archive/19a49a7.tar.gz",
             .hash = "1220ebfa8587cfd644995fc08e218dbb3ebd7344fb8e129ff02bc5a6d52a2325370d",
         },
+        .gap_buffer = .{
+            .url = "https://github.com/ryleelyman/GapBuffer.zig/archive/6a746497d5a2494026d0f471e42556f1f153f153.tar.gz",
+            .hash = "12205354d9903e773f9d934dcfe756b0b5ffd895571ad631ab86ebc1aebba074dd82",
+        },
     },
 }
