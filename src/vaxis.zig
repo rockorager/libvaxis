@@ -81,6 +81,7 @@ pub fn Vaxis(comptime T: type) type {
         // statistics
         renders: usize = 0,
         render_dur: i128 = 0,
+        render_timer: std.time.Timer,
 
         /// Initialize Vaxis with runtime options
         pub fn init(_: Options) !Self {
@@ -89,6 +90,7 @@ pub fn Vaxis(comptime T: type) type {
                 .tty = null,
                 .screen = .{},
                 .screen_last = .{},
+                .render_timer = try std.time.Timer.start(),
             };
         }
 
@@ -264,9 +266,9 @@ pub fn Vaxis(comptime T: type) type {
         pub fn render(self: *Self) !void {
             var tty = self.tty orelse return;
             self.renders += 1;
-            const timer_start = std.time.microTimestamp();
+            self.render_timer.reset();
             defer {
-                self.render_dur += std.time.microTimestamp() - timer_start;
+                self.render_dur += self.render_timer.read() / std.time.ns_per_us;
             }
 
             defer self.refresh = false;
