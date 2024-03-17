@@ -113,6 +113,8 @@ pub fn Vaxis(comptime T: type) type {
                 if (self.state.alt_screen) {
                     _ = tty.write(ctlseqs.rmcup) catch {};
                 }
+                // always show the cursor on exit
+                _ = tty.write(ctlseqs.show_cursor);
                 tty.flush() catch {};
                 tty.deinit();
             }
