@@ -114,7 +114,7 @@ pub fn Vaxis(comptime T: type) type {
                     _ = tty.write(ctlseqs.rmcup) catch {};
                 }
                 // always show the cursor on exit
-                _ = tty.write(ctlseqs.show_cursor);
+                _ = tty.write(ctlseqs.show_cursor) catch {};
                 tty.flush() catch {};
                 tty.deinit();
             }
