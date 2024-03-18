@@ -14,10 +14,21 @@ const Event = union(enum) {
     key_press: Key,
 };
 
+const ellipsis: Cell.Character = .{ .grapheme = "…", .width = 1 };
+
 // Index of our cursor
 cursor_idx: usize = 0,
 grapheme_count: usize = 0,
 buf: GapBuffer(u8),
+
+/// the number of graphemes to skip when drawing. Used for horizontal scrolling
+draw_offset: usize = 0,
+/// the column we placed the cursor the last time we drew
+prev_cursor_col: usize = 0,
+/// the grapheme index of the cursor the last time we drew
+prev_cursor_idx: usize = 0,
+/// approximate distance from an edge before we scroll
+scroll_offset: usize = 4,
 
 pub fn init(alloc: std.mem.Allocator) TextInput {
     return TextInput{
@@ -60,15 +71,31 @@ pub fn update(self: *TextInput, event: Event) !void {
 }
 
 pub fn draw(self: *TextInput, win: Window) void {
+    if (self.cursor_idx > self.prev_cursor_idx and
+        self.prev_cursor_col > (win.width -| self.scroll_offset))
+        self.draw_offset += 1;
+    if (self.cursor_idx < self.prev_cursor_idx and
+        self.prev_cursor_col < self.scroll_offset)
+        self.draw_offset -|= 1;
+    self.prev_cursor_idx = self.cursor_idx;
+    self.prev_cursor_col = 0;
+
     // assumption!! the gap is never within a grapheme
     // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
     var first_iter = GraphemeIterator.init(self.buf.items);
     var col: usize = 0;
     var i: usize = 0;
-    var cursor_idx: usize = 0;
     while (first_iter.next()) |grapheme| {
+        if (i < self.draw_offset) {
+            i += 1;
+            continue;
+        }
         const g = grapheme.slice(self.buf.items);
         const w = win.gwidth(g);
+        if (col + w >= win.width) {
+            win.writeCell(win.width - 1, 0, .{ .char = ellipsis });
+            break;
+        }
         win.writeCell(col, 0, .{
             .char = .{
                 .grapheme = g,
@@ -77,13 +104,21 @@ pub fn draw(self: *TextInput, win: Window) void {
         });
         col += w;
         i += 1;
-        if (i == self.cursor_idx) cursor_idx = col;
+        if (i == self.cursor_idx) self.prev_cursor_col = col;
     }
     const second_half = self.buf.secondHalf();
     var second_iter = GraphemeIterator.init(second_half);
     while (second_iter.next()) |grapheme| {
+        if (i < self.draw_offset) {
+            i += 1;
+            continue;
+        }
         const g = grapheme.slice(second_half);
         const w = win.gwidth(g);
+        if (col + w > win.width) {
+            win.writeCell(win.width - 1, 0, .{ .char = ellipsis });
+            break;
+        }
         win.writeCell(col, 0, .{
             .char = .{
                 .grapheme = g,
@@ -92,9 +127,12 @@ pub fn draw(self: *TextInput, win: Window) void {
         });
         col += w;
         i += 1;
-        if (i == self.cursor_idx) cursor_idx = col;
+        if (i == self.cursor_idx) self.prev_cursor_col = col;
     }
-    win.showCursor(cursor_idx, 0);
+    if (self.draw_offset > 0) {
+        win.writeCell(0, 0, .{ .char = ellipsis });
+    }
+    win.showCursor(self.prev_cursor_col, 0);
 }
 
 pub fn clearAndFree(self: *TextInput) void {
