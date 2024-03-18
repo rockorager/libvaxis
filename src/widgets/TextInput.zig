@@ -134,11 +134,9 @@ fn byteOffsetToCursor(self: TextInput) usize {
 }
 
 fn deleteToEnd(self: *TextInput) !void {
-    self.cursor_idx += 1;
     const offset = self.byteOffsetToCursor();
-    try self.buf.replaceRangeAfter(offset, self.buf.realLength(), &.{});
+    try self.buf.replaceRangeAfter(offset, self.buf.realLength() - offset, &.{});
     self.grapheme_count = self.cursor_idx;
-    self.cursor_idx -= 1;
 }
 
 fn deleteToStart(self: *TextInput) !void {
