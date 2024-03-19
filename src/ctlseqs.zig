@@ -1,6 +1,7 @@
 // Queries
 pub const primary_device_attrs = "\x1b[c";
 pub const tertiary_device_attrs = "\x1b[=c";
+pub const device_status_report = "\x1b[5n";
 pub const xtversion = "\x1b[>0q";
 pub const decrqm_focus = "\x1b[?1004$p";
 pub const decrqm_sync = "\x1b[?2026$p";

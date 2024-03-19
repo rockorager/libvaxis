@@ -5,7 +5,7 @@ const base64 = std.base64.standard.Encoder;
 
 const Queue = @import("queue.zig").Queue;
 const ctlseqs = @import("ctlseqs.zig");
-const Tty = if (builtin.os.tag.isDarwin()) @import("Tty-macos.zig") else @import("Tty.zig");
+const Tty = @import("Tty.zig");
 const Winsize = Tty.Winsize;
 const Key = @import("Key.zig");
 const Screen = @import("Screen.zig");
@@ -51,6 +51,8 @@ pub fn Vaxis(comptime T: type) type {
 
         tty: ?Tty,
 
+        read_thread: ?std.Thread,
+
         /// the screen we write to
         screen: Screen,
         /// The last screen we drew. We keep this so we can efficiently update on
@@ -91,6 +93,7 @@ pub fn Vaxis(comptime T: type) type {
                 .screen = .{},
                 .screen_last = .{},
                 .render_timer = try std.time.Timer.start(),
+                .read_thread = null,
             };
         }
 
@@ -133,8 +136,7 @@ pub fn Vaxis(comptime T: type) type {
         pub fn startReadThread(self: *Self) !void {
             self.tty = try Tty.init();
             // run our tty read loop in it's own thread
-            _ = try std.Thread.spawn(.{}, Tty.run, .{ &self.tty.?, T, self });
-            // try read_thread.setName("tty");
+            self.read_thread = try std.Thread.spawn(.{}, Tty.run, .{ &self.tty.?, T, self });
         }
 
         /// stops reading from the tty
@@ -142,6 +144,10 @@ pub fn Vaxis(comptime T: type) type {
             if (self.tty) |_| {
                 var tty = &self.tty.?;
                 tty.stop();
+                if (self.read_thread) |thread| {
+                    thread.join();
+                    self.read_thread = null;
+                }
             }
         }
 

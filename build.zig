@@ -48,7 +48,7 @@ pub fn build(b: *std.Build) void {
     const tests_step = b.step("test", "Run tests");
 
     const tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/Tty-macos.zig" },
+        .root_source_file = .{ .path = "src/main.zig" },
         .target = target,
         .optimize = optimize,
     });

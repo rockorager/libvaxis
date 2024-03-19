@@ -4,6 +4,7 @@ const os = std.os;
 const Vaxis = @import("vaxis.zig").Vaxis;
 const Parser = @import("Parser.zig");
 const GraphemeCache = @import("GraphemeCache.zig");
+const ctlseqs = @import("ctlseqs.zig");
 
 const log = std.log.scoped(.tty);
 
@@ -19,6 +20,7 @@ termios: os.termios,
 /// The file descriptor we are using for I/O
 fd: os.fd_t,
 
+should_quit: bool = false,
 /// the write end of a pipe to signal the tty should exit its run loop
 quit_fd: ?os.fd_t = null,
 
@@ -49,9 +51,8 @@ pub fn deinit(self: *Tty) void {
 
 /// stops the run loop
 pub fn stop(self: *Tty) void {
-    if (self.quit_fd) |fd| {
-        _ = std.os.write(fd, "q") catch {};
-    }
+    self.should_quit = true;
+    _ = std.os.write(self.fd, ctlseqs.device_status_report) catch {};
 }
 
 /// read input from the tty
@@ -60,19 +61,12 @@ pub fn run(
     comptime Event: type,
     vx: *Vaxis(Event),
 ) !void {
-    // create a pipe so we can signal to exit the run loop
-    const pipe = try os.pipe();
-    defer os.close(pipe[0]);
-    defer os.close(pipe[1]);
 
     // get our initial winsize
     const winsize = try getWinsize(self.fd);
     if (@hasField(Event, "winsize")) {
         vx.postEvent(.{ .winsize = winsize });
     }
-
-    // assign the write end of the pipe to our quit_fd
-    self.quit_fd = pipe[1];
 
     // Build a winch handler. We need build this struct to get an anonymous
     // function which can post the winsize event
@@ -113,24 +107,12 @@ pub fn run(
     // initialize a grapheme cache
     var cache: GraphemeCache = .{};
 
-    // Set up fds for polling
-    var pollfds: [2]std.os.pollfd = .{
-        .{ .fd = self.fd, .events = std.os.POLL.IN, .revents = undefined },
-        .{ .fd = pipe[0], .events = std.os.POLL.IN, .revents = undefined },
-    };
-
     var parser: Parser = .{};
 
     // initialize the read buffer
     var buf: [1024]u8 = undefined;
     // read loop
-    while (true) {
-        _ = try std.os.poll(&pollfds, -1);
-        if (pollfds[1].revents & std.os.POLL.IN != 0) {
-            log.debug("quitting read thread", .{});
-            return;
-        }
-
+    while (!self.should_quit) {
         const n = try os.read(self.fd, &buf);
         var start: usize = 0;
         while (start < n) {
