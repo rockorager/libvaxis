@@ -77,6 +77,8 @@ pub fn main() !void {
                     vx.queueRefresh();
                 } else if (key.matches('n', .{ .ctrl = true })) {
                     try vx.notify("vaxis", "hello from vaxis");
+                } else if (key.matches(vaxis.Key.enter, .{})) {
+                    text_input.clearAndFree();
                 } else {
                     try text_input.update(.{ .key_press = key });
                 }
