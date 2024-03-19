@@ -21,8 +21,6 @@ termios: os.termios,
 fd: os.fd_t,
 
 should_quit: bool = false,
-/// the write end of a pipe to signal the tty should exit its run loop
-quit_fd: ?os.fd_t = null,
 
 buffered_writer: BufferedWriter,
 
