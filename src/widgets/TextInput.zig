@@ -147,6 +147,12 @@ pub fn clearRetainingCapacity(self: *TextInput) void {
     self.grapheme_count = 0;
 }
 
+pub fn toOwnedSlice(self: *TextInput) ![]const u8 {
+    self.cursor_idx = 0;
+    self.grapheme_count = 0;
+    return self.buf.toOwnedSlice();
+}
+
 // returns the number of bytes before the cursor
 // (since GapBuffers are strictly speaking not contiguous, this is a number in 0..realLength()
 // which would need to be fed to realIndex() to get an actual offset into self.buf.items.ptr)
