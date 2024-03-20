@@ -529,6 +529,7 @@ pub fn Vaxis(comptime T: type) type {
                     ctlseqs.osc22_mouse_shape,
                     .{@tagName(self.screen.mouse_shape)},
                 );
+                self.screen_last.mouse_shape = self.screen.mouse_shape;
             }
         }
 
