@@ -39,10 +39,10 @@ pub fn initChild(
     height: Size,
 ) Window {
     const resolved_width = switch (width) {
-        .expand => self.width - x_off,
+        .expand => self.width -| x_off,
         .limit => |w| blk: {
             if (w + x_off > self.width) {
-                break :blk self.width - x_off;
+                break :blk self.width -| x_off;
             }
             break :blk w;
         },
@@ -63,6 +63,119 @@ pub fn initChild(
         .height = resolved_height,
         .screen = self.screen,
     };
+}
+
+pub const ChildOptions = struct {
+    x_off: usize = 0,
+    y_off: usize = 0,
+    /// the width of the resulting child, including any borders
+    width: Size = .expand,
+    /// the height of the resulting child, including any borders
+    height: Size = .expand,
+    border: BorderOptions = .{},
+};
+
+pub const BorderOptions = struct {
+    style: Cell.Style = .{},
+    where: enum {
+        none,
+        all,
+        top,
+        right,
+        bottom,
+        left,
+    } = .none,
+    glyphs: Glyphs = .single_rounded,
+
+    pub const Glyphs = union(enum) {
+        single_rounded,
+        single_square,
+        /// custom border glyphs. each glyph should be one cell wide and the
+        /// following indices apply:
+        /// [0] = top left
+        /// [1] = horizontal
+        /// [2] = top right
+        /// [3] = vertical
+        /// [4] = bottom right
+        /// [5] = bottom left
+        custom: [6][]const u8,
+    };
+
+    const single_rounded: [6][]const u8 = .{ "╭", "─", "╮", "│", "╯", "╰" };
+    const single_square: [6][]const u8 = .{ "┌", "─", "┐", "│", "┘", "└" };
+};
+
+/// create a child window
+pub fn child(self: Window, opts: ChildOptions) Window {
+    var result = self.initChild(opts.x_off, opts.y_off, opts.width, opts.height);
+
+    const glyphs = switch (opts.border.glyphs) {
+        .single_rounded => BorderOptions.single_rounded,
+        .single_square => BorderOptions.single_square,
+        .custom => |custom| custom,
+    };
+
+    const top_left: Cell.Character = .{ .grapheme = glyphs[0], .width = 1 };
+    const horizontal: Cell.Character = .{ .grapheme = glyphs[1], .width = 1 };
+    const top_right: Cell.Character = .{ .grapheme = glyphs[2], .width = 1 };
+    const vertical: Cell.Character = .{ .grapheme = glyphs[3], .width = 1 };
+    const bottom_right: Cell.Character = .{ .grapheme = glyphs[4], .width = 1 };
+    const bottom_left: Cell.Character = .{ .grapheme = glyphs[5], .width = 1 };
+    const style = opts.border.style;
+
+    const h = result.height;
+    const w = result.width;
+
+    switch (opts.border.where) {
+        .none => return result,
+        .all => {
+            result.writeCell(0, 0, .{ .char = top_left, .style = style });
+            result.writeCell(0, h -| 1, .{ .char = bottom_left, .style = style });
+            result.writeCell(w - 1, 0, .{ .char = top_right, .style = style });
+            result.writeCell(w - 1, h -| 1, .{ .char = bottom_right, .style = style });
+            var i: usize = 1;
+            while (i < (h - 1)) : (i += 1) {
+                result.writeCell(0, i, .{ .char = vertical, .style = style });
+                result.writeCell(w -| 1, i, .{ .char = vertical, .style = style });
+            }
+            i = 1;
+            while (i < w - 1) : (i += 1) {
+                result.writeCell(i, 0, .{ .char = horizontal, .style = style });
+                result.writeCell(i, h -| 1, .{ .char = horizontal, .style = style });
+            }
+            return result.initChild(1, 1, .{ .limit = w - 2 }, .{ .limit = h - 2 });
+        },
+        .top => {
+            var i: usize = 0;
+            while (i < w) : (i += 1) {
+                result.writeCell(i, 0, .{ .char = horizontal, .style = style });
+            }
+            return result.initChild(1, 0, .expand, .expand);
+        },
+        .right => {
+            var i: usize = 0;
+            while (i < h) : (i += 1) {
+                result.writeCell(w -| 1, i, .{ .char = vertical, .style = style });
+            }
+            return result.initChild(0, 0, .{ .limit = w -| 1 }, .expand);
+        },
+        .bottom => {
+            var i: usize = 0;
+            while (i < w) : (i += 1) {
+                result.writeCell(i, h -| 1, .{ .char = horizontal, .style = style });
+            }
+            return result.initChild(0, 0, .expand, .{ .limit = h -| 1 });
+        },
+        .left => {
+            var i: usize = 0;
+            while (i < h) : (i += 1) {
+                result.writeCell(0, i, .{ .char = vertical, .style = style });
+            }
+            return result.initChild(1, 0, .expand, .expand);
+        },
+    }
+
+    return result;
 }
 
 /// writes a cell to the location in the window
@@ -247,9 +360,9 @@ test "Window size set" {
         .screen = undefined,
     };
 
-    const child = parent.initChild(1, 1, .expand, .expand);
-    try std.testing.expectEqual(19, child.width);
-    try std.testing.expectEqual(19, child.height);
+    const ch = parent.initChild(1, 1, .expand, .expand);
+    try std.testing.expectEqual(19, ch.width);
+    try std.testing.expectEqual(19, ch.height);
 }
 
 test "Window size set too big" {
@@ -261,9 +374,9 @@ test "Window size set too big" {
         .screen = undefined,
     };
 
-    const child = parent.initChild(0, 0, .{ .limit = 21 }, .{ .limit = 21 });
-    try std.testing.expectEqual(20, child.width);
-    try std.testing.expectEqual(20, child.height);
+    const ch = parent.initChild(0, 0, .{ .limit = 21 }, .{ .limit = 21 });
+    try std.testing.expectEqual(20, ch.width);
+    try std.testing.expectEqual(20, ch.height);
 }
 
 test "Window size set too big with offset" {
@@ -275,9 +388,9 @@ test "Window size set too big with offset" {
         .screen = undefined,
     };
 
-    const child = parent.initChild(10, 10, .{ .limit = 21 }, .{ .limit = 21 });
-    try std.testing.expectEqual(10, child.width);
-    try std.testing.expectEqual(10, child.height);
+    const ch = parent.initChild(10, 10, .{ .limit = 21 }, .{ .limit = 21 });
+    try std.testing.expectEqual(10, ch.width);
+    try std.testing.expectEqual(10, ch.height);
 }
 
 test "Window size nested offsets" {
@@ -289,7 +402,7 @@ test "Window size nested offsets" {
         .screen = undefined,
     };
 
-    const child = parent.initChild(10, 10, .{ .limit = 21 }, .{ .limit = 21 });
-    try std.testing.expectEqual(11, child.x_off);
-    try std.testing.expectEqual(11, child.y_off);
+    const ch = parent.initChild(10, 10, .{ .limit = 21 }, .{ .limit = 21 });
+    try std.testing.expectEqual(11, ch.x_off);
+    try std.testing.expectEqual(11, ch.y_off);
 }
