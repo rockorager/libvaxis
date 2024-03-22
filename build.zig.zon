@@ -8,8 +8,8 @@
             .hash = "12208b23d1eb6dcb929e85346524db8f8b8aa1401bdf8a97dee1e0cfb55da8d5fb42",
         },
         .zigimg = .{
-            .url = "https://github.com/rockorager/zigimg/archive/19a49a7.tar.gz",
-            .hash = "1220ebfa8587cfd644995fc08e218dbb3ebd7344fb8e129ff02bc5a6d52a2325370d",
+            .url = "git+https://github.com/zigimg/zigimg#8873f29fc449e1b63400e9f4ad86d3c76204f962",
+            .hash = "122019f6439545235af116d0d8eb81fde1ff05fdb070da57c723772c557f84c5bf39",
         },
         .gap_buffer = .{
             .url = "https://github.com/ryleelyman/GapBuffer.zig/archive/6a746497d5a2494026d0f471e42556f1f153f153.tar.gz",
