@@ -225,7 +225,7 @@ pub fn Vaxis(comptime T: type) type {
         pub fn queryTerminal(self: *Self) !void {
             var tty = self.tty orelse return;
 
-            const colorterm = std.os.getenv("COLORTERM") orelse "";
+            const colorterm = std.posix.getenv("COLORTERM") orelse "";
             if (std.mem.eql(u8, colorterm, "truecolor") or
                 std.mem.eql(u8, colorterm, "24bit"))
             {

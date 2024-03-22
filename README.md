@@ -13,6 +13,10 @@ features is detected through terminal queries.
 
 Contributions are welcome.
 
+Vaxis tracks zig `master`. Vaxis is currently compatible with zig version
+`0.12.0-dev.3397+43edd53c3`. When `0.12.0` is released, a release will be tagged
+against it.
+
 ## Feature comparison
 
 | Feature                        | Vaxis | libvaxis | notcurses |
@@ -50,8 +54,6 @@ const vaxis = @import("vaxis");
 const Cell = vaxis.Cell;
 const TextInput = vaxis.widgets.TextInput;
 const border = vaxis.widgets.border;
-
-const log = std.log.scoped(.main);
 
 // This can contain internal events as well as Vaxis events.
 // Internal events can be posted into the same queue as vaxis events to allow
@@ -151,17 +153,26 @@ pub fn main() !void {
         // vaxis double buffers the screen. This new frame will be compared to
         // the old and only updated cells will be drawn
         win.clear();
-        const child = win.initChild(
-            win.width / 2 - 20,
-            win.height / 2 - 3,
-            .{ .limit = 40 },
-            .{ .limit = 3 },
-        );
-        // draw the text_input using a bordered window
+
+	// Create a style
         const style: vaxis.Style = .{
             .fg = .{ .index = color_idx },
         };
-        text_input.draw(border.all(child, style));
+
+	// Create a bordered child window
+	const child = win.child(.{
+	    .x_off = win.width / 2 - 20,
+	    .y_off = win.height / 2 - 3,
+	    .width = .{ .limit = 40 },
+	    .height = .{ .limit = 3 },
+	    .border = .{
+		.where = .all,
+		.style = .{ .fg = .index = color_idx },
+	    },
+	})
+
+	// Draw the text_input in the child window
+        text_input.draw(child);
 
         // Render the screen
         try vx.render();
