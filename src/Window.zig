@@ -75,16 +75,91 @@ pub const ChildOptions = struct {
     border: BorderOptions = .{},
 };
 
+const ChildBoundaries = struct {
+    x_off: usize,
+    y_off: usize,
+    width: Size,
+    height: Size,
+};
+
+pub const BorderLocation = packed struct {
+    top: bool = false,
+    right: bool = false,
+    bottom: bool = false,
+    left: bool = false,
+
+    pub fn all() BorderLocation {
+        return .{
+            .top = true,
+            .right = true,
+            .bottom = true,
+            .left = true,
+        };
+    }
+
+    fn hasAny(self: BorderLocation) bool {
+        return self.top or self.bottom or self.right or self.left;
+    }
+
+    fn topOrLeft(self: BorderLocation) usize {
+        return @intFromBool(self.top or self.left);
+    }
+
+    fn bottomOrRight(self: BorderLocation) usize {
+        return @intFromBool(self.bottom or self.right);
+    }
+
+    fn width(self: BorderLocation) usize {
+        // all connecting edges (that matter horizontally)
+        const top_left: usize = @intFromBool(self.top and self.left);
+        const bottom_left: usize = @intFromBool(self.bottom and self.left);
+        const top_right: usize = @intFromBool(self.top and self.right);
+        const bottom_right: usize = @intFromBool(self.bottom and self.right);
+
+        return @max((top_left | bottom_left) + (top_right | bottom_right), @intFromBool(self.right));
+    }
+
+    fn height(self: BorderLocation) usize {
+        // all connecting edges (that matter vertically)
+        const top_left: usize = @intFromBool(self.top and self.left);
+        const bottom_left: usize = @intFromBool(self.bottom and self.left);
+        const top_right: usize = @intFromBool(self.top and self.right);
+        const bottom_right: usize = @intFromBool(self.bottom and self.right);
+
+        return @max((top_left | top_right) + (bottom_left | bottom_right), @intFromBool(self.bottom));
+    }
+
+    fn limitWidth(self: BorderLocation, w: usize) Size {
+        return if (self.width() == 0)
+            .expand
+        else
+            .{ .limit = w -| self.width() };
+    }
+
+    fn limitHeight(self: BorderLocation, h: usize) Size {
+        return if (self.height() == 0)
+            .expand
+        else
+            .{ .limit = h -| self.height() };
+    }
+
+    pub fn makeChildBoundaries(self: BorderLocation, w: usize, h: usize) ?ChildBoundaries {
+        if (!self.hasAny()) {
+            return null;
+        }
+
+        return ChildBoundaries{
+            .x_off = self.topOrLeft(),
+            .y_off = self.bottomOrRight(),
+            .width = self.limitWidth(w),
+            .height = self.limitHeight(h),
+        };
+    }
+};
+
 pub const BorderOptions = struct {
     style: Cell.Style = .{},
-    where: enum {
-        none,
-        all,
-        top,
-        right,
-        bottom,
-        left,
-    } = .none,
+    where: BorderLocation = .{},
     glyphs: Glyphs = .single_rounded,
 
     pub const Glyphs = union(enum) {
@@ -126,53 +201,67 @@ pub fn child(self: Window, opts: ChildOptions) Window {
     const h = result.height;
     const w = result.width;
 
-    switch (opts.border.where) {
-        .none => return result,
-        .all => {
-            result.writeCell(0, 0, .{ .char = top_left, .style = style });
-            result.writeCell(0, h -| 1, .{ .char = bottom_left, .style = style });
-            result.writeCell(w - 1, 0, .{ .char = top_right, .style = style });
-            result.writeCell(w - 1, h -| 1, .{ .char = bottom_right, .style = style });
-            var i: usize = 1;
-            while (i < (h - 1)) : (i += 1) {
-                result.writeCell(0, i, .{ .char = vertical, .style = style });
-                result.writeCell(w -| 1, i, .{ .char = vertical, .style = style });
-            }
-            i = 1;
-            while (i < w - 1) : (i += 1) {
-                result.writeCell(i, 0, .{ .char = horizontal, .style = style });
-                result.writeCell(i, h -| 1, .{ .char = horizontal, .style = style });
-            }
-            return result.initChild(1, 1, .{ .limit = w - 2 }, .{ .limit = h - 2 });
-        },
-        .top => {
-            var i: usize = 0;
-            while (i < w) : (i += 1) {
-                result.writeCell(i, 0, .{ .char = horizontal, .style = style });
-            }
-            return result.initChild(1, 0, .expand, .expand);
-        },
-        .right => {
-            var i: usize = 0;
-            while (i < h) : (i += 1) {
-                result.writeCell(w -| 1, i, .{ .char = vertical, .style = style });
-            }
-            return result.initChild(0, 0, .{ .limit = w -| 1 }, .expand);
-        },
-        .bottom => {
-            var i: usize = 0;
-            while (i < w) : (i += 1) {
-                result.writeCell(i, h -| 1, .{ .char = horizontal, .style = style });
-            }
-            return result.initChild(0, 0, .expand, .{ .limit = h -| 1 });
-        },
-        .left => {
-            var i: usize = 0;
-            while (i < h) : (i += 1) {
-                result.writeCell(0, i, .{ .char = vertical, .style = style });
-            }
-            return result.initChild(1, 0, .expand, .expand);
-        },
+    const where = opts.border.where;
+
+    var t_l_offset: usize = 0;
+    var t_r_offset: usize = 0;
+    var b_l_offset: usize = 0;
+    var b_r_offset: usize = 0;
+
+    // top left
+    if (where.top and where.left) {
+        result.writeCell(0, 0, .{ .char = top_left, .style = style });
+        t_l_offset = 1;
+    }
+
+    // top right
+    if (where.top and where.right) {
+        result.writeCell(w - 1, 0, .{ .char = top_right, .style = style });
+        t_r_offset = 1;
+    }
+
+    // bottom left
+    if (where.bottom and where.left) {
+        result.writeCell(0, h -| 1, .{ .char = bottom_left, .style = style });
+        b_l_offset = 1;
+    }
+
+    // bottom right
+    if (where.bottom and where.right) {
+        result.writeCell(w - 1, h -| 1, .{ .char = bottom_right, .style = style });
+        b_r_offset = 1;
+    }
+
+    if (where.top) {
+        var i: usize = 0 + t_l_offset;
+        while (i < w -| t_r_offset) : (i += 1) {
+            result.writeCell(i, 0, .{ .char = horizontal, .style = style });
+        }
+    }
+
+    if (where.bottom) {
+        var i: usize = 0 + b_l_offset;
+        while (i < w -| b_r_offset) : (i += 1) {
+            result.writeCell(i, h -| 1, .{ .char = horizontal, .style = style });
+        }
+    }
+
+    if (where.right) {
+        var i: usize = 0 + t_r_offset;
+        while (i < h -| b_r_offset) : (i += 1) {
+            result.writeCell(w -| 1, i, .{ .char = vertical, .style = style });
+        }
+    }
+
+    if (where.left) {
+        var i: usize = 0 + t_l_offset;
+        while (i < h -| b_l_offset) : (i += 1) {
+            result.writeCell(0, i, .{ .char = vertical, .style = style });
+        }
+    }
+
+    if (where.makeChildBoundaries(w, h)) |boundary| {
+        return result.initChild(boundary.x_off, boundary.y_off, boundary.width, boundary.height);
     }
 
     return result;

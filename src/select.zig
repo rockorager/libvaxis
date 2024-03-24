@@ -108,7 +108,7 @@ pub fn Selector(comptime StreamEnum: type) type {
                     @memset(&fds.fds_bits, 0);
                     inline for (self.select_fds) |fd| {
                         c.FD_SET(fd, &fds);
-                    }                    
+                    }
                     const err = c.select(self.fd_max, &fds, null, null, ptr);
                     switch (std.os.errno(err)) {
                         .SUCCESS => break :fds fds,
