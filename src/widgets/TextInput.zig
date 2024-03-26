@@ -137,20 +137,25 @@ pub fn draw(self: *TextInput, win: Window) void {
 
 pub fn clearAndFree(self: *TextInput) void {
     self.buf.clearAndFree();
-    self.cursor_idx = 0;
-    self.grapheme_count = 0;
+    self.reset();
 }
 
 pub fn clearRetainingCapacity(self: *TextInput) void {
     self.buf.clearRetainingCapacity();
-    self.cursor_idx = 0;
-    self.grapheme_count = 0;
+    self.reset();
 }
 
 pub fn toOwnedSlice(self: *TextInput) ![]const u8 {
+    defer self.reset();
+    return self.buf.toOwnedSlice();
+}
+
+fn reset(self: *TextInput) void {
     self.cursor_idx = 0;
     self.grapheme_count = 0;
-    return self.buf.toOwnedSlice();
+    self.draw_offset = 0;
+    self.prev_cursor_col = 0;
+    self.prev_cursor_idx = 0;
 }
 
 // returns the number of bytes before the cursor
