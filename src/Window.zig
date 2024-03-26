@@ -77,15 +77,23 @@ pub const ChildOptions = struct {
 
 pub const BorderOptions = struct {
     style: Cell.Style = .{},
-    where: enum {
+    where: union(enum) {
         none,
         all,
         top,
         right,
         bottom,
         left,
+        other: Locations,
     } = .none,
     glyphs: Glyphs = .single_rounded,
+
+    pub const Locations = packed struct {
+        top: bool = false,
+        right: bool = false,
+        bottom: bool = false,
+        left: bool = false,
+    };
 
     pub const Glyphs = union(enum) {
         single_rounded,
@@ -126,56 +134,56 @@ pub fn child(self: Window, opts: ChildOptions) Window {
     const h = result.height;
     const w = result.width;
 
-    switch (opts.border.where) {
+    const loc: BorderOptions.Locations = switch (opts.border.where) {
         .none => return result,
-        .all => {
-            result.writeCell(0, 0, .{ .char = top_left, .style = style });
-            result.writeCell(0, h -| 1, .{ .char = bottom_left, .style = style });
-            result.writeCell(w - 1, 0, .{ .char = top_right, .style = style });
-            result.writeCell(w - 1, h -| 1, .{ .char = bottom_right, .style = style });
-            var i: usize = 1;
-            while (i < (h - 1)) : (i += 1) {
-                result.writeCell(0, i, .{ .char = vertical, .style = style });
-                result.writeCell(w -| 1, i, .{ .char = vertical, .style = style });
-            }
-            i = 1;
-            while (i < w - 1) : (i += 1) {
-                result.writeCell(i, 0, .{ .char = horizontal, .style = style });
-                result.writeCell(i, h -| 1, .{ .char = horizontal, .style = style });
-            }
-            return result.initChild(1, 1, .{ .limit = w - 2 }, .{ .limit = h - 2 });
-        },
-        .top => {
-            var i: usize = 0;
-            while (i < w) : (i += 1) {
-                result.writeCell(i, 0, .{ .char = horizontal, .style = style });
-            }
-            return result.initChild(1, 0, .expand, .expand);
-        },
-        .right => {
-            var i: usize = 0;
-            while (i < h) : (i += 1) {
-                result.writeCell(w -| 1, i, .{ .char = vertical, .style = style });
-            }
-            return result.initChild(0, 0, .{ .limit = w -| 1 }, .expand);
-        },
-        .bottom => {
-            var i: usize = 0;
-            while (i < w) : (i += 1) {
-                result.writeCell(i, h -| 1, .{ .char = horizontal, .style = style });
-            }
-            return result.initChild(0, 0, .expand, .{ .limit = h -| 1 });
-        },
-        .left => {
-            var i: usize = 0;
-            while (i < h) : (i += 1) {
-                result.writeCell(0, i, .{ .char = vertical, .style = style });
-            }
-            return result.initChild(1, 0, .expand, .expand);
-        },
+        .all => .{ .top = true, .bottom = true, .right = true, .left = true },
+        .bottom => .{ .bottom = true },
+        .right => .{ .right = true },
+        .left => .{ .left = true },
+        .top => .{ .top = true },
+        .other => |loc| loc,
+    };
+    if (loc.top) {
+        var i: usize = 0;
+        while (i < w) : (i += 1) {
+            result.writeCell(i, 0, .{ .char = horizontal, .style = style });
+        }
     }
+    if (loc.bottom) {
+        var i: usize = 0;
+        while (i < w) : (i += 1) {
+            result.writeCell(i, h -| 1, .{ .char = horizontal, .style = style });
+        }
+    }
+    if (loc.left) {
+        var i: usize = 0;
+        while (i < h) : (i += 1) {
+            result.writeCell(0, i, .{ .char = vertical, .style = style });
+        }
+    }
+    if (loc.right) {
+        var i: usize = 0;
+        while (i < h) : (i += 1) {
+            result.writeCell(w -| 1, i, .{ .char = vertical, .style = style });
+        }
+    }
+    // draw corners
+    if (loc.top and loc.left)
+        result.writeCell(0, 0, .{ .char = top_left, .style = style });
+    if (loc.top and loc.right)
+        result.writeCell(w - 1, 0, .{ .char = top_right, .style = style });
+    if (loc.bottom and loc.left)
+        result.writeCell(0, h -| 1, .{ .char = bottom_left, .style = style });
+    if (loc.bottom and loc.right)
+        result.writeCell(w - 1, h -| 1, .{ .char = bottom_right, .style = style });
 
-    return result;
+    const x_off: usize = if (loc.left) 1 else 0;
+    const y_off: usize = if (loc.top) 1 else 0;
+    const h_delt: usize = if (loc.bottom) 1 else 0;
+    const w_delt: usize = if (loc.right) 1 else 0;
+    const h_ch: usize = h - y_off - h_delt;
+    const w_ch: usize = w - x_off - w_delt;
+    return result.initChild(x_off, y_off, .{ .limit = w_ch }, .{ .limit = h_ch });
 }
 
 /// writes a cell to the location in the window

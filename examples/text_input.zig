@@ -112,17 +112,21 @@ pub fn main() !void {
         // vaxis double buffers the screen. This new frame will be compared to
         // the old and only updated cells will be drawn
         win.clear();
-        const child = win.initChild(
-            win.width / 2 - 20,
-            win.height / 2 - 3,
-            .{ .limit = 40 },
-            .{ .limit = 3 },
-        );
         // draw the text_input using a bordered window
         const style: vaxis.Style = .{
             .fg = .{ .index = color_idx },
         };
-        text_input.draw(border.all(child, style));
+        const child = win.child(.{
+            .x_off = win.width / 2 - 20,
+            .y_off = win.height / 2 - 3,
+            .width = .{ .limit = 40 },
+            .height = .{ .limit = 3 },
+            .border = .{
+                .where = .all,
+                .style = style,
+            },
+        });
+        text_input.draw(child);
 
         // Render the screen
         try vx.render();
