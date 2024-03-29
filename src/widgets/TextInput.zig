@@ -70,6 +70,33 @@ pub fn update(self: *TextInput, event: Event) !void {
     }
 }
 
+/// insert text at the cursor position
+pub fn insertSliceAtCursor(self: *TextInput, data: []const u8) !void {
+    var iter = GraphemeIterator.init(data);
+    var byte_offset_to_cursor = self.byteOffsetToCursor();
+    while (iter.next()) |text| {
+        try self.buf.insertSliceBefore(byte_offset_to_cursor, text.slice(data));
+        byte_offset_to_cursor += text.len;
+        self.cursor_idx += 1;
+        self.grapheme_count += 1;
+    }
+}
+
+pub fn sliceToCursor(self: *TextInput, buf: []u8) []const u8 {
+    const offset = self.byteOffsetToCursor();
+    assert(offset <= buf.len); // provided buf was too small
+
+    if (offset <= self.buf.items.len) {
+        @memcpy(buf[0..offset], self.buf.items[0..offset]);
+    } else {
+        @memcpy(buf[0..self.buf.items.len], self.buf.items);
+        const second_half = self.buf.secondHalf();
+        const copy_len = offset - self.buf.items.len;
+        @memcpy(buf[self.buf.items.len .. self.buf.items.len + copy_len], second_half[0..copy_len]);
+    }
+    return buf[0..offset];
+}
+
 pub fn draw(self: *TextInput, win: Window) void {
     if (self.cursor_idx > self.prev_cursor_idx and
         self.prev_cursor_col > (win.width -| self.scroll_offset))
@@ -264,4 +291,16 @@ test "assertion" {
     for (0..6) |_| {
         try input.update(.{ .key_press = astronaut_emoji });
     }
+}
+
+test "sliceToCursor" {
+    var alloc = std.testing.allocator_instance;
+    var input = init(alloc.allocator());
+    try input.insertSliceAtCursor("hello, world");
+    input.cursor_idx = 2;
+    var buf: [32]u8 = undefined;
+    try std.testing.expectEqualStrings("he", input.sliceToCursor(&buf));
+    input.buf.moveGap(3);
+    input.cursor_idx = 5;
+    try std.testing.expectEqualStrings("hello", input.sliceToCursor(&buf));
 }
