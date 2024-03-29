@@ -45,6 +45,8 @@ against it.
 
 ## Usage
 
+[Documentation](https://rockorager.github.io/libvaxis/#vaxis.Vaxis)
+
 The below example can be run using `zig build run 2>log`. stderr must be
 redirected in order to not print to the same screen.
 

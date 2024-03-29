@@ -74,7 +74,7 @@ pub fn build(b: *std.Build) void {
     // Docs
     const docs = b.addStaticLibrary(.{
         .name = "vaxis",
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = root_source_file,
         .target = target,
         .optimize = optimize,
     });
