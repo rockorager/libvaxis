@@ -2,6 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const atomic = std.atomic;
 const base64 = std.base64.standard.Encoder;
+const posix = std.posix;
 
 pub const Cell = @import("Cell.zig");
 pub const Image = @import("Image.zig");
@@ -239,7 +240,7 @@ pub fn Vaxis(comptime T: type) type {
         pub fn queryTerminal(self: *Self) !void {
             var tty = self.tty orelse return;
 
-            const colorterm = std.posix.getenv("COLORTERM") orelse "";
+            const colorterm = posix.getenv("COLORTERM") orelse "";
             if (std.mem.eql(u8, colorterm, "truecolor") or
                 std.mem.eql(u8, colorterm, "24bit"))
             {
