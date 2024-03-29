@@ -72,9 +72,15 @@ pub fn build(b: *std.Build) void {
     b.default_step.dependOn(lints_step);
 
     // Docs
-    const vaxis_docs = tests;
+    const docs = b.addStaticLibrary(.{
+        .name = "vaxis",
+        .root_source_file = .{ .path = "src/main.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+    docs.root_module.addImport("vaxis", vaxis_mod);
     const build_docs = b.addInstallDirectory(.{
-        .source_dir = vaxis_docs.getEmittedDocs(),
+        .source_dir = docs.getEmittedDocs(),
         .install_dir = .prefix,
         .install_subdir = "docs",
     });
