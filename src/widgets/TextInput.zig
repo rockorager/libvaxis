@@ -6,7 +6,6 @@ const Window = @import("../Window.zig");
 const GapBuffer = @import("gap_buffer").GapBuffer;
 const Unicode = @import("../Unicode.zig");
 
-const assert = std.debug.assert;
 const log = std.log.scoped(.text_input);
 
 const TextInput = @This();
