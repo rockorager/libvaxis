@@ -6,6 +6,7 @@ const Window = @import("../Window.zig");
 const GapBuffer = @import("gap_buffer").GapBuffer;
 const Unicode = @import("../Unicode.zig");
 
+const assert = std.debug.assert;
 const log = std.log.scoped(.text_input);
 
 const TextInput = @This();
@@ -88,7 +89,7 @@ pub fn insertSliceAtCursor(self: *TextInput, data: []const u8) !void {
 
 pub fn sliceToCursor(self: *TextInput, buf: []u8) []const u8 {
     const offset = self.byteOffsetToCursor();
-    assert(offset <= buf.len); // provided buf was too small
+    assert(offset <= buf.len); // provided buf was too small 
 
     if (offset <= self.buf.items.len) {
         @memcpy(buf[0..offset], self.buf.items[0..offset]);
