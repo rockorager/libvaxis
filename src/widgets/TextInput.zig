@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const Key = @import("../Key.zig");
 const Cell = @import("../Cell.zig");
 const Window = @import("../Window.zig");
@@ -188,7 +189,7 @@ fn reset(self: *TextInput) void {
 // returns the number of bytes before the cursor
 // (since GapBuffers are strictly speaking not contiguous, this is a number in 0..realLength()
 // which would need to be fed to realIndex() to get an actual offset into self.buf.items.ptr)
-fn byteOffsetToCursor(self: TextInput) usize {
+pub fn byteOffsetToCursor(self: TextInput) usize {
     // assumption! the gap is never in the middle of a grapheme
     // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
     var iter = GraphemeIterator.init(self.buf.items);
