@@ -122,6 +122,22 @@ pub fn matchExact(self: Key, cp: u21, mods: Modifiers) bool {
     return self.codepoint == cp and std.meta.eql(self.mods, mods);
 }
 
+/// True if the key is a single modifier (ie: left_shift)
+pub fn isModifier(self: Key) bool {
+    return self.codepoint == left_shift or
+        self.codepoint == left_alt or
+        self.codepoint == left_super or
+        self.codepoint == left_hyper or
+        self.codepoint == left_control or
+        self.codepoint == left_meta or
+        self.codepoint == right_shift or
+        self.codepoint == right_alt or
+        self.codepoint == right_super or
+        self.codepoint == right_hyper or
+        self.codepoint == right_control or
+        self.codepoint == right_meta;
+}
+
 // a few special keys that we encode as their actual ascii value
 pub const enter: u21 = 0x0D;
 pub const tab: u21 = 0x09;
