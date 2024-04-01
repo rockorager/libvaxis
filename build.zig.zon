@@ -2,6 +2,7 @@
     .name = "vaxis",
     .version = "0.1.0",
     .paths = .{""},
+    .minimum_zig_version = "0.12.0-dev.3397+43edd53c3",
     .dependencies = .{
         .ziglyph = .{
             .url = "git+https://codeberg.org/dude_the_builder/ziglyph/#947ed39203bf90412e3d16cbcf936518b6f23af0",
