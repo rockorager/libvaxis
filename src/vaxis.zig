@@ -582,13 +582,10 @@ pub fn Vaxis(comptime T: type) type {
         pub fn setBracketedPaste(self: *Self, enable: bool) !void {
             if (self.tty == null) return;
             self.state.bracketed_paste = enable;
-            const seq = if (enable) {
-                self.state.bracketed_paste = true;
-                ctlseqs.bp_set;
-            } else {
-                self.state.bracketed_paste = true;
+            const seq = if (enable)
+                ctlseqs.bp_set
+            else
                 ctlseqs.bp_reset;
-            };
             _ = try self.tty.?.write(seq);
             try self.tty.?.flush();
         }
