@@ -1,1 +1,0 @@
-var modules =[{"name":"vaxis","file":0,"main":66,"table":{"ziglyph":4,"vaxis":0,"zigimg":2,"builtin":1}},{"name":"builtin","file":0,"main":462,"table":{}},{"name":"zigimg","file":0,"main":32363,"table":{"builtin":3}},{"name":"builtin","file":0,"main":32577,"table":{}},{"name":"ziglyph","file":0,"main":33845,"table":{}}];
