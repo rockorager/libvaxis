@@ -98,13 +98,45 @@ pub fn sliceToCursor(self: *TextInput, buf: []u8) []const u8 {
     return buf[0..offset];
 }
 
+/// calculates the display width from the draw_offset to the cursor
+fn widthToCursor(self: *TextInput, win: Window) usize {
+    var width: usize = 0;
+    var first_iter = GraphemeIterator.init(self.buf.items);
+    var i: usize = 0;
+    while (first_iter.next()) |grapheme| {
+        defer i += 1;
+        if (i < self.draw_offset) {
+            continue;
+        }
+        if (i == self.cursor_idx) return width;
+        const g = grapheme.slice(self.buf.items);
+        width += win.gwidth(g);
+    }
+    const second_half = self.buf.secondHalf();
+    var second_iter = GraphemeIterator.init(second_half);
+    while (second_iter.next()) |grapheme| {
+        defer i += 1;
+        if (i < self.draw_offset) {
+            continue;
+        }
+        if (i == self.cursor_idx) return width;
+        const g = grapheme.slice(second_half);
+        width += win.gwidth(g);
+    }
+    return width;
+}
+
 pub fn draw(self: *TextInput, win: Window) void {
-    if (self.cursor_idx > self.prev_cursor_idx and
-        self.prev_cursor_col > (win.width -| self.scroll_offset))
-        self.draw_offset += 1;
-    if (self.cursor_idx < self.prev_cursor_idx and
-        self.prev_cursor_col < self.scroll_offset)
-        self.draw_offset -|= 1;
+    if (self.cursor_idx < self.draw_offset) self.draw_offset = self.cursor_idx;
+    while (true) {
+        const width = self.widthToCursor(win);
+        log.debug("WIDTH TO CURSOR {d}, win.width {d}", .{ width, win.width });
+        if (width >= win.width) {
+            self.draw_offset +|= width - win.width + 1;
+            continue;
+        } else break;
+    }
+
     self.prev_cursor_idx = self.cursor_idx;
     self.prev_cursor_col = 0;
 
