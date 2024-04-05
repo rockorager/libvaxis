@@ -130,7 +130,6 @@ pub fn draw(self: *TextInput, win: Window) void {
     if (self.cursor_idx < self.draw_offset) self.draw_offset = self.cursor_idx;
     while (true) {
         const width = self.widthToCursor(win);
-        log.debug("WIDTH TO CURSOR {d}, win.width {d}", .{ width, win.width });
         if (width >= win.width) {
             self.draw_offset +|= width - win.width + 1;
             continue;
