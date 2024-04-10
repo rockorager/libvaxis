@@ -30,19 +30,19 @@ pub fn build(b: *std.Build) void {
     vaxis_mod.addImport("gap_buffer", gap_buffer_dep.module("gap_buffer"));
 
     // Examples
-    const example_step = b.step("example", "Run examples");
+    const text_input_step = b.step("examples/text_input", "Run text_input.zig");
 
-    const example = b.addExecutable(.{
-        .name = "vaxis_pathological_example",
+    const text_input = b.addExecutable(.{
+        .name = "text_input",
         // Change this to the example you want to use!
         .root_source_file = std.Build.LazyPath.relative("examples/text_input.zig"),
         .target = target,
         .optimize = optimize,
     });
-    example.root_module.addImport("vaxis", vaxis_mod);
+    text_input.root_module.addImport("vaxis", vaxis_mod);
 
-    const example_run = b.addRunArtifact(example);
-    example_step.dependOn(&example_run.step);
+    const text_input_run = b.addRunArtifact(text_input);
+    text_input_step.dependOn(&text_input_run.step);
 
     // Tests
     const tests_step = b.step("test", "Run tests");
