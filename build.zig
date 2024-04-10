@@ -30,19 +30,21 @@ pub fn build(b: *std.Build) void {
     vaxis_mod.addImport("gap_buffer", gap_buffer_dep.module("gap_buffer"));
 
     // Examples
-    const text_input_step = b.step("examples/text_input", "Run text_input.zig");
-
-    const text_input = b.addExecutable(.{
-        .name = "text_input",
-        // Change this to the example you want to use!
-        .root_source_file = std.Build.LazyPath.relative("examples/text_input.zig"),
+    const Example = enum { image, main, pathological, table, text_input };
+    const example_option = b.option(Example, "example", "Example to run (default: text_input)") orelse .text_input;
+    const example_step = b.step("example", "Run example");
+    const example = b.addExecutable(.{
+        .name = "example",
+        // future versions should use b.path, see zig PR #19597
+        .root_source_file = std.Build.LazyPath.relative(
+            b.fmt("examples/{s}.zig", .{@tagName(example_option)}),
+        ),
         .target = target,
         .optimize = optimize,
     });
-    text_input.root_module.addImport("vaxis", vaxis_mod);
-
-    const text_input_run = b.addRunArtifact(text_input);
-    text_input_step.dependOn(&text_input_run.step);
+    example.root_module.addImport("vaxis", vaxis_mod);
+    const example_run = b.addRunArtifact(example);
+    example_step.dependOn(&example_run.step);
 
     // Tests
     const tests_step = b.step("test", "Run tests");
