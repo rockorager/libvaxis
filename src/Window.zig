@@ -5,6 +5,7 @@ const GraphemeIterator = ziglyph.GraphemeIterator;
 
 const Screen = @import("Screen.zig");
 const Cell = @import("Cell.zig");
+const Mouse = @import("Mouse.zig");
 const Segment = @import("Cell.zig").Segment;
 const gw = @import("gwidth.zig");
 
@@ -357,6 +358,35 @@ pub fn print(self: Window, segments: []Segment, opts: PrintOptions) !bool {
 /// prints text in the window with simple word wrapping.
 pub fn wrap(self: Window, segments: []Segment) !void {
     _ = try self.print(segments, .{ .wrap = .word });
+}
+
+/// scrolls the window down one row (IE inserts a blank row at the bottom of the
+/// screen and shifts all rows up one)
+pub fn scroll(self: Window, n: usize) void {
+    if (n > self.height) return;
+    var row = self.y_off;
+    while (row < self.height - n) : (row += 1) {
+        const dst_start = (row * self.width) + self.x_off;
+        const dst_end = dst_start + self.width;
+
+        const src_start = ((row + n) * self.width) + self.x_off;
+        const src_end = src_start + self.width;
+        @memcpy(self.screen.buf[dst_start..dst_end], self.screen.buf[src_start..src_end]);
+    }
+    const last_row = self.child(.{
+        .y_off = self.height - n,
+    });
+    last_row.clear();
+}
+
+/// returns the mouse event if the mouse event occurred within the window. If
+/// the mouse event occurred outside the window, null is returned
+fn hasMouse(win: Window, mouse: ?Mouse) ?Mouse {
+    const event = mouse orelse return null;
+    if (event.col >= win.x_off and
+        event.col < (win.x_off + win.width) and
+        event.row >= win.y_off and
+        event.row < (win.y_off + win.height)) return event else return null;
 }
 
 test "Window size set" {
