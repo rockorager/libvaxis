@@ -16,5 +16,9 @@
             .url = "https://github.com/ryleelyman/GapBuffer.zig/archive/6a746497d5a2494026d0f471e42556f1f153f153.tar.gz",
             .hash = "12205354d9903e773f9d934dcfe756b0b5ffd895571ad631ab86ebc1aebba074dd82",
         },
+        .znvim = .{
+            .url = "git+https://github.com/jinzhongjia/znvim#7927b8042872d5fa5f30862302bea1290d372d4f",
+            .hash = "12202372c2043a9ac557144d327c09638ccd8d615bba459ba17d1a7a4197a213d939",
+        },
     },
 }
