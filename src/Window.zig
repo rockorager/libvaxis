@@ -230,6 +230,10 @@ pub fn showCursor(self: Window, col: usize, row: usize) void {
     self.screen.cursor_col = col + self.x_off;
 }
 
+pub fn setCursorShape(self: Window, shape: Cell.CursorShape) void {
+    self.screen.cursor_shape = shape;
+}
+
 /// Options to use when printing Segments to a window
 pub const PrintOptions = struct {
     /// vertical offset to start printing at

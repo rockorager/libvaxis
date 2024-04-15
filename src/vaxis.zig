@@ -531,6 +531,14 @@ pub fn Vaxis(comptime T: type) type {
                 );
                 self.screen_last.mouse_shape = self.screen.mouse_shape;
             }
+            if (self.screen.cursor_shape != self.screen_last.cursor_shape) {
+                try std.fmt.format(
+                    tty.buffered_writer.writer(),
+                    ctlseqs.cursor_shape,
+                    .{@intFromEnum(self.screen.cursor_shape)},
+                );
+                self.screen_last.cursor_shape = self.screen.cursor_shape;
+            }
         }
 
         fn enableKittyKeyboard(self: *Self, flags: Key.KittyFlags) !void {

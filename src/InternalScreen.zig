@@ -2,7 +2,8 @@ const std = @import("std");
 const assert = std.debug.assert;
 const Style = @import("Cell.zig").Style;
 const Cell = @import("Cell.zig");
-const Shape = @import("Mouse.zig").Shape;
+const MouseShape = @import("Mouse.zig").Shape;
+const CursorShape = Cell.CursorShape;
 
 const log = std.log.scoped(.internal_screen);
 
@@ -32,8 +33,9 @@ buf: []InternalCell = undefined,
 cursor_row: usize = 0,
 cursor_col: usize = 0,
 cursor_vis: bool = false,
+cursor_shape: CursorShape = .default,
 
-mouse_shape: Shape = .default,
+mouse_shape: MouseShape = .default,
 
 /// sets each cell to the default cell
 pub fn init(alloc: std.mem.Allocator, w: usize, h: usize) !InternalScreen {

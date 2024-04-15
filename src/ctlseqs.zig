@@ -36,6 +36,7 @@ pub const home = "\x1b[H";
 pub const cup = "\x1b[{d};{d}H";
 pub const hide_cursor = "\x1b[?25l";
 pub const show_cursor = "\x1b[?25h";
+pub const cursor_shape = "\x1b[{d} q";
 
 // alt screen
 pub const smcup = "\x1b[?1049h";

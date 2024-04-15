@@ -21,6 +21,16 @@ pub const Character = struct {
     width: usize = 1,
 };
 
+pub const CursorShape = enum {
+    default,
+    block_blink,
+    block,
+    underline_blink,
+    underline,
+    beam_blink,
+    beam,
+};
+
 pub const Hyperlink = struct {
     uri: []const u8 = "",
     /// ie "id=app-1234"

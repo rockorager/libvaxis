@@ -26,6 +26,7 @@ cursor_vis: bool = false,
 unicode: bool = false,
 
 mouse_shape: Shape = .default,
+cursor_shape: Cell.CursorShape = .default,
 
 pub fn init(alloc: std.mem.Allocator, winsize: Winsize) !Screen {
     const w = winsize.cols;
