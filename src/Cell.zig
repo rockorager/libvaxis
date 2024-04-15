@@ -65,4 +65,16 @@ pub const Color = union(enum) {
     default,
     index: u8,
     rgb: [3]u8,
+
+    pub fn rgbFromUint(val: u24) Color {
+        const r_bits = val & 0b11111111_00000000_00000000;
+        const g_bits = val & 0b00000000_11111111_00000000;
+        const b_bits = val & 0b00000000_00000000_11111111;
+        const rgb = [_]u8{
+            @truncate(r_bits >> 16),
+            @truncate(g_bits >> 8),
+            @truncate(b_bits),
+        };
+        return .{ .rgb = rgb };
+    }
 };
