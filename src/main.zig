@@ -13,6 +13,7 @@ pub const Color = Cell.Color;
 pub const Image = @import("Image.zig");
 pub const Mouse = @import("Mouse.zig");
 pub const Screen = @import("Screen.zig");
+pub const AllocatingScreen = @import("InternalScreen.zig");
 pub const Winsize = @import("Tty.zig").Winsize;
 pub const Window = @import("Window.zig");
 

@@ -95,3 +95,20 @@ pub fn writeCell(
     };
     self.buf[i].style = cell.style;
 }
+
+pub fn readCell(self: *InternalScreen, col: usize, row: usize) ?Cell {
+    if (self.width < col) {
+        // column out of bounds
+        return null;
+    }
+    if (self.height < row) {
+        // height out of bounds
+        return null;
+    }
+    const i = (row * self.width) + col;
+    assert(i < self.buf.len);
+    return .{
+        .char = .{ .grapheme = self.buf[i].char.items },
+        .style = self.buf[i].style,
+    };
+}
