@@ -73,7 +73,7 @@ pub fn main() !void {
         const deinit_status = gpa.deinit();
         //fail test; can't try in defer as defer is executed after we return
         if (deinit_status == .leak) {
-            log.err("memory leak", .{});
+            std.log.err("memory leak", .{});
         }
     }
     const alloc = gpa.allocator();
@@ -109,7 +109,7 @@ pub fn main() !void {
     while (true) {
         // nextEvent blocks until an event is in the queue
         const event = vx.nextEvent();
-        log.debug("event: {}", .{event});
+        std.log.debug("event: {}", .{event});
         // exhaustive switching ftw. Vaxis will send events if your Event enum
         // has the fields for those events (ie "key_press", "winsize")
         switch (event) {
@@ -156,24 +156,24 @@ pub fn main() !void {
         // the old and only updated cells will be drawn
         win.clear();
 
-	// Create a style
+        // Create a style
         const style: vaxis.Style = .{
             .fg = .{ .index = color_idx },
         };
 
-	// Create a bordered child window
-	const child = win.child(.{
-	    .x_off = win.width / 2 - 20,
-	    .y_off = win.height / 2 - 3,
-	    .width = .{ .limit = 40 },
-	    .height = .{ .limit = 3 },
-	    .border = .{
-		.where = .all,
-		.style = .{ .fg = .index = color_idx },
-	    },
-	})
+        // Create a bordered child window
+        const child = win.child(.{
+            .x_off = win.width / 2 - 20,
+            .y_off = win.height / 2 - 3,
+            .width = .{ .limit = 40 },
+            .height = .{ .limit = 3 },
+            .border = .{
+                .where = .all,
+                .style = style,
+            },
+        });
 
-	// Draw the text_input in the child window
+        // Draw the text_input in the child window
         text_input.draw(child);
 
         // Render the screen
