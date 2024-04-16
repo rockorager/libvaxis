@@ -385,7 +385,7 @@ pub fn scroll(self: Window, n: usize) void {
 
 /// returns the mouse event if the mouse event occurred within the window. If
 /// the mouse event occurred outside the window, null is returned
-fn hasMouse(win: Window, mouse: ?Mouse) ?Mouse {
+pub fn hasMouse(win: Window, mouse: ?Mouse) ?Mouse {
     const event = mouse orelse return null;
     if (event.col >= win.x_off and
         event.col < (win.x_off + win.width) and
