@@ -43,10 +43,12 @@ base_layout_codepoint: ?u21 = null,
 mods: Modifiers = .{},
 
 // matches follows a loose matching algorithm for key matches.
-// 1. If the codepoint and modifiers are exact matches
-// 2. If the utf8 encoding of the codepoint matches the text
+// 1. If the codepoint and modifiers are exact matches, after removing caps_lock
+//    and num_lock
+// 2. If the utf8 encoding of the codepoint matches the text, after removing
+//    num_lock
 // 3. If there is a shifted codepoint and it matches after removing the shift
-//    modifier from self
+//    modifier from self, after removing caps_lock and num_lock
 pub fn matches(self: Key, cp: u21, mods: Modifiers) bool {
     // rule 1
     if (self.matchExact(cp, mods)) return true;
@@ -83,6 +85,11 @@ pub fn matchShiftedCodepoint(self: Key, cp: u21, mods: Modifiers) bool {
     if (!self.mods.shift) return false;
     var self_mods = self.mods;
     self_mods.shift = false;
+    self_mods.caps_lock = false;
+    self_mods.num_lock = false;
+    var tgt_mods = mods;
+    tgt_mods.caps_lock = false;
+    tgt_mods.num_lock = false;
     return cp == self.shifted_codepoint.? and std.meta.eql(self_mods, mods);
 }
 
@@ -93,7 +100,9 @@ pub fn matchText(self: Key, cp: u21, mods: Modifiers) bool {
     if (self.text == null) return false;
 
     var self_mods = self.mods;
+    self_mods.num_lock = false;
     var arg_mods = mods;
+    arg_mods.num_lock = false;
     var code = cp;
     // if the passed codepoint is upper, we consume all shift and caps mods for
     // checking
@@ -117,9 +126,16 @@ pub fn matchText(self: Key, cp: u21, mods: Modifiers) bool {
     return std.mem.eql(u8, self.text.?, buf[0..n]) and std.meta.eql(self_mods, arg_mods);
 }
 
-// The key must exactly match the codepoint and modifiers
+// The key must exactly match the codepoint and modifiers. caps_lock and
+// num_lock are removed before matching
 pub fn matchExact(self: Key, cp: u21, mods: Modifiers) bool {
-    return self.codepoint == cp and std.meta.eql(self.mods, mods);
+    var self_mods = self.mods;
+    self_mods.caps_lock = false;
+    self_mods.num_lock = false;
+    var tgt_mods = mods;
+    tgt_mods.caps_lock = false;
+    tgt_mods.num_lock = false;
+    return self.codepoint == cp and std.meta.eql(self_mods, tgt_mods);
 }
 
 /// True if the key is a single modifier (ie: left_shift)
@@ -383,6 +399,7 @@ pub const name_map = blk: {
 test "matches 'a'" {
     const key: Key = .{
         .codepoint = 'a',
+        .mods = .{ .num_lock = true },
     };
     try testing.expect(key.matches('a', .{}));
 }
@@ -401,7 +418,7 @@ test "matches 'shift+a'" {
 test "matches 'shift+tab'" {
     const key: Key = .{
         .codepoint = Key.tab,
-        .mods = .{ .shift = true },
+        .mods = .{ .shift = true, .num_lock = true },
     };
     try testing.expect(key.matches(Key.tab, .{ .shift = true }));
     try testing.expect(!key.matches(Key.tab, .{}));
