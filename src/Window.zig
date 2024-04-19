@@ -29,6 +29,8 @@ height: usize,
 
 screen: *Screen,
 
+/// Deprecated. Use `child` instead
+///
 /// Creates a new window with offset relative to parent and size clamped to the
 /// parent's size. Windows do not retain a reference to their parent and are
 /// unaware of resizes.
@@ -359,7 +361,7 @@ pub fn print(self: Window, segments: []Segment, opts: PrintOptions) !bool {
     return false;
 }
 
-/// prints text in the window with simple word wrapping.
+/// Deprecated. use print instead
 pub fn wrap(self: Window, segments: []Segment) !void {
     _ = try self.print(segments, .{ .wrap = .word });
 }
