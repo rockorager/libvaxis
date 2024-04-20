@@ -3,7 +3,7 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
-    const root_source_file = std.Build.LazyPath.relative("src/main.zig");
+    const root_source_file = b.path("src/main.zig");
 
     // Dependencies
     const ziglyph_dep = b.dependency("ziglyph", .{
@@ -48,7 +48,7 @@ pub fn build(b: *std.Build) void {
     const example = b.addExecutable(.{
         .name = "example",
         // future versions should use b.path, see zig PR #19597
-        .root_source_file = std.Build.LazyPath.relative(
+        .root_source_file = b.path(
             b.fmt("examples/{s}.zig", .{@tagName(example_option)}),
         ),
         .target = target,
@@ -62,7 +62,7 @@ pub fn build(b: *std.Build) void {
     const tests_step = b.step("test", "Run tests");
 
     const tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
