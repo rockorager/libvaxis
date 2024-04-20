@@ -306,58 +306,99 @@ pub fn print(self: Window, segments: []Segment, opts: PrintOptions) !PrintResult
         },
         .word => {
             var col: usize = 0;
-            const overflow: bool = blk: for (segments) |segment| {
-                var line_iter = std.mem.tokenizeAny(u8, segment.text, "\r\n");
-                while (line_iter.next()) |line| {
-                    col = 0;
-                    defer row += 1;
-                    var word_iter = std.mem.tokenizeScalar(u8, line, ' ');
-                    while (word_iter.next()) |word| {
-                        const width = self.gwidth(word);
-                        if (width == 0) continue;
-                        // only wrap when the word can fit by itself on a
-                        // line
-                        if (width + col + 1 > self.width and width < self.width) {
+            var overflow: bool = false;
+            var soft_wrapped: bool = false;
+            for (segments) |segment| {
+                var start: usize = 0;
+                var i: usize = 0;
+                while (i < segment.text.len) : (i += 1) {
+                    // for (segment.text, 0..) |b, i| {
+                    const b = segment.text[i];
+                    const end = switch (b) {
+                        ' ',
+                        '\r',
+                        '\n',
+                        => i,
+                        else => if (i != segment.text.len - 1) continue else i + 1,
+                    };
+                    const word = segment.text[start..end];
+                    // find the start of the next word
+                    start = while (i + 1 < segment.text.len) : (i += 1) {
+                        if (segment.text[i + 1] == ' ') continue;
+                        break i + 1;
+                    } else i;
+                    const width = self.gwidth(word);
+                    const non_wsp_width: usize = for (word, 0..) |wb, wi| {
+                        if (wb == '\r' or wb == '\n') {
+                            row += 1;
+                            col = 0;
+                            break width -| wi -| 1;
+                        }
+                        if (wb != ' ') break width - wi;
+                    } else 0;
+
+                    if (width + col > self.width and non_wsp_width < self.width) {
+                        // wrap
+                        row += 1;
+                        col = 0;
+                        soft_wrapped = true;
+                    }
+                    if (row >= self.height) {
+                        overflow = true;
+                        break;
+                    }
+                    // if we are soft wrapped, (col == 0 and row > 0), then trim
+                    // leading spaces
+                    const printed_word = if (soft_wrapped)
+                        std.mem.trimLeft(u8, word, " ")
+                    else
+                        word;
+                    defer soft_wrapped = false;
+                    var iter = GraphemeIterator.init(printed_word);
+                    while (iter.next()) |grapheme| {
+                        const s = grapheme.slice(printed_word);
+                        const w = self.gwidth(s);
+                        if (opts.commit) self.writeCell(col, row, .{
+                            .char = .{
+                                .grapheme = s,
+                                .width = w,
+                            },
+                            .style = segment.style,
+                            .link = segment.link,
+                        });
+                        col += w;
+                        if (col >= self.width) {
                             row += 1;
                             col = 0;
                         }
-                        if (row >= self.height)
-                            break :blk true;
-                        if (col > 0) {
-                            if (opts.commit) self.writeCell(col, row, .{
-                                .char = .{
-                                    .grapheme = " ",
-                                    .width = 1,
-                                },
-                                .style = segment.style,
-                                .link = segment.link,
-                            });
-                            col += 1;
-                        }
-                        var iter = GraphemeIterator.init(word);
-                        while (iter.next()) |grapheme| {
-                            const s = grapheme.slice(word);
-                            const w = self.gwidth(s);
-                            if (opts.commit) self.writeCell(col, row, .{
-                                .char = .{
-                                    .grapheme = s,
-                                    .width = w,
-                                },
-                                .style = segment.style,
-                                .link = segment.link,
-                            });
-                            col += w;
-                            if (col >= self.width) {
-                                row += 1;
-                                col = 0;
+                    }
+                    switch (b) {
+                        ' ' => {
+                            if (col > 0) {
+                                if (opts.commit) self.writeCell(col, row, .{
+                                    .char = .{
+                                        .grapheme = " ",
+                                        .width = 1,
+                                    },
+                                    .style = segment.style,
+                                    .link = segment.link,
+                                });
+                                col += 1;
                             }
-                        }
+                        },
+                        '\r',
+                        '\n',
+                        => {
+                            col = 0;
+                            row += 1;
+                        },
+                        else => {},
                     }
                 }
-            } else false;
+            }
             return .{
                 // remove last row counter
-                .row = row - 1,
+                .row = row,
                 .col = col,
                 .overflow = overflow,
             };
@@ -623,6 +664,65 @@ test "print: word" {
         const result = try win.print(&segments, opts);
         try std.testing.expectEqual(0, result.col);
         try std.testing.expectEqual(2, result.row);
+        try std.testing.expectEqual(false, result.overflow);
+    }
+    {
+        var segments = [_]Segment{
+            .{ .text = "h" },
+            .{ .text = "e" },
+        };
+        const result = try win.print(&segments, opts);
+        try std.testing.expectEqual(2, result.col);
+        try std.testing.expectEqual(0, result.row);
+        try std.testing.expectEqual(false, result.overflow);
+    }
+    {
+        var segments = [_]Segment{
+            .{ .text = "h" },
+            .{ .text = "e" },
+            .{ .text = "l" },
+            .{ .text = "l" },
+            .{ .text = "o" },
+        };
+        const result = try win.print(&segments, opts);
+        try std.testing.expectEqual(1, result.col);
+        try std.testing.expectEqual(1, result.row);
+        try std.testing.expectEqual(false, result.overflow);
+    }
+    {
+        var segments = [_]Segment{
+            .{ .text = "he\n" },
+        };
+        const result = try win.print(&segments, opts);
+        try std.testing.expectEqual(0, result.col);
+        try std.testing.expectEqual(1, result.row);
+        try std.testing.expectEqual(false, result.overflow);
+    }
+    {
+        var segments = [_]Segment{
+            .{ .text = "he\n\n" },
+        };
+        const result = try win.print(&segments, opts);
+        try std.testing.expectEqual(0, result.col);
+        try std.testing.expectEqual(2, result.row);
+        try std.testing.expectEqual(false, result.overflow);
+    }
+    {
+        var segments = [_]Segment{
+            .{ .text = "not now" },
+        };
+        const result = try win.print(&segments, opts);
+        try std.testing.expectEqual(3, result.col);
+        try std.testing.expectEqual(1, result.row);
+        try std.testing.expectEqual(false, result.overflow);
+    }
+    {
+        var segments = [_]Segment{
+            .{ .text = "note now" },
+        };
+        const result = try win.print(&segments, opts);
+        try std.testing.expectEqual(3, result.col);
+        try std.testing.expectEqual(1, result.row);
         try std.testing.expectEqual(false, result.overflow);
     }
 }
