@@ -1,6 +1,4 @@
 const std = @import("std");
-const ziglyph = @import("ziglyph");
-const GraphemeIterator = ziglyph.GraphemeIterator;
 
 const Screen = @import("Screen.zig");
 const Cell = @import("Cell.zig");
@@ -202,8 +200,7 @@ pub fn clear(self: Window) void {
 
 /// returns the width of the grapheme. This depends on the terminal capabilities
 pub fn gwidth(self: Window, str: []const u8) usize {
-    const m: gw.Method = if (self.screen.unicode) .unicode else .wcwidth;
-    return gw.gwidth(str, m) catch 1;
+    return gw.gwidth(str, self.screen.width_method) catch 1;
 }
 
 /// fills the window with the provided cell
@@ -270,7 +267,7 @@ pub fn print(self: Window, segments: []Segment, opts: PrintOptions) !PrintResult
         .grapheme => {
             var col: usize = 0;
             const overflow: bool = blk: for (segments) |segment| {
-                var iter = GraphemeIterator.init(segment.text);
+                var iter = self.screen.unicode.graphemeIterator(segment.text);
                 while (iter.next()) |grapheme| {
                     if (row >= self.height) break :blk true;
                     const s = grapheme.slice(segment.text);
@@ -353,7 +350,7 @@ pub fn print(self: Window, segments: []Segment, opts: PrintOptions) !PrintResult
                     else
                         word;
                     defer soft_wrapped = false;
-                    var iter = GraphemeIterator.init(printed_word);
+                    var iter = self.screen.unicode.graphemeIterator(segment.text);
                     while (iter.next()) |grapheme| {
                         const s = grapheme.slice(printed_word);
                         const w = self.gwidth(s);
@@ -405,7 +402,7 @@ pub fn print(self: Window, segments: []Segment, opts: PrintOptions) !PrintResult
         .none => {
             var col: usize = 0;
             const overflow: bool = blk: for (segments) |segment| {
-                var iter = GraphemeIterator.init(segment.text);
+                var iter = self.screen.unicode.graphemeIterator(segment.text);
                 while (iter.next()) |grapheme| {
                     if (col >= self.width) break :blk true;
                     const s = grapheme.slice(segment.text);

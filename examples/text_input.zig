@@ -30,7 +30,7 @@ pub fn main() !void {
     const alloc = gpa.allocator();
 
     // Initialize Vaxis
-    var vx = try vaxis.init(.{});
+    var vx = try vaxis.init(alloc, .{});
     // deinit takes an optional allocator. If your program is exiting, you can
     // choose to pass a null allocator to save some exit time.
     defer vx.deinit(alloc);
@@ -53,7 +53,7 @@ pub fn main() !void {
 
     // init our text input widget. The text input widget needs an allocator to
     // store the contents of the input
-    var text_input = TextInput.init(alloc);
+    var text_input = TextInput.init(alloc, &vx.unicode);
     defer text_input.deinit();
 
     // Sends queries to terminal to detect certain features. This should

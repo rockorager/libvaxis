@@ -175,8 +175,8 @@ pub fn run(
                 },
                 .cap_unicode => {
                     log.info("unicode capability detected", .{});
-                    loop.vaxis.caps.unicode = true;
-                    loop.vaxis.screen.unicode = true;
+                    loop.vaxis.caps.unicode = .unicode;
+                    loop.vaxis.screen.width_method = .unicode;
                 },
                 .cap_da1 => {
                     std.Thread.Futex.wake(&loop.vaxis.query_futex, 10);

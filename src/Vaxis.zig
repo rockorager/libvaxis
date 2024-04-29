@@ -29,7 +29,7 @@ pub const Capabilities = struct {
     kitty_keyboard: bool = false,
     kitty_graphics: bool = false,
     rgb: bool = false,
-    unicode: bool = false,
+    unicode: gwidth.Method = .wcwidth,
 };
 
 pub const Options = struct {};
@@ -63,18 +63,21 @@ query_futex: atomic.Value(u32) = atomic.Value(u32).init(0),
 // images
 next_img_id: u32 = 1,
 
+unicode: Unicode,
+
 // statistics
 renders: usize = 0,
 render_dur: i128 = 0,
 render_timer: std.time.Timer,
 
 /// Initialize Vaxis with runtime options
-pub fn init(_: Options) !Vaxis {
+pub fn init(alloc: std.mem.Allocator, _: Options) !Vaxis {
     return .{
         .tty = null,
         .screen = .{},
         .screen_last = .{},
         .render_timer = try std.time.Timer.start(),
+        .unicode = try Unicode.init(alloc),
     };
 }
 
@@ -111,6 +114,7 @@ pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator) void {
         log.debug("total renders = {d}", .{self.renders});
         log.debug("microseconds per render = {d}", .{tpr});
     }
+    self.unicode.deinit();
 }
 
 /// resize allocates a slice of cells equal to the number of cells
@@ -119,8 +123,8 @@ pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator) void {
 pub fn resize(self: *Vaxis, alloc: std.mem.Allocator, winsize: Winsize) !void {
     log.debug("resizing screen: width={d} height={d}", .{ winsize.cols, winsize.rows });
     self.screen.deinit(alloc);
-    self.screen = try Screen.init(alloc, winsize);
-    self.screen.unicode = self.caps.unicode;
+    self.screen = try Screen.init(alloc, winsize, &self.unicode);
+    self.screen.width_method = self.caps.unicode;
     // try self.screen.int(alloc, winsize.cols, winsize.rows);
     // we only init our current screen. This has the effect of redrawing
     // every cell
@@ -201,7 +205,7 @@ pub fn queryTerminal(self: *Vaxis) !void {
     if (self.caps.kitty_keyboard) {
         try self.enableKittyKeyboard(.{});
     }
-    if (self.caps.unicode) {
+    if (self.caps.unicode == .unicode) {
         _ = try tty.write(ctlseqs.unicode_set);
     }
 }
@@ -256,7 +260,7 @@ pub fn render(self: *Vaxis) !void {
             const w = blk: {
                 if (cell.char.width != 0) break :blk cell.char.width;
 
-                const method: gwidth.Method = if (self.caps.unicode) .unicode else .wcwidth;
+                const method: gwidth.Method = self.caps.unicode;
                 const width = gwidth.gwidth(cell.char.grapheme, method) catch 1;
                 break :blk @max(1, width);
             };

@@ -22,8 +22,8 @@ pub const widgets = @import("widgets.zig");
 pub const gwidth = @import("gwidth.zig");
 
 /// Initialize a Vaxis application.
-pub fn init(opts: Vaxis.Options) !Vaxis {
-    return Vaxis.init(opts);
+pub fn init(alloc: std.mem.Allocator, opts: Vaxis.Options) !Vaxis {
+    return Vaxis.init(alloc, opts);
 }
 
 test {

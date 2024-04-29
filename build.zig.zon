@@ -20,5 +20,9 @@
             .url = "git+https://github.com/jinzhongjia/znvim#7927b8042872d5fa5f30862302bea1290d372d4f",
             .hash = "12202372c2043a9ac557144d327c09638ccd8d615bba459ba17d1a7a4197a213d939",
         },
+        .zg = .{
+            .url = "git+https://codeberg.org/dude_the_builder/zg#16735685fcc3410de361ba3411788ad1fb4fe188",
+            .hash = "1220fe9ac5cdb41833d327a78745614e67d472469f8666567bd8cf9f5847a52b1c51",
+        },
     },
 }

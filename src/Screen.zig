@@ -5,6 +5,8 @@ const Cell = @import("Cell.zig");
 const Shape = @import("Mouse.zig").Shape;
 const Image = @import("Image.zig");
 const Winsize = @import("Tty.zig").Winsize;
+const Unicode = @import("Unicode.zig");
+const Method = @import("gwidth.zig").Method;
 
 const log = std.log.scoped(.screen);
 
@@ -22,13 +24,14 @@ cursor_row: usize = 0,
 cursor_col: usize = 0,
 cursor_vis: bool = false,
 
-/// true when we measure cells with unicode
-unicode: bool = false,
+unicode: *const Unicode = undefined,
+
+width_method: Method = .wcwidth,
 
 mouse_shape: Shape = .default,
 cursor_shape: Cell.CursorShape = .default,
 
-pub fn init(alloc: std.mem.Allocator, winsize: Winsize) !Screen {
+pub fn init(alloc: std.mem.Allocator, winsize: Winsize, unicode: *const Unicode) !Screen {
     const w = winsize.cols;
     const h = winsize.rows;
     var self = Screen{
@@ -37,6 +40,7 @@ pub fn init(alloc: std.mem.Allocator, winsize: Winsize) !Screen {
         .height = h,
         .width_pix = winsize.x_pixel,
         .height_pix = winsize.y_pixel,
+        .unicode = unicode,
     };
     for (self.buf, 0..) |_, i| {
         self.buf[i] = .{};

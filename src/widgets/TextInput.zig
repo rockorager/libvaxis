@@ -3,8 +3,8 @@ const assert = std.debug.assert;
 const Key = @import("../Key.zig");
 const Cell = @import("../Cell.zig");
 const Window = @import("../Window.zig");
-const GraphemeIterator = @import("ziglyph").GraphemeIterator;
 const GapBuffer = @import("gap_buffer").GapBuffer;
+const Unicode = @import("../Unicode.zig");
 
 const log = std.log.scoped(.text_input);
 
@@ -31,9 +31,12 @@ prev_cursor_idx: usize = 0,
 /// approximate distance from an edge before we scroll
 scroll_offset: usize = 4,
 
-pub fn init(alloc: std.mem.Allocator) TextInput {
+unicode: *const Unicode,
+
+pub fn init(alloc: std.mem.Allocator, unicode: *const Unicode) TextInput {
     return TextInput{
         .buf = GapBuffer(u8).init(alloc),
+        .unicode = unicode,
     };
 }
 
@@ -73,7 +76,7 @@ pub fn update(self: *TextInput, event: Event) !void {
 
 /// insert text at the cursor position
 pub fn insertSliceAtCursor(self: *TextInput, data: []const u8) !void {
-    var iter = GraphemeIterator.init(data);
+    var iter = self.unicode.graphemeIterator(data);
     var byte_offset_to_cursor = self.byteOffsetToCursor();
     while (iter.next()) |text| {
         try self.buf.insertSliceBefore(byte_offset_to_cursor, text.slice(data));
@@ -101,7 +104,7 @@ pub fn sliceToCursor(self: *TextInput, buf: []u8) []const u8 {
 /// calculates the display width from the draw_offset to the cursor
 fn widthToCursor(self: *TextInput, win: Window) usize {
     var width: usize = 0;
-    var first_iter = GraphemeIterator.init(self.buf.items);
+    var first_iter = self.unicode.graphemeIterator(self.buf.items);
     var i: usize = 0;
     while (first_iter.next()) |grapheme| {
         defer i += 1;
@@ -109,18 +112,18 @@ fn widthToCursor(self: *TextInput, win: Window) usize {
             continue;
         }
         if (i == self.cursor_idx) return width;
-        const g = grapheme.slice(self.buf.items);
+        const g = grapheme.bytes(self.buf.items);
         width += win.gwidth(g);
     }
     const second_half = self.buf.secondHalf();
-    var second_iter = GraphemeIterator.init(second_half);
+    var second_iter = self.unicode.graphemeIterator(second_half);
     while (second_iter.next()) |grapheme| {
         defer i += 1;
         if (i < self.draw_offset) {
             continue;
         }
         if (i == self.cursor_idx) return width;
-        const g = grapheme.slice(second_half);
+        const g = grapheme.bytes(second_half);
         width += win.gwidth(g);
     }
     return width;
@@ -141,7 +144,7 @@ pub fn draw(self: *TextInput, win: Window) void {
 
     // assumption!! the gap is never within a grapheme
     // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
-    var first_iter = GraphemeIterator.init(self.buf.items);
+    var first_iter = self.unicode.graphemeIterator(self.buf.items);
     var col: usize = 0;
     var i: usize = 0;
     while (first_iter.next()) |grapheme| {
@@ -149,7 +152,7 @@ pub fn draw(self: *TextInput, win: Window) void {
             i += 1;
             continue;
         }
-        const g = grapheme.slice(self.buf.items);
+        const g = grapheme.bytes(self.buf.items);
         const w = win.gwidth(g);
         if (col + w >= win.width) {
             win.writeCell(win.width - 1, 0, .{ .char = ellipsis });
@@ -166,13 +169,13 @@ pub fn draw(self: *TextInput, win: Window) void {
         if (i == self.cursor_idx) self.prev_cursor_col = col;
     }
     const second_half = self.buf.secondHalf();
-    var second_iter = GraphemeIterator.init(second_half);
+    var second_iter = self.unicode.graphemeIterator(second_half);
     while (second_iter.next()) |grapheme| {
         if (i < self.draw_offset) {
             i += 1;
             continue;
         }
-        const g = grapheme.slice(second_half);
+        const g = grapheme.bytes(second_half);
         const w = win.gwidth(g);
         if (col + w > win.width) {
             win.writeCell(win.width - 1, 0, .{ .char = ellipsis });
@@ -223,7 +226,7 @@ fn reset(self: *TextInput) void {
 pub fn byteOffsetToCursor(self: TextInput) usize {
     // assumption! the gap is never in the middle of a grapheme
     // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
-    var iter = GraphemeIterator.init(self.buf.items);
+    var iter = self.unicode.graphemeIterator(self.buf.items);
     var offset: usize = 0;
     var i: usize = 0;
     while (iter.next()) |grapheme| {
@@ -231,7 +234,7 @@ pub fn byteOffsetToCursor(self: TextInput) usize {
         offset += grapheme.len;
         i += 1;
     } else {
-        var second_iter = GraphemeIterator.init(self.buf.secondHalf());
+        var second_iter = self.unicode.graphemeIterator(self.buf.secondHalf());
         while (second_iter.next()) |grapheme| {
             if (i == self.cursor_idx) break;
             offset += grapheme.len;
@@ -257,7 +260,7 @@ fn deleteToStart(self: *TextInput) !void {
 fn deleteBeforeCursor(self: *TextInput) !void {
     // assumption! the gap is never in the middle of a grapheme
     // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
-    var iter = GraphemeIterator.init(self.buf.items);
+    var iter = self.unicode.graphemeIterator(self.buf.items);
     var offset: usize = 0;
     var i: usize = 1;
     while (iter.next()) |grapheme| {
@@ -270,7 +273,7 @@ fn deleteBeforeCursor(self: *TextInput) !void {
         offset += grapheme.len;
         i += 1;
     } else {
-        var second_iter = GraphemeIterator.init(self.buf.secondHalf());
+        var second_iter = self.unicode.graphemeIterator(self.buf.secondHalf());
         while (second_iter.next()) |grapheme| {
             if (i == self.cursor_idx) {
                 try self.buf.replaceRangeBefore(offset, grapheme.len, &.{});
@@ -287,7 +290,7 @@ fn deleteBeforeCursor(self: *TextInput) !void {
 fn deleteAtCursor(self: *TextInput) !void {
     // assumption! the gap is never in the middle of a grapheme
     // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
-    var iter = GraphemeIterator.init(self.buf.items);
+    var iter = self.unicode.graphemeIterator(self.buf.items);
     var offset: usize = 0;
     var i: usize = 1;
     while (iter.next()) |grapheme| {
@@ -299,7 +302,7 @@ fn deleteAtCursor(self: *TextInput) !void {
         offset += grapheme.len;
         i += 1;
     } else {
-        var second_iter = GraphemeIterator.init(self.buf.secondHalf());
+        var second_iter = self.unicode.graphemeIterator(self.buf.secondHalf());
         while (second_iter.next()) |grapheme| {
             if (i == self.cursor_idx + 1) {
                 try self.buf.replaceRangeAfter(offset, grapheme.len, &.{});
