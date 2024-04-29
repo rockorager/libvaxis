@@ -25,17 +25,16 @@ pub fn main() !void {
     const user_list = std.ArrayList(User).fromOwnedSlice(alloc, users_buf);
     defer user_list.deinit();
 
-    var vx = try vaxis.init(
-        union(enum) {
-            key_press: vaxis.Key,
-            winsize: vaxis.Winsize,
-        },
-        .{},
-    );
+    var vx = try vaxis.init(.{});
     defer vx.deinit(alloc);
 
-    try vx.startReadThread();
-    defer vx.stopReadThread();
+    var loop: vaxis.Loop(union(enum) {
+        key_press: vaxis.Key,
+        winsize: vaxis.Winsize,
+    }) = .{ .vaxis = &vx };
+
+    try loop.run();
+    defer loop.stop();
     try vx.enterAltScreen();
     try vx.queryTerminal();
 
@@ -77,7 +76,7 @@ pub fn main() !void {
         var event_arena = heap.ArenaAllocator.init(alloc);
         defer event_arena.deinit();
         const event_alloc = event_arena.allocator();
-        const event = vx.nextEvent();
+        const event = loop.nextEvent();
 
         switch (event) {
             .key_press => |key| keyEvt: {

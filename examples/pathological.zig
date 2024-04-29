@@ -11,16 +11,18 @@ const Event = union(enum) {
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const alloc = gpa.allocator();
-    var vx = try vaxis.init(Event, .{});
+    var vx = try vaxis.init(.{});
     errdefer vx.deinit(alloc);
 
-    try vx.startReadThread();
-    defer vx.stopReadThread();
+    var loop: vaxis.Loop(Event) = .{ .vaxis = &vx };
+
+    try loop.run();
+    defer loop.stop();
     try vx.enterAltScreen();
     try vx.queryTerminal();
 
     while (true) {
-        const event = vx.nextEvent();
+        const event = loop.nextEvent();
         switch (event) {
             .winsize => |ws| {
                 try vx.resize(alloc, ws);

@@ -15,13 +15,15 @@ pub fn main() !void {
     const alloc = gpa.allocator();
 
     // Initialize Vaxis
-    var vx = try vaxis.init(Event, .{});
+    var vx = try vaxis.init(.{});
     defer vx.deinit(alloc);
+
+    var loop: vaxis.Loop(Event) = .{ .vaxis = &vx };
 
     // Start the read loop. This puts the terminal in raw mode and begins
     // reading user input
-    try vx.startReadThread();
-    defer vx.stopReadThread();
+    try loop.run();
+    defer loop.stop();
 
     // Optionally enter the alternate screen
     try vx.enterAltScreen();
@@ -34,7 +36,7 @@ pub fn main() !void {
     // queue which can serve as the primary event queue for an application
     while (true) {
         // nextEvent blocks until an event is in the queue
-        const event = vx.nextEvent();
+        const event = loop.nextEvent();
         log.debug("event: {}", .{event});
         // exhaustive switching ftw. Vaxis will send events if your Event
         // enum has the fields for those events (ie "key_press", "winsize")
