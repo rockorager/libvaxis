@@ -25,7 +25,7 @@ pub fn main() !void {
     const user_list = std.ArrayList(User).fromOwnedSlice(alloc, users_buf);
     defer user_list.deinit();
 
-    var vx = try vaxis.init(.{});
+    var vx = try vaxis.init(alloc, .{});
     defer vx.deinit(alloc);
 
     var loop: vaxis.Loop(union(enum) {
@@ -57,7 +57,7 @@ pub fn main() !void {
     };
     var title_segs = [_]vaxis.Cell.Segment{ title_logo, title_info, title_disclaimer };
 
-    var cmd_input = vaxis.widgets.TextInput.init(alloc);
+    var cmd_input = vaxis.widgets.TextInput.init(alloc, &vx.unicode);
     defer cmd_input.deinit();
 
     // Colors
