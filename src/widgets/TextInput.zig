@@ -79,7 +79,7 @@ pub fn insertSliceAtCursor(self: *TextInput, data: []const u8) !void {
     var iter = self.unicode.graphemeIterator(data);
     var byte_offset_to_cursor = self.byteOffsetToCursor();
     while (iter.next()) |text| {
-        try self.buf.insertSliceBefore(byte_offset_to_cursor, text.slice(data));
+        try self.buf.insertSliceBefore(byte_offset_to_cursor, text.bytes(data));
         byte_offset_to_cursor += text.len;
         self.cursor_idx += 1;
         self.grapheme_count += 1;
