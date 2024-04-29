@@ -11,7 +11,7 @@ const Event = union(enum) {
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const alloc = gpa.allocator();
-    var vx = try vaxis.init(.{});
+    var vx = try vaxis.init(alloc, .{});
     errdefer vx.deinit(alloc);
 
     var loop: vaxis.Loop(Event) = .{ .vaxis = &vx };

@@ -15,7 +15,7 @@ pub fn main() !void {
     const alloc = gpa.allocator();
 
     // Initialize Vaxis
-    var vx = try vaxis.init(.{});
+    var vx = try vaxis.init(alloc, .{});
     defer vx.deinit(alloc);
 
     var loop: vaxis.Loop(Event) = .{ .vaxis = &vx };
