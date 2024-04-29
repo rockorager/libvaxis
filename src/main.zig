@@ -17,7 +17,6 @@ pub const AllocatingScreen = @import("InternalScreen.zig");
 pub const Winsize = @import("Tty.zig").Winsize;
 pub const Window = @import("Window.zig");
 
-pub const ziglyph = @import("ziglyph");
 pub const widgets = @import("widgets.zig");
 pub const gwidth = @import("gwidth.zig");
 

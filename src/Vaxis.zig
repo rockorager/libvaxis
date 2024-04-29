@@ -261,7 +261,7 @@ pub fn render(self: *Vaxis) !void {
                 if (cell.char.width != 0) break :blk cell.char.width;
 
                 const method: gwidth.Method = self.caps.unicode;
-                const width = gwidth.gwidth(cell.char.grapheme, method) catch 1;
+                const width = gwidth.gwidth(cell.char.grapheme, method, &self.unicode.width_data) catch 1;
                 break :blk @max(1, width);
             };
             std.debug.assert(w > 0);

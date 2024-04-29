@@ -20,7 +20,12 @@ pub fn Loop(comptime T: type) type {
         pub fn run(self: *Self) !void {
             if (self.thread) |_| return;
             if (self.vaxis.tty == null) self.vaxis.tty = try Tty.init();
-            self.thread = try std.Thread.spawn(.{}, Tty.run, .{ &self.vaxis.tty.?, T, self });
+            self.thread = try std.Thread.spawn(.{}, Tty.run, .{
+                &self.vaxis.tty.?,
+                T,
+                self,
+                &self.vaxis.unicode.grapheme_data,
+            });
         }
 
         /// stops reading from the tty and returns it to it's initial state

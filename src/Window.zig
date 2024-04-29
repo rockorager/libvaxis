@@ -4,6 +4,7 @@ const Screen = @import("Screen.zig");
 const Cell = @import("Cell.zig");
 const Mouse = @import("Mouse.zig");
 const Segment = @import("Cell.zig").Segment;
+const Unicode = @import("Unicode.zig");
 const gw = @import("gwidth.zig");
 
 const log = std.log.scoped(.window);
@@ -200,7 +201,7 @@ pub fn clear(self: Window) void {
 
 /// returns the width of the grapheme. This depends on the terminal capabilities
 pub fn gwidth(self: Window, str: []const u8) usize {
-    return gw.gwidth(str, self.screen.width_method) catch 1;
+    return gw.gwidth(str, self.screen.width_method, &self.screen.unicode.width_data) catch 1;
 }
 
 /// fills the window with the provided cell
@@ -270,7 +271,7 @@ pub fn print(self: Window, segments: []Segment, opts: PrintOptions) !PrintResult
                 var iter = self.screen.unicode.graphemeIterator(segment.text);
                 while (iter.next()) |grapheme| {
                     if (row >= self.height) break :blk true;
-                    const s = grapheme.slice(segment.text);
+                    const s = grapheme.bytes(segment.text);
                     if (std.mem.eql(u8, s, "\n")) {
                         row += 1;
                         col = 0;
@@ -350,9 +351,9 @@ pub fn print(self: Window, segments: []Segment, opts: PrintOptions) !PrintResult
                     else
                         word;
                     defer soft_wrapped = false;
-                    var iter = self.screen.unicode.graphemeIterator(segment.text);
+                    var iter = self.screen.unicode.graphemeIterator(printed_word);
                     while (iter.next()) |grapheme| {
-                        const s = grapheme.slice(printed_word);
+                        const s = grapheme.bytes(printed_word);
                         const w = self.gwidth(s);
                         if (opts.commit) self.writeCell(col, row, .{
                             .char = .{
@@ -405,7 +406,7 @@ pub fn print(self: Window, segments: []Segment, opts: PrintOptions) !PrintResult
                 var iter = self.screen.unicode.graphemeIterator(segment.text);
                 while (iter.next()) |grapheme| {
                     if (col >= self.width) break :blk true;
-                    const s = grapheme.slice(segment.text);
+                    const s = grapheme.bytes(segment.text);
                     if (std.mem.eql(u8, s, "\n")) break :blk true;
                     const w = self.gwidth(s);
                     if (w == 0) continue;
@@ -521,9 +522,10 @@ test "Window size nested offsets" {
 }
 
 test "print: grapheme" {
-    var screen: Screen = .{
-        .unicode = true,
-    };
+    const alloc = std.testing.allocator_instance.allocator();
+    const unicode = try Unicode.init(alloc);
+    defer unicode.deinit();
+    var screen: Screen = .{ .width_method = .unicode, .unicode = &unicode };
     const win: Window = .{
         .x_off = 0,
         .y_off = 0,
@@ -584,8 +586,12 @@ test "print: grapheme" {
 }
 
 test "print: word" {
+    const alloc = std.testing.allocator_instance.allocator();
+    const unicode = try Unicode.init(alloc);
+    defer unicode.deinit();
     var screen: Screen = .{
-        .unicode = true,
+        .width_method = .unicode,
+        .unicode = &unicode,
     };
     const win: Window = .{
         .x_off = 0,

@@ -5,6 +5,7 @@ const Loop = @import("Loop.zig").Loop;
 const Parser = @import("Parser.zig");
 const GraphemeCache = @import("GraphemeCache.zig");
 const ctlseqs = @import("ctlseqs.zig");
+const grapheme = @import("grapheme");
 
 const log = std.log.scoped(.tty);
 
@@ -58,6 +59,7 @@ pub fn run(
     self: *Tty,
     comptime Event: type,
     loop: *Loop(Event),
+    grapheme_data: *const grapheme.GraphemeData,
 ) !void {
 
     // get our initial winsize
@@ -105,7 +107,9 @@ pub fn run(
     // initialize a grapheme cache
     var cache: GraphemeCache = .{};
 
-    var parser: Parser = .{};
+    var parser: Parser = .{
+        .grapheme_data = grapheme_data,
+    };
 
     // initialize the read buffer
     var buf: [1024]u8 = undefined;

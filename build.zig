@@ -6,10 +6,6 @@ pub fn build(b: *std.Build) void {
     const root_source_file = b.path("src/main.zig");
 
     // Dependencies
-    const ziglyph_dep = b.dependency("ziglyph", .{
-        .optimize = optimize,
-        .target = target,
-    });
     const zg_dep = b.dependency("zg", .{
         .optimize = optimize,
         .target = target,
@@ -33,8 +29,9 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    vaxis_mod.addImport("ziglyph", ziglyph_dep.module("ziglyph"));
+    vaxis_mod.addImport("code_point", zg_dep.module("code_point"));
     vaxis_mod.addImport("grapheme", zg_dep.module("grapheme"));
+    vaxis_mod.addImport("DisplayWidth", zg_dep.module("DisplayWidth"));
     vaxis_mod.addImport("zigimg", zigimg_dep.module("zigimg"));
     vaxis_mod.addImport("gap_buffer", gap_buffer_dep.module("gap_buffer"));
     vaxis_mod.addImport("znvim", znvim_dep.module("znvim"));
@@ -71,8 +68,9 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    tests.root_module.addImport("ziglyph", ziglyph_dep.module("ziglyph"));
+    tests.root_module.addImport("code_point", zg_dep.module("code_point"));
     tests.root_module.addImport("grapheme", zg_dep.module("grapheme"));
+    tests.root_module.addImport("DisplayWidth", zg_dep.module("DisplayWidth"));
     tests.root_module.addImport("zigimg", zigimg_dep.module("zigimg"));
     tests.root_module.addImport("gap_buffer", gap_buffer_dep.module("gap_buffer"));
     tests.root_module.addImport("znvim", znvim_dep.module("znvim"));

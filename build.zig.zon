@@ -4,13 +4,9 @@
     .paths = .{""},
     .minimum_zig_version = "0.12.0-dev.3397+43edd53c3",
     .dependencies = .{
-        .ziglyph = .{
-            .url = "git+https://codeberg.org/dude_the_builder/ziglyph/#947ed39203bf90412e3d16cbcf936518b6f23af0",
-            .hash = "12208b23d1eb6dcb929e85346524db8f8b8aa1401bdf8a97dee1e0cfb55da8d5fb42",
-        },
         .zigimg = .{
-            .url = "git+https://github.com/zigimg/zigimg#8873f29fc449e1b63400e9f4ad86d3c76204f962",
-            .hash = "122019f6439545235af116d0d8eb81fde1ff05fdb070da57c723772c557f84c5bf39",
+            .url = "git+https://github.com/zigimg/zigimg#637974e2d31dcdbc33f1e9cc8ffb2e46abd2e215",
+            .hash = "122012026c3a65ff1d4acba3b3fe80785f7cee9c6b4cdaff7ed0fbf23b0a6c803989",
         },
         .gap_buffer = .{
             .url = "https://github.com/ryleelyman/GapBuffer.zig/archive/6a746497d5a2494026d0f471e42556f1f153f153.tar.gz",

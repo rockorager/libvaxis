@@ -1,6 +1,5 @@
 const std = @import("std");
 const testing = std.testing;
-const ziglyph = @import("ziglyph");
 
 const Key = @This();
 
@@ -101,25 +100,12 @@ pub fn matchText(self: Key, cp: u21, mods: Modifiers) bool {
 
     var self_mods = self.mods;
     self_mods.num_lock = false;
+    self_mods.shift = false;
+    self_mods.caps_lock = false;
     var arg_mods = mods;
     arg_mods.num_lock = false;
-    var code = cp;
-    // if the passed codepoint is upper, we consume all shift and caps mods for
-    // checking
-    if (ziglyph.isUpper(cp)) {
-        // consume mods
-        self_mods.shift = false;
-        self_mods.caps_lock = false;
-        arg_mods.shift = false;
-        arg_mods.caps_lock = false;
-    } else if (mods.shift or mods.caps_lock) {
-        // uppercase the cp and consume all mods
-        code = ziglyph.toUpper(cp);
-        self_mods.shift = false;
-        self_mods.caps_lock = false;
-        arg_mods.shift = false;
-        arg_mods.caps_lock = false;
-    }
+    arg_mods.shift = false;
+    arg_mods.caps_lock = false;
 
     var buf: [4]u8 = undefined;
     const n = std.unicode.utf8Encode(cp, buf[0..]) catch return false;

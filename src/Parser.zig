@@ -3,8 +3,8 @@ const testing = std.testing;
 const Event = @import("event.zig").Event;
 const Key = @import("Key.zig");
 const Mouse = @import("Mouse.zig");
-const CodePointIterator = @import("ziglyph").CodePointIterator;
-const graphemeBreak = @import("ziglyph").graphemeBreak;
+const code_point = @import("code_point");
+const grapheme = @import("grapheme");
 
 const log = std.log.scoped(.parser);
 
@@ -59,6 +59,8 @@ const State = enum {
 // text-as-codepoints
 buf: [128]u8 = undefined,
 
+grapheme_data: *const grapheme.GraphemeData,
+
 pub fn parse(self: *Parser, input: []const u8) !Result {
     const n = input.len;
 
@@ -104,15 +106,15 @@ pub fn parse(self: *Parser, input: []const u8) !Result {
                     },
                     0x7F => .{ .codepoint = Key.backspace },
                     else => blk: {
-                        var iter: CodePointIterator = .{ .bytes = input[i..] };
+                        var iter: code_point.Iterator = .{ .bytes = input[i..] };
                         // return null if we don't have a valid codepoint
                         var cp = iter.next() orelse return .{ .event = null, .n = 0 };
 
                         var code = cp.code;
                         i += cp.len - 1; // subtract one for the loop iter
-                        var g_state: u3 = 0;
+                        var g_state: grapheme.State = .{};
                         while (iter.next()) |next_cp| {
-                            if (graphemeBreak(cp.code, next_cp.code, &g_state)) {
+                            if (grapheme.graphemeBreak(cp.code, next_cp.code, self.grapheme_data, &g_state)) {
                                 break;
                             }
                             code = Key.multicodepoint;

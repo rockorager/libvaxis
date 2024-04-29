@@ -1,7 +1,8 @@
 const std = @import("std");
 const unicode = std.unicode;
 const testing = std.testing;
-const ziglyph = @import("ziglyph");
+const DisplayWidth = @import("DisplayWidth");
+const code_point = @import("code_point");
 
 /// the method to use when calculating the width of a grapheme
 pub const Method = enum {
@@ -11,18 +12,22 @@ pub const Method = enum {
 };
 
 /// returns the width of the provided string, as measured by the method chosen
-pub fn gwidth(str: []const u8, method: Method) !usize {
+pub fn gwidth(str: []const u8, method: Method, data: *const DisplayWidth.DisplayWidthData) !usize {
     switch (method) {
         .unicode => {
-            return try ziglyph.display_width.strWidth(str, .half);
+            const dw: DisplayWidth = .{ .data = data };
+            return dw.strWidth(str);
         },
         .wcwidth => {
             var total: usize = 0;
-            const utf8 = try unicode.Utf8View.init(str);
-            var iter = utf8.iterator();
-
-            while (iter.nextCodepoint()) |cp| {
-                const w = ziglyph.display_width.codePointWidth(cp, .half);
+            var iter: code_point.Iterator = .{ .bytes = str };
+            while (iter.next()) |cp| {
+                const w = switch (cp.code) {
+                    // undo an override in zg for emoji skintone selectors
+                    0x1f3fb...0x1f3ff,
+                    => 2,
+                    else => data.codePointWidth(cp.code),
+                };
                 if (w < 0) continue;
                 total += @intCast(w);
             }
@@ -33,37 +38,43 @@ pub fn gwidth(str: []const u8, method: Method) !usize {
             if (str.len > out.len) return error.OutOfMemory;
             const n = std.mem.replacementSize(u8, str, "\u{200D}", "");
             _ = std.mem.replace(u8, str, "\u{200D}", "", &out);
-            return gwidth(out[0..n], .unicode);
+            return gwidth(out[0..n], .unicode, data);
         },
     }
 }
 
 test "gwidth: a" {
-    try testing.expectEqual(1, try gwidth("a", .unicode));
-    try testing.expectEqual(1, try gwidth("a", .wcwidth));
-    try testing.expectEqual(1, try gwidth("a", .no_zwj));
+    const alloc = testing.allocator_instance.allocator();
+    const data = try DisplayWidth.DisplayWidthData.init(alloc);
+    defer data.deinit();
+    try testing.expectEqual(1, try gwidth("a", .unicode, &data));
+    try testing.expectEqual(1, try gwidth("a", .wcwidth, &data));
+    try testing.expectEqual(1, try gwidth("a", .no_zwj, &data));
 }
 
 test "gwidth: emoji with ZWJ" {
-    try testing.expectEqual(2, try gwidth("👩‍🚀", .unicode));
-    try testing.expectEqual(4, try gwidth("👩‍🚀", .wcwidth));
-    try testing.expectEqual(4, try gwidth("👩‍🚀", .no_zwj));
+    const alloc = testing.allocator_instance.allocator();
+    const data = try DisplayWidth.DisplayWidthData.init(alloc);
+    defer data.deinit();
+    try testing.expectEqual(2, try gwidth("👩‍🚀", .unicode, &data));
+    try testing.expectEqual(4, try gwidth("👩‍🚀", .wcwidth, &data));
+    try testing.expectEqual(4, try gwidth("👩‍🚀", .no_zwj, &data));
 }
 
 test "gwidth: emoji with VS16 selector" {
-    try testing.expectEqual(2, try gwidth("\xE2\x9D\xA4\xEF\xB8\x8F", .unicode));
-    try testing.expectEqual(1, try gwidth("\xE2\x9D\xA4\xEF\xB8\x8F", .wcwidth));
-    try testing.expectEqual(2, try gwidth("\xE2\x9D\xA4\xEF\xB8\x8F", .no_zwj));
+    const alloc = testing.allocator_instance.allocator();
+    const data = try DisplayWidth.DisplayWidthData.init(alloc);
+    defer data.deinit();
+    try testing.expectEqual(2, try gwidth("\xE2\x9D\xA4\xEF\xB8\x8F", .unicode, &data));
+    try testing.expectEqual(1, try gwidth("\xE2\x9D\xA4\xEF\xB8\x8F", .wcwidth, &data));
+    try testing.expectEqual(2, try gwidth("\xE2\x9D\xA4\xEF\xB8\x8F", .no_zwj, &data));
 }
 
 test "gwidth: emoji with skin tone selector" {
-    try testing.expectEqual(2, try gwidth("👋🏿", .unicode));
-    try testing.expectEqual(4, try gwidth("👋🏿", .wcwidth));
-    try testing.expectEqual(2, try gwidth("👋🏿", .no_zwj));
-}
-
-test "gwidth: invalid string" {
-    try testing.expectError(error.InvalidUtf8, gwidth("\xc3\x28", .unicode));
-    try testing.expectError(error.InvalidUtf8, gwidth("\xc3\x28", .wcwidth));
-    try testing.expectError(error.InvalidUtf8, gwidth("\xc3\x28", .no_zwj));
+    const alloc = testing.allocator_instance.allocator();
+    const data = try DisplayWidth.DisplayWidthData.init(alloc);
+    defer data.deinit();
+    try testing.expectEqual(2, try gwidth("👋🏿", .unicode, &data));
+    try testing.expectEqual(4, try gwidth("👋🏿", .wcwidth, &data));
+    try testing.expectEqual(2, try gwidth("👋🏿", .no_zwj, &data));
 }
