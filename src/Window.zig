@@ -1,6 +1,5 @@
 const std = @import("std");
 const ziglyph = @import("ziglyph");
-const WordIterator = ziglyph.WordIterator;
 const GraphemeIterator = ziglyph.GraphemeIterator;
 
 const Screen = @import("Screen.zig");
