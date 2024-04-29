@@ -1,7 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const posix = std.posix;
-const Vaxis = @import("vaxis.zig").Vaxis;
+const Loop = @import("Loop.zig").Loop;
 const Parser = @import("Parser.zig");
 const GraphemeCache = @import("GraphemeCache.zig");
 const ctlseqs = @import("ctlseqs.zig");
@@ -57,13 +57,13 @@ pub fn stop(self: *Tty) void {
 pub fn run(
     self: *Tty,
     comptime Event: type,
-    vx: *Vaxis(Event),
+    loop: *Loop(Event),
 ) !void {
 
     // get our initial winsize
     const winsize = try getWinsize(self.fd);
     if (@hasField(Event, "winsize")) {
-        vx.postEvent(.{ .winsize = winsize });
+        loop.postEvent(.{ .winsize = winsize });
     }
 
     // Build a winch handler. We need build this struct to get an anonymous
@@ -72,10 +72,10 @@ pub fn run(
     const WinchHandler = struct {
         const Self = @This();
 
-        var vx_winch: *Vaxis(Event) = undefined;
+        var vx_winch: *Loop(Event) = undefined;
         var fd: posix.fd_t = undefined;
 
-        fn init(vx_arg: *Vaxis(Event), fd_arg: posix.fd_t) !void {
+        fn init(vx_arg: *Loop(Event), fd_arg: posix.fd_t) !void {
             vx_winch = vx_arg;
             fd = fd_arg;
             var act = posix.Sigaction{
@@ -100,7 +100,7 @@ pub fn run(
             }
         }
     };
-    try WinchHandler.init(vx, self.fd);
+    try WinchHandler.init(loop, self.fd);
 
     // initialize a grapheme cache
     var cache: GraphemeCache = .{};
@@ -131,55 +131,55 @@ pub fn run(
                         if (key.text) |text| {
                             mut_key.text = cache.put(text);
                         }
-                        vx.postEvent(.{ .key_press = mut_key });
+                        loop.postEvent(.{ .key_press = mut_key });
                     }
                 },
                 .mouse => |mouse| {
                     if (@hasField(Event, "mouse")) {
-                        vx.postEvent(.{ .mouse = mouse });
+                        loop.postEvent(.{ .mouse = mouse });
                     }
                 },
                 .focus_in => {
                     if (@hasField(Event, "focus_in")) {
-                        vx.postEvent(.focus_in);
+                        loop.postEvent(.focus_in);
                     }
                 },
                 .focus_out => {
                     if (@hasField(Event, "focus_out")) {
-                        vx.postEvent(.focus_out);
+                        loop.postEvent(.focus_out);
                     }
                 },
                 .paste_start => {
                     if (@hasField(Event, "paste_start")) {
-                        vx.postEvent(.paste_start);
+                        loop.postEvent(.paste_start);
                     }
                 },
                 .paste_end => {
                     if (@hasField(Event, "paste_end")) {
-                        vx.postEvent(.paste_end);
+                        loop.postEvent(.paste_end);
                     }
                 },
                 .cap_kitty_keyboard => {
                     log.info("kitty keyboard capability detected", .{});
-                    vx.caps.kitty_keyboard = true;
+                    loop.vaxis.caps.kitty_keyboard = true;
                 },
                 .cap_kitty_graphics => {
-                    if (!vx.caps.kitty_graphics) {
+                    if (!loop.vaxis.caps.kitty_graphics) {
                         log.info("kitty graphics capability detected", .{});
-                        vx.caps.kitty_graphics = true;
+                        loop.vaxis.caps.kitty_graphics = true;
                     }
                 },
                 .cap_rgb => {
                     log.info("rgb capability detected", .{});
-                    vx.caps.rgb = true;
+                    loop.vaxis.caps.rgb = true;
                 },
                 .cap_unicode => {
                     log.info("unicode capability detected", .{});
-                    vx.caps.unicode = true;
-                    vx.screen.unicode = true;
+                    loop.vaxis.caps.unicode = true;
+                    loop.vaxis.screen.unicode = true;
                 },
                 .cap_da1 => {
-                    std.Thread.Futex.wake(&vx.query_futex, 10);
+                    std.Thread.Futex.wake(&loop.vaxis.query_futex, 10);
                 },
             }
         }

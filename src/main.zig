@@ -1,7 +1,7 @@
 const std = @import("std");
 
-pub const Vaxis = @import("vaxis.zig").Vaxis;
-pub const Options = @import("Options.zig");
+pub const Vaxis = @import("Vaxis.zig");
+pub const Loop = @import("Loop.zig").Loop;
 
 pub const Queue = @import("queue.zig").Queue;
 pub const Key = @import("Key.zig");
@@ -22,8 +22,8 @@ pub const widgets = @import("widgets.zig");
 pub const gwidth = @import("gwidth.zig");
 
 /// Initialize a Vaxis application.
-pub fn init(comptime Event: type, opts: Options) !Vaxis(Event) {
-    return Vaxis(Event).init(opts);
+pub fn init(opts: Vaxis.Options) !Vaxis {
+    return Vaxis.init(opts);
 }
 
 test {
