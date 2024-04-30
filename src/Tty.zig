@@ -138,6 +138,16 @@ pub fn run(
                         loop.postEvent(.{ .key_press = mut_key });
                     }
                 },
+                .key_release => |*key| {
+                    if (@hasField(Event, "key_release")) {
+                        // HACK: yuck. there has to be a better way
+                        var mut_key = key;
+                        if (key.text) |text| {
+                            mut_key.text = cache.put(text);
+                        }
+                        loop.postEvent(.{ .key_release = mut_key });
+                    }
+                },
                 .mouse => |mouse| {
                     if (@hasField(Event, "mouse")) {
                         loop.postEvent(.{ .mouse = mouse });
