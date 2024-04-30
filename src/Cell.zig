@@ -1,9 +1,11 @@
+const std = @import("std");
 const Image = @import("Image.zig");
 
 char: Character = .{},
 style: Style = .{},
 link: Hyperlink = .{},
 image: ?Image.Placement = null,
+default: bool = false,
 
 /// Segment is a contiguous run of text that has a constant style
 pub const Segment = struct {
@@ -59,12 +61,62 @@ pub const Style = struct {
     reverse: bool = false,
     invisible: bool = false,
     strikethrough: bool = false,
+
+    pub fn eql(a: Style, b: Style) bool {
+        const SGRBits = packed struct {
+            bold: bool,
+            dim: bool,
+            italic: bool,
+            blink: bool,
+            reverse: bool,
+            invisible: bool,
+            strikethrough: bool,
+        };
+        const a_sgr: SGRBits = .{
+            .bold = a.bold,
+            .dim = a.dim,
+            .italic = a.italic,
+            .blink = a.blink,
+            .reverse = a.reverse,
+            .invisible = a.invisible,
+            .strikethrough = a.strikethrough,
+        };
+        const b_sgr: SGRBits = .{
+            .bold = b.bold,
+            .dim = b.dim,
+            .italic = b.italic,
+            .blink = b.blink,
+            .reverse = b.reverse,
+            .invisible = b.invisible,
+            .strikethrough = b.strikethrough,
+        };
+        const a_cast: u7 = @bitCast(a_sgr);
+        const b_cast: u7 = @bitCast(b_sgr);
+        return a_cast == b_cast and
+            Color.eql(a.fg, b.fg) and
+            Color.eql(a.bg, b.bg) and
+            Color.eql(a.ul, b.ul) and
+            a.ul_style == b.ul_style;
+    }
 };
 
 pub const Color = union(enum) {
     default,
     index: u8,
     rgb: [3]u8,
+
+    pub fn eql(a: Color, b: Color) bool {
+        if (a == .default and b == .default)
+            return true
+        else if (a == .index and b == .index)
+            return a.index == b.index
+        else if (a == .rgb and b == .rgb)
+            return a.rgb[0] == b.rgb[0] and
+                a.rgb[1] == b.rgb[1] and
+                a.rgb[2] == b.rgb[2]
+        else
+            return false;
+    }
 
     pub fn rgbFromUint(val: u24) Color {
         const r_bits = val & 0b11111111_00000000_00000000;

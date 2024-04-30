@@ -196,7 +196,7 @@ pub fn writeCell(self: Window, col: usize, row: usize, cell: Cell) void {
 
 /// fills the window with the default cell
 pub fn clear(self: Window) void {
-    self.fill(.{});
+    self.fill(.{ .default = true });
 }
 
 /// returns the width of the grapheme. This depends on the terminal capabilities

@@ -16,12 +16,19 @@ pub const InternalCell = struct {
     uri_id: std.ArrayList(u8) = undefined,
     // if we got skipped because of a wide character
     skipped: bool = false,
+    default: bool = false,
 
     pub fn eql(self: InternalCell, cell: Cell) bool {
-        return std.mem.eql(u8, self.char.items, cell.char.grapheme) and
-            std.meta.eql(self.style, cell.style) and
-            std.mem.eql(u8, self.uri.items, cell.link.uri) and
-            std.mem.eql(u8, self.uri_id.items, cell.link.params);
+        // fastpath when both cells are default
+        if (self.default and cell.default) return true;
+        // this is actually faster than std.meta.eql on the individual items.
+        // Our strings are always small, usually less than 4 bytes so the simd
+        // usage in std.mem.eql has too much overhead vs looping the bytes
+        if (!std.mem.eql(u8, self.char.items, cell.char.grapheme)) return false;
+        if (!Style.eql(self.style, cell.style)) return false;
+        if (!std.mem.eql(u8, self.uri.items, cell.link.uri)) return false;
+        if (!std.mem.eql(u8, self.uri_id.items, cell.link.params)) return false;
+        return true;
     }
 };
 
@@ -94,6 +101,7 @@ pub fn writeCell(
         log.warn("couldn't write uri_id", .{});
     };
     self.buf[i].style = cell.style;
+    self.buf[i].default = cell.default;
 }
 
 pub fn readCell(self: *InternalScreen, col: usize, row: usize) ?Cell {

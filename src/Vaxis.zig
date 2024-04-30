@@ -323,7 +323,7 @@ pub fn render(self: *Vaxis) !void {
         // find out what
 
         // foreground
-        if (!std.meta.eql(cursor.fg, cell.style.fg)) {
+        if (!Cell.Color.eql(cursor.fg, cell.style.fg)) {
             const writer = tty.buffered_writer.writer();
             switch (cell.style.fg) {
                 .default => _ = try tty.write(ctlseqs.fg_reset),
@@ -340,7 +340,7 @@ pub fn render(self: *Vaxis) !void {
             }
         }
         // background
-        if (!std.meta.eql(cursor.bg, cell.style.bg)) {
+        if (!Cell.Color.eql(cursor.bg, cell.style.bg)) {
             const writer = tty.buffered_writer.writer();
             switch (cell.style.bg) {
                 .default => _ = try tty.write(ctlseqs.bg_reset),
@@ -357,7 +357,7 @@ pub fn render(self: *Vaxis) !void {
             }
         }
         // underline color
-        if (!std.meta.eql(cursor.ul, cell.style.ul)) {
+        if (!Cell.Color.eql(cursor.ul, cell.style.ul)) {
             const writer = tty.buffered_writer.writer();
             switch (cell.style.bg) {
                 .default => _ = try tty.write(ctlseqs.ul_reset),
@@ -370,7 +370,7 @@ pub fn render(self: *Vaxis) !void {
             }
         }
         // underline style
-        if (!std.meta.eql(cursor.ul_style, cell.style.ul_style)) {
+        if (cursor.ul_style != cell.style.ul_style) {
             const seq = switch (cell.style.ul_style) {
                 .off => ctlseqs.ul_off,
                 .single => ctlseqs.ul_single,
@@ -445,7 +445,7 @@ pub fn render(self: *Vaxis) !void {
         }
 
         // url
-        if (!std.meta.eql(link.uri, cell.link.uri)) {
+        if (!std.mem.eql(u8, link.uri, cell.link.uri)) {
             var ps = cell.link.params;
             if (cell.link.uri.len == 0) {
                 // Empty out the params no matter what if we don't have
