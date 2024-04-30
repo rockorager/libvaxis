@@ -18,11 +18,13 @@ pub fn main() !void {
     }
     const alloc = gpa.allocator();
 
-    var vx = try vaxis.init(Event, .{});
+    var vx = try vaxis.init(alloc, .{});
     defer vx.deinit(alloc);
 
-    try vx.startReadThread();
-    defer vx.stopReadThread();
+    var loop: vaxis.Loop(Event) = .{ .vaxis = &vx };
+
+    try loop.run();
+    defer loop.stop();
 
     try vx.enterAltScreen();
 
@@ -38,7 +40,7 @@ pub fn main() !void {
     var n: usize = 0;
 
     while (true) {
-        const event = vx.nextEvent();
+        const event = loop.nextEvent();
         switch (event) {
             .key_press => |key| {
                 if (key.matches('c', .{ .ctrl = true })) {

@@ -1,6 +1,6 @@
 const std = @import("std");
 const atomic = std.atomic;
-const base64 = std.base64;
+const base64Encoder = std.base64.standard.Encoder;
 const zigimg = @import("zigimg");
 
 const Cell = @import("Cell.zig");
@@ -580,8 +580,8 @@ pub fn loadImage(
     const png_buf = try alloc.alloc(u8, img.imageByteSize());
     defer alloc.free(png_buf);
     const png = try img.writeToMemory(png_buf, .{ .png = .{} });
-    const b64_buf = try alloc.alloc(u8, base64.calcSize(png.len));
-    const encoded = base64.encode(b64_buf, png);
+    const b64_buf = try alloc.alloc(u8, base64Encoder.calcSize(png.len));
+    const encoded = base64Encoder.encode(b64_buf, png);
     defer alloc.free(b64_buf);
 
     const id = self.next_img_id;
