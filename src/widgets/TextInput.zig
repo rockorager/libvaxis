@@ -316,12 +316,15 @@ fn deleteAtCursor(self: *TextInput) !void {
 }
 
 test "assertion" {
+    const alloc = std.testing.allocator_instance.allocator();
+    const unicode = try Unicode.init(alloc);
+    defer unicode.deinit();
     const astronaut = "👩‍🚀";
     const astronaut_emoji: Key = .{
         .text = astronaut,
         .codepoint = try std.unicode.utf8Decode(astronaut[0..4]),
     };
-    var input = TextInput.init(std.testing.allocator);
+    var input = TextInput.init(std.testing.allocator, &unicode);
     defer input.deinit();
     for (0..6) |_| {
         try input.update(.{ .key_press = astronaut_emoji });
@@ -329,8 +332,11 @@ test "assertion" {
 }
 
 test "sliceToCursor" {
-    var alloc = std.testing.allocator_instance;
-    var input = init(alloc.allocator());
+    const alloc = std.testing.allocator_instance.allocator();
+    const unicode = try Unicode.init(alloc);
+    defer unicode.deinit();
+    var input = init(alloc, &unicode);
+    defer input.deinit();
     try input.insertSliceAtCursor("hello, world");
     input.cursor_idx = 2;
     var buf: [32]u8 = undefined;

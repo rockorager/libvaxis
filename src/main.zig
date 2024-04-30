@@ -27,5 +27,7 @@ pub fn init(alloc: std.mem.Allocator, opts: Vaxis.Options) !Vaxis {
 
 test {
     std.testing.refAllDecls(@This());
+    std.testing.refAllDecls(widgets);
     _ = @import("Parser.zig");
+    _ = @import("Tty.zig");
 }
