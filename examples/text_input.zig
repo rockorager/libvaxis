@@ -82,6 +82,12 @@ pub fn main() !void {
                     vx.queueRefresh();
                 } else if (key.matches('n', .{ .ctrl = true })) {
                     try vx.notify("vaxis", "hello from vaxis");
+                    loop.stop();
+                    var child = std.process.Child.init(&.{"nvim"}, alloc);
+                    _ = try child.spawnAndWait();
+                    try loop.run();
+                    try vx.enterAltScreen();
+                    vx.queueRefresh();
                 } else if (key.matches(vaxis.Key.enter, .{})) {
                     text_input.clearAndFree();
                 } else {

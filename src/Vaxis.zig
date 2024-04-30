@@ -42,15 +42,6 @@ screen: Screen,
 /// the next render
 screen_last: InternalScreen = undefined,
 
-state: struct {
-    /// if we are in the alt screen
-    alt_screen: bool = false,
-    /// if we have entered kitty keyboard
-    kitty_keyboard: bool = false,
-    bracketed_paste: bool = false,
-    mouse: bool = false,
-} = .{},
-
 caps: Capabilities = .{},
 
 /// if we should redraw the entire screen on the next render
@@ -86,23 +77,7 @@ pub fn init(alloc: std.mem.Allocator, _: Options) !Vaxis {
 /// optional so applications can choose to not free resources when the
 /// application will be exiting anyways
 pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator) void {
-    if (self.tty) |_| {
-        var tty = &self.tty.?;
-        if (self.state.kitty_keyboard) {
-            _ = tty.write(ctlseqs.csi_u_pop) catch {};
-        }
-        if (self.state.mouse) {
-            _ = tty.write(ctlseqs.mouse_reset) catch {};
-        }
-        if (self.state.bracketed_paste) {
-            _ = tty.write(ctlseqs.bp_reset) catch {};
-        }
-        if (self.state.alt_screen) {
-            _ = tty.write(ctlseqs.rmcup) catch {};
-        }
-        // always show the cursor on exit
-        _ = tty.write(ctlseqs.show_cursor) catch {};
-        tty.flush() catch {};
+    if (self.tty) |*tty| {
         tty.deinit();
     }
     if (alloc) |a| {
@@ -147,20 +122,22 @@ pub fn window(self: *Vaxis) Window {
 /// enter the alternate screen. The alternate screen will automatically
 /// be exited if calling deinit while in the alt screen
 pub fn enterAltScreen(self: *Vaxis) !void {
-    if (self.state.alt_screen) return;
-    var tty = self.tty orelse return;
-    _ = try tty.write(ctlseqs.smcup);
-    try tty.flush();
-    self.state.alt_screen = true;
+    if (self.tty) |*tty| {
+        if (tty.state.alt_screen) return;
+        _ = try tty.write(ctlseqs.smcup);
+        try tty.flush();
+        tty.state.alt_screen = true;
+    }
 }
 
 /// exit the alternate screen
 pub fn exitAltScreen(self: *Vaxis) !void {
-    if (!self.state.alt_screen) return;
-    var tty = self.tty orelse return;
-    _ = try tty.write(ctlseqs.rmcup);
-    try tty.flush();
-    self.state.alt_screen = false;
+    if (self.tty) |*tty| {
+        if (!tty.state.alt_screen) return;
+        _ = try tty.write(ctlseqs.rmcup);
+        try tty.flush();
+        tty.state.alt_screen = false;
+    }
 }
 
 /// write queries to the terminal to determine capabilities. Individual
@@ -487,16 +464,18 @@ pub fn render(self: *Vaxis) !void {
 }
 
 fn enableKittyKeyboard(self: *Vaxis, flags: Key.KittyFlags) !void {
-    self.state.kitty_keyboard = true;
-    const flag_int: u5 = @bitCast(flags);
-    try std.fmt.format(
-        self.tty.?.buffered_writer.writer(),
-        ctlseqs.csi_u_push,
-        .{
-            flag_int,
-        },
-    );
-    try self.tty.?.flush();
+    if (self.tty) |*tty| {
+        const flag_int: u5 = @bitCast(flags);
+        try std.fmt.format(
+            tty.buffered_writer.writer(),
+            ctlseqs.csi_u_push,
+            .{
+                flag_int,
+            },
+        );
+        try tty.flush();
+        tty.state.kitty_keyboard = true;
+    }
 }
 
 /// send a system notification
@@ -533,14 +512,15 @@ pub fn setTitle(self: *Vaxis, title: []const u8) !void {
 // beginning and end of a detected paste. All keystrokes between these
 // events were pasted
 pub fn setBracketedPaste(self: *Vaxis, enable: bool) !void {
-    if (self.tty == null) return;
-    self.state.bracketed_paste = enable;
-    const seq = if (enable)
-        ctlseqs.bp_set
-    else
-        ctlseqs.bp_reset;
-    _ = try self.tty.?.write(seq);
-    try self.tty.?.flush();
+    if (self.tty) |*tty| {
+        const seq = if (enable)
+            ctlseqs.bp_set
+        else
+            ctlseqs.bp_reset;
+        _ = try tty.write(seq);
+        try tty.flush();
+        tty.state.bracketed_paste = enable;
+    }
 }
 
 /// set the mouse shape
@@ -550,14 +530,15 @@ pub fn setMouseShape(self: *Vaxis, shape: Shape) void {
 
 /// turn mouse reporting on or off
 pub fn setMouseMode(self: *Vaxis, enable: bool) !void {
-    var tty = self.tty orelse return;
-    self.state.mouse = enable;
-    if (enable) {
-        _ = try tty.write(ctlseqs.mouse_set);
-        try tty.flush();
-    } else {
-        _ = try tty.write(ctlseqs.mouse_reset);
-        try tty.flush();
+    if (self.tty) |*tty| {
+        tty.state.mouse = enable;
+        if (enable) {
+            _ = try tty.write(ctlseqs.mouse_set);
+            try tty.flush();
+        } else {
+            _ = try tty.write(ctlseqs.mouse_reset);
+            try tty.flush();
+        }
     }
 }
 

@@ -30,10 +30,16 @@ pub fn Loop(comptime T: type) type {
 
         /// stops reading from the tty and returns it to it's initial state
         pub fn stop(self: *Self) void {
-            if (self.vaxis.tty) |*tty| tty.stop();
-            if (self.thread) |thread| {
-                thread.join();
-                self.thread = null;
+            if (self.vaxis.tty) |*tty| {
+                // stop the read loop, then join the thread
+                tty.stop();
+                if (self.thread) |thread| {
+                    thread.join();
+                    self.thread = null;
+                }
+                // once thread is closed we can deinit the tty
+                tty.deinit();
+                self.vaxis.tty = null;
             }
         }
 
