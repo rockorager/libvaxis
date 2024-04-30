@@ -13,9 +13,7 @@ features is detected through terminal queries.
 
 Contributions are welcome.
 
-Vaxis tracks zig `master`. Vaxis is currently compatible with zig version
-`0.12.0-dev.3397+43edd53c3`. When `0.12.0` is released, a release will be tagged
-against it.
+Vaxis uses zig `0.12.0`.
 
 ## Feature comparison
 
