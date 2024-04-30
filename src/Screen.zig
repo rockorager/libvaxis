@@ -34,7 +34,7 @@ cursor_shape: Cell.CursorShape = .default,
 pub fn init(alloc: std.mem.Allocator, winsize: Winsize, unicode: *const Unicode) !Screen {
     const w = winsize.cols;
     const h = winsize.rows;
-    var self = Screen{
+    const self = Screen{
         .buf = try alloc.alloc(Cell, w * h),
         .width = w,
         .height = h,
@@ -42,9 +42,8 @@ pub fn init(alloc: std.mem.Allocator, winsize: Winsize, unicode: *const Unicode)
         .height_pix = winsize.y_pixel,
         .unicode = unicode,
     };
-    for (self.buf, 0..) |_, i| {
-        self.buf[i] = .{};
-    }
+    const base_cell: Cell = .{};
+    @memset(self.buf, base_cell);
     return self;
 }
 pub fn deinit(self: *Screen, alloc: std.mem.Allocator) void {

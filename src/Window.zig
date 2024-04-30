@@ -206,11 +206,18 @@ pub fn gwidth(self: Window, str: []const u8) usize {
 
 /// fills the window with the provided cell
 pub fn fill(self: Window, cell: Cell) void {
-    var row: usize = self.y_off;
-    while (row < (self.height + self.y_off)) : (row += 1) {
-        var col: usize = self.x_off;
-        while (col < (self.width + self.x_off)) : (col += 1) {
-            self.screen.writeCell(col, row, cell);
+    if (self.x_off == 0 and self.width == self.screen.width) {
+        // we have a full width window, therefore contiguous memory.
+        const start = self.y_off * self.width;
+        const end = start + (self.height * self.width);
+        @memset(self.screen.buf[start..end], cell);
+    } else {
+        // Non-contiguous. Iterate over rows an memset
+        var row: usize = self.y_off;
+        while (row < (self.height + self.y_off)) : (row += 1) {
+            const start = self.x_off + (row * self.screen.width);
+            const end = start + self.width;
+            @memset(self.screen.buf[start..end], cell);
         }
     }
 }
