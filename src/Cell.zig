@@ -106,16 +106,23 @@ pub const Color = union(enum) {
     rgb: [3]u8,
 
     pub fn eql(a: Color, b: Color) bool {
-        if (a == .default and b == .default)
-            return true
-        else if (a == .index and b == .index)
-            return a.index == b.index
-        else if (a == .rgb and b == .rgb)
-            return a.rgb[0] == b.rgb[0] and
-                a.rgb[1] == b.rgb[1] and
-                a.rgb[2] == b.rgb[2]
-        else
-            return false;
+        switch (a) {
+            .default => return b == .default,
+            .index => |a_idx| {
+                switch (b) {
+                    .index => |b_idx| return a_idx == b_idx,
+                    else => return false,
+                }
+            },
+            .rgb => |a_rgb| {
+                switch (b) {
+                    .rgb => |b_rgb| return a_rgb[0] == b_rgb[0] and
+                        a_rgb[1] == b_rgb[1] and
+                        a_rgb[2] == b_rgb[2],
+                    else => return false,
+                }
+            },
+        }
     }
 
     pub fn rgbFromUint(val: u24) Color {
