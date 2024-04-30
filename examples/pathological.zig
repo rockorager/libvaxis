@@ -12,7 +12,7 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const alloc = gpa.allocator();
     var vx = try vaxis.init(alloc, .{});
-    errdefer vx.deinit(alloc);
+    defer vx.deinit(alloc);
 
     var loop: vaxis.Loop(Event) = .{ .vaxis = &vx };
 
@@ -54,7 +54,8 @@ pub fn main() !void {
         }
         try vx.render();
     }
+    try vx.exitAltScreen();
     const took = std.time.microTimestamp() - timer_start;
-    vx.deinit(alloc);
-    log.info("took {d}ms", .{@divTrunc(took, std.time.us_per_ms)});
+    const stdout = std.io.getStdOut().writer();
+    try stdout.print("\r\ntook {d}ms to render 10,000 times\r\n", .{@divTrunc(took, std.time.us_per_ms)});
 }
