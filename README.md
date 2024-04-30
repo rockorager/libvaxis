@@ -78,16 +78,18 @@ pub fn main() !void {
     }
     const alloc = gpa.allocator();
 
-    // Initialize Vaxis with our event type
-    var vx = try vaxis.init(Event, .{});
+    // Initialize Vaxis
+    var vx = try vaxis.init(alloc, .{});
     // deinit takes an optional allocator. If your program is exiting, you can
     // choose to pass a null allocator to save some exit time.
     defer vx.deinit(alloc);
 
+
+    var loop: vaxis.Loop(Event) = .{};
     // Start the read loop. This puts the terminal in raw mode and begins
     // reading user input
-    try vx.startReadThread();
-    defer vx.stopReadThread();
+    try loop.run();
+    defer loop.stop();
 
     // Optionally enter the alternate screen
     try vx.enterAltScreen();
@@ -108,7 +110,7 @@ pub fn main() !void {
     // queue which can serve as the primary event queue for an application
     while (true) {
         // nextEvent blocks until an event is in the queue
-        const event = vx.nextEvent();
+        const event = loop.nextEvent();
         std.log.debug("event: {}", .{event});
         // exhaustive switching ftw. Vaxis will send events if your Event enum
         // has the fields for those events (ie "key_press", "winsize")
@@ -132,12 +134,11 @@ pub fn main() !void {
             // locks on the screen. All applications must handle this event
             // unless they aren't using a screen (IE only detecting features)
             //
-            // This is the only call that the core of Vaxis needs an allocator
-            // for. The allocations are because we keep a copy of each cell to
+            // The allocations are because we keep a copy of each cell to
             // optimize renders. When resize is called, we allocated two slices:
             // one for the screen, and one for our buffered screen. Each cell in
             // the buffered screen contains an ArrayList(u8) to be able to store
-            // the grapheme for that cell Each cell is initialized with a size
+            // the grapheme for that cell. Each cell is initialized with a size
             // of 1, which is sufficient for all of ASCII. Anything requiring
             // more than one byte will incur an allocation on the first render
             // after it is drawn. Thereafter, it will not allocate unless the
