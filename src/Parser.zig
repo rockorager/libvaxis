@@ -440,6 +440,7 @@ pub fn parse(self: *Parser, input: []const u8) !Result {
                         };
 
                         var key: Key = .{ .codepoint = codepoint };
+                        var is_release: bool = false;
 
                         var idx: usize = 0;
                         var field: u8 = 0;
@@ -484,6 +485,13 @@ pub fn parse(self: *Parser, input: []const u8) !Result {
                                         break :blk @truncate(seq.params[idx]);
                                     };
                                     key.mods = @bitCast(ps - 1);
+
+                                    // check if an event type exists
+                                    if (!seq.sub_state.isSet(idx + 1)) {
+                                        continue;
+                                    }
+                                    idx += 1;
+                                    if (seq.params[idx] == 3) is_release = true;
                                 },
                                 2 => {
                                     // field 2 is text, as codepoints
@@ -496,8 +504,12 @@ pub fn parse(self: *Parser, input: []const u8) !Result {
                                 else => {},
                             }
                         }
+                        const event: Event = if (is_release)
+                            .{ .key_release = key }
+                        else
+                            .{ .key_press = key };
                         return .{
-                            .event = .{ .key_press = key },
+                            .event = event,
                             .n = i + 1,
                         };
                     },
@@ -555,8 +567,11 @@ pub fn parse(self: *Parser, input: []const u8) !Result {
 }
 
 test "parse: single xterm keypress" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "a";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = 'a',
@@ -569,8 +584,11 @@ test "parse: single xterm keypress" {
 }
 
 test "parse: single xterm keypress backspace" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "\x08";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = Key.backspace,
@@ -582,8 +600,11 @@ test "parse: single xterm keypress backspace" {
 }
 
 test "parse: single xterm keypress with more buffer" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "ab";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = 'a',
@@ -597,8 +618,11 @@ test "parse: single xterm keypress with more buffer" {
 }
 
 test "parse: xterm escape keypress" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "\x1b";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_key: Key = .{ .codepoint = Key.escape };
     const expected_event: Event = .{ .key_press = expected_key };
@@ -608,8 +632,11 @@ test "parse: xterm escape keypress" {
 }
 
 test "parse: xterm ctrl+a" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "\x01";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_key: Key = .{ .codepoint = 'a', .mods = .{ .ctrl = true } };
     const expected_event: Event = .{ .key_press = expected_key };
@@ -619,8 +646,11 @@ test "parse: xterm ctrl+a" {
 }
 
 test "parse: xterm alt+a" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "\x1ba";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_key: Key = .{ .codepoint = 'a', .mods = .{ .alt = true } };
     const expected_event: Event = .{ .key_press = expected_key };
@@ -630,8 +660,11 @@ test "parse: xterm alt+a" {
 }
 
 test "parse: xterm invalid ss3" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "\x1bOZ";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
 
     try testing.expectEqual(3, result.n);
@@ -639,10 +672,13 @@ test "parse: xterm invalid ss3" {
 }
 
 test "parse: xterm key up" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     {
         // normal version
         const input = "\x1bOA";
-        var parser: Parser = .{};
+        var parser: Parser = .{ .grapheme_data = &grapheme_data };
         const result = try parser.parse(input);
         const expected_key: Key = .{ .codepoint = Key.up };
         const expected_event: Event = .{ .key_press = expected_key };
@@ -654,7 +690,7 @@ test "parse: xterm key up" {
     {
         // application keys version
         const input = "\x1b[2~";
-        var parser: Parser = .{};
+        var parser: Parser = .{ .grapheme_data = &grapheme_data };
         const result = try parser.parse(input);
         const expected_key: Key = .{ .codepoint = Key.insert };
         const expected_event: Event = .{ .key_press = expected_key };
@@ -665,8 +701,11 @@ test "parse: xterm key up" {
 }
 
 test "parse: xterm shift+up" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "\x1b[1;2A";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_key: Key = .{ .codepoint = Key.up, .mods = .{ .shift = true } };
     const expected_event: Event = .{ .key_press = expected_key };
@@ -676,8 +715,11 @@ test "parse: xterm shift+up" {
 }
 
 test "parse: xterm insert" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "\x1b[1;2A";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_key: Key = .{ .codepoint = Key.up, .mods = .{ .shift = true } };
     const expected_event: Event = .{ .key_press = expected_key };
@@ -687,8 +729,11 @@ test "parse: xterm insert" {
 }
 
 test "parse: paste_start" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "\x1b[200~";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_event: Event = .paste_start;
 
@@ -697,8 +742,11 @@ test "parse: paste_start" {
 }
 
 test "parse: paste_end" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "\x1b[201~";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_event: Event = .paste_end;
 
@@ -707,8 +755,11 @@ test "parse: paste_end" {
 }
 
 test "parse: focus_in" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "\x1b[I";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_event: Event = .focus_in;
 
@@ -717,8 +768,11 @@ test "parse: focus_in" {
 }
 
 test "parse: focus_out" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "\x1b[O";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_event: Event = .focus_out;
 
@@ -727,8 +781,11 @@ test "parse: focus_out" {
 }
 
 test "parse: kitty: shift+a without text reporting" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "\x1b[97:65;2u";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = 'a',
@@ -742,8 +799,11 @@ test "parse: kitty: shift+a without text reporting" {
 }
 
 test "parse: kitty: alt+shift+a without text reporting" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "\x1b[97:65;4u";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = 'a',
@@ -757,8 +817,11 @@ test "parse: kitty: alt+shift+a without text reporting" {
 }
 
 test "parse: kitty: a without text reporting" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "\x1b[97u";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = 'a',
@@ -769,9 +832,28 @@ test "parse: kitty: a without text reporting" {
     try testing.expectEqual(expected_event, result.event);
 }
 
+test "parse: kitty: release event" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
+    const input = "\x1b[97;1:3u";
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
+    const result = try parser.parse(input);
+    const expected_key: Key = .{
+        .codepoint = 'a',
+    };
+    const expected_event: Event = .{ .key_release = expected_key };
+
+    try testing.expectEqual(9, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
 test "parse: single codepoint" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "🙂";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = 0x1F642,
@@ -784,8 +866,11 @@ test "parse: single codepoint" {
 }
 
 test "parse: single codepoint with more in buffer" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "🙂a";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = 0x1F642,
@@ -798,8 +883,11 @@ test "parse: single codepoint with more in buffer" {
 }
 
 test "parse: multiple codepoint grapheme" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "👩‍🚀";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = Key.multicodepoint,
@@ -812,8 +900,11 @@ test "parse: multiple codepoint grapheme" {
 }
 
 test "parse: multiple codepoint grapheme with more after" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
     const input = "👩‍🚀abc";
-    var parser: Parser = .{};
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input);
     const expected_key: Key = .{
         .codepoint = Key.multicodepoint,
