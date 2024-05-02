@@ -96,7 +96,7 @@ pub fn writeCell(
     self.buf[i].uri.appendSlice(cell.link.uri) catch {
         log.warn("couldn't write uri", .{});
     };
-    self.buf[i].uri.clearRetainingCapacity();
+    self.buf[i].uri_id.clearRetainingCapacity();
     self.buf[i].uri_id.appendSlice(cell.link.params) catch {
         log.warn("couldn't write uri_id", .{});
     };
