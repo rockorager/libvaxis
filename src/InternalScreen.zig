@@ -16,7 +16,7 @@ pub const InternalCell = struct {
     uri_id: std.ArrayList(u8) = undefined,
     // if we got skipped because of a wide character
     skipped: bool = false,
-    default: bool = false,
+    default: bool = true,
 
     pub fn eql(self: InternalCell, cell: Cell) bool {
         // fastpath when both cells are default
@@ -55,6 +55,7 @@ pub fn init(alloc: std.mem.Allocator, w: usize, h: usize) !InternalScreen {
             .uri = std.ArrayList(u8).init(alloc),
             .uri_id = std.ArrayList(u8).init(alloc),
         };
+        try screen.buf[i].char.append(' ');
     }
     screen.width = w;
     screen.height = h;

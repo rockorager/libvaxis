@@ -38,6 +38,7 @@ pub fn build(b: *std.Build) void {
 
     // Examples
     const Example = enum {
+        cli,
         image,
         main,
         nvim,

@@ -32,6 +32,10 @@ state: struct {
     kitty_keyboard: bool = false,
     bracketed_paste: bool = false,
     mouse: bool = false,
+    cursor: struct {
+        row: usize = 0,
+        col: usize = 0,
+    } = .{},
 } = .{},
 
 /// initializes a Tty instance by opening /dev/tty and "making it raw"

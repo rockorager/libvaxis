@@ -37,6 +37,13 @@ pub const cup = "\x1b[{d};{d}H";
 pub const hide_cursor = "\x1b[?25l";
 pub const show_cursor = "\x1b[?25h";
 pub const cursor_shape = "\x1b[{d} q";
+pub const ri = "\x1bM";
+pub const ind = "\n";
+pub const cuf = "\x1b[{d}C";
+pub const cub = "\x1b[{d}D";
+
+// Erase
+pub const erase_below_cursor = "\x1b[J";
 
 // alt screen
 pub const smcup = "\x1b[?1049h";

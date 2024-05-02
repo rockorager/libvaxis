@@ -94,7 +94,8 @@ pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator) void {
 
 /// resize allocates a slice of cells equal to the number of cells
 /// required to display the screen (ie width x height). Any previous screen is
-/// freed when resizing
+/// freed when resizing. The cursor will be sent to it's home position and a
+/// hardware clear-below-cursor will be sent
 pub fn resize(self: *Vaxis, alloc: std.mem.Allocator, winsize: Winsize) !void {
     log.debug("resizing screen: width={d} height={d}", .{ winsize.cols, winsize.rows });
     self.screen.deinit(alloc);
@@ -105,7 +106,18 @@ pub fn resize(self: *Vaxis, alloc: std.mem.Allocator, winsize: Winsize) !void {
     // every cell
     self.screen_last.deinit(alloc);
     self.screen_last = try InternalScreen.init(alloc, winsize.cols, winsize.rows);
-    // try self.screen_last.resize(alloc, winsize.cols, winsize.rows);
+    var tty = self.tty orelse return;
+    if (tty.state.alt_screen)
+        _ = try tty.write(ctlseqs.home)
+    else {
+        _ = try tty.buffered_writer.write("\r");
+        var i: usize = 0;
+        while (i < tty.state.cursor.row) : (i += 1) {
+            _ = try tty.buffered_writer.write(ctlseqs.ri);
+        }
+    }
+    _ = try tty.write(ctlseqs.erase_below_cursor);
+    try tty.flush();
 }
 
 /// returns a Window comprising of the entire terminal screen
@@ -216,7 +228,15 @@ pub fn render(self: *Vaxis) !void {
     // this if we have an update to make. We also need to hide cursor
     // and then reshow it if needed
     _ = try tty.write(ctlseqs.hide_cursor);
-    _ = try tty.write(ctlseqs.home);
+    if (tty.state.alt_screen)
+        _ = try tty.write(ctlseqs.home)
+    else {
+        _ = try tty.write("\r");
+        var i: usize = 0;
+        while (i < tty.state.cursor.row) : (i += 1) {
+            _ = try tty.write(ctlseqs.ri);
+        }
+    }
     _ = try tty.write(ctlseqs.sgr_reset);
 
     // initialize some variables
@@ -225,6 +245,10 @@ pub fn render(self: *Vaxis) !void {
     var col: usize = 0;
     var cursor: Style = .{};
     var link: Hyperlink = .{};
+    var cursor_pos: struct {
+        row: usize = 0,
+        col: usize = 0,
+    } = .{};
 
     // Clear all images
     _ = try tty.write(ctlseqs.kitty_graphics_clear);
@@ -232,15 +256,15 @@ pub fn render(self: *Vaxis) !void {
     var i: usize = 0;
     while (i < self.screen.buf.len) {
         const cell = self.screen.buf[i];
+        const w = blk: {
+            if (cell.char.width != 0) break :blk cell.char.width;
+
+            const method: gwidth.Method = self.caps.unicode;
+            const width = gwidth.gwidth(cell.char.grapheme, method, &self.unicode.width_data) catch 1;
+            break :blk @max(1, width);
+        };
         defer {
             // advance by the width of this char mod 1
-            const w = blk: {
-                if (cell.char.width != 0) break :blk cell.char.width;
-
-                const method: gwidth.Method = self.caps.unicode;
-                const width = gwidth.gwidth(cell.char.grapheme, method, &self.unicode.width_data) catch 1;
-                break :blk @max(1, width);
-            };
             std.debug.assert(w > 0);
             var j = i + 1;
             while (j < i + w) : (j += 1) {
@@ -277,7 +301,24 @@ pub fn render(self: *Vaxis) !void {
 
         // reposition the cursor, if needed
         if (reposition) {
-            try std.fmt.format(tty.buffered_writer.writer(), ctlseqs.cup, .{ row + 1, col + 1 });
+            reposition = false;
+            if (tty.state.alt_screen)
+                try std.fmt.format(tty.buffered_writer.writer(), ctlseqs.cup, .{ row + 1, col + 1 })
+            else {
+                if (cursor_pos.row == row) {
+                    const n = col - cursor_pos.col;
+                    try std.fmt.format(tty.buffered_writer.writer(), ctlseqs.cuf, .{n});
+                } else {
+                    const n = row - cursor_pos.row;
+                    var _i: usize = 0;
+                    _ = try tty.buffered_writer.write("\r");
+                    while (_i < n) : (_i += 1) {
+                        _ = try tty.buffered_writer.write("\n");
+                    }
+                    if (col > 0)
+                        try std.fmt.format(tty.buffered_writer.writer(), ctlseqs.cuf, .{col});
+                }
+            }
         }
 
         if (cell.image) |img| {
@@ -433,17 +474,43 @@ pub fn render(self: *Vaxis) !void {
             try std.fmt.format(writer, ctlseqs.osc8, .{ ps, cell.link.uri });
         }
         _ = try tty.write(cell.char.grapheme);
+        cursor_pos.col = col + w;
+        cursor_pos.row = row;
+        log.debug("cursor: row: {}, col: {}, grapheme: '{s}'", .{ cursor_pos.row, cursor_pos.col, cell.char.grapheme });
     }
     if (self.screen.cursor_vis) {
-        try std.fmt.format(
-            tty.buffered_writer.writer(),
-            ctlseqs.cup,
-            .{
-                self.screen.cursor_row + 1,
-                self.screen.cursor_col + 1,
-            },
-        );
+        if (tty.state.alt_screen) {
+            try std.fmt.format(
+                tty.buffered_writer.writer(),
+                ctlseqs.cup,
+                .{
+                    self.screen.cursor_row + 1,
+                    self.screen.cursor_col + 1,
+                },
+            );
+        } else {
+            // TODO: position cursor relative to current location
+            _ = try tty.write("\r");
+            var r: usize = 0;
+            if (self.screen.cursor_row >= cursor_pos.row) {
+                while (r < (self.screen.cursor_row - cursor_pos.row)) : (r += 1) {
+                    _ = try tty.write("\n");
+                }
+            } else {
+                while (r < (cursor_pos.row - self.screen.cursor_row)) : (r += 1) {
+                    _ = try tty.write(ctlseqs.ri);
+                }
+            }
+            if (self.screen.cursor_col > 0) {
+                try std.fmt.format(tty.buffered_writer.writer(), ctlseqs.cuf, .{self.screen.cursor_col});
+            }
+        }
+        self.tty.?.state.cursor.row = self.screen.cursor_row;
+        self.tty.?.state.cursor.col = self.screen.cursor_col;
         _ = try tty.write(ctlseqs.show_cursor);
+    } else {
+        self.tty.?.state.cursor.row = cursor_pos.row;
+        self.tty.?.state.cursor.col = cursor_pos.col;
     }
     if (self.screen.mouse_shape != self.screen_last.mouse_shape) {
         try std.fmt.format(
@@ -461,6 +528,7 @@ pub fn render(self: *Vaxis) !void {
         );
         self.screen_last.cursor_shape = self.screen.cursor_shape;
     }
+    log.debug("tty_cursor: row: {}, col: {}", .{ self.tty.?.state.cursor.row, self.tty.?.state.cursor.col });
 }
 
 fn enableKittyKeyboard(self: *Vaxis, flags: Key.KittyFlags) !void {
