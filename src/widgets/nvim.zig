@@ -568,8 +568,7 @@ pub fn Nvim(comptime T: type) type {
                                 if (row + rows > bot) break;
                                 var col: usize = left;
                                 while (col < right) : (col += 1) {
-                                    if (row + rows < self.screen.height) return;
-                                    const cell = self.screen.readCell(col, row + rows) orelse unreachable;
+                                    const cell = self.screen.readCell(col, row + rows) orelse return;
                                     self.screen.writeCell(col, row, cell);
                                 }
                             }
