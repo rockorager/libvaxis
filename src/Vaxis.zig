@@ -476,7 +476,6 @@ pub fn render(self: *Vaxis) !void {
         _ = try tty.write(cell.char.grapheme);
         cursor_pos.col = col + w;
         cursor_pos.row = row;
-        log.debug("cursor: row: {}, col: {}, grapheme: '{s}'", .{ cursor_pos.row, cursor_pos.col, cell.char.grapheme });
     }
     if (self.screen.cursor_vis) {
         if (tty.state.alt_screen) {
@@ -528,7 +527,6 @@ pub fn render(self: *Vaxis) !void {
         );
         self.screen_last.cursor_shape = self.screen.cursor_shape;
     }
-    log.debug("tty_cursor: row: {}, col: {}", .{ self.tty.?.state.cursor.row, self.tty.?.state.cursor.col });
 }
 
 fn enableKittyKeyboard(self: *Vaxis, flags: Key.KittyFlags) !void {
