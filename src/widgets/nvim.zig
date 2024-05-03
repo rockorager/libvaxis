@@ -46,13 +46,13 @@ pub fn Nvim(comptime T: type) type {
 
         hl_map: HighlightMap,
 
-        vx: *vaxis.Vaxis(T),
+        loop: *vaxis.Loop(T),
         dirty: bool = false,
         mode_set: std.ArrayList(Mode),
 
         /// initialize nvim. Starts the nvim process. UI is not attached until the first
         /// call to draw
-        pub fn init(alloc: std.mem.Allocator, vx: *vaxis.Vaxis(T)) !Self {
+        pub fn init(alloc: std.mem.Allocator, loop: *vaxis.Loop(T)) !Self {
             const args = [_][]const u8{ "nvim", "--embed" };
             var nvim = std.ChildProcess.init(&args, alloc);
 
@@ -69,7 +69,7 @@ pub fn Nvim(comptime T: type) type {
                 .alloc = alloc,
                 .process = nvim,
                 .hl_map = HighlightMap.init(alloc),
-                .vx = vx,
+                .loop = loop,
                 .mode_set = std.ArrayList(Mode).init(alloc),
             };
         }
@@ -91,7 +91,7 @@ pub fn Nvim(comptime T: type) type {
                 self.alloc,
             );
 
-            self.thread = try std.Thread.spawn(.{}, Self.loop, .{self});
+            self.thread = try std.Thread.spawn(.{}, Self.nvimLoop, .{self});
         }
 
         pub fn deinit(self: *Self) void {
@@ -246,12 +246,12 @@ pub fn Nvim(comptime T: type) type {
             }
         }
 
-        fn loop(self: *Self) void {
+        fn nvimLoop(self: *Self) void {
             if (self.client) |*client| {
                 while (true) {
                     client.loop() catch |err| {
                         log.err("rpc loop error: {}", .{err});
-                        self.vx.postEvent(.{ .nvim = .{ .quit = self } });
+                        self.loop.postEvent(.{ .nvim = .{ .quit = self } });
                         return;
                     };
                 }
@@ -456,7 +456,7 @@ pub fn Nvim(comptime T: type) type {
                     self.visible_screen.cursor_shape = self.screen.cursor_shape;
                     if (!self.dirty) {
                         self.dirty = true;
-                        self.vx.postEvent(.{ .nvim = .{ .redraw = self } });
+                        self.loop.postEvent(.{ .nvim = .{ .redraw = self } });
                     }
                 },
                 .grid_clear => {
