@@ -269,7 +269,7 @@ pub const PrintResult = struct {
 
 /// prints segments to the window. returns true if the text overflowed with the
 /// given wrap strategy and size.
-pub fn print(self: Window, segments: []Segment, opts: PrintOptions) !PrintResult {
+pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !PrintResult {
     var row = opts.row_offset;
     switch (opts.wrap) {
         .grapheme => {
@@ -439,7 +439,7 @@ pub fn print(self: Window, segments: []Segment, opts: PrintOptions) !PrintResult
 }
 
 /// Deprecated. use print instead
-pub fn wrap(self: Window, segments: []Segment) !void {
+pub fn wrap(self: Window, segments: []const Segment) !void {
     _ = try self.print(segments, .{ .wrap = .word });
 }
 
