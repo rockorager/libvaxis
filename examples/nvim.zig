@@ -33,7 +33,7 @@ pub fn main() !void {
     defer loop.stop();
 
     // Optionally enter the alternate screen
-    try vx.enterAltScreen();
+    // try vx.enterAltScreen();
 
     var nvim = try vaxis.widgets.nvim.Nvim(Event).init(alloc, &loop);
     try nvim.spawn();

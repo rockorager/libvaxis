@@ -251,7 +251,8 @@ pub fn render(self: *Vaxis) !void {
     } = .{};
 
     // Clear all images
-    _ = try tty.write(ctlseqs.kitty_graphics_clear);
+    if (self.caps.kitty_graphics)
+        _ = try tty.write(ctlseqs.kitty_graphics_clear);
 
     var i: usize = 0;
     while (i < self.screen.buf.len) {
