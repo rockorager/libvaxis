@@ -14,8 +14,10 @@ pub const Image = @import("Image.zig");
 pub const Mouse = @import("Mouse.zig");
 pub const Screen = @import("Screen.zig");
 pub const AllocatingScreen = @import("InternalScreen.zig");
-pub const Winsize = @import("Tty.zig").Winsize;
+pub const Parser = @import("Parser.zig");
+pub const Tty = @import("Tty.zig");
 pub const Window = @import("Window.zig");
+pub const Winsize = Tty.Winsize;
 
 pub const widgets = @import("widgets.zig");
 pub const gwidth = @import("gwidth.zig");

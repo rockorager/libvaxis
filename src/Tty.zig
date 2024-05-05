@@ -278,7 +278,7 @@ pub const Winsize = struct {
     y_pixel: usize,
 };
 
-fn getWinsize(fd: posix.fd_t) !Winsize {
+pub fn getWinsize(fd: posix.fd_t) !Winsize {
     var winsize = posix.winsize{
         .ws_row = 0,
         .ws_col = 0,
