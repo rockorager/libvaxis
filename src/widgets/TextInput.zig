@@ -131,6 +131,7 @@ fn widthToCursor(self: *TextInput, win: Window) usize {
 
 pub fn draw(self: *TextInput, win: Window) void {
     if (self.cursor_idx < self.draw_offset) self.draw_offset = self.cursor_idx;
+    if (win.width == 0) return;
     while (true) {
         const width = self.widthToCursor(win);
         if (width >= win.width) {
