@@ -194,6 +194,13 @@ pub fn writeCell(self: Window, col: usize, row: usize, cell: Cell) void {
     self.screen.writeCell(col + self.x_off, row + self.y_off, cell);
 }
 
+/// reads a cell at the location in the window
+pub fn readCell(self: Window, col: usize, row: usize) ?Cell {
+    if (self.height == 0 or self.width == 0) return null;
+    if (self.height <= row or self.width <= col) return null;
+    return self.screen.readCell(col + self.x_off, row + self.y_off);
+}
+
 /// fills the window with the default cell
 pub fn clear(self: Window) void {
     self.fill(.{ .default = true });
