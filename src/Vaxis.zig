@@ -61,6 +61,11 @@ renders: usize = 0,
 render_dur: i128 = 0,
 render_timer: std.time.Timer,
 
+sgr: enum {
+    standard,
+    legacy,
+} = .standard,
+
 /// Initialize Vaxis with runtime options
 pub fn init(alloc: std.mem.Allocator, _: Options) !Vaxis {
     return .{
@@ -189,6 +194,16 @@ pub fn queryTerminal(self: *Vaxis) !void {
 
     // 1 second timeout
     std.Thread.Futex.timedWait(&self.query_futex, 0, 1 * std.time.ns_per_s) catch {};
+
+    // Apply any environment variables
+    if (std.posix.getenv("ASCIINEMA_REC")) |_|
+        self.sgr = .legacy;
+    if (std.posix.getenv("VAXIS_FORCE_LEGACY_SGR")) |_|
+        self.sgr = .legacy;
+    if (std.posix.getenv("VAXIS_FORCE_WCWIDTH")) |_|
+        self.caps.unicode = .wcwidth;
+    if (std.posix.getenv("VAXIS_FORCE_UNICODE")) |_|
+        self.caps.unicode = .unicode;
 
     // enable detected features
     if (self.caps.kitty_keyboard) {
@@ -350,11 +365,19 @@ pub fn render(self: *Vaxis) !void {
                     switch (idx) {
                         0...7 => try std.fmt.format(writer, ctlseqs.fg_base, .{idx}),
                         8...15 => try std.fmt.format(writer, ctlseqs.fg_bright, .{idx - 8}),
-                        else => try std.fmt.format(writer, ctlseqs.fg_indexed, .{idx}),
+                        else => {
+                            switch (self.sgr) {
+                                .standard => try std.fmt.format(writer, ctlseqs.fg_indexed, .{idx}),
+                                .legacy => try std.fmt.format(writer, ctlseqs.fg_indexed_legacy, .{idx}),
+                            }
+                        },
                     }
                 },
                 .rgb => |rgb| {
-                    try std.fmt.format(writer, ctlseqs.fg_rgb, .{ rgb[0], rgb[1], rgb[2] });
+                    switch (self.sgr) {
+                        .standard => try std.fmt.format(writer, ctlseqs.fg_rgb, .{ rgb[0], rgb[1], rgb[2] }),
+                        .legacy => try std.fmt.format(writer, ctlseqs.fg_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
+                    }
                 },
             }
         }
@@ -367,11 +390,19 @@ pub fn render(self: *Vaxis) !void {
                     switch (idx) {
                         0...7 => try std.fmt.format(writer, ctlseqs.bg_base, .{idx}),
                         8...15 => try std.fmt.format(writer, ctlseqs.bg_bright, .{idx - 8}),
-                        else => try std.fmt.format(writer, ctlseqs.bg_indexed, .{idx}),
+                        else => {
+                            switch (self.sgr) {
+                                .standard => try std.fmt.format(writer, ctlseqs.bg_indexed, .{idx}),
+                                .legacy => try std.fmt.format(writer, ctlseqs.bg_indexed_legacy, .{idx}),
+                            }
+                        },
                     }
                 },
                 .rgb => |rgb| {
-                    try std.fmt.format(writer, ctlseqs.bg_rgb, .{ rgb[0], rgb[1], rgb[2] });
+                    switch (self.sgr) {
+                        .standard => try std.fmt.format(writer, ctlseqs.bg_rgb, .{ rgb[0], rgb[1], rgb[2] }),
+                        .legacy => try std.fmt.format(writer, ctlseqs.bg_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
+                    }
                 },
             }
         }
@@ -381,10 +412,16 @@ pub fn render(self: *Vaxis) !void {
             switch (cell.style.bg) {
                 .default => _ = try tty.write(ctlseqs.ul_reset),
                 .index => |idx| {
-                    try std.fmt.format(writer, ctlseqs.ul_indexed, .{idx});
+                    switch (self.sgr) {
+                        .standard => try std.fmt.format(writer, ctlseqs.ul_indexed, .{idx}),
+                        .legacy => try std.fmt.format(writer, ctlseqs.ul_indexed_legacy, .{idx}),
+                    }
                 },
                 .rgb => |rgb| {
-                    try std.fmt.format(writer, ctlseqs.ul_rgb, .{ rgb[0], rgb[1], rgb[2] });
+                    switch (self.sgr) {
+                        .standard => try std.fmt.format(writer, ctlseqs.ul_rgb, .{ rgb[0], rgb[1], rgb[2] }),
+                        .legacy => try std.fmt.format(writer, ctlseqs.ul_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
+                    }
                 },
             }
         }
