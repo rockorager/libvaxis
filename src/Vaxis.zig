@@ -198,6 +198,10 @@ pub fn queryTerminal(self: *Vaxis) !void {
     // Apply any environment variables
     if (std.posix.getenv("ASCIINEMA_REC")) |_|
         self.sgr = .legacy;
+    if (std.posix.getenv("VHS_RECORD")) |_| {
+        self.caps.unicode = .wcwidth;
+        self.caps.kitty_keyboard = false;
+    }
     if (std.posix.getenv("VAXIS_FORCE_LEGACY_SGR")) |_|
         self.sgr = .legacy;
     if (std.posix.getenv("VAXIS_FORCE_WCWIDTH")) |_|
