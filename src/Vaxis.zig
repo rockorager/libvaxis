@@ -14,6 +14,7 @@ const Unicode = @import("Unicode.zig");
 const Window = @import("Window.zig");
 
 const Hyperlink = Cell.Hyperlink;
+const KittyFlags = Key.KittyFlags;
 const Shape = Mouse.Shape;
 const Style = Cell.Style;
 const Winsize = Tty.Winsize;
@@ -32,7 +33,9 @@ pub const Capabilities = struct {
     unicode: gwidth.Method = .wcwidth,
 };
 
-pub const Options = struct {};
+pub const Options = struct {
+    kitty_keyboard_flags: KittyFlags = .{},
+};
 
 tty: ?Tty,
 
@@ -43,6 +46,8 @@ screen: Screen,
 screen_last: InternalScreen = undefined,
 
 caps: Capabilities = .{},
+
+opts: Options = .{},
 
 /// if we should redraw the entire screen on the next render
 refresh: bool = false,
@@ -67,8 +72,9 @@ sgr: enum {
 } = .standard,
 
 /// Initialize Vaxis with runtime options
-pub fn init(alloc: std.mem.Allocator, _: Options) !Vaxis {
+pub fn init(alloc: std.mem.Allocator, opts: Options) !Vaxis {
     return .{
+        .opts = opts,
         .tty = null,
         .screen = .{},
         .screen_last = .{},
@@ -211,7 +217,7 @@ pub fn queryTerminal(self: *Vaxis) !void {
 
     // enable detected features
     if (self.caps.kitty_keyboard) {
-        try self.enableKittyKeyboard(.{});
+        try self.enableKittyKeyboard(self.opts.kitty_keyboard_flags);
     }
     if (self.caps.unicode == .unicode) {
         _ = try tty.write(ctlseqs.unicode_set);
