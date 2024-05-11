@@ -221,9 +221,10 @@ pub fn fill(self: Window, cell: Cell) void {
     } else {
         // Non-contiguous. Iterate over rows an memset
         var row: usize = self.y_off;
-        while (row < (self.height + self.y_off)) : (row += 1) {
+        const last_row = @min(self.height + self.y_off, self.screen.height - self.y_off);
+        while (row < last_row) : (row += 1) {
             const start = self.x_off + (row * self.screen.width);
-            const end = start + self.width;
+            const end = @min(start + self.width, start + (self.screen.width - self.x_off));
             @memset(self.screen.buf[start..end], cell);
         }
     }
