@@ -4,7 +4,7 @@ const heap = std.heap;
 const mem = std.mem;
 const meta = std.meta;
 
-const vaxis = @import("../vaxis.zig");
+const vaxis = @import("../main.zig");
 
 /// Table Context for maintaining state and drawing Tables with `drawTable()`.
 pub const TableContext = struct{
