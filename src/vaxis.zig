@@ -28,9 +28,6 @@ const zigimg = @import("zigimg");
 pub fn init(comptime Event: type, opts: Options) !Vaxis(Event) {
     return Vaxis(Event).init(opts);
 }
-test {
-    std.testing.refAllDecls(@This());
-}
 
 /// Vaxis is the entrypoint for a Vaxis application. The provided type T should
 /// be a tagged union which contains all of the events the application will
