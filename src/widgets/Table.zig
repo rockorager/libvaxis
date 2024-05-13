@@ -7,7 +7,7 @@ const meta = std.meta;
 const vaxis = @import("../main.zig");
 
 /// Table Context for maintaining state and drawing Tables with `drawTable()`.
-pub const TableContext = struct{
+pub const TableContext = struct {
     /// Current selected Row of the Table.
     row: usize = 0,
     /// Current selected Column of the Table.
@@ -40,7 +40,7 @@ pub const TableContext = struct{
 /// Draw a Table for the TUI.
 pub fn drawTable(
     /// This should be an ArenaAllocator that can be deinitialized after each event call.
-    /// The Allocator is only used in two cases: 
+    /// The Allocator is only used in two cases:
     /// 1. If a cell is a non-String. If the Allocator is not provided, those cells will show "[unsupported (TypeName)]".
     /// 2. To show that a value is too large to fit into a cell. If the Allocator is not provided, they'll just be cutoff.
     alloc: ?mem.Allocator,
@@ -67,9 +67,7 @@ pub fn drawTable(
     if (table_ctx.col > headers.len - 1) table_ctx.*.col = headers.len - 1;
     for (headers[0..], 0..) |hdr_txt, idx| {
         const hdr_bg =
-            if (table_ctx.active and idx == table_ctx.col) table_ctx.selected_bg
-            else if (idx % 2 == 0) table_ctx.hdr_bg_1
-            else table_ctx.hdr_bg_2;
+            if (table_ctx.active and idx == table_ctx.col) table_ctx.selected_bg else if (idx % 2 == 0) table_ctx.hdr_bg_1 else table_ctx.hdr_bg_2;
         const hdr_win = table_win.initChild(
             idx * table_ctx.col_width,
             0,
@@ -79,16 +77,13 @@ pub fn drawTable(
         var hdr = vaxis.widgets.alignment.center(hdr_win, @min(table_ctx.col_width -| 1, hdr_txt.len +| 1), 1);
         hdr_win.fill(.{ .style = .{ .bg = hdr_bg } });
         var seg = [_]vaxis.Cell.Segment{.{
-            .text = 
-                if (hdr_txt.len > table_ctx.col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{ hdr_txt[0..(table_ctx.col_width -| 4)] })
-                else hdr_txt
-            ,
+            .text = if (hdr_txt.len > table_ctx.col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{hdr_txt[0..(table_ctx.col_width -| 4)]}) else hdr_txt,
             .style = .{
                 .bg = hdr_bg,
                 .bold = true,
                 .ul_style = if (idx == table_ctx.col) .single else .dotted,
             },
-        } };
+        }};
         try hdr.wrap(seg[0..]);
     }
 
@@ -110,9 +105,7 @@ pub fn drawTable(
     if (end > data_list.items.len) end = data_list.items.len;
     for (data_list.items[table_ctx.start..end], 0..) |data, idx| {
         const row_bg =
-            if (table_ctx.active and table_ctx.start + idx == table_ctx.row) table_ctx.selected_bg
-            else if (idx % 2 == 0) table_ctx.row_bg_1
-            else table_ctx.row_bg_2;
+            if (table_ctx.active and table_ctx.start + idx == table_ctx.row) table_ctx.selected_bg else if (idx % 2 == 0) table_ctx.row_bg_1 else table_ctx.row_bg_2;
 
         const row_win = table_win.initChild(
             0,
@@ -124,10 +117,7 @@ pub fn drawTable(
         if (DataT == []const u8) {
             row_win.fill(.{ .style = .{ .bg = row_bg } });
             var seg = [_]vaxis.Cell.Segment{.{
-                .text = 
-                    if (data.len > table_ctx.col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{ data[0..(table_ctx.col_width -| 4)] })
-                    else data
-                ,
+                .text = if (data.len > table_ctx.col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{data[0..(table_ctx.col_width -| 4)]}) else data,
                 .style = .{ .bg = row_bg },
             }};
             try row_win.wrap(seg[0..]);
@@ -152,24 +142,21 @@ pub fn drawTable(
                             switch (@typeInfo(ItemT).Optional.child) {
                                 []const u8 => break :nonStr opt_item,
                                 else => {
-                                    break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{ opt_item }) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
+                                    break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{opt_item}) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
                                 },
                             }
                         },
                         else => {
-                            break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{ item }) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
+                            break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{item}) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
                         },
                     }
                 },
             };
             item_win.fill(.{ .style = .{ .bg = row_bg } });
             var seg = [_]vaxis.Cell.Segment{.{
-                .text = 
-                    if (item_txt.len > table_ctx.col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{ item_txt[0..(table_ctx.col_width -| 4)] })
-                    else item_txt
-                ,
+                .text = if (item_txt.len > table_ctx.col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{item_txt[0..(table_ctx.col_width -| 4)]}) else item_txt,
                 .style = .{ .bg = row_bg },
-            } };
+            }};
             try item_win.wrap(seg[0..]);
         }
     }

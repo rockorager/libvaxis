@@ -88,7 +88,7 @@ pub fn insertSliceAtCursor(self: *TextInput, data: []const u8) !void {
 
 pub fn sliceToCursor(self: *TextInput, buf: []u8) []const u8 {
     const offset = self.byteOffsetToCursor();
-    assert(offset <= buf.len); // provided buf was too small 
+    assert(offset <= buf.len); // provided buf was too small
 
     if (offset <= self.buf.items.len) {
         @memcpy(buf[0..offset], self.buf.items[0..offset]);

@@ -78,8 +78,8 @@ pub fn deinit(self: *Tty) void {
 /// stops the run loop
 pub fn stop(self: *Tty) void {
     self.should_quit = true;
-_ = posix.write(self.fd, ctlseqs.device_status_report) catch |err| {
-        log.err("TTY Stop Error: {}", .{ err });
+    _ = posix.write(self.fd, ctlseqs.device_status_report) catch |err| {
+        log.err("TTY Stop Error: {}", .{err});
     };
 }
 
