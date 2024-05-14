@@ -93,18 +93,17 @@ pub fn build(b: *std.Build) void {
     b.default_step.dependOn(lints_step);
 
     // Docs
-    const docs = b.addStaticLibrary(.{
+    const docs_step = b.step("docs", "Build the vaxis library docs");
+    const docs_obj = b.addObject(.{
         .name = "vaxis",
         .root_source_file = root_source_file,
         .target = target,
         .optimize = optimize,
     });
-    docs.root_module.addImport("vaxis", vaxis_mod);
-    const build_docs = b.addInstallDirectory(.{
-        .source_dir = docs.getEmittedDocs(),
+    const docs = docs_obj.getEmittedDocs();
+    docs_step.dependOn(&b.addInstallDirectory(.{
+        .source_dir = docs,
         .install_dir = .prefix,
         .install_subdir = "docs",
-    });
-    const build_docs_step = b.step("docs", "Build the vaxis library docs");
-    build_docs_step.dependOn(&build_docs.step);
+    }).step);
 }
