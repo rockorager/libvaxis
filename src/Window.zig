@@ -446,9 +446,9 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
     return false;
 }
 
-/// Deprecated. use print instead
-pub fn wrap(self: Window, segments: []const Segment) !void {
-    _ = try self.print(segments, .{ .wrap = .word });
+/// print a single segment. This is just a shortcut for print(&.{segment}, opts)
+pub fn printSegment(self: Window, segment: Segment, opts: PrintOptions) !PrintResult {
+    return self.print(&.{segment}, opts);
 }
 
 /// scrolls the window down one row (IE inserts a blank row at the bottom of the
