@@ -213,6 +213,10 @@ pub fn gwidth(self: Window, str: []const u8) usize {
 
 /// fills the window with the provided cell
 pub fn fill(self: Window, cell: Cell) void {
+    if (self.screen.width < self.x_off)
+        return;
+    if (self.screen.height < self.y_off)
+        return;
     if (self.x_off == 0 and self.width == self.screen.width) {
         // we have a full width window, therefore contiguous memory.
         const start = self.y_off * self.width;
