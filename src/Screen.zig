@@ -52,11 +52,11 @@ pub fn deinit(self: *Screen, alloc: std.mem.Allocator) void {
 
 /// writes a cell to a location. 0 indexed
 pub fn writeCell(self: *Screen, col: usize, row: usize, cell: Cell) void {
-    if (self.width < col) {
+    if (self.width <= col) {
         // column out of bounds
         return;
     }
-    if (self.height < row) {
+    if (self.height <= row) {
         // height out of bounds
         return;
     }
