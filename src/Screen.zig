@@ -66,11 +66,11 @@ pub fn writeCell(self: *Screen, col: usize, row: usize, cell: Cell) void {
 }
 
 pub fn readCell(self: *Screen, col: usize, row: usize) ?Cell {
-    if (self.width < col) {
+    if (self.width <= col) {
         // column out of bounds
         return null;
     }
-    if (self.height < row) {
+    if (self.height <= row) {
         // height out of bounds
         return null;
     }
