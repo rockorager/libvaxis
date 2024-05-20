@@ -61,7 +61,7 @@ buf: [128]u8 = undefined,
 
 grapheme_data: *const grapheme.GraphemeData,
 
-pub fn parse(self: *Parser, input: []const u8) !Result {
+pub fn parse(self: *Parser, input: []const u8, paste_allocator: ?std.mem.Allocator) !Result {
     const n = input.len;
 
     var seq: Sequence = .{};
@@ -555,6 +555,88 @@ pub fn parse(self: *Parser, input: []const u8) !Result {
                     else => {},
                 }
             },
+            .osc => {
+                switch (b) {
+                    0x07, 0x1B => {
+                        state = .ground;
+                        if (b == 0x1b) {
+                            // advance one more for the backslash
+                            i += 1;
+                        }
+                        log.warn("unhandled osc: OSC {s}", .{input[start + 1 .. i + 1]});
+                        return .{
+                            .event = null,
+                            .n = i + 1,
+                        };
+                    },
+                    0x30...0x39 => {
+                        seq.param_buf[seq.param_buf_idx] = b;
+                        seq.param_buf_idx += 1;
+                    },
+                    ';' => {
+                        if (seq.param_buf_idx == 0) {
+                            seq.param_idx += 1;
+                        }
+                        if (seq.param_idx == 0) {
+                            const p = try std.fmt.parseUnsigned(u16, seq.param_buf[0..seq.param_buf_idx], 10);
+                            seq.param_buf_idx = 0;
+                            seq.param_idx += 1;
+                            switch (p) {
+                                52 => {
+                                    var payload: ?std.ArrayList(u8) = if (paste_allocator) |allocator|
+                                        std.ArrayList(u8).init(allocator)
+                                    else
+                                        null;
+                                    defer if (payload) |_| payload.?.deinit();
+
+                                    while (i < n) : (i += 1) {
+                                        const b_ = input[i];
+                                        switch (b_) {
+                                            ';' => {
+                                                if (seq.param_buf_idx == 0) {
+                                                    // empty param. default it to 0 and set the
+                                                    // empty state
+                                                    seq.params[seq.param_idx] = 0;
+                                                    seq.empty_state.set(seq.param_idx);
+                                                    seq.param_idx += 1;
+                                                } else {
+                                                    seq.params[seq.param_idx] = @intCast(b_);
+                                                    seq.param_buf_idx = 0;
+                                                    seq.param_idx += 1;
+                                                }
+                                            },
+                                            0x07, 0x1B => {
+                                                state = .ground;
+                                                if (b == 0x1b) {
+                                                    // advance one more for the backslash
+                                                    i += 1;
+                                                }
+                                                if (payload) |_| {
+                                                    log.debug("decoding paste: {s}", .{payload.?.items});
+                                                    const decoder = std.base64.standard.Decoder;
+                                                    const text = try paste_allocator.?.alloc(u8, try decoder.calcSizeForSlice(payload.?.items));
+                                                    try decoder.decode(text, payload.?.items);
+                                                    log.debug("decoded paste: {s}", .{text});
+                                                    return .{
+                                                        .event = .{ .paste = text },
+                                                        .n = i + 2,
+                                                    };
+                                                } else return .{
+                                                    .event = null,
+                                                    .n = i + 2,
+                                                };
+                                            },
+                                            else => if (seq.param_idx == 3 and payload != null) try payload.?.append(b_),
+                                        }
+                                    }
+                                },
+                                else => {},
+                            }
+                        }
+                    },
+                    else => {},
+                }
+            },
             else => {},
         }
     }
@@ -572,7 +654,7 @@ test "parse: single xterm keypress" {
     defer grapheme_data.deinit();
     const input = "a";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_key: Key = .{
         .codepoint = 'a',
         .text = "a",
@@ -589,7 +671,7 @@ test "parse: single xterm keypress backspace" {
     defer grapheme_data.deinit();
     const input = "\x08";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_key: Key = .{
         .codepoint = Key.backspace,
     };
@@ -605,7 +687,7 @@ test "parse: single xterm keypress with more buffer" {
     defer grapheme_data.deinit();
     const input = "ab";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_key: Key = .{
         .codepoint = 'a',
         .text = "a",
@@ -623,7 +705,7 @@ test "parse: xterm escape keypress" {
     defer grapheme_data.deinit();
     const input = "\x1b";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_key: Key = .{ .codepoint = Key.escape };
     const expected_event: Event = .{ .key_press = expected_key };
 
@@ -637,7 +719,7 @@ test "parse: xterm ctrl+a" {
     defer grapheme_data.deinit();
     const input = "\x01";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_key: Key = .{ .codepoint = 'a', .mods = .{ .ctrl = true } };
     const expected_event: Event = .{ .key_press = expected_key };
 
@@ -651,7 +733,7 @@ test "parse: xterm alt+a" {
     defer grapheme_data.deinit();
     const input = "\x1ba";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_key: Key = .{ .codepoint = 'a', .mods = .{ .alt = true } };
     const expected_event: Event = .{ .key_press = expected_key };
 
@@ -665,7 +747,7 @@ test "parse: xterm invalid ss3" {
     defer grapheme_data.deinit();
     const input = "\x1bOZ";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
 
     try testing.expectEqual(3, result.n);
     try testing.expectEqual(null, result.event);
@@ -679,7 +761,7 @@ test "parse: xterm key up" {
         // normal version
         const input = "\x1bOA";
         var parser: Parser = .{ .grapheme_data = &grapheme_data };
-        const result = try parser.parse(input);
+        const result = try parser.parse(input, alloc);
         const expected_key: Key = .{ .codepoint = Key.up };
         const expected_event: Event = .{ .key_press = expected_key };
 
@@ -691,7 +773,7 @@ test "parse: xterm key up" {
         // application keys version
         const input = "\x1b[2~";
         var parser: Parser = .{ .grapheme_data = &grapheme_data };
-        const result = try parser.parse(input);
+        const result = try parser.parse(input, alloc);
         const expected_key: Key = .{ .codepoint = Key.insert };
         const expected_event: Event = .{ .key_press = expected_key };
 
@@ -706,7 +788,7 @@ test "parse: xterm shift+up" {
     defer grapheme_data.deinit();
     const input = "\x1b[1;2A";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_key: Key = .{ .codepoint = Key.up, .mods = .{ .shift = true } };
     const expected_event: Event = .{ .key_press = expected_key };
 
@@ -720,7 +802,7 @@ test "parse: xterm insert" {
     defer grapheme_data.deinit();
     const input = "\x1b[1;2A";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_key: Key = .{ .codepoint = Key.up, .mods = .{ .shift = true } };
     const expected_event: Event = .{ .key_press = expected_key };
 
@@ -734,7 +816,7 @@ test "parse: paste_start" {
     defer grapheme_data.deinit();
     const input = "\x1b[200~";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_event: Event = .paste_start;
 
     try testing.expectEqual(6, result.n);
@@ -747,11 +829,30 @@ test "parse: paste_end" {
     defer grapheme_data.deinit();
     const input = "\x1b[201~";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_event: Event = .paste_end;
 
     try testing.expectEqual(6, result.n);
     try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: osc52 paste" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
+    const input = "\x1b]52;c;b3NjNTIgcGFzdGU=\x1b\\";
+    const expected_text = "osc52 paste";
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
+    const result = try parser.parse(input, alloc);
+
+    try testing.expectEqual(25, result.n);
+    switch (result.event.?) {
+        .paste => |text| {
+            defer alloc.free(text);
+            try testing.expectEqualStrings(expected_text, text);
+        },
+        else => try testing.expect(false),
+    }
 }
 
 test "parse: focus_in" {
@@ -760,7 +861,7 @@ test "parse: focus_in" {
     defer grapheme_data.deinit();
     const input = "\x1b[I";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_event: Event = .focus_in;
 
     try testing.expectEqual(3, result.n);
@@ -773,7 +874,7 @@ test "parse: focus_out" {
     defer grapheme_data.deinit();
     const input = "\x1b[O";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_event: Event = .focus_out;
 
     try testing.expectEqual(3, result.n);
@@ -786,7 +887,7 @@ test "parse: kitty: shift+a without text reporting" {
     defer grapheme_data.deinit();
     const input = "\x1b[97:65;2u";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_key: Key = .{
         .codepoint = 'a',
         .shifted_codepoint = 'A',
@@ -804,7 +905,7 @@ test "parse: kitty: alt+shift+a without text reporting" {
     defer grapheme_data.deinit();
     const input = "\x1b[97:65;4u";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_key: Key = .{
         .codepoint = 'a',
         .shifted_codepoint = 'A',
@@ -822,7 +923,7 @@ test "parse: kitty: a without text reporting" {
     defer grapheme_data.deinit();
     const input = "\x1b[97u";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_key: Key = .{
         .codepoint = 'a',
     };
@@ -838,7 +939,7 @@ test "parse: kitty: release event" {
     defer grapheme_data.deinit();
     const input = "\x1b[97;1:3u";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_key: Key = .{
         .codepoint = 'a',
     };
@@ -854,7 +955,7 @@ test "parse: single codepoint" {
     defer grapheme_data.deinit();
     const input = "🙂";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_key: Key = .{
         .codepoint = 0x1F642,
         .text = input,
@@ -871,7 +972,7 @@ test "parse: single codepoint with more in buffer" {
     defer grapheme_data.deinit();
     const input = "🙂a";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_key: Key = .{
         .codepoint = 0x1F642,
         .text = "🙂",
@@ -888,7 +989,7 @@ test "parse: multiple codepoint grapheme" {
     defer grapheme_data.deinit();
     const input = "👩‍🚀";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_key: Key = .{
         .codepoint = Key.multicodepoint,
         .text = input,
@@ -905,7 +1006,7 @@ test "parse: multiple codepoint grapheme with more after" {
     defer grapheme_data.deinit();
     const input = "👩‍🚀abc";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input);
+    const result = try parser.parse(input, alloc);
     const expected_key: Key = .{
         .codepoint = Key.multicodepoint,
         .text = "👩‍🚀",

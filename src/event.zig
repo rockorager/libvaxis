@@ -8,8 +8,9 @@ pub const Event = union(enum) {
     mouse: Mouse,
     focus_in,
     focus_out,
-    paste_start,
-    paste_end,
+    paste_start, // bracketed paste start
+    paste_end, // bracketed paste end
+    paste: []const u8, // osc 52 paste, caller must free
 
     // these are delivered as discovered terminal capabilities
     cap_kitty_keyboard,

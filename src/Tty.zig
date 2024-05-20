@@ -89,6 +89,7 @@ pub fn run(
     comptime Event: type,
     loop: *Loop(Event),
     grapheme_data: *const grapheme.GraphemeData,
+    paste_allocator: ?std.mem.Allocator,
 ) !void {
     // get our initial winsize
     const winsize = try getWinsize(self.fd);
@@ -146,7 +147,7 @@ pub fn run(
         const n = try posix.read(self.fd, &buf);
         var start: usize = 0;
         while (start < n) {
-            const result = try parser.parse(buf[start..n]);
+            const result = try parser.parse(buf[start..n], paste_allocator);
             start += result.n;
             // TODO: if we get 0 byte read, copy the remaining bytes to the
             // beginning of the buffer and read mmore? this should only happen
@@ -199,6 +200,14 @@ pub fn run(
                 .paste_end => {
                     if (@hasField(Event, "paste_end")) {
                         loop.postEvent(.paste_end);
+                    }
+                },
+                .paste => |text| {
+                    if (@hasField(Event, "paste")) {
+                        loop.postEvent(.{ .paste = text });
+                    } else {
+                        if (paste_allocator) |_|
+                            paste_allocator.?.free(text);
                     }
                 },
                 .cap_kitty_keyboard => {

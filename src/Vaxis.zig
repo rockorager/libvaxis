@@ -35,6 +35,10 @@ pub const Capabilities = struct {
 
 pub const Options = struct {
     kitty_keyboard_flags: KittyFlags = .{},
+    /// When supplied, this allocator will be used for system clipboard
+    /// requests. If not supplied, it won't be possible to request the system
+    /// clipboard
+    system_clipboard_allocator: ?std.mem.Allocator = null,
 };
 
 tty: ?Tty,
@@ -792,4 +796,30 @@ pub fn freeImage(self: Vaxis, id: u32) void {
     tty.buffered_writer.flush() catch |err| {
         log.err("couldn't flush writer: {}", .{err});
     };
+}
+
+pub fn copyToSystemClipboard(self: Vaxis, text: []const u8, encode_allocator: std.mem.Allocator) !void {
+    var tty = self.tty orelse return;
+    const encoder = std.base64.standard.Encoder;
+    const size = encoder.calcSize(text.len);
+    const buf = try encode_allocator.alloc(u8, size);
+    const b64 = encoder.encode(buf, text);
+    defer encode_allocator.free(buf);
+    try std.fmt.format(
+        tty.buffered_writer.writer(),
+        ctlseqs.osc52_clipboard_copy,
+        .{b64},
+    );
+    try tty.flush();
+}
+
+pub fn requestSystemClipboard(self: Vaxis) !void {
+    if (self.opts.system_clipboard_allocator == null) return error.NoClipboardAllocator;
+    var tty = self.tty orelse return;
+    try std.fmt.format(
+        tty.buffered_writer.writer(),
+        ctlseqs.osc52_clipboard_request,
+        .{},
+    );
+    try tty.flush();
 }

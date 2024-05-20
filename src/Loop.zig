@@ -25,6 +25,7 @@ pub fn Loop(comptime T: type) type {
                 T,
                 self,
                 &self.vaxis.unicode.grapheme_data,
+                self.vaxis.opts.system_clipboard_allocator,
             });
         }
 
