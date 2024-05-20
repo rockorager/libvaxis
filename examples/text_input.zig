@@ -42,7 +42,7 @@ pub fn main() !void {
 
     // Start the read loop. This puts the terminal in raw mode and begins
     // reading user input
-    try loop.run();
+    try loop.run(alloc);
     defer loop.stop();
 
     // Optionally enter the alternate screen
@@ -85,7 +85,7 @@ pub fn main() !void {
                     loop.stop();
                     var child = std.process.Child.init(&.{"nvim"}, alloc);
                     _ = try child.spawnAndWait();
-                    try loop.run();
+                    try loop.run(alloc);
                     try vx.enterAltScreen();
                     vx.queueRefresh();
                 } else if (key.matches(vaxis.Key.enter, .{})) {

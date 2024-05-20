@@ -32,7 +32,7 @@ pub fn main() !void {
         winsize: vaxis.Winsize,
     }) = .{ .vaxis = &vx };
 
-    try loop.run();
+    try loop.run(alloc);
     defer loop.stop();
     try vx.enterAltScreen();
     try vx.queryTerminal();
