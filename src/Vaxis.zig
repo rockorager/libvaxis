@@ -167,6 +167,18 @@ pub fn exitAltScreen(self: *Vaxis) !void {
 /// capabilities will be delivered to the client and possibly intercepted by
 /// Vaxis to enable features
 pub fn queryTerminal(self: *Vaxis) !void {
+    try self.queryTerminalSend();
+
+    // 1 second timeout
+    std.Thread.Futex.timedWait(&self.query_futex, 0, 1 * std.time.ns_per_s) catch {};
+
+    try self.enableDetectedFeatures();
+}
+
+/// write queries to the terminal to determine capabilities. This function
+/// is only for use with a custom main loop. Call Vaxis.queryTerminal() if
+/// you are using Loop.run()
+pub fn queryTerminalSend(self: *Vaxis) !void {
     var tty = self.tty orelse return;
 
     // TODO: re-enable this
@@ -197,9 +209,13 @@ pub fn queryTerminal(self: *Vaxis) !void {
 
     _ = try tty.write(ctlseqs.primary_device_attrs);
     try tty.flush();
+}
 
-    // 1 second timeout
-    std.Thread.Futex.timedWait(&self.query_futex, 0, 1 * std.time.ns_per_s) catch {};
+/// Enable features detected by responses to queryTerminal. This function
+/// is only for use with a custom main loop. Call Vaxis.queryTerminal() if
+/// you are using Loop.run()
+pub fn enableDetectedFeatures(self: *Vaxis) !void {
+    var tty = self.tty orelse return;
 
     // Apply any environment variables
     if (std.posix.getenv("ASCIINEMA_REC")) |_|
