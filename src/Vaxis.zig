@@ -366,19 +366,57 @@ pub fn render(self: *Vaxis) !void {
         }
 
         if (cell.image) |img| {
-            if (img.size) |size| {
-                try std.fmt.format(
-                    tty.buffered_writer.writer(),
-                    ctlseqs.kitty_graphics_scale,
-                    .{ img.img_id, img.z_index, size.cols, size.rows },
-                );
-            } else {
-                try std.fmt.format(
-                    tty.buffered_writer.writer(),
-                    ctlseqs.kitty_graphics_place,
-                    .{ img.img_id, img.z_index },
+            try tty.buffered_writer.writer().print(
+                ctlseqs.kitty_graphics_preamble,
+                .{img.img_id},
+            );
+            if (img.options.pixel_offset) |offset| {
+                try tty.buffered_writer.writer().print(
+                    ",X={d},Y={d}",
+                    .{ offset.x, offset.y },
                 );
             }
+            if (img.options.clip_region) |clip| {
+                if (clip.x) |x|
+                    try tty.buffered_writer.writer().print(
+                        ",x={d}",
+                        .{x},
+                    );
+                if (clip.y) |y|
+                    try tty.buffered_writer.writer().print(
+                        ",y={d}",
+                        .{y},
+                    );
+                if (clip.width) |width|
+                    try tty.buffered_writer.writer().print(
+                        ",w={d}",
+                        .{width},
+                    );
+                if (clip.height) |height|
+                    try tty.buffered_writer.writer().print(
+                        ",h={d}",
+                        .{height},
+                    );
+            }
+            if (img.options.size) |size| {
+                if (size.rows) |rows|
+                    try tty.buffered_writer.writer().print(
+                        ",r={d}",
+                        .{rows},
+                    );
+                if (size.cols) |cols|
+                    try tty.buffered_writer.writer().print(
+                        ",c={d}",
+                        .{cols},
+                    );
+            }
+            if (img.options.z_index) |z| {
+                try tty.buffered_writer.writer().print(
+                    ",z={d}",
+                    .{z},
+                );
+            }
+            try tty.buffered_writer.writer().writeAll(ctlseqs.kitty_graphics_closing);
         }
 
         // something is different, so let's loop through everything and

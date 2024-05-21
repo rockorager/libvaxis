@@ -107,5 +107,5 @@ pub const osc22_mouse_shape = "\x1b]22;{s}\x1b\\";
 
 // Kitty graphics
 pub const kitty_graphics_clear = "\x1b_Ga=d\x1b\\";
-pub const kitty_graphics_place = "\x1b_Ga=p,i={d},z={d},C=1\x1b\\";
-pub const kitty_graphics_scale = "\x1b_Ga=p,i={d},z={d},c={d},r={d},C=1\x1b\\";
+pub const kitty_graphics_preamble = "\x1b_Ga=p,i={d}";
+pub const kitty_graphics_closing = ",C=1\x1b\\";

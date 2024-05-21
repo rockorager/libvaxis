@@ -39,6 +39,8 @@ pub fn main() !void {
 
     var n: usize = 0;
 
+    var clip_y: usize = 0;
+
     while (true) {
         const event = loop.nextEvent();
         switch (event) {
@@ -47,7 +49,10 @@ pub fn main() !void {
                     return;
                 } else if (key.matches('l', .{ .ctrl = true })) {
                     vx.queueRefresh();
-                }
+                } else if (key.matches('j', .{}))
+                    clip_y += 1
+                else if (key.matches('k', .{}))
+                    clip_y -|= 1;
             },
             .winsize => |ws| try vx.resize(alloc, ws),
         }
@@ -59,9 +64,9 @@ pub fn main() !void {
         const img = imgs[n];
         const dims = try img.cellSize(win);
         const center = vaxis.widgets.alignment.center(win, dims.cols, dims.rows);
-        const scale = false;
-        const z_index = 0;
-        img.draw(center, scale, z_index);
+        try img.draw(center, .{ .scale = .contain, .clip_region = .{
+            .y = clip_y,
+        } });
 
         try vx.render();
     }
