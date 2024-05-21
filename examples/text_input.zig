@@ -60,7 +60,7 @@ pub fn main() !void {
     // _always_ be called, but is left to the application to decide when
     try vx.queryTerminal();
 
-    try vx.setMouseMode(true);
+    try vx.setMouseMode(.pixels);
 
     // The main event loop. Vaxis provides a thread safe, blocking, buffered
     // queue which can serve as the primary event queue for an application

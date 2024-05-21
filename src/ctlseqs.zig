@@ -13,7 +13,8 @@ pub const sixel_geometry_query = "\x1b[?2;1;0S";
 
 // mouse
 pub const mouse_set = "\x1b[?1003;1004;1006h";
-pub const mouse_reset = "\x1b[?1003;1004;1006l";
+pub const mouse_set_pixels = "\x1b[?1003;1004;1016h";
+pub const mouse_reset = "\x1b[?1003;1004;1006;1016l";
 
 // sync
 pub const sync_set = "\x1b[?2026h";

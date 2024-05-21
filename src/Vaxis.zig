@@ -698,17 +698,23 @@ pub fn setMouseShape(self: *Vaxis, shape: Shape) void {
     self.screen.mouse_shape = shape;
 }
 
-/// turn mouse reporting on or off
-pub fn setMouseMode(self: *Vaxis, enable: bool) !void {
+/// Change the mouse reporting mode
+pub fn setMouseMode(self: *Vaxis, mode: Mouse.ReportingMode) !void {
     if (self.tty) |*tty| {
-        tty.state.mouse = enable;
-        if (enable) {
-            _ = try tty.write(ctlseqs.mouse_set);
-            try tty.flush();
-        } else {
-            _ = try tty.write(ctlseqs.mouse_reset);
-            try tty.flush();
+        switch (mode) {
+            .off => {
+                _ = try tty.write(ctlseqs.mouse_reset);
+            },
+            .cells => {
+                tty.state.mouse = true;
+                _ = try tty.write(ctlseqs.mouse_set);
+            },
+            .pixels => {
+                tty.state.mouse = true;
+                _ = try tty.write(ctlseqs.mouse_set_pixels);
+            },
         }
+        try tty.flush();
     }
 }
 
