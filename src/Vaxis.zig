@@ -683,8 +683,6 @@ pub fn loadImage(
 
     const id = self.next_img_id;
 
-    log.debug("transmitting kitty image: id={d}, len={d}", .{ id, encoded.len });
-
     if (encoded.len < 4096) {
         try std.fmt.format(
             writer,
