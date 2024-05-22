@@ -1,12 +1,6 @@
 /// A mouse event
 pub const Mouse = @This();
 
-pub const ReportingMode = enum {
-    off,
-    cells,
-    pixels,
-};
-
 pub const Shape = enum {
     default,
     text,
@@ -47,6 +41,8 @@ pub const Type = enum {
 
 col: usize,
 row: usize,
+xoffset: usize = 0,
+yoffset: usize = 0,
 button: Button,
 mods: Modifiers,
 type: Type,

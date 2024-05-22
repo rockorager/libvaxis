@@ -31,6 +31,7 @@ state: struct {
     kitty_keyboard: bool = false,
     bracketed_paste: bool = false,
     mouse: bool = false,
+    pixel_mouse: bool = false,
     cursor: struct {
         row: usize = 0,
         col: usize = 0,
@@ -179,7 +180,7 @@ pub fn run(
                 },
                 .mouse => |mouse| {
                     if (@hasField(Event, "mouse")) {
-                        loop.postEvent(.{ .mouse = mouse });
+                        loop.postEvent(.{ .mouse = loop.vaxis.translateMouse(mouse) });
                     }
                 },
                 .focus_in => {
@@ -228,6 +229,10 @@ pub fn run(
                     log.info("unicode capability detected", .{});
                     loop.vaxis.caps.unicode = .unicode;
                     loop.vaxis.screen.width_method = .unicode;
+                },
+                .cap_sgr_pixels => {
+                    log.info("pixel mouse capability detected", .{});
+                    loop.vaxis.caps.sgr_pixels = true;
                 },
                 .cap_da1 => {
                     std.Thread.Futex.wake(&loop.vaxis.query_futex, 10);

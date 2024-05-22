@@ -4,6 +4,7 @@ pub const tertiary_device_attrs = "\x1b[=c";
 pub const device_status_report = "\x1b[5n";
 pub const xtversion = "\x1b[>0q";
 pub const decrqm_focus = "\x1b[?1004$p";
+pub const decrqm_sgr_pixels = "\x1b[?1016$p";
 pub const decrqm_sync = "\x1b[?2026$p";
 pub const decrqm_unicode = "\x1b[?2027$p";
 pub const decrqm_color_theme = "\x1b[?2031$p";

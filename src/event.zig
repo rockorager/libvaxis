@@ -16,6 +16,7 @@ pub const Event = union(enum) {
     cap_kitty_keyboard,
     cap_kitty_graphics,
     cap_rgb,
+    cap_sgr_pixels,
     cap_unicode,
     cap_da1,
 };

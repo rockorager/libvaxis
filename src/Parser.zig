@@ -404,6 +404,9 @@ pub fn parse(self: *Parser, input: []const u8, paste_allocator: ?std.mem.Allocat
                                 // 3: permanently set
                                 // 4: permanently reset
                                 switch (seq.params[0]) {
+                                    1016 => {
+                                        return .{ .event = .cap_sgr_pixels, .n = i + 1 };
+                                    },
                                     2027 => {
                                         switch (seq.params[1]) {
                                             0, 4 => return .{ .event = null, .n = i + 1 },
