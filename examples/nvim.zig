@@ -29,7 +29,7 @@ pub fn main() !void {
 
     var loop: vaxis.Loop(Event) = .{ .vaxis = &vx };
 
-    try loop.run(alloc);
+    try loop.run();
     defer loop.stop();
 
     // Optionally enter the alternate screen

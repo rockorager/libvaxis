@@ -84,7 +84,7 @@ pub fn drawTable(
                 .ul_style = if (idx == table_ctx.col) .single else .dotted,
             },
         }};
-        try hdr.wrap(seg[0..]);
+        _ = try hdr.print(seg[0..], .{ .wrap = .word });
     }
 
     const max_items = if (data_list.items.len > table_win.height -| 1) table_win.height -| 1 else data_list.items.len;
@@ -120,7 +120,7 @@ pub fn drawTable(
                 .text = if (data.len > table_ctx.col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{data[0..(table_ctx.col_width -| 4)]}) else data,
                 .style = .{ .bg = row_bg },
             }};
-            try row_win.wrap(seg[0..]);
+            _ = try row_win.print(seg[0..], .{ .wrap = .word });
             return;
         }
         const item_fields = meta.fields(DataT);
@@ -157,7 +157,7 @@ pub fn drawTable(
                 .text = if (item_txt.len > table_ctx.col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{item_txt[0..(table_ctx.col_width -| 4)]}) else item_txt,
                 .style = .{ .bg = row_bg },
             }};
-            try item_win.wrap(seg[0..]);
+            _ = try item_win.print(seg[0..], .{ .wrap = .word });
         }
     }
 }

@@ -25,7 +25,7 @@ Vaxis uses zig `0.12.0`.
 | Kitty Keyboard                 |  ✅   |    ✅    |    ✅     |
 | Styled Underlines              |  ✅   |    ✅    |    ✅     |
 | Mouse Shapes (OSC 22)          |  ✅   |    ✅    |    ❌     |
-| System Clipboard (OSC 52)      |  ✅   | planned  |    ❌     |
+| System Clipboard (OSC 52)      |  ✅   |    ✅    |    ❌     |
 | System Notifications (OSC 9)   |  ✅   |    ✅    |    ❌     |
 | System Notifications (OSC 777) |  ✅   |    ✅    |    ❌     |
 | Synchronized Output (DEC 2026) |  ✅   |    ✅    |    ✅     |
@@ -35,7 +35,7 @@ Vaxis uses zig `0.12.0`.
 | Images (half block)            |  ✅   | planned  |    ✅     |
 | Images (quadrant)              |  ✅   | planned  |    ✅     |
 | Images (sextant)               |  ❌   |    ❌    |    ✅     |
-| Images (sixel)                 |  ✅   | debating |    ✅     |
+| Images (sixel)                 |  ✅   |    ❌    |    ✅     |
 | Images (kitty)                 |  ✅   |    ✅    |    ✅     |
 | Images (iterm2)                |  ❌   |    ❌    |    ✅     |
 | Video                          |  ❌   |    ❌    |    ✅     |

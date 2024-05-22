@@ -22,7 +22,7 @@ pub fn main() !void {
 
     // Start the read loop. This puts the terminal in raw mode and begins
     // reading user input
-    try loop.run(alloc);
+    try loop.run();
     defer loop.stop();
 
     // Optionally enter the alternate screen
