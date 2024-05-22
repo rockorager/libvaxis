@@ -31,6 +31,7 @@ pub const Capabilities = struct {
     kitty_graphics: bool = false,
     rgb: bool = false,
     unicode: gwidth.Method = .wcwidth,
+    sgr_pixels: bool = false,
 };
 
 pub const Options = struct {
@@ -199,6 +200,7 @@ pub fn queryTerminalSend(self: *Vaxis) !void {
     // doesn't hurt to blindly use them
     // _ = try tty.write(ctlseqs.decrqm_focus);
     // _ = try tty.write(ctlseqs.decrqm_sync);
+    _ = try tty.write(ctlseqs.decrqm_sgr_pixels);
     _ = try tty.write(ctlseqs.decrqm_unicode);
     _ = try tty.write(ctlseqs.decrqm_color_theme);
     // TODO: XTVERSION has a DCS response. uncomment when we can parse
@@ -703,23 +705,56 @@ pub fn setMouseShape(self: *Vaxis, shape: Shape) void {
 }
 
 /// Change the mouse reporting mode
-pub fn setMouseMode(self: *Vaxis, mode: Mouse.ReportingMode) !void {
+pub fn setMouseMode(self: *Vaxis, enable: bool) !void {
     if (self.tty) |*tty| {
-        switch (mode) {
-            .off => {
-                _ = try tty.write(ctlseqs.mouse_reset);
-            },
-            .cells => {
-                tty.state.mouse = true;
-                _ = try tty.write(ctlseqs.mouse_set);
-            },
-            .pixels => {
-                tty.state.mouse = true;
+        if (enable) {
+            tty.state.mouse = true;
+            if (self.caps.sgr_pixels) {
+                log.debug("enabling mouse mode: pixel coordinates", .{});
+                tty.state.pixel_mouse = true;
                 _ = try tty.write(ctlseqs.mouse_set_pixels);
-            },
+            } else {
+                log.debug("enabling mouse mode: cell coordinates", .{});
+                _ = try tty.write(ctlseqs.mouse_set);
+            }
+        } else {
+            _ = try tty.write(ctlseqs.mouse_reset);
         }
         try tty.flush();
     }
+}
+
+/// Translate pixel mouse coordinates to cell + offset
+pub fn translateMouse(self: Vaxis, mouse: Mouse) Mouse {
+    var result = mouse;
+    const tty = self.tty orelse return result;
+    if (tty.state.pixel_mouse) {
+        std.debug.assert(mouse.xoffset == 0);
+        std.debug.assert(mouse.yoffset == 0);
+        const xpos = mouse.col;
+        const ypos = mouse.row;
+        const xextra = self.screen.width_pix % self.screen.width;
+        const yextra = self.screen.height_pix % self.screen.height;
+        const xcell = (self.screen.width_pix - xextra) / self.screen.width;
+        const ycell = (self.screen.height_pix - yextra) / self.screen.height;
+        result.col = xpos / xcell;
+        result.row = ypos / ycell;
+        result.xoffset = xpos % xcell;
+        result.yoffset = ypos % ycell;
+        log.debug("translateMouse x/ypos:{d}/{d} cell:{d}/{d} xtra:{d}/{d} col/rol:{d}/{d} x/y:{d}/{d}", .{
+            xpos,           ypos,
+            xcell,          ycell,
+            xextra,         yextra,
+            result.col,     result.row,
+            result.xoffset, result.yoffset,
+        });
+    } else {
+        log.debug("translateMouse col/rol:{d}/{d} x/y:{d}/{d}", .{
+            result.col,     result.row,
+            result.xoffset, result.yoffset,
+        });
+    }
+    return result;
 }
 
 pub fn loadImage(
