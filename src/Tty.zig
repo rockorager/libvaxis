@@ -73,7 +73,8 @@ pub fn deinit(self: *Tty) void {
     posix.tcsetattr(self.fd, .FLUSH, self.termios) catch |err| {
         log.err("couldn't restore terminal: {}", .{err});
     };
-    posix.close(self.fd);
+    if (builtin.os.tag != .macos) // closing /dev/tty may block indefinitely on macos
+        posix.close(self.fd);
 }
 
 /// stops the run loop
