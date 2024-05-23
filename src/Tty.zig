@@ -163,11 +163,6 @@ pub fn run(
             }
             read_start = 0;
             start += result.n;
-            // TODO: if we get 0 byte read, copy the remaining bytes to the
-            // beginning of the buffer and read mmore? this should only happen
-            // if we are in the middle of a grapheme at and filled our
-            // buffer. Probably can happen on large pastes so needs to be
-            // implemented but low priority
 
             const event = result.event orelse continue;
             switch (event) {
