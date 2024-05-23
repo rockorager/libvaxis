@@ -144,12 +144,24 @@ pub fn run(
 
     // initialize the read buffer
     var buf: [1024]u8 = undefined;
+    var read_start: usize = 0;
     // read loop
     while (!self.should_quit) {
-        const n = try posix.read(self.fd, &buf);
+        const n = try posix.read(self.fd, buf[read_start..]);
         var start: usize = 0;
         while (start < n) {
             const result = try parser.parse(buf[start..n], paste_allocator);
+            if (result.n == 0) {
+                // copy the read to the beginning. We don't use memcpy because
+                // this could be overlapping, and it's also rare
+                const initial_start = start;
+                while (start < n) : (start += 1) {
+                    buf[start - initial_start] = buf[start];
+                }
+                read_start = start - initial_start + 1;
+                continue;
+            }
+            read_start = 0;
             start += result.n;
             // TODO: if we get 0 byte read, copy the remaining bytes to the
             // beginning of the buffer and read mmore? this should only happen
