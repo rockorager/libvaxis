@@ -260,8 +260,8 @@ pub fn parse(self: *Parser, input: []const u8, paste_allocator: ?std.mem.Allocat
                                 const shift = seq.params[0] & mouse_bits.shift > 0;
                                 const alt = seq.params[0] & mouse_bits.alt > 0;
                                 const ctrl = seq.params[0] & mouse_bits.ctrl > 0;
-                                const col: usize = if(seq.params[1] > 0) seq.params[1] - 1 else 0;
-                                const row: usize = if(seq.params[2] > 0) seq.params[2] - 1 else 0;
+                                const col: usize = if (seq.params[1] > 0) seq.params[1] - 1 else 0;
+                                const row: usize = if (seq.params[2] > 0) seq.params[2] - 1 else 0;
 
                                 const mouse = Mouse{
                                     .button = button,
@@ -405,7 +405,10 @@ pub fn parse(self: *Parser, input: []const u8, paste_allocator: ?std.mem.Allocat
                                 // 4: permanently reset
                                 switch (seq.params[0]) {
                                     1016 => {
-                                        return .{ .event = .cap_sgr_pixels, .n = i + 1 };
+                                        switch (seq.params[1]) {
+                                            0, 4 => return .{ .event = null, .n = i + 1 },
+                                            else => return .{ .event = .cap_sgr_pixels, .n = i + 1 },
+                                        }
                                     },
                                     2027 => {
                                         switch (seq.params[1]) {
