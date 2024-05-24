@@ -296,6 +296,10 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
                         col = 0;
                         continue;
                     }
+                    if (col >= self.width) {
+                        row += 1;
+                        col = 0;
+                    }
                     const w = self.gwidth(s);
                     if (w == 0) continue;
                     if (opts.commit) self.writeCell(col, row, .{
@@ -307,10 +311,6 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
                         .link = segment.link,
                     });
                     col += w;
-                    if (col >= self.width) {
-                        row += 1;
-                        col = 0;
-                    }
                 }
             } else false;
 
