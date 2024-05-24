@@ -219,6 +219,11 @@ pub fn run(
                             paste_allocator.?.free(text);
                     }
                 },
+                .color_report => |report| {
+                    if (@hasField(Event, "color_report")) {
+                        loop.postEvent(.{ .color_report = report });
+                    }
+                },
                 .cap_kitty_keyboard => {
                     log.info("kitty keyboard capability detected", .{});
                     loop.vaxis.caps.kitty_keyboard = true;

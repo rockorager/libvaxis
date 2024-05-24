@@ -858,3 +858,17 @@ pub fn requestSystemClipboard(self: Vaxis) !void {
     );
     try tty.flush();
 }
+
+/// Request a color report from the terminal. Note: not all terminals support
+/// reporting colors. It is always safe to try, but you may not receive a
+/// response.
+pub fn queryColor(self: Vaxis, kind: Cell.Color.Kind) !void {
+    var tty = self.tty orelse return;
+    switch (kind) {
+        .fg => _ = try tty.write(ctlseqs.osc10_query),
+        .bg => _ = try tty.write(ctlseqs.osc11_query),
+        .cursor => _ = try tty.write(ctlseqs.osc12_query),
+        .index => |idx| try tty.buffered_writer.writer().print(ctlseqs.osc4_query, .{idx}),
+    }
+    try tty.flush();
+}

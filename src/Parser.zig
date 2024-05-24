@@ -1,5 +1,6 @@
 const std = @import("std");
 const testing = std.testing;
+const Color = @import("Cell.zig").Color;
 const Event = @import("event.zig").Event;
 const Key = @import("Key.zig");
 const Mouse = @import("Mouse.zig");
@@ -588,6 +589,50 @@ pub fn parse(self: *Parser, input: []const u8, paste_allocator: ?std.mem.Allocat
                             seq.param_buf_idx = 0;
                             seq.param_idx += 1;
                             switch (p) {
+                                4,
+                                10,
+                                11,
+                                12,
+                                => {
+                                    i += 1;
+                                    const index: ?u8 = if (p == 4) blk: {
+                                        const index_start = i;
+                                        const end: usize = while (i < n) : (i += 1) {
+                                            if (input[i] == ';') {
+                                                i += 1;
+                                                break i - 1;
+                                            }
+                                        } else unreachable; // invalid input
+                                        break :blk try std.fmt.parseUnsigned(u8, input[index_start..end], 10);
+                                    } else null;
+                                    const spec_start = i;
+                                    const end: usize = while (i < n) : (i += 1) {
+                                        if (input[i] == 0x1B) {
+                                            // advance one more for the backslash
+                                            i += 1;
+                                            break i - 1;
+                                        }
+                                    } else return .{
+                                        .event = null,
+                                        .n = i,
+                                    };
+                                    const color = try Color.rgbFromSpec(input[spec_start..end]);
+
+                                    const event: Color.Report = .{
+                                        .kind = switch (p) {
+                                            4 => .{ .index = index.? },
+                                            10 => .fg,
+                                            11 => .bg,
+                                            12 => .cursor,
+                                            else => unreachable,
+                                        },
+                                        .value = color.rgb,
+                                    };
+                                    return .{
+                                        .event = .{ .color_report = event },
+                                        .n = i,
+                                    };
+                                },
                                 52 => {
                                     var payload: ?std.ArrayList(u8) = if (paste_allocator) |allocator|
                                         std.ArrayList(u8).init(allocator)
