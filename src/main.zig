@@ -27,6 +27,14 @@ pub fn init(alloc: std.mem.Allocator, opts: Vaxis.Options) !Vaxis {
     return Vaxis.init(alloc, opts);
 }
 
+/// the vaxis logo. In PixelCode
+pub const logo =
+    \\▄   ▄  ▄▄▄  ▄   ▄ ▄▄▄  ▄▄▄
+    \\█   █ █▄▄▄█ ▀▄ ▄▀  █  █   ▀
+    \\▀▄ ▄▀ █   █  ▄▀▄   █   ▀▀▀▄
+    \\ ▀▄▀  █   █ █   █ ▄█▄ ▀▄▄▄▀
+;
+
 test {
     std.testing.refAllDecls(@This());
     std.testing.refAllDecls(widgets);
