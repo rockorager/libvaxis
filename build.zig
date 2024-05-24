@@ -43,6 +43,7 @@ pub fn build(b: *std.Build) void {
         main,
         nvim,
         pathological,
+        readline,
         shell,
         table,
         text_input,
