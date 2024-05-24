@@ -289,16 +289,16 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
             const overflow: bool = blk: for (segments) |segment| {
                 var iter = self.screen.unicode.graphemeIterator(segment.text);
                 while (iter.next()) |grapheme| {
+                    if (col >= self.width) {
+                        row += 1;
+                        col = 0;
+                    }
                     if (row >= self.height) break :blk true;
                     const s = grapheme.bytes(segment.text);
                     if (std.mem.eql(u8, s, "\n")) {
                         row +|= 1;
                         col = 0;
                         continue;
-                    }
-                    if (col >= self.width) {
-                        row += 1;
-                        col = 0;
                     }
                     const w = self.gwidth(s);
                     if (w == 0) continue;
@@ -313,7 +313,10 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
                     col += w;
                 }
             } else false;
-
+            if (col >= self.width) {
+                row += 1;
+                col = 0;
+            }
             return .{
                 .row = row,
                 .col = col,
