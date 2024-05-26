@@ -118,6 +118,11 @@ pub const Color = union(enum) {
         value: [3]u8,
     };
 
+    pub const Scheme = enum {
+        dark,
+        light,
+    };
+
     pub fn eql(a: Color, b: Color) bool {
         switch (a) {
             .default => return b == .default,

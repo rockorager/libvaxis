@@ -32,6 +32,7 @@ pub const Capabilities = struct {
     rgb: bool = false,
     unicode: gwidth.Method = .wcwidth,
     sgr_pixels: bool = false,
+    color_scheme_updates: bool = false,
 };
 
 pub const Options = struct {
@@ -202,7 +203,7 @@ pub fn queryTerminalSend(self: *Vaxis) !void {
     // _ = try tty.write(ctlseqs.decrqm_sync);
     _ = try tty.write(ctlseqs.decrqm_sgr_pixels);
     _ = try tty.write(ctlseqs.decrqm_unicode);
-    _ = try tty.write(ctlseqs.decrqm_color_theme);
+    _ = try tty.write(ctlseqs.decrqm_color_scheme);
     // TODO: XTVERSION has a DCS response. uncomment when we can parse
     // that
     // _ = try tty.write(ctlseqs.xtversion);
@@ -871,4 +872,17 @@ pub fn queryColor(self: Vaxis, kind: Cell.Color.Kind) !void {
         .index => |idx| try tty.buffered_writer.writer().print(ctlseqs.osc4_query, .{idx}),
     }
     try tty.flush();
+}
+
+/// Subscribe to color theme updates. A `color_scheme: Color.Scheme` tag must
+/// exist on your Event type to receive the response. This is a queried
+/// capability. Support can be detected by checking the value of
+/// vaxis.caps.color_scheme_updates. The initial scheme will be reported when
+/// subscribing.
+pub fn subscribeToColorSchemeUpdates(self: Vaxis) !void {
+    var tty = self.tty orelse return;
+    _ = try tty.write(ctlseqs.color_scheme_request);
+    _ = try tty.write(ctlseqs.color_scheme_set);
+    try tty.flush();
+    tty.state.color_scheme_updates = true;
 }

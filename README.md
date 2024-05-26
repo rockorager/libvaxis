@@ -30,7 +30,7 @@ Vaxis uses zig `0.12.0`.
 | System Notifications (OSC 777) |  ✅   |    ✅    |    ❌     |
 | Synchronized Output (DEC 2026) |  ✅   |    ✅    |    ✅     |
 | Unicode Core (DEC 2027)        |  ✅   |    ✅    |    ❌     |
-| Color Mode Updates (DEC 2031)  |  ✅   | planned  |    ❌     |
+| Color Mode Updates (DEC 2031)  |  ✅   |    ✅    |    ❌     |
 | Images (full/space)            |  ✅   | planned  |    ✅     |
 | Images (half block)            |  ✅   | planned  |    ✅     |
 | Images (quadrant)              |  ✅   | planned  |    ✅     |

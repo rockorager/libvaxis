@@ -13,6 +13,7 @@ pub const Event = union(enum) {
     paste_end, // bracketed paste end
     paste: []const u8, // osc 52 paste, caller must free
     color_report: Color.Report, // osc 4, 10, 11, 12 response
+    color_scheme: Color.Scheme,
 
     // these are delivered as discovered terminal capabilities
     cap_kitty_keyboard,
@@ -21,4 +22,5 @@ pub const Event = union(enum) {
     cap_sgr_pixels,
     cap_unicode,
     cap_da1,
+    cap_color_scheme_updates,
 };

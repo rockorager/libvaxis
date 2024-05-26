@@ -341,6 +341,47 @@ pub fn parse(self: *Parser, input: []const u8, paste_allocator: ?std.mem.Allocat
                                     },
                                 }
                             },
+                            'n' => {
+                                switch (seq.params[0]) {
+                                    5 => {
+                                        // "Ok" response
+                                        return .{
+                                            .event = null,
+                                            .n = i + 1,
+                                        };
+                                    },
+                                    997 => {
+                                        switch (seq.params[1]) {
+                                            1 => {
+                                                return .{
+                                                    .event = .{ .color_scheme = .dark },
+                                                    .n = i + 1,
+                                                };
+                                            },
+                                            2 => {
+                                                return .{
+                                                    .event = .{ .color_scheme = .dark },
+                                                    .n = i + 1,
+                                                };
+                                            },
+                                            else => {
+                                                log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
+                                                return .{
+                                                    .event = null,
+                                                    .n = i + 1,
+                                                };
+                                            },
+                                        }
+                                    },
+                                    else => {
+                                        log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
+                                        return .{
+                                            .event = null,
+                                            .n = i + 1,
+                                        };
+                                    },
+                                }
+                            },
                             'u' => blk: {
                                 if (seq.private_indicator) |priv| {
                                     // response to our kitty query
@@ -417,7 +458,12 @@ pub fn parse(self: *Parser, input: []const u8, paste_allocator: ?std.mem.Allocat
                                             else => return .{ .event = .cap_unicode, .n = i + 1 },
                                         }
                                     },
-                                    2031 => {},
+                                    2031 => {
+                                        switch (seq.params[1]) {
+                                            0, 4 => return .{ .event = null, .n = i + 1 },
+                                            else => return .{ .event = .cap_color_scheme_updates, .n = i + 1 },
+                                        }
+                                    },
                                     else => {
                                         log.warn("unhandled DECRPM: CSI {s}", .{input[start + 1 .. i + 1]});
                                         return .{ .event = null, .n = i + 1 };

@@ -32,6 +32,7 @@ state: struct {
     bracketed_paste: bool = false,
     mouse: bool = false,
     pixel_mouse: bool = false,
+    color_scheme_updates: bool = false,
     cursor: struct {
         row: usize = 0,
         col: usize = 0,
@@ -66,6 +67,9 @@ pub fn deinit(self: *Tty) void {
     }
     if (self.state.alt_screen) {
         _ = self.write(ctlseqs.rmcup) catch {};
+    }
+    if (self.state.color_scheme_updates) {
+        _ = self.write(ctlseqs.color_scheme_reset) catch {};
     }
     // always show the cursor on exit
     _ = self.write(ctlseqs.show_cursor) catch {};
@@ -224,6 +228,11 @@ pub fn run(
                         loop.postEvent(.{ .color_report = report });
                     }
                 },
+                .color_scheme => |scheme| {
+                    if (@hasField(Event, "color_scheme")) {
+                        loop.postEvent(.{ .color_scheme = scheme });
+                    }
+                },
                 .cap_kitty_keyboard => {
                     log.info("kitty keyboard capability detected", .{});
                     loop.vaxis.caps.kitty_keyboard = true;
@@ -246,6 +255,10 @@ pub fn run(
                 .cap_sgr_pixels => {
                     log.info("pixel mouse capability detected", .{});
                     loop.vaxis.caps.sgr_pixels = true;
+                },
+                .cap_color_scheme_updates => {
+                    log.info("color_scheme_updates capability detected", .{});
+                    loop.vaxis.caps.color_scheme_updates = true;
                 },
                 .cap_da1 => {
                     std.Thread.Futex.wake(&loop.vaxis.query_futex, 10);

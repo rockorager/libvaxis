@@ -7,7 +7,7 @@ pub const decrqm_focus = "\x1b[?1004$p";
 pub const decrqm_sgr_pixels = "\x1b[?1016$p";
 pub const decrqm_sync = "\x1b[?2026$p";
 pub const decrqm_unicode = "\x1b[?2027$p";
-pub const decrqm_color_theme = "\x1b[?2031$p";
+pub const decrqm_color_scheme = "\x1b[?2031$p";
 pub const csi_u_query = "\x1b[?u";
 pub const kitty_graphics_query = "\x1b_Gi=1,a=q\x1b\\";
 pub const sixel_geometry_query = "\x1b[?2;1;0S";
@@ -28,6 +28,11 @@ pub const unicode_reset = "\x1b[?2027l";
 // bracketed paste
 pub const bp_set = "\x1b[?2004h";
 pub const bp_reset = "\x1b[?2004l";
+
+// color scheme updates
+pub const color_scheme_request = "\x1b[?996n";
+pub const color_scheme_set = "\x1b[?2031h";
+pub const color_scheme_reset = "\x1b[?2031l";
 
 // Key encoding
 pub const csi_u_push = "\x1b[>{d}u";
