@@ -18,22 +18,6 @@ pub const Result = struct {
     n: usize,
 };
 
-// an intermediate data structure to hold sequence data while we are
-// scanning more bytes. This is tailored for input parsing only
-const Sequence = struct {
-    // private indicators are 0x3C-0x3F
-    private_indicator: ?u8 = null,
-    // we won't be handling any sequences with more than one intermediate
-    intermediate: ?u8 = null,
-    // we should absolutely never have more then 16 params
-    params: [16]u16 = undefined,
-    param_idx: usize = 0,
-    param_buf: [8]u8 = undefined,
-    param_buf_idx: usize = 0,
-    sub_state: std.StaticBitSet(16) = std.StaticBitSet(16).initEmpty(),
-    empty_state: std.StaticBitSet(16) = std.StaticBitSet(16).initEmpty(),
-};
-
 const mouse_bits = struct {
     const motion: u8 = 0b00100000;
     const buttons: u8 = 0b11000011;
@@ -62,687 +46,520 @@ buf: [128]u8 = undefined,
 
 grapheme_data: *const grapheme.GraphemeData,
 
+/// Parse the first event from the input buffer. If a completion event is not
+/// present, Result.event will be null and Result.n will be 0
+///
+/// If an unknown event is found, Result.event will be null and Result.n will be
+/// greater than 0
 pub fn parse(self: *Parser, input: []const u8, paste_allocator: ?std.mem.Allocator) !Result {
-    const n = input.len;
+    std.debug.assert(input.len > 0);
 
-    var seq: Sequence = .{};
-
-    var state: State = .ground;
-
-    var i: usize = 0;
-    var start: usize = 0;
-    // parse the read into events. This parser is bespoke for input parsing
-    // and is not suitable for reuse as a generic vt parser
-    while (i < n) : (i += 1) {
-        const b = input[i];
-        switch (state) {
-            .ground => {
-                // ground state generates keypresses when parsing input. We
-                // generally get ascii characters, but anything less than
-                // 0x20 is a Ctrl+<c> keypress. We map these to lowercase
-                // ascii characters when we can
-                const key: Key = switch (b) {
-                    0x00 => .{ .codepoint = '@', .mods = .{ .ctrl = true } },
-                    0x08 => .{ .codepoint = Key.backspace },
-                    0x09 => .{ .codepoint = Key.tab },
-                    0x0A,
-                    0x0D,
-                    => .{ .codepoint = Key.enter },
-                    0x01...0x07,
-                    0x0B...0x0C,
-                    0x0E...0x1A,
-                    => .{ .codepoint = b + 0x60, .mods = .{ .ctrl = true } },
-                    0x1B => escape: {
-                        // NOTE: This could be an errant escape at the end
-                        // of a large read. That is _incredibly_ unlikely
-                        // given the size of read inputs and our read buffer
-                        if (i == (n - 1)) {
-                            const event = Key{
-                                .codepoint = Key.escape,
-                            };
-                            break :escape event;
-                        }
-                        state = .escape;
-                        continue;
-                    },
-                    0x7F => .{ .codepoint = Key.backspace },
-                    else => blk: {
-                        var iter: code_point.Iterator = .{ .bytes = input[i..] };
-                        // return null if we don't have a valid codepoint
-                        var cp = iter.next() orelse return .{ .event = null, .n = 0 };
-
-                        var code = cp.code;
-                        i += cp.len - 1; // subtract one for the loop iter
-                        var g_state: grapheme.State = .{};
-                        while (iter.next()) |next_cp| {
-                            if (grapheme.graphemeBreak(cp.code, next_cp.code, self.grapheme_data, &g_state)) {
-                                break;
-                            }
-                            code = Key.multicodepoint;
-                            i += next_cp.len;
-                            cp = next_cp;
-                        }
-
-                        break :blk .{ .codepoint = code, .text = input[start .. i + 1] };
-                    },
+    // We gate this for len > 1 so we can detect singular escape key presses
+    if (input[0] == 0x1b and input.len > 1) {
+        switch (input[1]) {
+            0x4F => return parseSs3(input),
+            0x50 => return skipUntilST(input), // DCS
+            0x58 => return skipUntilST(input), // SOS
+            0x5B => return parseCsi(input, &self.buf), // CSI
+            0x5D => return parseOsc(input, paste_allocator),
+            0x5E => return skipUntilST(input), // PM
+            0x5F => return parseApc(input),
+            else => {
+                // Anything else is an "alt + <char>" keypress
+                const key: Key = .{
+                    .codepoint = input[1],
+                    .mods = .{ .alt = true },
                 };
                 return .{
                     .event = .{ .key_press = key },
-                    .n = i + 1,
+                    .n = 2,
                 };
             },
-            .escape => {
-                seq = .{};
-                start = i;
-                switch (b) {
-                    0x4F => state = .ss3,
-                    0x50 => state = .dcs,
-                    0x58 => state = .sos,
-                    0x5B => state = .csi,
-                    0x5D => state = .osc,
-                    0x5E => state = .pm,
-                    0x5F => state = .apc,
-                    else => {
-                        // Anything else is an "alt + <b>" keypress
-                        const key: Key = .{
-                            .codepoint = b,
-                            .mods = .{ .alt = true },
-                        };
-                        return .{
-                            .event = .{ .key_press = key },
-                            .n = i + 1,
-                        };
-                    },
-                }
-            },
-            .ss3 => {
-                const key: Key = switch (b) {
-                    'A' => .{ .codepoint = Key.up },
-                    'B' => .{ .codepoint = Key.down },
-                    'C' => .{ .codepoint = Key.right },
-                    'D' => .{ .codepoint = Key.left },
-                    'F' => .{ .codepoint = Key.end },
-                    'H' => .{ .codepoint = Key.home },
-                    'P' => .{ .codepoint = Key.f1 },
-                    'Q' => .{ .codepoint = Key.f2 },
-                    'R' => .{ .codepoint = Key.f3 },
-                    'S' => .{ .codepoint = Key.f4 },
-                    else => {
-                        log.warn("unhandled ss3: {x}", .{b});
-                        return .{
-                            .event = null,
-                            .n = i + 1,
-                        };
-                    },
-                };
-                return .{
-                    .event = .{ .key_press = key },
-                    .n = i + 1,
-                };
-            },
-            .csi => {
-                switch (b) {
-                    // c0 controls. we ignore these even though we should
-                    // "execute" them. This isn't seen in practice
-                    0x00...0x1F => {},
-                    // intermediates. we only handle one. technically there
-                    // can be more
-                    0x20...0x2F => seq.intermediate = b,
-                    0x30...0x39 => {
-                        seq.param_buf[seq.param_buf_idx] = b;
-                        seq.param_buf_idx += 1;
-                    },
-                    // private indicators. These come before any params ('?')
-                    0x3C...0x3F => seq.private_indicator = b,
-                    ';' => {
-                        if (seq.param_buf_idx == 0) {
-                            // empty param. default it to 0 and set the
-                            // empty state
-                            seq.params[seq.param_idx] = 0;
-                            seq.empty_state.set(seq.param_idx);
-                            seq.param_idx += 1;
-                        } else {
-                            const p = try std.fmt.parseUnsigned(u16, seq.param_buf[0..seq.param_buf_idx], 10);
-                            seq.param_buf_idx = 0;
-                            seq.params[seq.param_idx] = p;
-                            seq.param_idx += 1;
-                        }
-                    },
-                    ':' => {
-                        if (seq.param_buf_idx == 0) {
-                            // empty param. default it to 0 and set the
-                            // empty state
-                            seq.params[seq.param_idx] = 0;
-                            seq.empty_state.set(seq.param_idx);
-                            seq.param_idx += 1;
-                            // Set the *next* param as a subparam
-                            seq.sub_state.set(seq.param_idx);
-                        } else {
-                            const p = try std.fmt.parseUnsigned(u16, seq.param_buf[0..seq.param_buf_idx], 10);
-                            seq.param_buf_idx = 0;
-                            seq.params[seq.param_idx] = p;
-                            seq.param_idx += 1;
-                            // Set the *next* param as a subparam
-                            seq.sub_state.set(seq.param_idx);
-                        }
-                    },
-                    0x40...0xFF => {
-                        if (seq.param_buf_idx > 0) {
-                            const p = try std.fmt.parseUnsigned(u16, seq.param_buf[0..seq.param_buf_idx], 10);
-                            seq.param_buf_idx = 0;
-                            seq.params[seq.param_idx] = p;
-                            seq.param_idx += 1;
-                        }
-                        // dispatch the sequence
-                        state = .ground;
-                        const codepoint: u21 = switch (b) {
-                            'A' => Key.up,
-                            'B' => Key.down,
-                            'C' => Key.right,
-                            'D' => Key.left,
-                            'E' => Key.kp_begin,
-                            'F' => Key.end,
-                            'H' => Key.home,
-                            'M', 'm' => { // mouse event
-                                const priv = seq.private_indicator orelse {
-                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                    return .{ .event = null, .n = i + 1 };
-                                };
-                                if (priv != '<') {
-                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                    return .{ .event = null, .n = i + 1 };
-                                }
-                                if (seq.param_idx != 3) {
-                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                    return .{ .event = null, .n = i + 1 };
-                                }
-                                const button: Mouse.Button = @enumFromInt(seq.params[0] & mouse_bits.buttons);
-                                const motion = seq.params[0] & mouse_bits.motion > 0;
-                                const shift = seq.params[0] & mouse_bits.shift > 0;
-                                const alt = seq.params[0] & mouse_bits.alt > 0;
-                                const ctrl = seq.params[0] & mouse_bits.ctrl > 0;
-                                const col: usize = if (seq.params[1] > 0) seq.params[1] - 1 else 0;
-                                const row: usize = if (seq.params[2] > 0) seq.params[2] - 1 else 0;
-
-                                const mouse = Mouse{
-                                    .button = button,
-                                    .mods = .{
-                                        .shift = shift,
-                                        .alt = alt,
-                                        .ctrl = ctrl,
-                                    },
-                                    .col = col,
-                                    .row = row,
-                                    .type = blk: {
-                                        if (motion and button != Mouse.Button.none) {
-                                            break :blk .drag;
-                                        }
-                                        if (motion and button == Mouse.Button.none) {
-                                            break :blk .motion;
-                                        }
-                                        if (b == 'm') break :blk .release;
-                                        break :blk .press;
-                                    },
-                                };
-                                return .{ .event = .{ .mouse = mouse }, .n = i + 1 };
-                            },
-                            'P' => Key.f1,
-                            'Q' => Key.f2,
-                            'R' => Key.f3,
-                            'S' => Key.f4,
-                            '~' => blk: {
-                                // The first param will define this
-                                // codepoint
-                                if (seq.param_idx < 1) {
-                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                    return .{
-                                        .event = null,
-                                        .n = i + 1,
-                                    };
-                                }
-                                switch (seq.params[0]) {
-                                    2 => break :blk Key.insert,
-                                    3 => break :blk Key.delete,
-                                    5 => break :blk Key.page_up,
-                                    6 => break :blk Key.page_down,
-                                    7 => break :blk Key.home,
-                                    8 => break :blk Key.end,
-                                    11 => break :blk Key.f1,
-                                    12 => break :blk Key.f2,
-                                    13 => break :blk Key.f3,
-                                    14 => break :blk Key.f4,
-                                    15 => break :blk Key.f5,
-                                    17 => break :blk Key.f6,
-                                    18 => break :blk Key.f7,
-                                    19 => break :blk Key.f8,
-                                    20 => break :blk Key.f9,
-                                    21 => break :blk Key.f10,
-                                    23 => break :blk Key.f11,
-                                    24 => break :blk Key.f12,
-                                    200 => {
-                                        return .{
-                                            .event = .paste_start,
-                                            .n = i + 1,
-                                        };
-                                    },
-                                    201 => {
-                                        return .{
-                                            .event = .paste_end,
-                                            .n = i + 1,
-                                        };
-                                    },
-                                    57427 => break :blk Key.kp_begin,
-                                    else => {
-                                        log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                        return .{
-                                            .event = null,
-                                            .n = i + 1,
-                                        };
-                                    },
-                                }
-                            },
-                            'n' => {
-                                switch (seq.params[0]) {
-                                    5 => {
-                                        // "Ok" response
-                                        return .{
-                                            .event = null,
-                                            .n = i + 1,
-                                        };
-                                    },
-                                    997 => {
-                                        switch (seq.params[1]) {
-                                            1 => {
-                                                return .{
-                                                    .event = .{ .color_scheme = .dark },
-                                                    .n = i + 1,
-                                                };
-                                            },
-                                            2 => {
-                                                return .{
-                                                    .event = .{ .color_scheme = .dark },
-                                                    .n = i + 1,
-                                                };
-                                            },
-                                            else => {
-                                                log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                                return .{
-                                                    .event = null,
-                                                    .n = i + 1,
-                                                };
-                                            },
-                                        }
-                                    },
-                                    else => {
-                                        log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                        return .{
-                                            .event = null,
-                                            .n = i + 1,
-                                        };
-                                    },
-                                }
-                            },
-                            'u' => blk: {
-                                if (seq.private_indicator) |priv| {
-                                    // response to our kitty query
-                                    if (priv == '?') {
-                                        return .{
-                                            .event = .cap_kitty_keyboard,
-                                            .n = i + 1,
-                                        };
-                                    } else {
-                                        log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                        return .{
-                                            .event = null,
-                                            .n = i + 1,
-                                        };
-                                    }
-                                }
-                                if (seq.param_idx == 0) {
-                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                    return .{
-                                        .event = null,
-                                        .n = i + 1,
-                                    };
-                                }
-                                // In any csi u encoding, the codepoint
-                                // directly maps to our keypoint definitions
-                                break :blk seq.params[0];
-                            },
-
-                            'I' => { // focus in
-                                return .{ .event = .focus_in, .n = i + 1 };
-                            },
-                            'O' => { // focus out
-                                return .{ .event = .focus_out, .n = i + 1 };
-                            },
-                            'y' => { // DECRQM response
-                                const priv = seq.private_indicator orelse {
-                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                    return .{ .event = null, .n = i + 1 };
-                                };
-                                if (priv != '?') {
-                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                    return .{ .event = null, .n = i + 1 };
-                                }
-                                const intm = seq.intermediate orelse {
-                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                    return .{ .event = null, .n = i + 1 };
-                                };
-                                if (intm != '$') {
-                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                    return .{ .event = null, .n = i + 1 };
-                                }
-                                if (seq.param_idx != 2) {
-                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                    return .{ .event = null, .n = i + 1 };
-                                }
-                                // We'll get two fields, the first is the mode
-                                // we requested, the second is the status of the
-                                // mode
-                                // 0: not recognize
-                                // 1: set
-                                // 2: reset
-                                // 3: permanently set
-                                // 4: permanently reset
-                                switch (seq.params[0]) {
-                                    1016 => {
-                                        switch (seq.params[1]) {
-                                            0, 4 => return .{ .event = null, .n = i + 1 },
-                                            else => return .{ .event = .cap_sgr_pixels, .n = i + 1 },
-                                        }
-                                    },
-                                    2027 => {
-                                        switch (seq.params[1]) {
-                                            0, 4 => return .{ .event = null, .n = i + 1 },
-                                            else => return .{ .event = .cap_unicode, .n = i + 1 },
-                                        }
-                                    },
-                                    2031 => {
-                                        switch (seq.params[1]) {
-                                            0, 4 => return .{ .event = null, .n = i + 1 },
-                                            else => return .{ .event = .cap_color_scheme_updates, .n = i + 1 },
-                                        }
-                                    },
-                                    else => {
-                                        log.warn("unhandled DECRPM: CSI {s}", .{input[start + 1 .. i + 1]});
-                                        return .{ .event = null, .n = i + 1 };
-                                    },
-                                }
-                                log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                return .{ .event = null, .n = i + 1 };
-                            },
-                            'c' => { // DA1 response
-                                const priv = seq.private_indicator orelse {
-                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                    return .{ .event = null, .n = i + 1 };
-                                };
-                                if (priv != '?') {
-                                    log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                    return .{ .event = null, .n = i + 1 };
-                                }
-                                return .{ .event = .cap_da1, .n = i + 1 };
-                            },
-                            else => {
-                                log.warn("unhandled csi: CSI {s}", .{input[start + 1 .. i + 1]});
-                                return .{
-                                    .event = null,
-                                    .n = i + 1,
-                                };
-                            },
-                        };
-
-                        var key: Key = .{ .codepoint = codepoint };
-                        var is_release: bool = false;
-
-                        var idx: usize = 0;
-                        var field: u8 = 0;
-                        // parse the parameters
-                        while (idx < seq.param_idx) : (idx += 1) {
-                            switch (field) {
-                                0 => {
-                                    defer field += 1;
-                                    // field 0 contains our codepoint. Any
-                                    // subparameters shifted key code and
-                                    // alternate keycode (csi u encoding)
-
-                                    // We already handled our codepoint so
-                                    // we just need to check for subs
-                                    if (!seq.sub_state.isSet(idx + 1)) {
-                                        continue;
-                                    }
-                                    idx += 1;
-                                    // The first one is a shifted code if it
-                                    // isn't empty
-                                    if (!seq.empty_state.isSet(idx)) {
-                                        key.shifted_codepoint = seq.params[idx];
-                                    }
-                                    // check the next one for base layout
-                                    // code
-                                    if (!seq.sub_state.isSet(idx + 1)) {
-                                        continue;
-                                    }
-                                    idx += 1;
-                                    key.base_layout_codepoint = seq.params[idx];
-                                },
-                                1 => {
-                                    defer field += 1;
-                                    // field 1 is modifiers and optionally
-                                    // the event type (csiu). It can be empty
-                                    if (seq.empty_state.isSet(idx)) {
-                                        continue;
-                                    }
-                                    // default of 1
-                                    const ps: u8 = blk: {
-                                        if (seq.params[idx] == 0) break :blk 1;
-                                        break :blk @truncate(seq.params[idx]);
-                                    };
-                                    key.mods = @bitCast(ps - 1);
-
-                                    // check if an event type exists
-                                    if (!seq.sub_state.isSet(idx + 1)) {
-                                        continue;
-                                    }
-                                    idx += 1;
-                                    if (seq.params[idx] == 3) is_release = true;
-                                },
-                                2 => {
-                                    // field 2 is text, as codepoints
-                                    var total: usize = 0;
-                                    while (idx < seq.param_idx) : (idx += 1) {
-                                        total += try std.unicode.utf8Encode(seq.params[idx], self.buf[total..]);
-                                    }
-                                    key.text = self.buf[0..total];
-                                },
-                                else => {},
-                            }
-                        }
-                        const event: Event = if (is_release)
-                            .{ .key_release = key }
-                        else
-                            .{ .key_press = key };
-                        return .{
-                            .event = event,
-                            .n = i + 1,
-                        };
-                    },
-                }
-            },
-            .apc => {
-                switch (b) {
-                    0x1B => {
-                        state = .ground;
-                        // advance one more for the backslash
-                        i += 1;
-                        switch (input[start + 1]) {
-                            'G' => {
-                                return .{
-                                    .event = .cap_kitty_graphics,
-                                    .n = i + 1,
-                                };
-                            },
-                            else => {
-                                log.warn("unhandled apc: APC {s}", .{input[start + 1 .. i + 1]});
-                                return .{
-                                    .event = null,
-                                    .n = i + 1,
-                                };
-                            },
-                        }
-                    },
-                    else => {},
-                }
-            },
-            .sos, .pm => {
-                switch (b) {
-                    0x1B => {
-                        state = .ground;
-                        // advance one more for the backslash
-                        i += 1;
-                        log.warn("unhandled sos/pm: SOS/PM {s}", .{input[start + 1 .. i + 1]});
-                        return .{
-                            .event = null,
-                            .n = i + 1,
-                        };
-                    },
-                    else => {},
-                }
-            },
-            .osc => {
-                switch (b) {
-                    0x07, 0x1B => {
-                        state = .ground;
-                        if (b == 0x1b) {
-                            // advance one more for the backslash
-                            i += 1;
-                        }
-                        log.warn("unhandled osc: OSC {s}", .{input[start + 1 .. i + 1]});
-                        return .{
-                            .event = null,
-                            .n = i + 1,
-                        };
-                    },
-                    0x30...0x39 => {
-                        seq.param_buf[seq.param_buf_idx] = b;
-                        seq.param_buf_idx += 1;
-                    },
-                    ';' => {
-                        if (seq.param_buf_idx == 0) {
-                            seq.param_idx += 1;
-                        }
-                        if (seq.param_idx == 0) {
-                            const p = try std.fmt.parseUnsigned(u16, seq.param_buf[0..seq.param_buf_idx], 10);
-                            seq.param_buf_idx = 0;
-                            seq.param_idx += 1;
-                            switch (p) {
-                                4,
-                                10,
-                                11,
-                                12,
-                                => {
-                                    i += 1;
-                                    const index: ?u8 = if (p == 4) blk: {
-                                        const index_start = i;
-                                        const end: usize = while (i < n) : (i += 1) {
-                                            if (input[i] == ';') {
-                                                i += 1;
-                                                break i - 1;
-                                            }
-                                        } else unreachable; // invalid input
-                                        break :blk try std.fmt.parseUnsigned(u8, input[index_start..end], 10);
-                                    } else null;
-                                    const spec_start = i;
-                                    const end: usize = while (i < n) : (i += 1) {
-                                        if (input[i] == 0x1B) {
-                                            // advance one more for the backslash
-                                            i += 1;
-                                            break i - 1;
-                                        }
-                                    } else return .{
-                                        .event = null,
-                                        .n = i,
-                                    };
-                                    const color = try Color.rgbFromSpec(input[spec_start..end]);
-
-                                    const event: Color.Report = .{
-                                        .kind = switch (p) {
-                                            4 => .{ .index = index.? },
-                                            10 => .fg,
-                                            11 => .bg,
-                                            12 => .cursor,
-                                            else => unreachable,
-                                        },
-                                        .value = color.rgb,
-                                    };
-                                    return .{
-                                        .event = .{ .color_report = event },
-                                        .n = i,
-                                    };
-                                },
-                                52 => {
-                                    var payload: ?std.ArrayList(u8) = if (paste_allocator) |allocator|
-                                        std.ArrayList(u8).init(allocator)
-                                    else
-                                        null;
-                                    defer if (payload) |_| payload.?.deinit();
-
-                                    while (i < n) : (i += 1) {
-                                        const b_ = input[i];
-                                        switch (b_) {
-                                            ';' => {
-                                                if (seq.param_buf_idx == 0) {
-                                                    // empty param. default it to 0 and set the
-                                                    // empty state
-                                                    seq.params[seq.param_idx] = 0;
-                                                    seq.empty_state.set(seq.param_idx);
-                                                    seq.param_idx += 1;
-                                                } else {
-                                                    seq.params[seq.param_idx] = @intCast(b_);
-                                                    seq.param_buf_idx = 0;
-                                                    seq.param_idx += 1;
-                                                }
-                                            },
-                                            0x07, 0x1B => {
-                                                state = .ground;
-                                                if (b == 0x1b) {
-                                                    // advance one more for the backslash
-                                                    i += 1;
-                                                }
-                                                if (payload) |_| {
-                                                    log.debug("decoding paste: {s}", .{payload.?.items});
-                                                    const decoder = std.base64.standard.Decoder;
-                                                    const text = try paste_allocator.?.alloc(u8, try decoder.calcSizeForSlice(payload.?.items));
-                                                    try decoder.decode(text, payload.?.items);
-                                                    log.debug("decoded paste: {s}", .{text});
-                                                    return .{
-                                                        .event = .{ .paste = text },
-                                                        .n = i + 2,
-                                                    };
-                                                } else return .{
-                                                    .event = null,
-                                                    .n = i + 2,
-                                                };
-                                            },
-                                            else => if (seq.param_idx == 3 and payload != null) try payload.?.append(b_),
-                                        }
-                                    }
-                                },
-                                else => {},
-                            }
-                        }
-                    },
-                    else => {},
-                }
-            },
-            else => {},
         }
-    }
-    // If we get here it means we didn't parse an event. The input buffer
-    // perhaps didn't include a full event
+    } else return parseGround(input, self.grapheme_data);
+}
+
+/// Parse ground state
+inline fn parseGround(input: []const u8, data: *const grapheme.GraphemeData) !Result {
+    std.debug.assert(input.len > 0);
+
+    const b = input[0];
+    var n: usize = 1;
+    // ground state generates keypresses when parsing input. We
+    // generally get ascii characters, but anything less than
+    // 0x20 is a Ctrl+<c> keypress. We map these to lowercase
+    // ascii characters when we can
+    const key: Key = switch (b) {
+        0x00 => .{ .codepoint = '@', .mods = .{ .ctrl = true } },
+        0x08 => .{ .codepoint = Key.backspace },
+        0x09 => .{ .codepoint = Key.tab },
+        0x0A,
+        0x0D,
+        => .{ .codepoint = Key.enter },
+        0x01...0x07,
+        0x0B...0x0C,
+        0x0E...0x1A,
+        => .{ .codepoint = b + 0x60, .mods = .{ .ctrl = true } },
+        0x1B => escape: {
+            std.debug.assert(input.len == 1); // parseGround expects len == 1 with 0x1b
+            break :escape .{
+                .codepoint = Key.escape,
+            };
+        },
+        0x7F => .{ .codepoint = Key.backspace },
+        else => blk: {
+            var iter: code_point.Iterator = .{ .bytes = input };
+            // return null if we don't have a valid codepoint
+            const cp = iter.next() orelse return error.InvalidUTF8;
+
+            n = cp.len;
+
+            // Check if we have a multi-codepoint grapheme
+            var code = cp.code;
+            var g_state: grapheme.State = .{};
+            var prev_cp = code;
+            while (iter.next()) |next_cp| {
+                if (grapheme.graphemeBreak(prev_cp, next_cp.code, data, &g_state)) {
+                    break;
+                }
+                prev_cp = next_cp.code;
+                code = Key.multicodepoint;
+                n += next_cp.len;
+            }
+
+            break :blk .{ .codepoint = code, .text = input[0..n] };
+        },
+    };
+
     return .{
+        .event = .{ .key_press = key },
+        .n = n,
+    };
+}
+
+inline fn parseSs3(input: []const u8) Result {
+    std.debug.assert(input.len >= 3);
+    const key: Key = switch (input[2]) {
+        'A' => .{ .codepoint = Key.up },
+        'B' => .{ .codepoint = Key.down },
+        'C' => .{ .codepoint = Key.right },
+        'D' => .{ .codepoint = Key.left },
+        'E' => .{ .codepoint = Key.kp_begin },
+        'F' => .{ .codepoint = Key.end },
+        'H' => .{ .codepoint = Key.home },
+        'P' => .{ .codepoint = Key.f1 },
+        'Q' => .{ .codepoint = Key.f2 },
+        'R' => .{ .codepoint = Key.f3 },
+        'S' => .{ .codepoint = Key.f4 },
+        else => {
+            log.warn("unhandled ss3: {x}", .{input[2]});
+            return .{
+                .event = null,
+                .n = 3,
+            };
+        },
+    };
+    return .{
+        .event = .{ .key_press = key },
+        .n = 3,
+    };
+}
+
+inline fn parseApc(input: []const u8) Result {
+    std.debug.assert(input.len >= 3);
+    const end = std.mem.indexOfScalarPos(u8, input, 2, 0x1b) orelse return .{
         .event = null,
         .n = 0,
     };
+    const sequence = input[0 .. end + 1 + 1];
+
+    switch (input[2]) {
+        'G' => return .{
+            .event = .cap_kitty_graphics,
+            .n = sequence.len,
+        },
+        else => return .{
+            .event = null,
+            .n = sequence.len,
+        },
+    }
+}
+
+/// Skips sequences until we see an ST (String Terminator, ESC \)
+inline fn skipUntilST(input: []const u8) Result {
+    std.debug.assert(input.len >= 3);
+    const end = std.mem.indexOfScalarPos(u8, input, 2, 0x1b) orelse return .{
+        .event = null,
+        .n = 0,
+    };
+    const sequence = input[0 .. end + 1 + 1];
+    return .{
+        .event = null,
+        .n = sequence.len,
+    };
+}
+
+/// Parses an OSC sequence
+inline fn parseOsc(input: []const u8, paste_allocator: ?std.mem.Allocator) !Result {
+    var bel_terminated: bool = false;
+    // end is the index of the terminating byte(s) (either the last byte of an
+    // ST or BEL)
+    const end: usize = blk: {
+        const esc_result = skipUntilST(input);
+        if (esc_result.n > 0) break :blk esc_result.n;
+
+        // No escape, could be BEL terminated
+        const bel = std.mem.indexOfScalarPos(u8, input, 2, 0x07) orelse return .{
+            .event = null,
+            .n = 0,
+        };
+        bel_terminated = true;
+        break :blk bel + 1;
+    };
+
+    // The complete OSC sequence
+    const sequence = input[0..end];
+
+    const null_event: Result = .{ .event = null, .n = sequence.len };
+
+    const semicolon_idx = std.mem.indexOfScalarPos(u8, input, 2, ';') orelse return null_event;
+    const ps = std.fmt.parseUnsigned(u8, input[2..semicolon_idx], 10) catch return null_event;
+
+    switch (ps) {
+        4 => {
+            const color_idx_delim = std.mem.indexOfScalarPos(u8, input, semicolon_idx + 1, ';') orelse return null_event;
+            const ps_idx = std.fmt.parseUnsigned(u8, input[semicolon_idx + 1 .. color_idx_delim], 10) catch return null_event;
+            const color_spec = if (bel_terminated)
+                input[color_idx_delim + 1 .. sequence.len - 1]
+            else
+                input[color_idx_delim + 1 .. sequence.len - 2];
+
+            const color = try Color.rgbFromSpec(color_spec);
+            const event: Color.Report = .{
+                .kind = .{ .index = ps_idx },
+                .value = color.rgb,
+            };
+            return .{
+                .event = .{ .color_report = event },
+                .n = sequence.len,
+            };
+        },
+        10,
+        11,
+        12,
+        => {
+            const color_spec = if (bel_terminated)
+                input[semicolon_idx + 1 .. sequence.len - 1]
+            else
+                input[semicolon_idx + 1 .. sequence.len - 2];
+
+            const color = try Color.rgbFromSpec(color_spec);
+            const event: Color.Report = .{
+                .kind = switch (ps) {
+                    10 => .fg,
+                    11 => .bg,
+                    12 => .cursor,
+                    else => unreachable,
+                },
+                .value = color.rgb,
+            };
+            return .{
+                .event = .{ .color_report = event },
+                .n = sequence.len,
+            };
+        },
+        52 => {
+            if (input[semicolon_idx + 1] != 'c') return null_event;
+            const payload = if (bel_terminated)
+                input[semicolon_idx + 3 .. sequence.len - 1]
+            else
+                input[semicolon_idx + 3 .. sequence.len - 2];
+            const decoder = std.base64.standard.Decoder;
+            const text = try paste_allocator.?.alloc(u8, try decoder.calcSizeForSlice(payload));
+            try decoder.decode(text, payload);
+            log.debug("decoded paste: {s}", .{text});
+            return .{
+                .event = .{ .paste = text },
+                .n = sequence.len,
+            };
+        },
+        else => return null_event,
+    }
+}
+
+inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
+    // We start iterating at index 2 to get past te '['
+    const sequence = for (input[2..], 2..) |b, i| {
+        switch (b) {
+            0x40...0xFF => break input[0 .. i + 1],
+            else => continue,
+        }
+    } else return .{ .event = null, .n = 0 };
+
+    const null_event: Result = .{ .event = null, .n = sequence.len };
+
+    const final = sequence[sequence.len - 1];
+    switch (final) {
+        'A', 'B', 'C', 'D', 'E', 'F', 'H', 'P', 'Q', 'R', 'S' => {
+            // Legacy keys
+            // CSI {ABCDEFHPQS}
+            // CSI 1 ; modifier {ABCDEFHPQS}
+
+            const modifiers: Key.Modifiers = if (sequence.len > 3) mods: {
+                // ESC [ 1 ; <modifier_buf> {ABCDEFHPQS}
+                const modifier_buf = sequence[4 .. sequence.len - 1];
+                const modifiers = parseParam(u8, modifier_buf, 1) orelse return null_event;
+                break :mods @bitCast(modifiers -| 1);
+            } else .{};
+
+            const key: Key = .{
+                .mods = modifiers,
+                .codepoint = switch (final) {
+                    'A' => Key.up,
+                    'B' => Key.down,
+                    'C' => Key.right,
+                    'D' => Key.left,
+                    'E' => Key.kp_begin,
+                    'F' => Key.end,
+                    'H' => Key.home,
+                    'P' => Key.f1,
+                    'Q' => Key.f2,
+                    'R' => Key.f3,
+                    'S' => Key.f4,
+                    else => return null_event,
+                },
+            };
+            return .{
+                .event = .{ .key_press = key },
+                .n = sequence.len,
+            };
+        },
+        '~' => {
+            // Legacy keys
+            // CSI number ~
+            // CSI number ; modifier ~
+            var field_iter = std.mem.splitScalar(u8, sequence[2 .. sequence.len - 1], ';');
+            const number_buf = field_iter.next() orelse unreachable; // always will have one field
+            const number = parseParam(u16, number_buf, null) orelse return null_event;
+
+            const key_code = switch (number) {
+                2 => Key.insert,
+                3 => Key.delete,
+                5 => Key.page_up,
+                6 => Key.page_down,
+                7 => Key.home,
+                8 => Key.end,
+                11 => Key.f1,
+                12 => Key.f2,
+                13 => Key.f3,
+                14 => Key.f4,
+                15 => Key.f5,
+                17 => Key.f6,
+                18 => Key.f7,
+                19 => Key.f8,
+                20 => Key.f9,
+                21 => Key.f10,
+                23 => Key.f11,
+                24 => Key.f12,
+                200 => return .{ .event = .paste_start, .n = sequence.len },
+                201 => return .{ .event = .paste_end, .n = sequence.len },
+                57427 => Key.kp_begin,
+                else => return null_event,
+            };
+
+            const modifiers: Key.Modifiers = if (field_iter.next()) |modifier_buf| mods: {
+                const modifiers = parseParam(u8, modifier_buf, 1) orelse return null_event;
+                break :mods @bitCast(modifiers -| 1);
+            } else .{};
+
+            const key: Key = .{
+                .codepoint = key_code,
+                .mods = modifiers,
+            };
+
+            return .{
+                .event = .{ .key_press = key },
+                .n = sequence.len,
+            };
+        },
+
+        'I' => return .{ .event = .focus_in, .n = sequence.len },
+        'O' => return .{ .event = .focus_out, .n = sequence.len },
+        'M', 'm' => return parseMouse(sequence),
+        'c' => {
+            // Primary DA (CSI ? Pm c)
+            std.debug.assert(sequence.len >= 4); // ESC [ ? c == 4 bytes
+            switch (input[2]) {
+                '?' => return .{ .event = .cap_da1, .n = sequence.len },
+                else => return null_event,
+            }
+        },
+        'n' => {
+            // Device Status Report
+            // CSI Ps n
+            // CSI ? Ps n
+            std.debug.assert(sequence.len >= 3);
+            switch (sequence[2]) {
+                '?' => {
+                    const delim_idx = std.mem.indexOfScalarPos(u8, input, 3, ';') orelse return null_event;
+                    const ps = std.fmt.parseUnsigned(u16, input[3..delim_idx], 10) catch return null_event;
+                    switch (ps) {
+                        997 => {
+                            // Color scheme update (CSI 997 ; Ps n)
+                            // See https://github.com/contour-terminal/contour/blob/master/docs/vt-extensions/color-palette-update-notifications.md
+                            switch (sequence[delim_idx + 1]) {
+                                '1' => return .{
+                                    .event = .{ .color_scheme = .dark },
+                                    .n = sequence.len,
+                                },
+                                '2' => return .{
+                                    .event = .{ .color_scheme = .light },
+                                    .n = sequence.len,
+                                },
+                                else => return null_event,
+                            }
+                        },
+                        else => return null_event,
+                    }
+                },
+                else => return null_event,
+            }
+        },
+        'u' => {
+            // Kitty keyboard
+            // CSI unicode-key-code:alternate-key-codes ; modifiers:event-type ; text-as-codepoints u
+            // Not all fields will be present. Only unicode-key-code is
+            // mandatory
+
+            var key: Key = .{
+                .codepoint = undefined,
+            };
+            // Split first into fields delimited by ';'
+            var field_iter = std.mem.splitScalar(u8, sequence[2 .. sequence.len - 1], ';');
+
+            { // field 1
+                // unicode-key-code:shifted_codepoint:base_layout_codepoint
+                const field_buf = field_iter.next() orelse unreachable; // There will always be at least one field
+                var param_iter = std.mem.splitScalar(u8, field_buf, ':');
+                const codepoint_buf = param_iter.next() orelse unreachable;
+                key.codepoint = parseParam(u21, codepoint_buf, null) orelse return null_event;
+
+                if (param_iter.next()) |shifted_cp_buf| {
+                    key.shifted_codepoint = parseParam(u21, shifted_cp_buf, null);
+                }
+                if (param_iter.next()) |base_layout_buf| {
+                    key.base_layout_codepoint = parseParam(u21, base_layout_buf, null);
+                }
+            }
+
+            var is_release: bool = false;
+
+            field2: {
+                // modifier_mask:event_type
+                const field_buf = field_iter.next() orelse break :field2;
+                var param_iter = std.mem.splitScalar(u8, field_buf, ':');
+                const modifier_buf = param_iter.next() orelse unreachable;
+                const modifier_mask = parseParam(u8, modifier_buf, 1) orelse return null_event;
+                key.mods = @bitCast(modifier_mask -| 1);
+
+                if (param_iter.next()) |event_type_buf| {
+                    is_release = std.mem.eql(u8, event_type_buf, "3");
+                }
+            }
+
+            field3: {
+                // text_as_codepoint[:text_as_codepoint]
+                const field_buf = field_iter.next() orelse break :field3;
+                var param_iter = std.mem.splitScalar(u8, field_buf, ':');
+                var total: usize = 0;
+                while (param_iter.next()) |cp_buf| {
+                    const cp = parseParam(u21, cp_buf, null) orelse return null_event;
+                    total += std.unicode.utf8Encode(cp, text_buf[total..]) catch return null_event;
+                }
+                key.text = text_buf[0..total];
+            }
+
+            const event: Event = if (is_release)
+                .{ .key_release = key }
+            else
+                .{ .key_press = key };
+
+            return .{ .event = event, .n = sequence.len };
+        },
+        'y' => {
+            // DECRPM (CSI Ps ; Pm y)
+            const delim_idx = std.mem.indexOfScalarPos(u8, input, 2, ';') orelse return null_event;
+            const ps = std.fmt.parseUnsigned(u16, input[2..delim_idx], 10) catch return null_event;
+            const pm = std.fmt.parseUnsigned(u8, input[delim_idx + 1 .. sequence.len - 1], 10) catch return null_event;
+            switch (ps) {
+                // Mouse Pixel reporting
+                1016 => switch (pm) {
+                    0, 4 => return null_event,
+                    else => return .{ .event = .cap_sgr_pixels, .n = sequence.len },
+                },
+                // Unicode Core, see https://github.com/contour-terminal/terminal-unicode-core
+                2027 => switch (pm) {
+                    0, 4 => return null_event,
+                    else => return .{ .event = .cap_unicode, .n = sequence.len },
+                },
+                // Color scheme reportnig, see https://github.com/contour-terminal/contour/blob/master/docs/vt-extensions/color-palette-update-notifications.md
+                2031 => switch (pm) {
+                    0, 4 => return null_event,
+                    else => return .{ .event = .cap_color_scheme_updates, .n = sequence.len },
+                },
+                else => return null_event,
+            }
+        },
+        else => return null_event,
+    }
+}
+
+/// Parse a param buffer, returning a default value if the param was empty
+inline fn parseParam(comptime T: type, buf: []const u8, default: ?T) ?T {
+    if (buf.len == 0) return default;
+    return std.fmt.parseUnsigned(T, buf, 10) catch return null;
+}
+
+/// Parse a mouse event
+inline fn parseMouse(input: []const u8) Result {
+    std.debug.assert(input.len >= 4); // ESC [ < [Mm]
+    const null_event: Result = .{ .event = null, .n = input.len };
+
+    if (input[2] != '<') return null_event;
+
+    const delim1 = std.mem.indexOfScalarPos(u8, input, 3, ';') orelse return null_event;
+    const button_mask = parseParam(u16, input[3..delim1], null) orelse return null_event;
+    const delim2 = std.mem.indexOfScalarPos(u8, input, delim1 + 1, ';') orelse return null_event;
+    const px = parseParam(u16, input[delim1 + 1 .. delim2], 1) orelse return null_event;
+    const py = parseParam(u16, input[delim2 + 1 .. input.len - 1], 1) orelse return null_event;
+
+    const button: Mouse.Button = @enumFromInt(button_mask & mouse_bits.buttons);
+    const motion = button_mask & mouse_bits.motion > 0;
+    const shift = button_mask & mouse_bits.shift > 0;
+    const alt = button_mask & mouse_bits.alt > 0;
+    const ctrl = button_mask & mouse_bits.ctrl > 0;
+
+    const mouse = Mouse{
+        .button = button,
+        .mods = .{
+            .shift = shift,
+            .alt = alt,
+            .ctrl = ctrl,
+        },
+        .col = px -| 1,
+        .row = py -| 1,
+        .type = blk: {
+            if (motion and button != Mouse.Button.none) {
+                break :blk .drag;
+            }
+            if (motion and button == Mouse.Button.none) {
+                break :blk .motion;
+            }
+            if (input[input.len - 1] == 'm') break :blk .release;
+            break :blk .press;
+        },
+    };
+    return .{ .event = .{ .mouse = mouse }, .n = input.len };
 }
 
 test "parse: single xterm keypress" {
@@ -838,25 +655,13 @@ test "parse: xterm alt+a" {
     try testing.expectEqual(expected_event, result.event);
 }
 
-test "parse: xterm invalid ss3" {
-    const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
-    const input = "\x1bOZ";
-    var parser: Parser = .{ .grapheme_data = &grapheme_data };
-    const result = try parser.parse(input, alloc);
-
-    try testing.expectEqual(3, result.n);
-    try testing.expectEqual(null, result.event);
-}
-
 test "parse: xterm key up" {
     const alloc = testing.allocator_instance.allocator();
     const grapheme_data = try grapheme.GraphemeData.init(alloc);
     defer grapheme_data.deinit();
     {
         // normal version
-        const input = "\x1bOA";
+        const input = "\x1b[A";
         var parser: Parser = .{ .grapheme_data = &grapheme_data };
         const result = try parser.parse(input, alloc);
         const expected_key: Key = .{ .codepoint = Key.up };
@@ -868,13 +673,13 @@ test "parse: xterm key up" {
 
     {
         // application keys version
-        const input = "\x1b[2~";
+        const input = "\x1bOA";
         var parser: Parser = .{ .grapheme_data = &grapheme_data };
         const result = try parser.parse(input, alloc);
-        const expected_key: Key = .{ .codepoint = Key.insert };
+        const expected_key: Key = .{ .codepoint = Key.up };
         const expected_event: Event = .{ .key_press = expected_key };
 
-        try testing.expectEqual(4, result.n);
+        try testing.expectEqual(3, result.n);
         try testing.expectEqual(expected_event, result.event);
     }
 }
@@ -897,13 +702,13 @@ test "parse: xterm insert" {
     const alloc = testing.allocator_instance.allocator();
     const grapheme_data = try grapheme.GraphemeData.init(alloc);
     defer grapheme_data.deinit();
-    const input = "\x1b[1;2A";
+    const input = "\x1b[2~";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
-    const expected_key: Key = .{ .codepoint = Key.up, .mods = .{ .shift = true } };
+    const expected_key: Key = .{ .codepoint = Key.insert, .mods = .{} };
     const expected_event: Event = .{ .key_press = expected_key };
 
-    try testing.expectEqual(6, result.n);
+    try testing.expectEqual(input.len, result.n);
     try testing.expectEqual(expected_event, result.event);
 }
 
@@ -1113,4 +918,99 @@ test "parse: multiple codepoint grapheme with more after" {
     const actual = result.event.?.key_press;
     try testing.expectEqualStrings(expected_key.text.?, actual.text.?);
     try testing.expectEqual(expected_key.codepoint, actual.codepoint);
+}
+
+test "parse(csi): decrpm" {
+    var buf: [1]u8 = undefined;
+    {
+        const input = "\x1b[1016;1y";
+        const result = parseCsi(input, &buf);
+        const expected: Result = .{
+            .event = .cap_sgr_pixels,
+            .n = input.len,
+        };
+
+        try testing.expectEqual(expected.n, result.n);
+        try testing.expectEqual(expected.event, result.event);
+    }
+    {
+        const input = "\x1b[1016;0y";
+        const result = parseCsi(input, &buf);
+        const expected: Result = .{
+            .event = null,
+            .n = input.len,
+        };
+
+        try testing.expectEqual(expected.n, result.n);
+        try testing.expectEqual(expected.event, result.event);
+    }
+}
+
+test "parse(csi): primary da" {
+    var buf: [1]u8 = undefined;
+    const input = "\x1b[?c";
+    const result = parseCsi(input, &buf);
+    const expected: Result = .{
+        .event = .cap_da1,
+        .n = input.len,
+    };
+
+    try testing.expectEqual(expected.n, result.n);
+    try testing.expectEqual(expected.event, result.event);
+}
+
+test "parse(csi): dsr" {
+    var buf: [1]u8 = undefined;
+    {
+        const input = "\x1b[?997;1n";
+        const result = parseCsi(input, &buf);
+        const expected: Result = .{
+            .event = .{ .color_scheme = .dark },
+            .n = input.len,
+        };
+
+        try testing.expectEqual(expected.n, result.n);
+        try testing.expectEqual(expected.event, result.event);
+    }
+    {
+        const input = "\x1b[?997;2n";
+        const result = parseCsi(input, &buf);
+        const expected: Result = .{
+            .event = .{ .color_scheme = .light },
+            .n = input.len,
+        };
+
+        try testing.expectEqual(expected.n, result.n);
+        try testing.expectEqual(expected.event, result.event);
+    }
+    {
+        const input = "\x1b[0n";
+        const result = parseCsi(input, &buf);
+        const expected: Result = .{
+            .event = null,
+            .n = input.len,
+        };
+
+        try testing.expectEqual(expected.n, result.n);
+        try testing.expectEqual(expected.event, result.event);
+    }
+}
+
+test "parse(csi): mouse" {
+    var buf: [1]u8 = undefined;
+    const input = "\x1b[<35;1;1m";
+    const result = parseCsi(input, &buf);
+    const expected: Result = .{
+        .event = .{ .mouse = .{
+            .col = 0,
+            .row = 0,
+            .button = .none,
+            .type = .motion,
+            .mods = .{},
+        } },
+        .n = input.len,
+    };
+
+    try testing.expectEqual(expected.n, result.n);
+    try testing.expectEqual(expected.event, result.event);
 }
