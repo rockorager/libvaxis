@@ -77,6 +77,21 @@ sgr: enum {
     legacy,
 } = .standard,
 
+state: struct {
+    /// if we are in the alt screen
+    alt_screen: bool = false,
+    /// if we have entered kitty keyboard
+    kitty_keyboard: bool = false,
+    bracketed_paste: bool = false,
+    mouse: bool = false,
+    pixel_mouse: bool = false,
+    color_scheme_updates: bool = false,
+    cursor: struct {
+        row: usize = 0,
+        col: usize = 0,
+    } = .{},
+} = .{},
+
 /// Initialize Vaxis with runtime options
 pub fn init(alloc: std.mem.Allocator, opts: Options) !Vaxis {
     return .{
@@ -124,12 +139,12 @@ pub fn resize(self: *Vaxis, alloc: std.mem.Allocator, winsize: Winsize) !void {
     self.screen_last.deinit(alloc);
     self.screen_last = try InternalScreen.init(alloc, winsize.cols, winsize.rows);
     var tty = self.tty orelse return;
-    if (tty.state.alt_screen)
+    if (self.state.alt_screen)
         _ = try tty.write(ctlseqs.home)
     else {
         _ = try tty.buffered_writer.write("\r");
         var i: usize = 0;
-        while (i < tty.state.cursor.row) : (i += 1) {
+        while (i < self.state.cursor.row) : (i += 1) {
             _ = try tty.buffered_writer.write(ctlseqs.ri);
         }
     }
@@ -152,20 +167,20 @@ pub fn window(self: *Vaxis) Window {
 /// be exited if calling deinit while in the alt screen
 pub fn enterAltScreen(self: *Vaxis) !void {
     if (self.tty) |*tty| {
-        if (tty.state.alt_screen) return;
+        if (self.state.alt_screen) return;
         _ = try tty.write(ctlseqs.smcup);
         try tty.flush();
-        tty.state.alt_screen = true;
+        self.state.alt_screen = true;
     }
 }
 
 /// exit the alternate screen
 pub fn exitAltScreen(self: *Vaxis) !void {
     if (self.tty) |*tty| {
-        if (!tty.state.alt_screen) return;
+        if (!self.state.alt_screen) return;
         _ = try tty.write(ctlseqs.rmcup);
         try tty.flush();
-        tty.state.alt_screen = false;
+        self.state.alt_screen = false;
     }
 }
 
@@ -278,12 +293,12 @@ pub fn render(self: *Vaxis) !void {
     // this if we have an update to make. We also need to hide cursor
     // and then reshow it if needed
     _ = try tty.write(ctlseqs.hide_cursor);
-    if (tty.state.alt_screen)
+    if (self.state.alt_screen)
         _ = try tty.write(ctlseqs.home)
     else {
         _ = try tty.write("\r");
         var i: usize = 0;
-        while (i < tty.state.cursor.row) : (i += 1) {
+        while (i < self.state.cursor.row) : (i += 1) {
             _ = try tty.write(ctlseqs.ri);
         }
     }
@@ -353,7 +368,7 @@ pub fn render(self: *Vaxis) !void {
         // reposition the cursor, if needed
         if (reposition) {
             reposition = false;
-            if (tty.state.alt_screen)
+            if (self.state.alt_screen)
                 try std.fmt.format(tty.buffered_writer.writer(), ctlseqs.cup, .{ row + 1, col + 1 })
             else {
                 if (cursor_pos.row == row) {
@@ -589,7 +604,7 @@ pub fn render(self: *Vaxis) !void {
         cursor_pos.row = row;
     }
     if (self.screen.cursor_vis) {
-        if (tty.state.alt_screen) {
+        if (self.state.alt_screen) {
             try std.fmt.format(
                 tty.buffered_writer.writer(),
                 ctlseqs.cup,
@@ -615,12 +630,12 @@ pub fn render(self: *Vaxis) !void {
                 try std.fmt.format(tty.buffered_writer.writer(), ctlseqs.cuf, .{self.screen.cursor_col});
             }
         }
-        self.tty.?.state.cursor.row = self.screen.cursor_row;
-        self.tty.?.state.cursor.col = self.screen.cursor_col;
+        self.state.cursor.row = self.screen.cursor_row;
+        self.state.cursor.col = self.screen.cursor_col;
         _ = try tty.write(ctlseqs.show_cursor);
     } else {
-        self.tty.?.state.cursor.row = cursor_pos.row;
-        self.tty.?.state.cursor.col = cursor_pos.col;
+        self.state.cursor.row = cursor_pos.row;
+        self.state.cursor.col = cursor_pos.col;
     }
     if (self.screen.mouse_shape != self.screen_last.mouse_shape) {
         try std.fmt.format(
@@ -651,7 +666,7 @@ fn enableKittyKeyboard(self: *Vaxis, flags: Key.KittyFlags) !void {
             },
         );
         try tty.flush();
-        tty.state.kitty_keyboard = true;
+        self.state.kitty_keyboard = true;
     }
 }
 
@@ -696,7 +711,7 @@ pub fn setBracketedPaste(self: *Vaxis, enable: bool) !void {
             ctlseqs.bp_reset;
         _ = try tty.write(seq);
         try tty.flush();
-        tty.state.bracketed_paste = enable;
+        self.state.bracketed_paste = enable;
     }
 }
 
@@ -709,10 +724,10 @@ pub fn setMouseShape(self: *Vaxis, shape: Shape) void {
 pub fn setMouseMode(self: *Vaxis, enable: bool) !void {
     if (self.tty) |*tty| {
         if (enable) {
-            tty.state.mouse = true;
+            self.state.mouse = true;
             if (self.caps.sgr_pixels) {
                 log.debug("enabling mouse mode: pixel coordinates", .{});
-                tty.state.pixel_mouse = true;
+                self.state.pixel_mouse = true;
                 _ = try tty.write(ctlseqs.mouse_set_pixels);
             } else {
                 log.debug("enabling mouse mode: cell coordinates", .{});
@@ -728,8 +743,7 @@ pub fn setMouseMode(self: *Vaxis, enable: bool) !void {
 /// Translate pixel mouse coordinates to cell + offset
 pub fn translateMouse(self: Vaxis, mouse: Mouse) Mouse {
     var result = mouse;
-    const tty = self.tty orelse return result;
-    if (tty.state.pixel_mouse) {
+    if (self.state.pixel_mouse) {
         std.debug.assert(mouse.xoffset == 0);
         std.debug.assert(mouse.yoffset == 0);
         const xpos = mouse.col;
@@ -884,5 +898,5 @@ pub fn subscribeToColorSchemeUpdates(self: Vaxis) !void {
     _ = try tty.write(ctlseqs.color_scheme_request);
     _ = try tty.write(ctlseqs.color_scheme_set);
     try tty.flush();
-    tty.state.color_scheme_updates = true;
+    self.state.color_scheme_updates = true;
 }

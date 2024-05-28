@@ -24,21 +24,6 @@ should_quit: bool = false,
 
 buffered_writer: BufferedWriter,
 
-state: struct {
-    /// if we are in the alt screen
-    alt_screen: bool = false,
-    /// if we have entered kitty keyboard
-    kitty_keyboard: bool = false,
-    bracketed_paste: bool = false,
-    mouse: bool = false,
-    pixel_mouse: bool = false,
-    color_scheme_updates: bool = false,
-    cursor: struct {
-        row: usize = 0,
-        col: usize = 0,
-    } = .{},
-} = .{},
-
 /// initializes a Tty instance by opening /dev/tty and "making it raw"
 pub fn init() !Tty {
     // Open our tty
@@ -56,21 +41,6 @@ pub fn init() !Tty {
 
 /// release resources associated with the Tty return it to its original state
 pub fn deinit(self: *Tty) void {
-    if (self.state.kitty_keyboard) {
-        _ = self.write(ctlseqs.csi_u_pop) catch {};
-    }
-    if (self.state.mouse) {
-        _ = self.write(ctlseqs.mouse_reset) catch {};
-    }
-    if (self.state.bracketed_paste) {
-        _ = self.write(ctlseqs.bp_reset) catch {};
-    }
-    if (self.state.alt_screen) {
-        _ = self.write(ctlseqs.rmcup) catch {};
-    }
-    if (self.state.color_scheme_updates) {
-        _ = self.write(ctlseqs.color_scheme_reset) catch {};
-    }
     // always show the cursor on exit
     _ = self.write(ctlseqs.show_cursor) catch {};
     self.flush() catch {};
