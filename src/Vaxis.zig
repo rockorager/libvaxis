@@ -9,15 +9,16 @@ const InternalScreen = @import("InternalScreen.zig");
 const Key = @import("Key.zig");
 const Mouse = @import("Mouse.zig");
 const Screen = @import("Screen.zig");
-const Tty = @import("Tty.zig");
+const tty = @import("tty.zig");
 const Unicode = @import("Unicode.zig");
 const Window = @import("Window.zig");
 
+const AnyWriter = std.io.AnyWriter;
 const Hyperlink = Cell.Hyperlink;
 const KittyFlags = Key.KittyFlags;
 const Shape = Mouse.Shape;
 const Style = Cell.Style;
-const Winsize = Tty.Winsize;
+const Winsize = tty.Winsize;
 
 const ctlseqs = @import("ctlseqs.zig");
 const gwidth = @import("gwidth.zig");
@@ -42,8 +43,6 @@ pub const Options = struct {
     /// clipboard
     system_clipboard_allocator: ?std.mem.Allocator = null,
 };
-
-tty: ?Tty,
 
 /// the screen we write to
 screen: Screen,
@@ -96,7 +95,6 @@ state: struct {
 pub fn init(alloc: std.mem.Allocator, opts: Options) !Vaxis {
     return .{
         .opts = opts,
-        .tty = null,
         .screen = .{},
         .screen_last = .{},
         .render_timer = try std.time.Timer.start(),
@@ -108,10 +106,11 @@ pub fn init(alloc: std.mem.Allocator, opts: Options) !Vaxis {
 /// passed, this will free resources associated with Vaxis. This is left as an
 /// optional so applications can choose to not free resources when the
 /// application will be exiting anyways
-pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator) void {
-    if (self.tty) |*tty| {
-        tty.deinit();
-    }
+pub fn deinit(self: *Vaxis, writer: AnyWriter, alloc: ?std.mem.Allocator) void {
+    self.resetState(writer) catch {};
+
+    // always show the cursor on exit
+    writer.writeAll(ctlseqs.show_cursor) catch {};
     if (alloc) |a| {
         self.screen.deinit(a);
         self.screen_last.deinit(a);
@@ -124,11 +123,32 @@ pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator) void {
     self.unicode.deinit();
 }
 
+/// resets enabled features
+pub fn resetState(self: *Vaxis, writer: AnyWriter) !void {
+    if (self.state.kitty_keyboard) {
+        try writer.writeAll(ctlseqs.csi_u_pop);
+        self.state.kitty_keyboard = false;
+    }
+    if (self.state.mouse) {
+        try self.setMouseMode(writer, false);
+    }
+    if (self.state.bracketed_paste) {
+        try self.setBracketedPaste(writer, false);
+    }
+    if (self.state.alt_screen) {
+        try self.exitAltScreen(writer);
+    }
+    if (self.state.color_scheme_updates) {
+        try writer.writeAll(ctlseqs.color_scheme_reset);
+        self.state.color_scheme_updates = false;
+    }
+}
+
 /// resize allocates a slice of cells equal to the number of cells
 /// required to display the screen (ie width x height). Any previous screen is
 /// freed when resizing. The cursor will be sent to it's home position and a
 /// hardware clear-below-cursor will be sent
-pub fn resize(self: *Vaxis, alloc: std.mem.Allocator, winsize: Winsize) !void {
+pub fn resize(self: *Vaxis, alloc: std.mem.Allocator, winsize: Winsize, writer: AnyWriter) !void {
     log.debug("resizing screen: width={d} height={d}", .{ winsize.cols, winsize.rows });
     self.screen.deinit(alloc);
     self.screen = try Screen.init(alloc, winsize, &self.unicode);
@@ -138,18 +158,16 @@ pub fn resize(self: *Vaxis, alloc: std.mem.Allocator, winsize: Winsize) !void {
     // every cell
     self.screen_last.deinit(alloc);
     self.screen_last = try InternalScreen.init(alloc, winsize.cols, winsize.rows);
-    var tty = self.tty orelse return;
     if (self.state.alt_screen)
-        _ = try tty.write(ctlseqs.home)
+        try writer.writeAll(ctlseqs.home)
     else {
-        _ = try tty.buffered_writer.write("\r");
+        try writer.writeByte('\r');
         var i: usize = 0;
         while (i < self.state.cursor.row) : (i += 1) {
-            _ = try tty.buffered_writer.write(ctlseqs.ri);
+            try writer.writeAll(ctlseqs.ri);
         }
     }
-    _ = try tty.write(ctlseqs.erase_below_cursor);
-    try tty.flush();
+    try writer.writeAll(ctlseqs.erase_below_cursor);
 }
 
 /// returns a Window comprising of the entire terminal screen
@@ -165,23 +183,15 @@ pub fn window(self: *Vaxis) Window {
 
 /// enter the alternate screen. The alternate screen will automatically
 /// be exited if calling deinit while in the alt screen
-pub fn enterAltScreen(self: *Vaxis) !void {
-    if (self.tty) |*tty| {
-        if (self.state.alt_screen) return;
-        _ = try tty.write(ctlseqs.smcup);
-        try tty.flush();
-        self.state.alt_screen = true;
-    }
+pub fn enterAltScreen(self: *Vaxis, writer: AnyWriter) !void {
+    try writer.writeAll(ctlseqs.smcup);
+    self.state.alt_screen = true;
 }
 
 /// exit the alternate screen
-pub fn exitAltScreen(self: *Vaxis) !void {
-    if (self.tty) |*tty| {
-        if (!self.state.alt_screen) return;
-        _ = try tty.write(ctlseqs.rmcup);
-        try tty.flush();
-        self.state.alt_screen = false;
-    }
+pub fn exitAltScreen(self: *Vaxis, writer: AnyWriter) !void {
+    try writer.writeAll(ctlseqs.rmcup);
+    self.state.alt_screen = false;
 }
 
 /// write queries to the terminal to determine capabilities. Individual
@@ -199,8 +209,7 @@ pub fn queryTerminal(self: *Vaxis) !void {
 /// write queries to the terminal to determine capabilities. This function
 /// is only for use with a custom main loop. Call Vaxis.queryTerminal() if
 /// you are using Loop.run()
-pub fn queryTerminalSend(self: *Vaxis) !void {
-    var tty = self.tty orelse return;
+pub fn queryTerminalSend(_: Vaxis, writer: AnyWriter) !void {
 
     // TODO: re-enable this
     // const colorterm = std.posix.getenv("COLORTERM") orelse "";
@@ -216,29 +225,26 @@ pub fn queryTerminalSend(self: *Vaxis) !void {
     // doesn't hurt to blindly use them
     // _ = try tty.write(ctlseqs.decrqm_focus);
     // _ = try tty.write(ctlseqs.decrqm_sync);
-    _ = try tty.write(ctlseqs.decrqm_sgr_pixels);
-    _ = try tty.write(ctlseqs.decrqm_unicode);
-    _ = try tty.write(ctlseqs.decrqm_color_scheme);
+    try writer.writeAll(ctlseqs.decrqm_sgr_pixels);
+    try writer.writeAll(ctlseqs.decrqm_unicode);
+    try writer.writeAll(ctlseqs.decrqm_color_scheme);
     // TODO: XTVERSION has a DCS response. uncomment when we can parse
     // that
     // _ = try tty.write(ctlseqs.xtversion);
-    _ = try tty.write(ctlseqs.csi_u_query);
-    _ = try tty.write(ctlseqs.kitty_graphics_query);
+    try writer.writeAll(ctlseqs.csi_u_query);
+    try writer.writeAll(ctlseqs.kitty_graphics_query);
     // TODO: sixel geometry query interferes with F4 keys.
     // _ = try tty.write(ctlseqs.sixel_geometry_query);
 
     // TODO: XTGETTCAP queries ("RGB", "Smulx")
 
-    _ = try tty.write(ctlseqs.primary_device_attrs);
-    try tty.flush();
+    try writer.writeAll(ctlseqs.primary_device_attrs);
 }
 
 /// Enable features detected by responses to queryTerminal. This function
 /// is only for use with a custom main loop. Call Vaxis.queryTerminal() if
 /// you are using Loop.run()
 pub fn enableDetectedFeatures(self: *Vaxis) !void {
-    var tty = self.tty orelse return;
-
     // Apply any environment variables
     if (std.posix.getenv("ASCIINEMA_REC")) |_|
         self.sgr = .legacy;
@@ -270,8 +276,7 @@ pub fn queueRefresh(self: *Vaxis) void {
 }
 
 /// draws the screen to the terminal
-pub fn render(self: *Vaxis) !void {
-    var tty = self.tty orelse return;
+pub fn render(self: *Vaxis, writer: AnyWriter) !void {
     self.renders += 1;
     self.render_timer.reset();
     defer {
@@ -279,30 +284,29 @@ pub fn render(self: *Vaxis) !void {
     }
 
     defer self.refresh = false;
-    defer tty.flush() catch {};
 
     // Set up sync before we write anything
     // TODO: optimize sync so we only sync _when we have changes_. This
     // requires a smarter buffered writer, we'll probably have to write
     // our own
-    _ = try tty.write(ctlseqs.sync_set);
-    defer _ = tty.write(ctlseqs.sync_reset) catch {};
+    try writer.writeAll(ctlseqs.sync_set);
+    defer writer.writeAll(ctlseqs.sync_reset) catch {};
 
     // Send the cursor to 0,0
     // TODO: this needs to move after we optimize writes. We only do
     // this if we have an update to make. We also need to hide cursor
     // and then reshow it if needed
-    _ = try tty.write(ctlseqs.hide_cursor);
+    try writer.writeAll(ctlseqs.hide_cursor);
     if (self.state.alt_screen)
-        _ = try tty.write(ctlseqs.home)
+        try writer.writeAll(ctlseqs.home)
     else {
-        _ = try tty.write("\r");
+        try writer.writeAll("\r");
         var i: usize = 0;
         while (i < self.state.cursor.row) : (i += 1) {
-            _ = try tty.write(ctlseqs.ri);
+            try writer.writeAll(ctlseqs.ri);
         }
     }
-    _ = try tty.write(ctlseqs.sgr_reset);
+    try writer.writeAll(ctlseqs.sgr_reset);
 
     // initialize some variables
     var reposition: bool = false;
@@ -317,7 +321,7 @@ pub fn render(self: *Vaxis) !void {
 
     // Clear all images
     if (self.caps.kitty_graphics)
-        _ = try tty.write(ctlseqs.kitty_graphics_clear);
+        try writer.writeAll(ctlseqs.kitty_graphics_clear);
 
     var i: usize = 0;
     while (i < self.screen.buf.len) {
@@ -353,7 +357,7 @@ pub fn render(self: *Vaxis) !void {
             // Close any osc8 sequence we might be in before
             // repositioning
             if (link.uri.len > 0) {
-                _ = try tty.write(ctlseqs.osc8_clear);
+                try writer.writeAll(ctlseqs.osc8_clear);
             }
             continue;
         }
@@ -369,76 +373,52 @@ pub fn render(self: *Vaxis) !void {
         if (reposition) {
             reposition = false;
             if (self.state.alt_screen)
-                try std.fmt.format(tty.buffered_writer.writer(), ctlseqs.cup, .{ row + 1, col + 1 })
+                try writer.print(ctlseqs.cup, .{ row + 1, col + 1 })
             else {
                 if (cursor_pos.row == row) {
                     const n = col - cursor_pos.col;
-                    try std.fmt.format(tty.buffered_writer.writer(), ctlseqs.cuf, .{n});
+                    try writer.print(ctlseqs.cuf, .{n});
                 } else {
+                    try writer.writeByte('\r');
                     const n = row - cursor_pos.row;
-                    var _i: usize = 0;
-                    _ = try tty.buffered_writer.write("\r");
-                    while (_i < n) : (_i += 1) {
-                        _ = try tty.buffered_writer.write("\n");
-                    }
-                    if (col > 0)
-                        try std.fmt.format(tty.buffered_writer.writer(), ctlseqs.cuf, .{col});
+                    try writer.writeByteNTimes('\n', n);
                 }
+                if (col > 0)
+                    try writer.print(ctlseqs.cuf, .{col});
             }
         }
 
         if (cell.image) |img| {
-            try tty.buffered_writer.writer().print(
+            try writer.print(
                 ctlseqs.kitty_graphics_preamble,
                 .{img.img_id},
             );
             if (img.options.pixel_offset) |offset| {
-                try tty.buffered_writer.writer().print(
+                try writer.print(
                     ",X={d},Y={d}",
                     .{ offset.x, offset.y },
                 );
             }
             if (img.options.clip_region) |clip| {
                 if (clip.x) |x|
-                    try tty.buffered_writer.writer().print(
-                        ",x={d}",
-                        .{x},
-                    );
+                    try writer.print(",x={d}", .{x});
                 if (clip.y) |y|
-                    try tty.buffered_writer.writer().print(
-                        ",y={d}",
-                        .{y},
-                    );
+                    try writer.print(",y={d}", .{y});
                 if (clip.width) |width|
-                    try tty.buffered_writer.writer().print(
-                        ",w={d}",
-                        .{width},
-                    );
+                    try writer.print(",w={d}", .{width});
                 if (clip.height) |height|
-                    try tty.buffered_writer.writer().print(
-                        ",h={d}",
-                        .{height},
-                    );
+                    try writer.print(",h={d}", .{height});
             }
             if (img.options.size) |size| {
                 if (size.rows) |rows|
-                    try tty.buffered_writer.writer().print(
-                        ",r={d}",
-                        .{rows},
-                    );
+                    try writer.print(",r={d}", .{rows});
                 if (size.cols) |cols|
-                    try tty.buffered_writer.writer().print(
-                        ",c={d}",
-                        .{cols},
-                    );
+                    try writer.print(",c={d}", .{cols});
             }
             if (img.options.z_index) |z| {
-                try tty.buffered_writer.writer().print(
-                    ",z={d}",
-                    .{z},
-                );
+                try writer.print(",z={d}", .{z});
             }
-            try tty.buffered_writer.writer().writeAll(ctlseqs.kitty_graphics_closing);
+            try writer.writeAll(ctlseqs.kitty_graphics_closing);
         }
 
         // something is different, so let's loop through everything and
@@ -446,69 +426,66 @@ pub fn render(self: *Vaxis) !void {
 
         // foreground
         if (!Cell.Color.eql(cursor.fg, cell.style.fg)) {
-            const writer = tty.buffered_writer.writer();
             switch (cell.style.fg) {
-                .default => _ = try tty.write(ctlseqs.fg_reset),
+                .default => try writer.writeAll(ctlseqs.fg_reset),
                 .index => |idx| {
                     switch (idx) {
-                        0...7 => try std.fmt.format(writer, ctlseqs.fg_base, .{idx}),
-                        8...15 => try std.fmt.format(writer, ctlseqs.fg_bright, .{idx - 8}),
+                        0...7 => try writer.print(ctlseqs.fg_base, .{idx}),
+                        8...15 => try writer.print(ctlseqs.fg_bright, .{idx - 8}),
                         else => {
                             switch (self.sgr) {
-                                .standard => try std.fmt.format(writer, ctlseqs.fg_indexed, .{idx}),
-                                .legacy => try std.fmt.format(writer, ctlseqs.fg_indexed_legacy, .{idx}),
+                                .standard => try writer.print(ctlseqs.fg_indexed, .{idx}),
+                                .legacy => try writer.print(ctlseqs.fg_indexed_legacy, .{idx}),
                             }
                         },
                     }
                 },
                 .rgb => |rgb| {
                     switch (self.sgr) {
-                        .standard => try std.fmt.format(writer, ctlseqs.fg_rgb, .{ rgb[0], rgb[1], rgb[2] }),
-                        .legacy => try std.fmt.format(writer, ctlseqs.fg_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
+                        .standard => try writer.print(ctlseqs.fg_rgb, .{ rgb[0], rgb[1], rgb[2] }),
+                        .legacy => try writer.print(ctlseqs.fg_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
                     }
                 },
             }
         }
         // background
         if (!Cell.Color.eql(cursor.bg, cell.style.bg)) {
-            const writer = tty.buffered_writer.writer();
             switch (cell.style.bg) {
-                .default => _ = try tty.write(ctlseqs.bg_reset),
+                .default => try writer.writeAll(ctlseqs.bg_reset),
                 .index => |idx| {
                     switch (idx) {
-                        0...7 => try std.fmt.format(writer, ctlseqs.bg_base, .{idx}),
-                        8...15 => try std.fmt.format(writer, ctlseqs.bg_bright, .{idx - 8}),
+                        0...7 => try writer.print(ctlseqs.bg_base, .{idx}),
+                        8...15 => try writer.print(ctlseqs.bg_bright, .{idx - 8}),
                         else => {
                             switch (self.sgr) {
-                                .standard => try std.fmt.format(writer, ctlseqs.bg_indexed, .{idx}),
-                                .legacy => try std.fmt.format(writer, ctlseqs.bg_indexed_legacy, .{idx}),
+                                .standard => try writer.print(ctlseqs.bg_indexed, .{idx}),
+                                .legacy => try writer.print(ctlseqs.bg_indexed_legacy, .{idx}),
                             }
                         },
                     }
                 },
                 .rgb => |rgb| {
                     switch (self.sgr) {
-                        .standard => try std.fmt.format(writer, ctlseqs.bg_rgb, .{ rgb[0], rgb[1], rgb[2] }),
-                        .legacy => try std.fmt.format(writer, ctlseqs.bg_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
+                        .standard => try writer.print(ctlseqs.bg_rgb, .{ rgb[0], rgb[1], rgb[2] }),
+                        .legacy => try writer.print(ctlseqs.bg_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
                     }
                 },
             }
         }
         // underline color
         if (!Cell.Color.eql(cursor.ul, cell.style.ul)) {
-            const writer = tty.buffered_writer.writer();
             switch (cell.style.bg) {
-                .default => _ = try tty.write(ctlseqs.ul_reset),
+                .default => try writer.writeAll(ctlseqs.ul_reset),
                 .index => |idx| {
                     switch (self.sgr) {
-                        .standard => try std.fmt.format(writer, ctlseqs.ul_indexed, .{idx}),
-                        .legacy => try std.fmt.format(writer, ctlseqs.ul_indexed_legacy, .{idx}),
+                        .standard => try writer.print(ctlseqs.ul_indexed, .{idx}),
+                        .legacy => try writer.print(ctlseqs.ul_indexed_legacy, .{idx}),
                     }
                 },
                 .rgb => |rgb| {
                     switch (self.sgr) {
-                        .standard => try std.fmt.format(writer, ctlseqs.ul_rgb, .{ rgb[0], rgb[1], rgb[2] }),
-                        .legacy => try std.fmt.format(writer, ctlseqs.ul_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
+                        .standard => try writer.print(ctlseqs.ul_rgb, .{ rgb[0], rgb[1], rgb[2] }),
+                        .legacy => try writer.print(ctlseqs.ul_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
                     }
                 },
             }
@@ -523,7 +500,7 @@ pub fn render(self: *Vaxis) !void {
                 .dotted => ctlseqs.ul_dotted,
                 .dashed => ctlseqs.ul_dashed,
             };
-            _ = try tty.write(seq);
+            try writer.writeAll(seq);
         }
         // bold
         if (cursor.bold != cell.style.bold) {
@@ -531,9 +508,9 @@ pub fn render(self: *Vaxis) !void {
                 true => ctlseqs.bold_set,
                 false => ctlseqs.bold_dim_reset,
             };
-            _ = try tty.write(seq);
+            try writer.writeAll(seq);
             if (cell.style.dim) {
-                _ = try tty.write(ctlseqs.dim_set);
+                try writer.writeAll(ctlseqs.dim_set);
             }
         }
         // dim
@@ -542,9 +519,9 @@ pub fn render(self: *Vaxis) !void {
                 true => ctlseqs.dim_set,
                 false => ctlseqs.bold_dim_reset,
             };
-            _ = try tty.write(seq);
+            try writer.writeAll(seq);
             if (cell.style.bold) {
-                _ = try tty.write(ctlseqs.bold_set);
+                try writer.writeAll(ctlseqs.bold_set);
             }
         }
         // dim
@@ -553,7 +530,7 @@ pub fn render(self: *Vaxis) !void {
                 true => ctlseqs.italic_set,
                 false => ctlseqs.italic_reset,
             };
-            _ = try tty.write(seq);
+            try writer.writeAll(seq);
         }
         // dim
         if (cursor.blink != cell.style.blink) {
@@ -561,7 +538,7 @@ pub fn render(self: *Vaxis) !void {
                 true => ctlseqs.blink_set,
                 false => ctlseqs.blink_reset,
             };
-            _ = try tty.write(seq);
+            try writer.writeAll(seq);
         }
         // reverse
         if (cursor.reverse != cell.style.reverse) {
@@ -569,7 +546,7 @@ pub fn render(self: *Vaxis) !void {
                 true => ctlseqs.reverse_set,
                 false => ctlseqs.reverse_reset,
             };
-            _ = try tty.write(seq);
+            try writer.writeAll(seq);
         }
         // invisible
         if (cursor.invisible != cell.style.invisible) {
@@ -577,7 +554,7 @@ pub fn render(self: *Vaxis) !void {
                 true => ctlseqs.invisible_set,
                 false => ctlseqs.invisible_reset,
             };
-            _ = try tty.write(seq);
+            try writer.writeAll(seq);
         }
         // strikethrough
         if (cursor.strikethrough != cell.style.strikethrough) {
@@ -585,7 +562,7 @@ pub fn render(self: *Vaxis) !void {
                 true => ctlseqs.strikethrough_set,
                 false => ctlseqs.strikethrough_reset,
             };
-            _ = try tty.write(seq);
+            try writer.writeAll(seq);
         }
 
         // url
@@ -596,17 +573,15 @@ pub fn render(self: *Vaxis) !void {
                 // a url
                 ps = "";
             }
-            const writer = tty.buffered_writer.writer();
-            try std.fmt.format(writer, ctlseqs.osc8, .{ ps, cell.link.uri });
+            try writer.print(ctlseqs.osc8, .{ ps, cell.link.uri });
         }
-        _ = try tty.write(cell.char.grapheme);
+        try writer.writeAll(cell.char.grapheme);
         cursor_pos.col = col + w;
         cursor_pos.row = row;
     }
     if (self.screen.cursor_vis) {
         if (self.state.alt_screen) {
-            try std.fmt.format(
-                tty.buffered_writer.writer(),
+            try writer.print(
                 ctlseqs.cup,
                 .{
                     self.screen.cursor_row + 1,
@@ -615,39 +590,30 @@ pub fn render(self: *Vaxis) !void {
             );
         } else {
             // TODO: position cursor relative to current location
-            _ = try tty.write("\r");
-            var r: usize = 0;
-            if (self.screen.cursor_row >= cursor_pos.row) {
-                while (r < (self.screen.cursor_row - cursor_pos.row)) : (r += 1) {
-                    _ = try tty.write("\n");
-                }
-            } else {
-                while (r < (cursor_pos.row - self.screen.cursor_row)) : (r += 1) {
-                    _ = try tty.write(ctlseqs.ri);
-                }
-            }
-            if (self.screen.cursor_col > 0) {
-                try std.fmt.format(tty.buffered_writer.writer(), ctlseqs.cuf, .{self.screen.cursor_col});
-            }
+            try writer.writeByte('\r');
+            if (self.screen.cursor_row >= cursor_pos.row)
+                try writer.writeByteNTimes('\n', self.screen.cursor_row - cursor_pos.row)
+            else
+                try writer.writeBytesNTimes(ctlseqs.ri, cursor_pos.row - self.screen.cursor_row);
+            if (self.screen.cursor_col > 0)
+                try writer.print(ctlseqs.cuf, .{self.screen.cursor_col});
         }
         self.state.cursor.row = self.screen.cursor_row;
         self.state.cursor.col = self.screen.cursor_col;
-        _ = try tty.write(ctlseqs.show_cursor);
+        try writer.writeAll(ctlseqs.show_cursor);
     } else {
         self.state.cursor.row = cursor_pos.row;
         self.state.cursor.col = cursor_pos.col;
     }
     if (self.screen.mouse_shape != self.screen_last.mouse_shape) {
-        try std.fmt.format(
-            tty.buffered_writer.writer(),
+        try writer.print(
             ctlseqs.osc22_mouse_shape,
             .{@tagName(self.screen.mouse_shape)},
         );
         self.screen_last.mouse_shape = self.screen.mouse_shape;
     }
     if (self.screen.cursor_shape != self.screen_last.cursor_shape) {
-        try std.fmt.format(
-            tty.buffered_writer.writer(),
+        try writer.print(
             ctlseqs.cursor_shape,
             .{@intFromEnum(self.screen.cursor_shape)},
         );
@@ -655,64 +621,35 @@ pub fn render(self: *Vaxis) !void {
     }
 }
 
-fn enableKittyKeyboard(self: *Vaxis, flags: Key.KittyFlags) !void {
-    if (self.tty) |*tty| {
-        const flag_int: u5 = @bitCast(flags);
-        try std.fmt.format(
-            tty.buffered_writer.writer(),
-            ctlseqs.csi_u_push,
-            .{
-                flag_int,
-            },
-        );
-        try tty.flush();
-        self.state.kitty_keyboard = true;
-    }
+fn enableKittyKeyboard(self: *Vaxis, writer: AnyWriter, flags: Key.KittyFlags) !void {
+    const flag_int: u5 = @bitCast(flags);
+    try writer.print(ctlseqs.csi_u_push, .{flag_int});
+    self.state.kitty_keyboard = true;
 }
 
 /// send a system notification
-pub fn notify(self: *Vaxis, title: ?[]const u8, body: []const u8) !void {
-    if (self.tty == null) return;
-    if (title) |t| {
-        try std.fmt.format(
-            self.tty.?.buffered_writer.writer(),
-            ctlseqs.osc777_notify,
-            .{ t, body },
-        );
-    } else {
-        try std.fmt.format(
-            self.tty.?.buffered_writer.writer(),
-            ctlseqs.osc9_notify,
-            .{body},
-        );
-    }
-    try self.tty.?.flush();
+pub fn notify(_: *Vaxis, writer: AnyWriter, title: ?[]const u8, body: []const u8) !void {
+    if (title) |t|
+        try writer.print(ctlseqs.osc777_notify, .{ t, body })
+    else
+        try writer.print(ctlseqs.osc9_notify, .{body});
 }
 
 /// sets the window title
-pub fn setTitle(self: *Vaxis, title: []const u8) !void {
-    if (self.tty == null) return;
-    try std.fmt.format(
-        self.tty.?.buffered_writer.writer(),
-        ctlseqs.osc2_set_title,
-        .{title},
-    );
-    try self.tty.?.flush();
+pub fn setTitle(_: *Vaxis, writer: AnyWriter, title: []const u8) !void {
+    try writer.print(ctlseqs.osc2_set_title, .{title});
 }
 
 // turn bracketed paste on or off. An event will be sent at the
 // beginning and end of a detected paste. All keystrokes between these
 // events were pasted
-pub fn setBracketedPaste(self: *Vaxis, enable: bool) !void {
-    if (self.tty) |*tty| {
-        const seq = if (enable)
-            ctlseqs.bp_set
-        else
-            ctlseqs.bp_reset;
-        _ = try tty.write(seq);
-        try tty.flush();
-        self.state.bracketed_paste = enable;
-    }
+pub fn setBracketedPaste(self: *Vaxis, writer: AnyWriter, enable: bool) !void {
+    const seq = if (enable)
+        ctlseqs.bp_set
+    else
+        ctlseqs.bp_reset;
+    try writer.writeAll(seq);
+    self.state.bracketed_paste = enable;
 }
 
 /// set the mouse shape
@@ -721,22 +658,19 @@ pub fn setMouseShape(self: *Vaxis, shape: Shape) void {
 }
 
 /// Change the mouse reporting mode
-pub fn setMouseMode(self: *Vaxis, enable: bool) !void {
-    if (self.tty) |*tty| {
-        if (enable) {
-            self.state.mouse = true;
-            if (self.caps.sgr_pixels) {
-                log.debug("enabling mouse mode: pixel coordinates", .{});
-                self.state.pixel_mouse = true;
-                _ = try tty.write(ctlseqs.mouse_set_pixels);
-            } else {
-                log.debug("enabling mouse mode: cell coordinates", .{});
-                _ = try tty.write(ctlseqs.mouse_set);
-            }
+pub fn setMouseMode(self: *Vaxis, writer: AnyWriter, enable: bool) !void {
+    if (enable) {
+        self.state.mouse = true;
+        if (self.caps.sgr_pixels) {
+            log.debug("enabling mouse mode: pixel coordinates", .{});
+            self.state.pixel_mouse = true;
+            try writer.writeAll(ctlseqs.mouse_set_pixels);
         } else {
-            _ = try tty.write(ctlseqs.mouse_reset);
+            log.debug("enabling mouse mode: cell coordinates", .{});
+            try writer.writeAll(ctlseqs.mouse_set);
         }
-        try tty.flush();
+    } else {
+        try writer.writeAll(ctlseqs.mouse_reset);
     }
 }
 
@@ -775,13 +709,11 @@ pub fn translateMouse(self: Vaxis, mouse: Mouse) Mouse {
 pub fn loadImage(
     self: *Vaxis,
     alloc: std.mem.Allocator,
+    writer: AnyWriter,
     src: Image.Source,
 ) !Image {
     if (!self.caps.kitty_graphics) return error.NoGraphicsCapability;
-    var tty = self.tty orelse return error.NoTTY;
     defer self.next_img_id += 1;
-
-    const writer = tty.buffered_writer.writer();
 
     var img = switch (src) {
         .path => |path| try zigimg.Image.fromFilePath(alloc, path),
@@ -798,8 +730,7 @@ pub fn loadImage(
     const id = self.next_img_id;
 
     if (encoded.len < 4096) {
-        try std.fmt.format(
-            writer,
+        try writer.print(
             "\x1b_Gf=100,i={d};{s}\x1b\\",
             .{
                 id,
@@ -809,16 +740,14 @@ pub fn loadImage(
     } else {
         var n: usize = 4096;
 
-        try std.fmt.format(
-            writer,
+        try writer.print(
             "\x1b_Gf=100,i={d},m=1;{s}\x1b\\",
             .{ id, encoded[0..n] },
         );
         while (n < encoded.len) : (n += 4096) {
             const end: usize = @min(n + 4096, encoded.len);
             const m: u2 = if (end == encoded.len) 0 else 1;
-            try std.fmt.format(
-                writer,
+            try writer.print(
                 "\x1b_Gm={d};{s}\x1b\\",
                 .{
                     m,
@@ -827,7 +756,6 @@ pub fn loadImage(
             );
         }
     }
-    try tty.buffered_writer.flush();
     return .{
         .id = id,
         .width = img.width,
@@ -836,56 +764,43 @@ pub fn loadImage(
 }
 
 /// deletes an image from the terminal's memory
-pub fn freeImage(self: Vaxis, id: u32) void {
-    var tty = self.tty orelse return;
-    const writer = tty.buffered_writer.writer();
-    std.fmt.format(writer, "\x1b_Ga=d,d=I,i={d};\x1b\\", .{id}) catch |err| {
+pub fn freeImage(_: Vaxis, writer: AnyWriter, id: u32) void {
+    writer.print("\x1b_Ga=d,d=I,i={d};\x1b\\", .{id}) catch |err| {
         log.err("couldn't delete image {d}: {}", .{ id, err });
         return;
     };
-    tty.buffered_writer.flush() catch |err| {
-        log.err("couldn't flush writer: {}", .{err});
-    };
 }
 
-pub fn copyToSystemClipboard(self: Vaxis, text: []const u8, encode_allocator: std.mem.Allocator) !void {
-    var tty = self.tty orelse return;
+pub fn copyToSystemClipboard(_: Vaxis, writer: AnyWriter, text: []const u8, encode_allocator: std.mem.Allocator) !void {
     const encoder = std.base64.standard.Encoder;
     const size = encoder.calcSize(text.len);
     const buf = try encode_allocator.alloc(u8, size);
     const b64 = encoder.encode(buf, text);
     defer encode_allocator.free(buf);
-    try std.fmt.format(
-        tty.buffered_writer.writer(),
+    try writer.print(
         ctlseqs.osc52_clipboard_copy,
         .{b64},
     );
-    try tty.flush();
 }
 
-pub fn requestSystemClipboard(self: Vaxis) !void {
+pub fn requestSystemClipboard(self: Vaxis, writer: AnyWriter) !void {
     if (self.opts.system_clipboard_allocator == null) return error.NoClipboardAllocator;
-    var tty = self.tty orelse return;
-    try std.fmt.format(
-        tty.buffered_writer.writer(),
+    try writer.print(
         ctlseqs.osc52_clipboard_request,
         .{},
     );
-    try tty.flush();
 }
 
 /// Request a color report from the terminal. Note: not all terminals support
 /// reporting colors. It is always safe to try, but you may not receive a
 /// response.
-pub fn queryColor(self: Vaxis, kind: Cell.Color.Kind) !void {
-    var tty = self.tty orelse return;
+pub fn queryColor(_: Vaxis, writer: AnyWriter, kind: Cell.Color.Kind) !void {
     switch (kind) {
-        .fg => _ = try tty.write(ctlseqs.osc10_query),
-        .bg => _ = try tty.write(ctlseqs.osc11_query),
-        .cursor => _ = try tty.write(ctlseqs.osc12_query),
-        .index => |idx| try tty.buffered_writer.writer().print(ctlseqs.osc4_query, .{idx}),
+        .fg => try writer.writeAll(ctlseqs.osc10_query),
+        .bg => try writer.writeAll(ctlseqs.osc11_query),
+        .cursor => try writer.writeAll(ctlseqs.osc12_query),
+        .index => |idx| try writer.print(ctlseqs.osc4_query, .{idx}),
     }
-    try tty.flush();
 }
 
 /// Subscribe to color theme updates. A `color_scheme: Color.Scheme` tag must
@@ -893,10 +808,12 @@ pub fn queryColor(self: Vaxis, kind: Cell.Color.Kind) !void {
 /// capability. Support can be detected by checking the value of
 /// vaxis.caps.color_scheme_updates. The initial scheme will be reported when
 /// subscribing.
-pub fn subscribeToColorSchemeUpdates(self: Vaxis) !void {
-    var tty = self.tty orelse return;
-    _ = try tty.write(ctlseqs.color_scheme_request);
-    _ = try tty.write(ctlseqs.color_scheme_set);
-    try tty.flush();
+pub fn subscribeToColorSchemeUpdates(self: Vaxis, writer: AnyWriter) !void {
+    try writer.writeAll(ctlseqs.color_scheme_request);
+    try writer.writeAll(ctlseqs.color_scheme_set);
     self.state.color_scheme_updates = true;
+}
+
+pub fn deviceStatusReport(_: Vaxis, writer: AnyWriter) !void {
+    try writer.writeAll(ctlseqs.device_status_report);
 }

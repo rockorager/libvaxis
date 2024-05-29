@@ -4,7 +4,7 @@ const assert = std.debug.assert;
 const Cell = @import("Cell.zig");
 const Shape = @import("Mouse.zig").Shape;
 const Image = @import("Image.zig");
-const Winsize = @import("Tty.zig").Winsize;
+const Winsize = @import("tty.zig").Winsize;
 const Unicode = @import("Unicode.zig");
 const Method = @import("gwidth.zig").Method;
 

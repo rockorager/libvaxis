@@ -29,24 +29,32 @@ pub fn main() !void {
     }
     const alloc = gpa.allocator();
 
+    // Initalize a tty
+    var tty = try vaxis.Tty.init();
+    defer tty.deinit();
+
+    // Use a buffered writer for better performance. There are a lot of writes
+    // in the render loop and this can have a significant savings
+    var buffered_writer = tty.bufferedWriter();
+    const writer = buffered_writer.writer().any();
+
     // Initialize Vaxis
     var vx = try vaxis.init(alloc, .{});
-    // deinit takes an optional allocator. If your program is exiting, you can
-    // choose to pass a null allocator to save some exit time.
-    defer vx.deinit(alloc);
+    defer vx.deinit(tty.anyWriter(), alloc);
 
-    // create our event loop
     var loop: vaxis.Loop(Event) = .{
         .vaxis = &vx,
+        .tty = &tty,
     };
+    try loop.init();
 
     // Start the read loop. This puts the terminal in raw mode and begins
     // reading user input
-    try loop.run();
+    try loop.start();
     defer loop.stop();
 
     // Optionally enter the alternate screen
-    try vx.enterAltScreen();
+    try vx.enterAltScreen(writer);
 
     // We'll adjust the color index every keypress for the border
     var color_idx: u8 = 0;
@@ -58,9 +66,11 @@ pub fn main() !void {
 
     // Sends queries to terminal to detect certain features. This should
     // _always_ be called, but is left to the application to decide when
-    try vx.queryTerminal();
+    // try vx.queryTerminal();
 
-    try vx.setMouseMode(true);
+    try vx.setMouseMode(writer, true);
+
+    try buffered_writer.flush();
 
     // The main event loop. Vaxis provides a thread safe, blocking, buffered
     // queue which can serve as the primary event queue for an application
@@ -81,12 +91,12 @@ pub fn main() !void {
                 } else if (key.matches('l', .{ .ctrl = true })) {
                     vx.queueRefresh();
                 } else if (key.matches('n', .{ .ctrl = true })) {
-                    try vx.notify("vaxis", "hello from vaxis");
+                    try vx.notify(tty.anyWriter(), "vaxis", "hello from vaxis");
                     loop.stop();
                     var child = std.process.Child.init(&.{"nvim"}, alloc);
                     _ = try child.spawnAndWait();
-                    try loop.run();
-                    try vx.enterAltScreen();
+                    try loop.start();
+                    try vx.enterAltScreen(tty.anyWriter());
                     vx.queueRefresh();
                 } else if (key.matches(vaxis.Key.enter, .{})) {
                     text_input.clearAndFree();
@@ -110,7 +120,7 @@ pub fn main() !void {
             // more than one byte will incur an allocation on the first render
             // after it is drawn. Thereafter, it will not allocate unless the
             // screen is resized
-            .winsize => |ws| try vx.resize(alloc, ws),
+            .winsize => |ws| try vx.resize(alloc, ws, tty.anyWriter()),
             else => {},
         }
 
@@ -140,6 +150,7 @@ pub fn main() !void {
         text_input.draw(child);
 
         // Render the screen
-        try vx.render();
+        try vx.render(writer);
+        try buffered_writer.flush();
     }
 }

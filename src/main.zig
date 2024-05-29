@@ -15,9 +15,10 @@ pub const Mouse = @import("Mouse.zig");
 pub const Screen = @import("Screen.zig");
 pub const AllocatingScreen = @import("InternalScreen.zig");
 pub const Parser = @import("Parser.zig");
-pub const Tty = @import("Tty.zig");
 pub const Window = @import("Window.zig");
-pub const Winsize = Tty.Winsize;
+pub const tty = @import("tty.zig");
+pub const Tty = tty.Tty;
+pub const Winsize = tty.Winsize;
 
 pub const widgets = @import("widgets.zig");
 pub const gwidth = @import("gwidth.zig");
@@ -36,8 +37,13 @@ pub const logo =
 ;
 
 test {
-    std.testing.refAllDecls(@This());
-    std.testing.refAllDecls(widgets);
+    _ = @import("gwidth.zig");
+    _ = @import("Cell.zig");
+    _ = @import("Key.zig");
     _ = @import("Parser.zig");
-    _ = @import("Tty.zig");
+    _ = @import("Window.zig");
+
+    _ = @import("gwidth.zig");
+    _ = @import("queue.zig");
+    _ = @import("widgets/TextInput.zig");
 }
