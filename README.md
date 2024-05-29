@@ -15,38 +15,46 @@ Contributions are welcome.
 
 Vaxis uses zig `0.12.0`.
 
-## Feature comparison
+## Features
 
-| Feature                        | Vaxis | libvaxis | notcurses |
-| ------------------------------ | :---: | :------: | :-------: |
-| RGB                            |  ✅   |    ✅    |    ✅     |
-| Hyperlinks                     |  ✅   |    ✅    |    ❌     |
-| Bracketed Paste                |  ✅   |    ✅    |    ❌     |
-| Kitty Keyboard                 |  ✅   |    ✅    |    ✅     |
-| Styled Underlines              |  ✅   |    ✅    |    ✅     |
-| Mouse Shapes (OSC 22)          |  ✅   |    ✅    |    ❌     |
-| System Clipboard (OSC 52)      |  ✅   |    ✅    |    ❌     |
-| System Notifications (OSC 9)   |  ✅   |    ✅    |    ❌     |
-| System Notifications (OSC 777) |  ✅   |    ✅    |    ❌     |
-| Synchronized Output (DEC 2026) |  ✅   |    ✅    |    ✅     |
-| Unicode Core (DEC 2027)        |  ✅   |    ✅    |    ❌     |
-| Color Mode Updates (DEC 2031)  |  ✅   |    ✅    |    ❌     |
-| Images (full/space)            |  ✅   | planned  |    ✅     |
-| Images (half block)            |  ✅   | planned  |    ✅     |
-| Images (quadrant)              |  ✅   | planned  |    ✅     |
-| Images (sextant)               |  ❌   |    ❌    |    ✅     |
-| Images (sixel)                 |  ✅   |    ❌    |    ✅     |
-| Images (kitty)                 |  ✅   |    ✅    |    ✅     |
-| Images (iterm2)                |  ❌   |    ❌    |    ✅     |
-| Video                          |  ❌   |    ❌    |    ✅     |
-| Dank                           |  🆗   |    🆗    |    ✅     |
+| Feature                        |  libvaxis  |
+| ------------------------------ |  :------:  |
+| RGB                            |     ✅     |
+| Hyperlinks                     |     ✅     |
+| Bracketed Paste                |     ✅     |
+| Kitty Keyboard                 |     ✅     |
+| Styled Underlines              |     ✅     |
+| Mouse Shapes (OSC 22)          |     ✅     |
+| System Clipboard (OSC 52)      |     ✅     |
+| System Notifications (OSC 9)   |     ✅     |
+| System Notifications (OSC 777) |     ✅     |
+| Synchronized Output (DEC 2026) |     ✅     |
+| Unicode Core (DEC 2027)        |     ✅     |
+| Color Mode Updates (DEC 2031)  |     ✅     |
+| Images (kitty)                 |     ✅     |
 
 ## Usage
 
 [Documentation](https://rockorager.github.io/libvaxis/#vaxis.Vaxis)
 
-The below example can be run using `zig build run 2>log`. stderr must be
-redirected in order to not print to the same screen.
+Vaxis requires three basic primitives to operate:
+
+1. A TTY instance
+2. An instance of Vaxis
+3. An event loop
+
+The library provides a general purpose posix TTY implementation, as well as a
+multi-threaded event loop implementation. Users of the library are encouraged to
+use the event loop of their choice. The event loop is responsible for reading
+the TTY, passing the read bytes to the vaxis parser, and handling events.
+
+A core feature of Vaxis is it's ability to detect features via terminal queries
+instead of relying on a terminfo database. This requires that the event loop
+also handle these query responses and update the Vaxis.caps struct accordingly.
+See the `Loop` implementation to see how this is done if writing your own event
+loop.
+
+## Example
 
 ```zig
 const std = @import("std");
@@ -76,21 +84,35 @@ pub fn main() !void {
     }
     const alloc = gpa.allocator();
 
+    // Initialize a tty
+    var tty = try vaxis.Tty.init();
+    defer tty.deinit();
+
     // Initialize Vaxis
     var vx = try vaxis.init(alloc, .{});
     // deinit takes an optional allocator. If your program is exiting, you can
     // choose to pass a null allocator to save some exit time.
-    defer vx.deinit(alloc);
+    defer vx.deinit(alloc, tty.anyWriter());
 
 
-    var loop: vaxis.Loop(Event) = .{};
+    // The event loop requires an intrusive init. We create an instance with
+    // stable points to Vaxis and our TTY, then init the instance. Doing so
+    // installs a signal handler for SIGWINCH on posix TTYs
+    //
+    // This event loop is thread safe. It reads the tty in a separate thread
+    var loop: vaxis.Loop(Event) = .{
+      .tty = &tty,
+      .vaxis = &vaxis,
+    };
+    try loop.init();
+
     // Start the read loop. This puts the terminal in raw mode and begins
     // reading user input
-    try loop.run();
+    try loop.start();
     defer loop.stop();
 
     // Optionally enter the alternate screen
-    try vx.enterAltScreen();
+    try vx.enterAltScreen(tty.anyWriter());
 
     // We'll adjust the color index every keypress for the border
     var color_idx: u8 = 0;
@@ -100,12 +122,10 @@ pub fn main() !void {
     var text_input = TextInput.init(alloc);
     defer text_input.deinit();
 
-    // Sends queries to terminal to detect certain features. This should
-    // _always_ be called, but is left to the application to decide when
-    try vx.queryTerminal();
+    // Sends queries to terminal to detect certain features. This should always
+    // be called after entering the alt screen, if you are using the alt screen
+    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
 
-    // The main event loop. Vaxis provides a thread safe, blocking, buffered
-    // queue which can serve as the primary event queue for an application
     while (true) {
         // nextEvent blocks until an event is in the queue
         const event = loop.nextEvent();
@@ -141,7 +161,7 @@ pub fn main() !void {
             // more than one byte will incur an allocation on the first render
             // after it is drawn. Thereafter, it will not allocate unless the
             // screen is resized
-            .winsize => |ws| try vx.resize(alloc, ws),
+            .winsize => |ws| try vx.resize(alloc, tty.anyWriter(), ws),
             else => {},
         }
 
@@ -175,8 +195,9 @@ pub fn main() !void {
         // Draw the text_input in the child window
         text_input.draw(child);
 
-        // Render the screen
-        try vx.render();
+        // Render the screen. Using a buffered writer will offer much better
+	// performance, but is not required
+        try vx.render(tty.anyWriter());
     }
 }
 ```

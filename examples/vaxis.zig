@@ -18,16 +18,18 @@ pub fn main() !void {
     }
     const alloc = gpa.allocator();
 
+    var tty = try vaxis.Tty.init();
     var vx = try vaxis.init(alloc, .{});
-    defer vx.deinit(alloc);
+    defer vx.deinit(alloc, tty.anyWriter());
 
-    var loop: vaxis.Loop(Event) = .{ .vaxis = &vx };
+    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
+    try loop.init();
 
-    try loop.run();
+    try loop.start();
     defer loop.stop();
 
-    try vx.enterAltScreen();
-    try vx.queryTerminal();
+    try vx.enterAltScreen(tty.anyWriter());
+    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
 
     const lower_limit = 30;
     var color_idx: u8 = lower_limit;
@@ -42,7 +44,7 @@ pub fn main() !void {
         switch (event) {
             .key_press => |key| if (key.matches('c', .{ .ctrl = true })) return,
             .winsize => |ws| {
-                try vx.resize(alloc, ws);
+                try vx.resize(alloc, tty.anyWriter(), ws);
                 break;
             },
         }
@@ -52,7 +54,7 @@ pub fn main() !void {
         while (loop.tryEvent()) |event| {
             switch (event) {
                 .key_press => |key| if (key.matches('c', .{ .ctrl = true })) return,
-                .winsize => |ws| try vx.resize(alloc, ws),
+                .winsize => |ws| try vx.resize(alloc, tty.anyWriter(), ws),
             }
         }
 
@@ -67,7 +69,7 @@ pub fn main() !void {
         };
         const center = vaxis.widgets.alignment.center(win, 28, 4);
         _ = try center.printSegment(segment, .{ .wrap = .grapheme });
-        try vx.render();
+        try vx.render(tty.anyWriter());
         std.time.sleep(8 * std.time.ns_per_ms);
         switch (dir) {
             .up => {

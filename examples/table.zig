@@ -24,18 +24,20 @@ pub fn main() !void {
     const user_list = std.ArrayList(User).fromOwnedSlice(alloc, users_buf);
     defer user_list.deinit();
 
+    var tty = try vaxis.Tty.init();
+
     var vx = try vaxis.init(alloc, .{});
-    defer vx.deinit(alloc);
+    defer vx.deinit(alloc, tty.anyWriter());
 
     var loop: vaxis.Loop(union(enum) {
         key_press: vaxis.Key,
         winsize: vaxis.Winsize,
-    }) = .{ .vaxis = &vx };
+    }) = .{ .tty = &tty, .vaxis = &vx };
 
-    try loop.run();
+    try loop.start();
     defer loop.stop();
-    try vx.enterAltScreen();
-    try vx.queryTerminal();
+    try vx.enterAltScreen(tty.anyWriter());
+    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
 
     const logo =
         \\░█░█░█▀█░█░█░▀█▀░█▀▀░░░▀█▀░█▀█░█▀▄░█░░░█▀▀░
@@ -145,7 +147,7 @@ pub fn main() !void {
                 }
                 moving = false;
             },
-            .winsize => |ws| try vx.resize(alloc, ws),
+            .winsize => |ws| try vx.resize(alloc, tty.anyWriter(), ws),
             //else => {},
         }
 
@@ -203,7 +205,7 @@ pub fn main() !void {
         cmd_input.draw(bottom_bar);
 
         // Render the screen
-        try vx.render();
+        try vx.render(tty.anyWriter());
     }
 }
 

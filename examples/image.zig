@@ -18,24 +18,27 @@ pub fn main() !void {
     }
     const alloc = gpa.allocator();
 
+    var tty = try vaxis.Tty.init();
+    defer tty.deinit();
+
     var vx = try vaxis.init(alloc, .{});
-    defer vx.deinit(alloc);
+    defer vx.deinit(alloc, tty.anyWriter());
 
-    var loop: vaxis.Loop(Event) = .{ .vaxis = &vx };
+    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
+    try loop.init();
 
-    try loop.run();
+    try loop.start();
     defer loop.stop();
 
-    try vx.enterAltScreen();
-
-    try vx.queryTerminal();
+    try vx.enterAltScreen(tty.anyWriter());
+    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
 
     const imgs = [_]vaxis.Image{
-        try vx.loadImage(alloc, .{ .path = "examples/zig.png" }),
-        try vx.loadImage(alloc, .{ .path = "examples/vaxis.png" }),
+        try vx.loadImage(alloc, tty.anyWriter(), .{ .path = "examples/zig.png" }),
+        try vx.loadImage(alloc, tty.anyWriter(), .{ .path = "examples/vaxis.png" }),
     };
-    defer vx.freeImage(imgs[0].id);
-    defer vx.freeImage(imgs[1].id);
+    defer vx.freeImage(tty.anyWriter(), imgs[0].id);
+    defer vx.freeImage(tty.anyWriter(), imgs[1].id);
 
     var n: usize = 0;
 
@@ -54,7 +57,7 @@ pub fn main() !void {
                 else if (key.matches('k', .{}))
                     clip_y -|= 1;
             },
-            .winsize => |ws| try vx.resize(alloc, ws),
+            .winsize => |ws| try vx.resize(alloc, tty.anyWriter(), ws),
         }
 
         n = (n + 1) % imgs.len;
@@ -68,6 +71,6 @@ pub fn main() !void {
             .y = clip_y,
         } });
 
-        try vx.render();
+        try vx.render(tty.anyWriter());
     }
 }

@@ -40,7 +40,7 @@ pub fn main() !void {
 
     // Initialize Vaxis
     var vx = try vaxis.init(alloc, .{});
-    defer vx.deinit(tty.anyWriter(), alloc);
+    defer vx.deinit(alloc, tty.anyWriter());
 
     var loop: vaxis.Loop(Event) = .{
         .vaxis = &vx,
@@ -120,7 +120,7 @@ pub fn main() !void {
             // more than one byte will incur an allocation on the first render
             // after it is drawn. Thereafter, it will not allocate unless the
             // screen is resized
-            .winsize => |ws| try vx.resize(alloc, ws, tty.anyWriter()),
+            .winsize => |ws| try vx.resize(alloc, tty.anyWriter(), ws),
             else => {},
         }
 

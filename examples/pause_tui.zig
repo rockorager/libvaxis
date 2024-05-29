@@ -31,20 +31,17 @@ pub fn main() !void {
     }
     const alloc = gpa.allocator();
 
-    // Initialize Vaxis with our event type
-    var vx = try vaxis.init(Event, .{});
-    // deinit takes an optional allocator. If your program is exiting, you can
-    // choose to pass a null allocator to save some exit time.
-    defer vx.deinit(alloc);
+    var tty = try vaxis.Tty.init();
+    defer tty.deinit();
 
-    // Start the read loop. This puts the terminal in raw mode and begins
-    // reading user input
-    try vx.startReadThread();
-    defer vx.stopReadThread();
+    var vx = try vaxis.init(alloc, .{});
+    defer vx.deinit(alloc, tty.anyWriter());
 
-    // Optionally enter the alternate screen
-    try vx.enterAltScreen();
-    defer vx.exitAltScreen() catch {};
+    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
+    try loop.init();
+
+    try loop.start();
+    defer loop.stop();
 
     // We'll adjust the color index every keypress for the border
     var color_idx: u8 = 0;
@@ -56,7 +53,7 @@ pub fn main() !void {
 
     // Sends queries to terminal to detect certain features. This should
     // _always_ be called, but is left to the application to decide when
-    try vx.queryTerminal();
+    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
 
     try vx.setMouseMode(true);
 
@@ -78,8 +75,6 @@ pub fn main() !void {
                     break;
                 } else if (key.matches('l', .{ .ctrl = true })) {
                     vx.queueRefresh();
-                } else if (key.matches('n', .{ .ctrl = true })) {
-                    try vx.notify("vaxis", "hello from vaxis");
                 } else if (key.matches('z', .{ .ctrl = true })) {
                     try openDirVim(alloc, &vx, "examples");
                 } else {
@@ -102,7 +97,7 @@ pub fn main() !void {
             // more than one byte will incur an allocation on the first render
             // after it is drawn. Thereafter, it will not allocate unless the
             // screen is resized
-            .winsize => |ws| try vx.resize(alloc, ws),
+            .winsize => |ws| try vx.resize(alloc, tty.anyWriter(), ws),
             else => {},
         }
 
@@ -128,7 +123,7 @@ pub fn main() !void {
         text_input.draw(border.all(child, style));
 
         // Render the screen
-        try vx.render();
+        try vx.render(tty.anyWriter());
     }
 }
 

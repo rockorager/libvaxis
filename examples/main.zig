@@ -14,19 +14,20 @@ pub fn main() !void {
     }
     const alloc = gpa.allocator();
 
-    // Initialize Vaxis
+    var tty = try vaxis.Tty.init();
+    defer tty.deinit();
+
     var vx = try vaxis.init(alloc, .{});
-    defer vx.deinit(alloc);
+    defer vx.deinit(alloc, tty.anyWriter());
 
-    var loop: vaxis.Loop(Event) = .{ .vaxis = &vx };
+    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
+    try loop.init();
 
-    // Start the read loop. This puts the terminal in raw mode and begins
-    // reading user input
-    try loop.run();
+    try loop.start();
     defer loop.stop();
 
     // Optionally enter the alternate screen
-    try vx.enterAltScreen();
+    try vx.enterAltScreen(tty.anyWriter());
 
     // We'll adjust the color index every keypress
     var color_idx: u8 = 0;
@@ -51,7 +52,7 @@ pub fn main() !void {
                 }
             },
             .winsize => |ws| {
-                try vx.resize(alloc, ws);
+                try vx.resize(alloc, tty.anyWriter(), ws);
             },
             else => {},
         }
@@ -85,7 +86,7 @@ pub fn main() !void {
             child.writeCell(i, 0, cell);
         }
         // Render the screen
-        try vx.render();
+        try vx.render(tty.anyWriter());
     }
 }
 

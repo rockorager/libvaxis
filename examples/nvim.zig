@@ -23,18 +23,22 @@ pub fn main() !void {
     }
     const alloc = gpa.allocator();
 
+    var tty = try vaxis.Tty.init();
+    defer tty.deinit();
+
     // Initialize Vaxis
     var vx = try vaxis.init(alloc, .{});
-    defer vx.deinit(alloc);
+    defer vx.deinit(alloc, tty.anyWriter());
 
-    var loop: vaxis.Loop(Event) = .{ .vaxis = &vx };
+    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
+    try loop.init();
 
-    try loop.run();
+    try loop.start();
     defer loop.stop();
 
     // Optionally enter the alternate screen
-    try vx.enterAltScreen();
-    try vx.queryTerminal();
+    // try vx.enterAltScreen(tty.anyWriter());
+    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
 
     var nvim = try vaxis.widgets.nvim.Nvim(Event).init(alloc, &loop);
     try nvim.spawn();
@@ -53,7 +57,7 @@ pub fn main() !void {
                 try nvim.update(.{ .key_press = key });
             },
             .winsize => |ws| {
-                try vx.resize(alloc, ws);
+                try vx.resize(alloc, tty.anyWriter(), ws);
             },
             .nvim => |nvim_event| {
                 switch (nvim_event) {
@@ -74,6 +78,6 @@ pub fn main() !void {
             },
         );
         try nvim.draw(child);
-        try vx.render();
+        try vx.render(tty.anyWriter());
     }
 }
