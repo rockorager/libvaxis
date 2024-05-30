@@ -33,7 +33,7 @@
         "src/Mouse.zig",
         "src/Parser.zig",
         "src/Screen.zig",
-        "src/Tty.zig",
+        "src/tty.zig",
         "src/Unicode.zig",
         "src/Vaxis.zig",
         "src/Window.zig",
