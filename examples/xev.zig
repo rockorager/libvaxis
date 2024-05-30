@@ -3,12 +3,46 @@ const vaxis = @import("vaxis");
 const xev = @import("xev");
 const Cell = vaxis.Cell;
 
-const Event = union(enum) {
-    key_press: vaxis.Key,
-    winsize: vaxis.Winsize,
-};
-
 pub const panic = vaxis.panic_handler;
+
+const App = struct {
+    const lower_limit: u8 = 30;
+    const next_ms: u64 = 8;
+
+    allocator: std.mem.Allocator,
+    vx: *vaxis.Vaxis,
+    buffered_writer: std.io.BufferedWriter(4096, std.io.AnyWriter),
+    color_idx: u8,
+    dir: enum {
+        up,
+        down,
+    },
+
+    fn draw(self: *App) !void {
+        const style: vaxis.Style = .{ .fg = .{ .rgb = [_]u8{ self.color_idx, self.color_idx, self.color_idx } } };
+
+        const segment: vaxis.Segment = .{
+            .text = vaxis.logo,
+            .style = style,
+        };
+        const win = self.vx.window();
+        win.clear();
+        const center = vaxis.widgets.alignment.center(win, 28, 4);
+        _ = try center.printSegment(segment, .{ .wrap = .grapheme });
+        switch (self.dir) {
+            .up => {
+                self.color_idx += 1;
+                if (self.color_idx == 255) self.dir = .down;
+            },
+            .down => {
+                self.color_idx -= 1;
+                if (self.color_idx == lower_limit) self.dir = .up;
+            },
+        }
+        try self.vx.render(self.buffered_writer.writer().any());
+        try self.buffered_writer.flush();
+    }
+};
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -19,7 +53,7 @@ pub fn main() !void {
             std.log.err("memory leak", .{});
         }
     }
-    var alloc = gpa.allocator();
+    const alloc = gpa.allocator();
 
     var tty = try vaxis.Tty.init();
 
@@ -29,22 +63,36 @@ pub fn main() !void {
     var loop = try xev.Loop.init(.{});
     defer loop.deinit();
 
-    var vx_loop: vaxis.xev.TtyWatcher(std.mem.Allocator) = undefined;
-    try vx_loop.init(&tty, &vx, &loop, &alloc, callback);
+    var app: App = .{
+        .allocator = alloc,
+        .buffered_writer = tty.bufferedWriter(),
+        .color_idx = App.lower_limit,
+        .dir = .up,
+        .vx = &vx,
+    };
+
+    var vx_loop: vaxis.xev.TtyWatcher(App) = undefined;
+    try vx_loop.init(&tty, &vx, &loop, &app, eventCallback);
 
     try vx.enterAltScreen(tty.anyWriter());
     // send queries asynchronously
     try vx.queryTerminalSend(tty.anyWriter());
 
+    const timer = try xev.Timer.init();
+    var timer_cmp: xev.Completion = .{};
+    timer.run(&loop, &timer_cmp, App.next_ms, App, &app, timerCallback);
+
     try loop.run(.until_done);
 }
 
-fn callback(
-    ud: ?*std.mem.Allocator,
+fn eventCallback(
+    ud: ?*App,
     loop: *xev.Loop,
-    watcher: *vaxis.xev.TtyWatcher(std.mem.Allocator),
+    watcher: *vaxis.xev.TtyWatcher(App),
     event: vaxis.xev.Event,
 ) xev.CallbackAction {
+    const app = ud orelse unreachable;
+    const writer = app.buffered_writer.writer().any();
     switch (event) {
         .key_press => |key| {
             if (key.matches('c', .{ .ctrl = true })) {
@@ -52,14 +100,32 @@ fn callback(
                 return .disarm;
             }
         },
-        .winsize => |ws| watcher.vx.resize(ud.?.*, watcher.tty.anyWriter(), ws) catch @panic("TODO"),
+        .winsize => |ws| watcher.vx.resize(app.allocator, writer, ws) catch @panic("TODO"),
         else => {},
     }
     const win = watcher.vx.window();
     win.clear();
-    watcher.vx.render(watcher.tty.anyWriter()) catch {
+    watcher.vx.render(writer) catch {
         std.log.err("couldn't render", .{});
         return .disarm;
     };
+    app.buffered_writer.flush() catch @panic("couldn't flush");
     return .rearm;
+}
+
+fn timerCallback(
+    ud: ?*App,
+    l: *xev.Loop,
+    c: *xev.Completion,
+    r: xev.Timer.RunError!void,
+) xev.CallbackAction {
+    _ = r catch @panic("timer error");
+
+    var app = ud orelse return .disarm;
+    app.draw() catch @panic("couldn't draw");
+
+    const timer = try xev.Timer.init();
+    timer.run(l, c, App.next_ms, App, ud, timerCallback);
+
+    return .disarm;
 }

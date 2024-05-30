@@ -146,7 +146,7 @@ pub fn TtyWatcher(comptime Userdata: type) type {
                 }
                 seq_start += n;
                 const event_inner = result.event orelse {
-                    log.warn("unknown event: {s}", .{self.read_buf[seq_start - n + 1 .. seq_start]});
+                    log.debug("unknown event: {s}", .{self.read_buf[seq_start - n + 1 .. seq_start]});
                     continue :parse_loop;
                 };
 
