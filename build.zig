@@ -22,6 +22,10 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .target = target,
     });
+    const xev_dep = b.dependency("libxev", .{
+        .optimize = optimize,
+        .target = target,
+    });
 
     // Module
     const vaxis_mod = b.addModule("vaxis", .{
@@ -35,6 +39,7 @@ pub fn build(b: *std.Build) void {
     vaxis_mod.addImport("zigimg", zigimg_dep.module("zigimg"));
     vaxis_mod.addImport("gap_buffer", gap_buffer_dep.module("gap_buffer"));
     vaxis_mod.addImport("znvim", znvim_dep.module("znvim"));
+    vaxis_mod.addImport("xev", xev_dep.module("xev"));
 
     // Examples
     const Example = enum {
@@ -45,6 +50,7 @@ pub fn build(b: *std.Build) void {
         table,
         text_input,
         vaxis,
+        xev,
     };
     const example_option = b.option(Example, "example", "Example to run (default: text_input)") orelse .text_input;
     const example_step = b.step("example", "Run example");
@@ -58,6 +64,8 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     example.root_module.addImport("vaxis", vaxis_mod);
+    example.root_module.addImport("xev", xev_dep.module("xev"));
+
     const example_run = b.addRunArtifact(example);
     example_step.dependOn(&example_run.step);
 
