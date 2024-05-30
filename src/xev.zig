@@ -9,7 +9,7 @@ const Key = @import("Key.zig");
 const Mouse = @import("Mouse.zig");
 const Color = @import("Cell.zig").Color;
 
-const log = std.log.scoped(.xev);
+const log = std.log.scoped(.tty_watcher);
 
 pub const Event = union(enum) {
     key_press: Key,
