@@ -105,7 +105,9 @@ pub fn TtyWatcher(comptime Userdata: type) type {
 
         fn signalCallback(ptr: *anyopaque) void {
             const self: *Self = @ptrCast(@alignCast(ptr));
-            self.winsize_wakeup.notify() catch @panic("TODO");
+            self.winsize_wakeup.notify() catch |err| {
+                log.warn("couldn't wake up winsize callback: {}", .{err});
+            };
         }
 
         fn ttyReadCallback(
@@ -117,7 +119,10 @@ pub fn TtyWatcher(comptime Userdata: type) type {
             r: xev.ReadError!usize,
         ) xev.CallbackAction {
             _ = c; // autofix
-            const n = r catch @panic("TODO");
+            const n = r catch |err| {
+                log.err("read error: {}", .{err});
+                return .disarm;
+            };
             const self = ud orelse unreachable;
 
             // reset read start state
@@ -125,7 +130,10 @@ pub fn TtyWatcher(comptime Userdata: type) type {
 
             var seq_start: usize = 0;
             parse_loop: while (seq_start < n) {
-                const result = self.parser.parse(buf.slice[seq_start..n], null) catch @panic("TODO");
+                const result = self.parser.parse(buf.slice[seq_start..n], null) catch |err| {
+                    log.err("couldn't parse input: {}", .{err});
+                    return .disarm;
+                };
                 if (result.n == 0) {
                     // copy the read to the beginning. We don't use memcpy because
                     // this could be overlapping, and it's also rare
@@ -138,7 +146,7 @@ pub fn TtyWatcher(comptime Userdata: type) type {
                 }
                 seq_start += n;
                 const event_inner = result.event orelse {
-                    std.log.warn("unknown event: {s}", .{self.read_buf[seq_start - n + 1 .. seq_start]});
+                    log.warn("unknown event: {s}", .{self.read_buf[seq_start - n + 1 .. seq_start]});
                     continue :parse_loop;
                 };
 
@@ -215,7 +223,9 @@ pub fn TtyWatcher(comptime Userdata: type) type {
                         self.vx.caps.color_scheme_updates = true;
                     },
                     .cap_da1 => {
-                        self.vx.enableDetectedFeatures(self.tty.anyWriter()) catch {};
+                        self.vx.enableDetectedFeatures(self.tty.anyWriter()) catch |err| {
+                            log.err("couldn't enable features: {}", .{err});
+                        };
                     },
                 }
             }
@@ -229,9 +239,15 @@ pub fn TtyWatcher(comptime Userdata: type) type {
             _: *xev.Completion,
             r: xev.Async.WaitError!void,
         ) xev.CallbackAction {
-            _ = r catch @panic("TODO");
-            const self = ud orelse @panic("TODO");
-            const winsize = Tty.getWinsize(self.tty.fd) catch @panic("TODO");
+            _ = r catch |err| {
+                log.err("async error: {}", .{err});
+                return .disarm;
+            };
+            const self = ud orelse unreachable; // no userdata
+            const winsize = Tty.getWinsize(self.tty.fd) catch |err| {
+                log.err("couldn't get winsize: {}", .{err});
+                return .disarm;
+            };
             return self.callback(self.ud, l, self, .{ .winsize = winsize });
         }
     };

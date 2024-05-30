@@ -37,7 +37,6 @@ pub fn main() !void {
     try vx.queryTerminalSend(tty.anyWriter());
 
     try loop.run(.until_done);
-    @panic("AHHH");
 }
 
 fn callback(
@@ -56,7 +55,6 @@ fn callback(
         .winsize => |ws| watcher.vx.resize(ud.?.*, watcher.tty.anyWriter(), ws) catch @panic("TODO"),
         else => {},
     }
-    std.log.debug("a", .{});
     const win = watcher.vx.window();
     win.clear();
     watcher.vx.render(watcher.tty.anyWriter()) catch {
