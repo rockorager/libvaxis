@@ -92,7 +92,6 @@ fn eventCallback(
     event: vaxis.xev.Event,
 ) xev.CallbackAction {
     const app = ud orelse unreachable;
-    const writer = app.buffered_writer.writer().any();
     switch (event) {
         .key_press => |key| {
             if (key.matches('c', .{ .ctrl = true })) {
@@ -100,16 +99,9 @@ fn eventCallback(
                 return .disarm;
             }
         },
-        .winsize => |ws| watcher.vx.resize(app.allocator, writer, ws) catch @panic("TODO"),
+        .winsize => |ws| watcher.vx.resize(app.allocator, watcher.tty.anyWriter(), ws) catch @panic("TODO"),
         else => {},
     }
-    const win = watcher.vx.window();
-    win.clear();
-    watcher.vx.render(writer) catch {
-        std.log.err("couldn't render", .{});
-        return .disarm;
-    };
-    app.buffered_writer.flush() catch @panic("couldn't flush");
     return .rearm;
 }
 
