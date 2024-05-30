@@ -1,7 +1,10 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
 pub const Vaxis = @import("Vaxis.zig");
+
 pub const Loop = @import("Loop.zig").Loop;
+pub const xev = @import("xev.zig");
 
 pub const Queue = @import("queue.zig").Queue;
 pub const Key = @import("Key.zig");
@@ -22,10 +25,27 @@ pub const Winsize = tty.Winsize;
 
 pub const widgets = @import("widgets.zig");
 pub const gwidth = @import("gwidth.zig");
+pub const ctlseqs = @import("ctlseqs.zig");
 
 /// Initialize a Vaxis application.
 pub fn init(alloc: std.mem.Allocator, opts: Vaxis.Options) !Vaxis {
     return Vaxis.init(alloc, opts);
+}
+
+/// Resets terminal state on a panic, then calls the default zig panic handler
+pub fn panic_handler(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_addr: ?usize) noreturn {
+    if (Tty.global_tty) |gty| {
+        const reset: []const u8 = ctlseqs.csi_u_pop ++
+            ctlseqs.mouse_reset ++
+            ctlseqs.bp_reset ++
+            ctlseqs.rmcup;
+
+        gty.anyWriter().writeAll(reset) catch {};
+
+        gty.deinit();
+    }
+
+    std.builtin.default_panic(msg, error_return_trace, ret_addr);
 }
 
 /// the vaxis logo. In PixelCode

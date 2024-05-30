@@ -35,6 +35,11 @@ pub const PosixTty = struct {
     var handler_mutex: std.Thread.Mutex = .{};
     var handler_idx: usize = 0;
 
+    /// global tty instance, used in case of a panic. Not guaranteed to work if
+    /// for some reason there are multiple TTYs open under a single vaxis
+    /// compilation unit - but this is better than nothing
+    pub var global_tty: ?PosixTty = null;
+
     /// initializes a Tty instance by opening /dev/tty and "making it raw". A
     /// signal handler is installed for SIGWINCH. No callbacks are installed, be
     /// sure to register a callback when initializing the event loop
@@ -56,10 +61,14 @@ pub const PosixTty = struct {
         };
         try posix.sigaction(posix.SIG.WINCH, &act, null);
 
-        return .{
+        const self: PosixTty = .{
             .fd = fd,
             .termios = termios,
         };
+
+        global_tty = self;
+
+        return self;
     }
 
     /// release resources associated with the Tty return it to its original state
