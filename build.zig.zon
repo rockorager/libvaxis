@@ -20,8 +20,8 @@
             .hash = "1220fe9ac5cdb41833d327a78745614e67d472469f8666567bd8cf9f5847a52b1c51",
         },
         .libxev = .{
-            .url = "git+https://github.com/mitchellh/libxev#a284cf851fe2f88f8947c01160c39ff216dacea1",
-            .hash = "12205b8ea5495b812b9a8943535a7af8da556644d2c1599dc01e1a5ea7aaf59bb2c7",
+            .url = "git+https://github.com/mitchellh/libxev#b3f9918776b8700b337b7ebe769060328fe246b0",
+            .hash = "122044caf67c7833c7110dc93531031899e459a6818ed125a0bcfdb0b5243bd7700b",
         },
     },
     .paths = .{
