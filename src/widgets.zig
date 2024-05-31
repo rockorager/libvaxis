@@ -7,3 +7,4 @@ pub const Table = @import("widgets/Table.zig");
 pub const TextInput = @import("widgets/TextInput.zig");
 pub const nvim = @import("widgets/nvim.zig");
 pub const ScrollView = @import("widgets/ScrollView.zig");
+pub const LineNumbers = @import("widgets/LineNumbers.zig");
