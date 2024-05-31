@@ -9,3 +9,4 @@ pub const nvim = @import("widgets/nvim.zig");
 pub const ScrollView = @import("widgets/ScrollView.zig");
 pub const LineNumbers = @import("widgets/LineNumbers.zig");
 pub const TextView = @import("widgets/TextView.zig");
+pub const CodeView = @import("widgets/CodeView.zig");
