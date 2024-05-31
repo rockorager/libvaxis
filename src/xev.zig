@@ -118,7 +118,6 @@ pub fn TtyWatcher(comptime Userdata: type) type {
             buf: xev.ReadBuffer,
             r: xev.ReadError!usize,
         ) xev.CallbackAction {
-            _ = c; // autofix
             const n = r catch |err| {
                 log.err("read error: {}", .{err});
                 return .disarm;
@@ -230,13 +229,21 @@ pub fn TtyWatcher(comptime Userdata: type) type {
                 }
             }
 
-            return .rearm;
+            self.file.read(
+                loop,
+                c,
+                .{ .slice = &self.read_buf },
+                Self,
+                self,
+                Self.ttyReadCallback,
+            );
+            return .disarm;
         }
 
         fn winsizeCallback(
             ud: ?*Self,
             l: *xev.Loop,
-            _: *xev.Completion,
+            c: *xev.Completion,
             r: xev.Async.WaitError!void,
         ) xev.CallbackAction {
             _ = r catch |err| {
@@ -248,7 +255,17 @@ pub fn TtyWatcher(comptime Userdata: type) type {
                 log.err("couldn't get winsize: {}", .{err});
                 return .disarm;
             };
-            return self.callback(self.ud, l, self, .{ .winsize = winsize });
+            const ret = self.callback(self.ud, l, self, .{ .winsize = winsize });
+            if (ret == .disarm) return .disarm;
+
+            self.winsize_wakeup.wait(
+                l,
+                c,
+                Self,
+                self,
+                winsizeCallback,
+            );
+            return .disarm;
         }
     };
 }
