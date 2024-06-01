@@ -181,7 +181,7 @@ pub fn resize(
             try tty.writeAll(ctlseqs.ri);
         }
     }
-    try tty.writeAll(ctlseqs.erase_below_cursor);
+    try tty.writeAll(ctlseqs.sgr_reset ++ ctlseqs.erase_below_cursor);
 }
 
 /// returns a Window comprising of the entire terminal screen
