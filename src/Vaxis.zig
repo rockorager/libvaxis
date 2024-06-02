@@ -262,6 +262,7 @@ pub fn enableDetectedFeatures(self: *Vaxis, tty: AnyWriter) !void {
     if (std.posix.getenv("VHS_RECORD")) |_| {
         self.caps.unicode = .wcwidth;
         self.caps.kitty_keyboard = false;
+        self.sgr = .legacy;
     }
     if (std.posix.getenv("VAXIS_FORCE_LEGACY_SGR")) |_|
         self.sgr = .legacy;
