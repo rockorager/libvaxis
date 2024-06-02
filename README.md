@@ -94,13 +94,13 @@ pub fn main() !void {
 
 
     // The event loop requires an intrusive init. We create an instance with
-    // stable points to Vaxis and our TTY, then init the instance. Doing so
+    // stable pointers to Vaxis and our TTY, then init the instance. Doing so
     // installs a signal handler for SIGWINCH on posix TTYs
     //
     // This event loop is thread safe. It reads the tty in a separate thread
     var loop: vaxis.Loop(Event) = .{
       .tty = &tty,
-      .vaxis = &vaxis,
+      .vaxis = &vx,
     };
     try loop.init();
 
@@ -117,7 +117,7 @@ pub fn main() !void {
 
     // init our text input widget. The text input widget needs an allocator to
     // store the contents of the input
-    var text_input = TextInput.init(alloc);
+    var text_input = TextInput.init(alloc, &vx.unicode);
     defer text_input.deinit();
 
     // Sends queries to terminal to detect certain features. This should always
@@ -127,7 +127,6 @@ pub fn main() !void {
     while (true) {
         // nextEvent blocks until an event is in the queue
         const event = loop.nextEvent();
-        std.log.debug("event: {}", .{event});
         // exhaustive switching ftw. Vaxis will send events if your Event enum
         // has the fields for those events (ie "key_press", "winsize")
         switch (event) {
