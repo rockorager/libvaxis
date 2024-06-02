@@ -7,6 +7,8 @@ const Event = union(enum) {
     winsize: vaxis.Winsize,
 };
 
+pub const panic = vaxis.panic_handler;
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {
@@ -31,12 +33,16 @@ pub fn main() !void {
     try vx.enterAltScreen(tty.anyWriter());
     try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
 
-    const lower_limit = 30;
-    var color_idx: u8 = lower_limit;
+    try vx.queryColor(tty.anyWriter(), .fg);
+    try vx.queryColor(tty.anyWriter(), .bg);
+    var pct: u8 = 0;
     var dir: enum {
         up,
         down,
     } = .up;
+
+    const fg = [_]u8{ 192, 202, 245 };
+    const bg = [_]u8{ 26, 27, 38 };
 
     // block until we get a resize
     while (true) {
@@ -61,7 +67,9 @@ pub fn main() !void {
         const win = vx.window();
         win.clear();
 
-        const style: vaxis.Style = .{ .fg = .{ .rgb = [_]u8{ color_idx, color_idx, color_idx } } };
+        const color = try blendColors(bg, fg, pct);
+
+        const style: vaxis.Style = .{ .fg = color };
 
         const segment: vaxis.Segment = .{
             .text = vaxis.logo,
@@ -70,16 +78,40 @@ pub fn main() !void {
         const center = vaxis.widgets.alignment.center(win, 28, 4);
         _ = try center.printSegment(segment, .{ .wrap = .grapheme });
         try vx.render(tty.anyWriter());
-        std.time.sleep(8 * std.time.ns_per_ms);
+        std.time.sleep(16 * std.time.ns_per_ms);
         switch (dir) {
             .up => {
-                color_idx += 1;
-                if (color_idx == 255) dir = .down;
+                pct += 1;
+                if (pct == 100) dir = .down;
             },
             .down => {
-                color_idx -= 1;
-                if (color_idx == lower_limit) dir = .up;
+                pct -= 1;
+                if (pct == 0) dir = .up;
             },
         }
     }
+}
+
+/// blend two rgb colors. pct is an integer percentage for te portion of 'b' in
+/// 'a'
+fn blendColors(a: [3]u8, b: [3]u8, pct: u8) !vaxis.Color {
+    // const r_a = (a[0] * (100 -| pct)) / 100;
+
+    const r_a = (@as(u16, a[0]) * @as(u16, (100 -| pct))) / 100;
+    const r_b = (@as(u16, b[0]) * @as(u16, pct)) / 100;
+
+    const g_a = (@as(u16, a[1]) * @as(u16, (100 -| pct))) / 100;
+    const g_b = (@as(u16, b[1]) * @as(u16, pct)) / 100;
+    // const g_a = try std.math.mul(u8, a[1], (100 -| pct) / 100);
+    // const g_b = (b[1] * pct) / 100;
+
+    const b_a = (@as(u16, a[2]) * @as(u16, (100 -| pct))) / 100;
+    const b_b = (@as(u16, b[2]) * @as(u16, pct)) / 100;
+    // const b_a = try std.math.mul(u8, a[2], (100 -| pct) / 100);
+    // const b_b = (b[2] * pct) / 100;
+    return .{ .rgb = [_]u8{
+        @min(r_a + r_b, 255),
+        @min(g_a + g_b, 255),
+        @min(b_a + b_b, 255),
+    } };
 }

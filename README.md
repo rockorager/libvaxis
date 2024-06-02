@@ -4,12 +4,10 @@
 It begins with them, but ends with me. Their son, Vaxis
 ```
 
-libvaxis is a zig port of the go TUI library
-[Vaxis](https://git.sr.ht/~rockorager/vaxis). The goal is to have the same
-feature set, only written in zig.
+![vaxis demo gif](vaxis.gif)
 
-Like it's sibling library, libvaxis _does not use terminfo_. Support for vt
-features is detected through terminal queries.
+Libvaxis _does not use terminfo_. Support for vt features is detected through
+terminal queries.
 
 Contributions are welcome.
 
