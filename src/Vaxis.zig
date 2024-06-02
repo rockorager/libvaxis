@@ -56,7 +56,6 @@ opts: Options = .{},
 /// if we should redraw the entire screen on the next render
 refresh: bool = false,
 
-// FIXME: remove before committing
 /// blocks the main thread until a DA1 query has been received, or the
 /// futex times out
 query_futex: atomic.Value(u32) = atomic.Value(u32).init(0),
