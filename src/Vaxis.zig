@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const atomic = std.atomic;
 const base64Encoder = std.base64.standard.Encoder;
 const zigimg = @import("zigimg");
@@ -17,7 +18,7 @@ const Hyperlink = Cell.Hyperlink;
 const KittyFlags = Key.KittyFlags;
 const Shape = Mouse.Shape;
 const Style = Cell.Style;
-const Winsize = @import("tty.zig").Winsize;
+const Winsize = @import("main.zig").Winsize;
 
 const ctlseqs = @import("ctlseqs.zig");
 const gwidth = @import("gwidth.zig");
@@ -253,29 +254,37 @@ pub fn queryTerminalSend(_: Vaxis, tty: AnyWriter) !void {
 /// is only for use with a custom main loop. Call Vaxis.queryTerminal() if
 /// you are using Loop.run()
 pub fn enableDetectedFeatures(self: *Vaxis, tty: AnyWriter) !void {
-    // Apply any environment variables
-    if (std.posix.getenv("ASCIINEMA_REC")) |_|
-        self.sgr = .legacy;
-    if (std.posix.getenv("TERMUX_VERSION")) |_|
-        self.sgr = .legacy;
-    if (std.posix.getenv("VHS_RECORD")) |_| {
-        self.caps.unicode = .wcwidth;
-        self.caps.kitty_keyboard = false;
-        self.sgr = .legacy;
-    }
-    if (std.posix.getenv("VAXIS_FORCE_LEGACY_SGR")) |_|
-        self.sgr = .legacy;
-    if (std.posix.getenv("VAXIS_FORCE_WCWIDTH")) |_|
-        self.caps.unicode = .wcwidth;
-    if (std.posix.getenv("VAXIS_FORCE_UNICODE")) |_|
-        self.caps.unicode = .unicode;
+    switch (builtin.os.tag) {
+        .windows => {
+            // No feature detection on windows. We just hard enable some knowns for ConPTY
+            self.sgr = .legacy;
+        },
+        else => {
+            // Apply any environment variables
+            if (std.posix.getenv("ASCIINEMA_REC")) |_|
+                self.sgr = .legacy;
+            if (std.posix.getenv("TERMUX_VERSION")) |_|
+                self.sgr = .legacy;
+            if (std.posix.getenv("VHS_RECORD")) |_| {
+                self.caps.unicode = .wcwidth;
+                self.caps.kitty_keyboard = false;
+                self.sgr = .legacy;
+            }
+            if (std.posix.getenv("VAXIS_FORCE_LEGACY_SGR")) |_|
+                self.sgr = .legacy;
+            if (std.posix.getenv("VAXIS_FORCE_WCWIDTH")) |_|
+                self.caps.unicode = .wcwidth;
+            if (std.posix.getenv("VAXIS_FORCE_UNICODE")) |_|
+                self.caps.unicode = .unicode;
 
-    // enable detected features
-    if (self.caps.kitty_keyboard) {
-        try self.enableKittyKeyboard(tty, self.opts.kitty_keyboard_flags);
-    }
-    if (self.caps.unicode == .unicode) {
-        try tty.writeAll(ctlseqs.unicode_set);
+            // enable detected features
+            if (self.caps.kitty_keyboard) {
+                try self.enableKittyKeyboard(tty, self.opts.kitty_keyboard_flags);
+            }
+            if (self.caps.unicode == .unicode) {
+                try tty.writeAll(ctlseqs.unicode_set);
+            }
+        },
     }
 }
 

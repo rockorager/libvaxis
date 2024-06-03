@@ -1,8 +1,8 @@
 const std = @import("std");
 const xev = @import("xev");
 
-const Tty = @import("tty.zig").Tty;
-const Winsize = @import("tty.zig").Winsize;
+const Tty = @import("main.zig").Tty;
+const Winsize = @import("main.zig").Winsize;
 const Vaxis = @import("Vaxis.zig");
 const Parser = @import("Parser.zig");
 const Key = @import("Key.zig");
@@ -161,6 +161,7 @@ pub fn TtyWatcher(comptime Userdata: type) type {
                     .paste => |paste| .{ .paste = paste },
                     .color_report => |report| .{ .color_report = report },
                     .color_scheme => |scheme| .{ .color_scheme = scheme },
+                    .winsize => |ws| .{ .winsize = ws },
 
                     // capability events which we handle below
                     .cap_kitty_keyboard,
@@ -192,6 +193,7 @@ pub fn TtyWatcher(comptime Userdata: type) type {
                     .paste,
                     .color_report,
                     .color_scheme,
+                    .winsize,
                     => unreachable, // handled above
 
                     .cap_kitty_keyboard => {
