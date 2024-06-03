@@ -1,6 +1,7 @@
 pub const Key = @import("Key.zig");
 pub const Mouse = @import("Mouse.zig");
 pub const Color = @import("Cell.zig").Color;
+pub const Winsize = @import("main.zig").Winsize;
 
 /// The events that Vaxis emits internally
 pub const Event = union(enum) {
@@ -14,6 +15,7 @@ pub const Event = union(enum) {
     paste: []const u8, // osc 52 paste, caller must free
     color_report: Color.Report, // osc 4, 10, 11, 12 response
     color_scheme: Color.Scheme,
+    winsize: Winsize,
 
     // these are delivered as discovered terminal capabilities
     cap_kitty_keyboard,

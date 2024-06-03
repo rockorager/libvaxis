@@ -19,13 +19,23 @@ pub const Screen = @import("Screen.zig");
 pub const AllocatingScreen = @import("InternalScreen.zig");
 pub const Parser = @import("Parser.zig");
 pub const Window = @import("Window.zig");
-pub const tty = @import("tty.zig");
-pub const Tty = tty.Tty;
-pub const Winsize = tty.Winsize;
-
 pub const widgets = @import("widgets.zig");
 pub const gwidth = @import("gwidth.zig");
 pub const ctlseqs = @import("ctlseqs.zig");
+
+/// The target TTY implementation
+pub const Tty = switch (builtin.os.tag) {
+    .windows => @import("windows/Tty.zig"),
+    else => @import("posix/Tty.zig"),
+};
+
+/// The size of the terminal screen
+pub const Winsize = struct {
+    rows: usize,
+    cols: usize,
+    x_pixel: usize,
+    y_pixel: usize,
+};
 
 /// Initialize a Vaxis application.
 pub fn init(alloc: std.mem.Allocator, opts: Vaxis.Options) !Vaxis {
