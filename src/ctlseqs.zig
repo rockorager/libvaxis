@@ -12,10 +12,13 @@ pub const csi_u_query = "\x1b[?u";
 pub const kitty_graphics_query = "\x1b_Gi=1,a=q\x1b\\";
 pub const sixel_geometry_query = "\x1b[?2;1;0S";
 
-// mouse
-pub const mouse_set = "\x1b[?1003;1004;1006h";
-pub const mouse_set_pixels = "\x1b[?1003;1004;1016h";
-pub const mouse_reset = "\x1b[?1003;1004;1006;1016l";
+// mouse. We try for button motion and any motion. terminals will enable the
+// last one we tried (any motion). This was added because zellij doesn't
+// support any motion currently
+// See: https://github.com/zellij-org/zellij/issues/1679
+pub const mouse_set = "\x1b[?1002;1003;1004;1006h";
+pub const mouse_set_pixels = "\x1b[?1002;1003;1004;1016h";
+pub const mouse_reset = "\x1b[?1002;1003;1004;1006;1016l";
 
 // sync
 pub const sync_set = "\x1b[?2026h";
