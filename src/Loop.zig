@@ -50,7 +50,7 @@ pub fn Loop(comptime T: type) type {
             });
         }
 
-        /// stops reading from the tty and returns it to it's initial state
+        /// stops reading from the tty.
         pub fn stop(self: *Self) void {
             self.should_quit = true;
             // trigger a read
@@ -59,6 +59,7 @@ pub fn Loop(comptime T: type) type {
             if (self.thread) |thread| {
                 thread.join();
                 self.thread = null;
+                self.should_quit = false;
             }
         }
 
