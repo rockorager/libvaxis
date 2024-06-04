@@ -49,6 +49,8 @@ pub const Buffer = struct {
     style_map: StyleMap = .{},
     rows: usize = 0,
     cols: usize = 0,
+    // used when appending to a buffer
+    last_cols: usize = 0,
 
     pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
         self.style_map.deinit(allocator);
@@ -73,7 +75,7 @@ pub const Buffer = struct {
 
     /// Appends content to the buffer.
     pub fn append(self: *@This(), allocator: std.mem.Allocator, content: Content) !void {
-        var cols: usize = 0;
+        var cols: usize = self.last_cols;
         var iter = grapheme.Iterator.init(content.bytes, content.gd);
         const dw: DisplayWidth = .{ .data = content.wd };
         while (iter.next()) |g| {
@@ -90,6 +92,7 @@ pub const Buffer = struct {
             cols +|= dw.strWidth(cluster);
         }
         try self.content.appendSlice(allocator, content.bytes);
+        self.last_cols = cols;
         self.cols = @max(self.cols, cols);
         self.rows +|= std.mem.count(u8, content.bytes, "\n");
     }
