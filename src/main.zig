@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const build_options = @import("build_options");
 
 pub const Vaxis = @import("Vaxis.zig");
 
@@ -75,5 +76,6 @@ test {
 
     _ = @import("gwidth.zig");
     _ = @import("queue.zig");
-    _ = @import("widgets/TextInput.zig");
+    if (build_options.text_input)
+        _ = @import("widgets/TextInput.zig");
 }
