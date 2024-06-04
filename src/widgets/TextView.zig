@@ -43,6 +43,8 @@ pub const Buffer = struct {
         style: vaxis.Style,
     };
 
+    pub const Error = error{OutOfMemory};
+
     grapheme: std.MultiArrayList(grapheme.Grapheme) = .{},
     content: std.ArrayListUnmanaged(u8) = .{},
     style_list: StyleList = .{},
@@ -67,14 +69,14 @@ pub const Buffer = struct {
     }
 
     /// Replaces contents of the buffer, all previous buffer data is lost.
-    pub fn update(self: *@This(), allocator: std.mem.Allocator, content: Content) !void {
+    pub fn update(self: *@This(), allocator: std.mem.Allocator, content: Content) Error!void {
         self.clear(allocator);
         errdefer self.clear(allocator);
         try self.append(allocator, content);
     }
 
     /// Appends content to the buffer.
-    pub fn append(self: *@This(), allocator: std.mem.Allocator, content: Content) !void {
+    pub fn append(self: *@This(), allocator: std.mem.Allocator, content: Content) Error!void {
         var cols: usize = self.last_cols;
         var iter = grapheme.Iterator.init(content.bytes, content.gd);
         const dw: DisplayWidth = .{ .data = content.wd };
@@ -104,7 +106,7 @@ pub const Buffer = struct {
     }
 
     /// Update style for range of the buffer contents.
-    pub fn updateStyle(self: *@This(), allocator: std.mem.Allocator, style: Style) !void {
+    pub fn updateStyle(self: *@This(), allocator: std.mem.Allocator, style: Style) Error!void {
         const style_index = blk: {
             for (self.style_list.items, 0..) |s, i| {
                 if (std.meta.eql(s, style.style)) {
