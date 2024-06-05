@@ -296,8 +296,6 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
             else => continue,
         }
     } else return .{ .event = null, .n = 0 };
-    std.log.err("{s}\r\n", .{sequence[1..]});
-
     const null_event: Result = .{ .event = null, .n = sequence.len };
 
     const final = sequence[sequence.len - 1];
