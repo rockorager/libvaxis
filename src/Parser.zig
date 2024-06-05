@@ -290,11 +290,13 @@ inline fn parseOsc(input: []const u8, paste_allocator: ?std.mem.Allocator) !Resu
 inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
     // We start iterating at index 2 to get past te '['
     const sequence = for (input[2..], 2..) |b, i| {
+        if (i == 2 and b == '?') continue;
         switch (b) {
             0x40...0xFF => break input[0 .. i + 1],
             else => continue,
         }
     } else return .{ .event = null, .n = 0 };
+    std.log.err("{s}\r\n", .{sequence[1..]});
 
     const null_event: Result = .{ .event = null, .n = sequence.len };
 
@@ -431,6 +433,11 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
             // Not all fields will be present. Only unicode-key-code is
             // mandatory
 
+            if (sequence.len > 2 and sequence[2] == '?') return .{
+                .event = .cap_kitty_keyboard,
+                .n = sequence.len,
+            };
+
             var key: Key = .{
                 .codepoint = undefined,
             };
@@ -487,10 +494,10 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
             return .{ .event = event, .n = sequence.len };
         },
         'y' => {
-            // DECRPM (CSI Ps ; Pm y)
+            // DECRPM (CSI ? Ps ; Pm $ y)
             const delim_idx = std.mem.indexOfScalarPos(u8, input, 2, ';') orelse return null_event;
-            const ps = std.fmt.parseUnsigned(u16, input[2..delim_idx], 10) catch return null_event;
-            const pm = std.fmt.parseUnsigned(u8, input[delim_idx + 1 .. sequence.len - 1], 10) catch return null_event;
+            const ps = std.fmt.parseUnsigned(u16, input[3..delim_idx], 10) catch return null_event;
+            const pm = std.fmt.parseUnsigned(u8, input[delim_idx + 1 .. sequence.len - 2], 10) catch return null_event;
             switch (ps) {
                 // Mouse Pixel reporting
                 1016 => switch (pm) {
