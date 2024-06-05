@@ -39,7 +39,9 @@ pub fn main() !void {
     const writer = buffered_writer.writer().any();
 
     // Initialize Vaxis
-    var vx = try vaxis.init(alloc, .{});
+    var vx = try vaxis.init(alloc, .{
+        .kitty_keyboard_flags = .{ .report_events = true },
+    });
     defer vx.deinit(alloc, tty.anyWriter());
 
     var loop: vaxis.Loop(Event) = .{
@@ -64,13 +66,12 @@ pub fn main() !void {
     var text_input = TextInput.init(alloc, &vx.unicode);
     defer text_input.deinit();
 
-    // Sends queries to terminal to detect certain features. This should
-    // _always_ be called, but is left to the application to decide when
-    // try vx.queryTerminal();
-
     try vx.setMouseMode(writer, true);
 
     try buffered_writer.flush();
+    // Sends queries to terminal to detect certain features. This should
+    // _always_ be called, but is left to the application to decide when
+    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
 
     // The main event loop. Vaxis provides a thread safe, blocking, buffered
     // queue which can serve as the primary event queue for an application
