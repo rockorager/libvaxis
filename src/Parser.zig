@@ -303,17 +303,16 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
         'A', 'B', 'C', 'D', 'E', 'F', 'H', 'P', 'Q', 'R', 'S' => {
             // Legacy keys
             // CSI {ABCDEFHPQS}
-            // CSI 1 ; modifier {ABCDEFHPQS}
+            // CSI 1 ; modifier:event_type {ABCDEFHPQS}
 
-            const modifiers: Key.Modifiers = if (sequence.len > 3) mods: {
-                // ESC [ 1 ; <modifier_buf> {ABCDEFHPQS}
-                const modifier_buf = sequence[4 .. sequence.len - 1];
-                const modifiers = parseParam(u8, modifier_buf, 1) orelse return null_event;
-                break :mods @bitCast(modifiers -| 1);
-            } else .{};
+            // Split first into fields delimited by ';'
+            var field_iter = std.mem.splitScalar(u8, sequence[2 .. sequence.len - 1], ';');
 
-            const key: Key = .{
-                .mods = modifiers,
+            // skip the first field
+            _ = field_iter.next(); //
+
+            var is_release: bool = false;
+            var key: Key = .{
                 .codepoint = switch (final) {
                     'A' => Key.up,
                     'B' => Key.down,
@@ -329,8 +328,35 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
                     else => return null_event,
                 },
             };
+
+            field2: {
+                // modifier_mask:event_type
+                const field_buf = field_iter.next() orelse break :field2;
+                var param_iter = std.mem.splitScalar(u8, field_buf, ':');
+                const modifier_buf = param_iter.next() orelse unreachable;
+                const modifier_mask = parseParam(u8, modifier_buf, 1) orelse return null_event;
+                key.mods = @bitCast(modifier_mask -| 1);
+
+                if (param_iter.next()) |event_type_buf| {
+                    is_release = std.mem.eql(u8, event_type_buf, "3");
+                }
+            }
+
+            field3: {
+                // text_as_codepoint[:text_as_codepoint]
+                const field_buf = field_iter.next() orelse break :field3;
+                var param_iter = std.mem.splitScalar(u8, field_buf, ':');
+                var total: usize = 0;
+                while (param_iter.next()) |cp_buf| {
+                    const cp = parseParam(u21, cp_buf, null) orelse return null_event;
+                    total += std.unicode.utf8Encode(cp, text_buf[total..]) catch return null_event;
+                }
+                key.text = text_buf[0..total];
+            }
+
+            const event: Event = if (is_release) .{ .key_release = key } else .{ .key_press = key };
             return .{
-                .event = .{ .key_press = key },
+                .event = event,
                 .n = sequence.len,
             };
         },
@@ -338,47 +364,67 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
             // Legacy keys
             // CSI number ~
             // CSI number ; modifier ~
+            // CSI number ; modifier:event_type ; text_as_codepoint ~
             var field_iter = std.mem.splitScalar(u8, sequence[2 .. sequence.len - 1], ';');
             const number_buf = field_iter.next() orelse unreachable; // always will have one field
             const number = parseParam(u16, number_buf, null) orelse return null_event;
 
-            const key_code = switch (number) {
-                2 => Key.insert,
-                3 => Key.delete,
-                5 => Key.page_up,
-                6 => Key.page_down,
-                7 => Key.home,
-                8 => Key.end,
-                11 => Key.f1,
-                12 => Key.f2,
-                13 => Key.f3,
-                14 => Key.f4,
-                15 => Key.f5,
-                17 => Key.f6,
-                18 => Key.f7,
-                19 => Key.f8,
-                20 => Key.f9,
-                21 => Key.f10,
-                23 => Key.f11,
-                24 => Key.f12,
-                200 => return .{ .event = .paste_start, .n = sequence.len },
-                201 => return .{ .event = .paste_end, .n = sequence.len },
-                57427 => Key.kp_begin,
-                else => return null_event,
+            var key: Key = .{
+                .codepoint = switch (number) {
+                    2 => Key.insert,
+                    3 => Key.delete,
+                    5 => Key.page_up,
+                    6 => Key.page_down,
+                    7 => Key.home,
+                    8 => Key.end,
+                    11 => Key.f1,
+                    12 => Key.f2,
+                    13 => Key.f3,
+                    14 => Key.f4,
+                    15 => Key.f5,
+                    17 => Key.f6,
+                    18 => Key.f7,
+                    19 => Key.f8,
+                    20 => Key.f9,
+                    21 => Key.f10,
+                    23 => Key.f11,
+                    24 => Key.f12,
+                    200 => return .{ .event = .paste_start, .n = sequence.len },
+                    201 => return .{ .event = .paste_end, .n = sequence.len },
+                    57427 => Key.kp_begin,
+                    else => return null_event,
+                },
             };
 
-            const modifiers: Key.Modifiers = if (field_iter.next()) |modifier_buf| mods: {
-                const modifiers = parseParam(u8, modifier_buf, 1) orelse return null_event;
-                break :mods @bitCast(modifiers -| 1);
-            } else .{};
+            var is_release: bool = false;
+            field2: {
+                // modifier_mask:event_type
+                const field_buf = field_iter.next() orelse break :field2;
+                var param_iter = std.mem.splitScalar(u8, field_buf, ':');
+                const modifier_buf = param_iter.next() orelse unreachable;
+                const modifier_mask = parseParam(u8, modifier_buf, 1) orelse return null_event;
+                key.mods = @bitCast(modifier_mask -| 1);
 
-            const key: Key = .{
-                .codepoint = key_code,
-                .mods = modifiers,
-            };
+                if (param_iter.next()) |event_type_buf| {
+                    is_release = std.mem.eql(u8, event_type_buf, "3");
+                }
+            }
 
+            field3: {
+                // text_as_codepoint[:text_as_codepoint]
+                const field_buf = field_iter.next() orelse break :field3;
+                var param_iter = std.mem.splitScalar(u8, field_buf, ':');
+                var total: usize = 0;
+                while (param_iter.next()) |cp_buf| {
+                    const cp = parseParam(u21, cp_buf, null) orelse return null_event;
+                    total += std.unicode.utf8Encode(cp, text_buf[total..]) catch return null_event;
+                }
+                key.text = text_buf[0..total];
+            }
+
+            const event: Event = if (is_release) .{ .key_release = key } else .{ .key_press = key };
             return .{
-                .event = .{ .key_press = key },
+                .event = event,
                 .n = sequence.len,
             };
         },
