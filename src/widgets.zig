@@ -10,6 +10,7 @@ pub const ScrollView = @import("widgets/ScrollView.zig");
 pub const LineNumbers = @import("widgets/LineNumbers.zig");
 pub const TextView = @import("widgets/TextView.zig");
 pub const CodeView = @import("widgets/CodeView.zig");
+pub const Terminal = @import("widgets/terminal/Terminal.zig");
 
 // Widgets with dependencies
 

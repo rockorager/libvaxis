@@ -64,6 +64,7 @@ pub fn build(b: *std.Build) void {
         table,
         text_input,
         vaxis,
+        vt,
         xev,
     };
     const example_option = b.option(Example, "example", "Example to run (default: text_input)") orelse .text_input;

@@ -290,7 +290,6 @@ inline fn parseOsc(input: []const u8, paste_allocator: ?std.mem.Allocator) !Resu
 inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
     // We start iterating at index 2 to get past te '['
     const sequence = for (input[2..], 2..) |b, i| {
-        if (i == 2 and b == '?') continue;
         switch (b) {
             0x40...0xFF => break input[0 .. i + 1],
             else => continue,

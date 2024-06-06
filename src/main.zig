@@ -26,6 +26,7 @@ pub const ctlseqs = @import("ctlseqs.zig");
 pub const GraphemeCache = @import("GraphemeCache.zig");
 pub const grapheme = @import("grapheme");
 pub const Event = @import("event.zig").Event;
+pub const Unicode = @import("Unicode.zig");
 
 /// The target TTY implementation
 pub const Tty = switch (builtin.os.tag) {
