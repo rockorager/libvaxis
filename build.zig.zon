@@ -9,8 +9,8 @@
             .lazy = true,
         },
         .gap_buffer = .{
-            .url = "https://github.com/ryleelyman/GapBuffer.zig/archive/6a746497d5a2494026d0f471e42556f1f153f153.tar.gz",
-            .hash = "12205354d9903e773f9d934dcfe756b0b5ffd895571ad631ab86ebc1aebba074dd82",
+            .url = "git+https://github.com/ryleelyman/GapBuffer.zig#main",
+            .hash = "1220f525973ae804ec0284556bfc47db7b6a8dc86464a853956ef859d6e0fb5fa93b",
             .lazy = true,
         },
         .znvim = .{
