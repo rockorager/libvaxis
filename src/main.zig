@@ -23,6 +23,9 @@ pub const Window = @import("Window.zig");
 pub const widgets = @import("widgets.zig");
 pub const gwidth = @import("gwidth.zig");
 pub const ctlseqs = @import("ctlseqs.zig");
+pub const GraphemeCache = @import("GraphemeCache.zig");
+pub const grapheme = @import("grapheme");
+pub const Event = @import("event.zig").Event;
 
 /// The target TTY implementation
 pub const Tty = switch (builtin.os.tag) {
