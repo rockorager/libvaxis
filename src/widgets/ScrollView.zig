@@ -51,7 +51,10 @@ pub fn draw(self: *@This(), parent: vaxis.Window, content_size: struct {
     cols: usize,
     rows: usize,
 }) void {
-    var content_cols = content_size.cols;
+    const content_cols = if (self.vertical_scrollbar) |_| content_size.cols +| 1 else content_size.cols;
+    const max_scroll_x = content_cols -| parent.width;
+    const max_scroll_y = content_size.rows -| parent.height;
+    self.scroll.restrictTo(max_scroll_x, max_scroll_y);
     if (self.vertical_scrollbar) |opts| {
         const vbar: vaxis.widgets.Scrollbar = .{
             .character = opts.character,
@@ -67,11 +70,7 @@ pub fn draw(self: *@This(), parent: vaxis.Window, content_size: struct {
         });
         bg.fill(.{ .char = opts.character, .style = opts.bg });
         vbar.draw(bg);
-        content_cols +|= 1;
     }
-    const max_scroll_x = content_cols -| parent.width;
-    const max_scroll_y = content_size.rows -| parent.height;
-    self.scroll.restrictTo(max_scroll_x, max_scroll_y);
 }
 
 pub const BoundingBox = struct {
