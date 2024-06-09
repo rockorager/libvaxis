@@ -4,8 +4,8 @@
     .minimum_zig_version = "0.12.0",
     .dependencies = .{
         .zigimg = .{
-            .url = "git+https://github.com/zigimg/zigimg#637974e2d31dcdbc33f1e9cc8ffb2e46abd2e215",
-            .hash = "122012026c3a65ff1d4acba3b3fe80785f7cee9c6b4cdaff7ed0fbf23b0a6c803989",
+            .url = "git+https://github.com/zigimg/zigimg#3a667bdb3d7f0955a5a51c8468eac83210c1439e",
+            .hash = "1220dd654ef941fc76fd96f9ec6adadf83f69b9887a0d3f4ee5ac0a1a3e11be35cf5",
             .lazy = true,
         },
         .gap_buffer = .{
@@ -14,17 +14,17 @@
             .lazy = true,
         },
         .znvim = .{
-            .url = "git+https://github.com/jinzhongjia/znvim#7927b8042872d5fa5f30862302bea1290d372d4f",
-            .hash = "12202372c2043a9ac557144d327c09638ccd8d615bba459ba17d1a7a4197a213d939",
+            .url = "git+https://github.com/jinzhongjia/znvim#515fb2784f7b0db2ea7a0021aada8d4aa89a08fe",
+            .hash = "1220ca0a762fdf3172623e3f15890e396c975657d8ec57d907896f74ef94a37b73f2",
             .lazy = true,
         },
         .zg = .{
-            .url = "git+https://codeberg.org/dude_the_builder/zg#16735685fcc3410de361ba3411788ad1fb4fe188",
-            .hash = "1220fe9ac5cdb41833d327a78745614e67d472469f8666567bd8cf9f5847a52b1c51",
+            .url = "git+https://codeberg.org/dude_the_builder/zg#6d2ba3ff8f3cb7c86cef2b2176fb5b4a72c104dc",
+            .hash = "1220da2679c872f73b60b8071d96b9b0e7790ac1a1597e02bf91807d6089f3c89005",
         },
         .libxev = .{
-            .url = "git+https://github.com/mitchellh/libxev#b3f9918776b8700b337b7ebe769060328fe246b0",
-            .hash = "122044caf67c7833c7110dc93531031899e459a6818ed125a0bcfdb0b5243bd7700b",
+            .url = "git+https://github.com/mitchellh/libxev#f6a672a78436d8efee1aa847a43a900ad773618b",
+            .hash = "12207b7a5b538ffb7fb18f954ae17d2f8490b6e3778a9e30564ad82c58ee8da52361",
             .lazy = true,
         },
     },
