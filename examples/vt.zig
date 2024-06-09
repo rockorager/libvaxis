@@ -44,44 +44,36 @@ pub fn main() !void {
         },
         .scrollback_size = 0,
     };
-    const argv1 = [_][]const u8{"senpai"};
-    const argv2 = [_][]const u8{"nvim"};
-    const argv3 = [_][]const u8{"senpai"};
-    // const argv = [_][]const u8{"senpai"};
-    // const argv = [_][]const u8{"comlink"};
-    var vt1 = try vaxis.widgets.Terminal.init(
+    // const shell = env.get("SHELL") orelse "bash";
+    const shell = "fish";
+    // const ed = env.get("EDITOR") orelse "nvim";
+    // const pager = env.get("EDITOR") orelse "nvim";
+    const argv = [_][]const u8{shell};
+    var vt = try vaxis.widgets.Terminal.init(
         alloc,
-        &argv1,
+        &argv,
         &env,
         &vx.unicode,
         vt_opts,
     );
-    defer vt1.deinit();
-    try vt1.spawn();
-    var vt2 = try vaxis.widgets.Terminal.init(
-        alloc,
-        &argv2,
-        &env,
-        &vx.unicode,
-        vt_opts,
-    );
-    defer vt2.deinit();
-    try vt2.spawn();
-    var vt3 = try vaxis.widgets.Terminal.init(
-        alloc,
-        &argv3,
-        &env,
-        &vx.unicode,
-        vt_opts,
-    );
-    defer vt3.deinit();
-    try vt3.spawn();
+    defer vt.deinit();
+    try vt.spawn();
 
     while (true) {
         std.time.sleep(8 * std.time.ns_per_ms);
+        // try vt events first
+        while (vt.tryEvent()) |event| {
+            switch (event) {
+                .bell => {},
+                .exited => return,
+            }
+        }
         while (loop.tryEvent()) |event| {
             switch (event) {
-                .key_press => |key| if (key.matches('c', .{ .ctrl = true })) return,
+                .key_press => |key| {
+                    if (key.matches('c', .{ .ctrl = true })) return;
+                    try vt.update(.{ .key_press = key });
+                },
                 .winsize => |ws| {
                     try vx.resize(alloc, tty.anyWriter(), ws);
                 },
@@ -90,46 +82,23 @@ pub fn main() !void {
 
         const win = vx.window();
         win.clear();
-        const left = win.child(.{
-            .width = .{ .limit = win.width / 2 },
+        const child = win.child(.{
+            .x_off = 4,
+            .y_off = 2,
+            .width = .{ .limit = win.width - 8 },
+            .height = .{ .limit = win.width - 6 },
             .border = .{
-                .where = .right,
+                .where = .all,
             },
         });
 
-        const right_top = win.child(.{
-            .x_off = left.width + 1,
-            .height = .{ .limit = win.height / 2 },
-            .border = .{
-                .where = .bottom,
-            },
-        });
-        const right_bot = win.child(.{
-            .x_off = left.width + 1,
-            .y_off = right_top.height + 1,
-        });
-
-        try vt1.resize(.{
-            .rows = left.height,
-            .cols = left.width,
+        try vt.resize(.{
+            .rows = child.height,
+            .cols = child.width,
             .x_pixel = 0,
             .y_pixel = 0,
         });
-        try vt2.resize(.{
-            .rows = right_top.height,
-            .cols = right_bot.width,
-            .x_pixel = 0,
-            .y_pixel = 0,
-        });
-        try vt3.resize(.{
-            .rows = right_bot.height,
-            .cols = right_bot.width,
-            .x_pixel = 0,
-            .y_pixel = 0,
-        });
-        try vt1.draw(left);
-        try vt2.draw(right_top);
-        try vt3.draw(right_bot);
+        try vt.draw(child);
 
         try vx.render(tty.anyWriter());
     }
