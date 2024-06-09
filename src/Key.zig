@@ -265,7 +265,7 @@ pub const iso_level_5_shift: u21 = 57454;
 
 pub const name_map = blk: {
     @setEvalBranchQuota(2000);
-    break :blk std.ComptimeStringMap(u21, .{
+    break :blk std.StaticStringMap(u21).initComptime(.{
         // common names
         .{ "plus", '+' },
         .{ "minus", '-' },
