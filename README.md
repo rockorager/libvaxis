@@ -11,7 +11,7 @@ terminal queries.
 
 Contributions are welcome.
 
-Vaxis uses zig `0.12.0`.
+Vaxis uses zig `0.13.0`.
 
 ## Features
 
