@@ -19,8 +19,8 @@
             .lazy = true,
         },
         .zg = .{
-            .url = "git+https://codeberg.org/dude_the_builder/zg#6d2ba3ff8f3cb7c86cef2b2176fb5b4a72c104dc",
-            .hash = "1220da2679c872f73b60b8071d96b9b0e7790ac1a1597e02bf91807d6089f3c89005",
+            .url = "git+https://codeberg.org/rockorager/zg?ref=master#71f3570ab9259254b70a8a91b389ed698a33a264",
+            .hash = "1220eade41916d0fb6693d2a3fe44f6e90e708e200a563006a638864cb9d901bdef9",
         },
         .libxev = .{
             .url = "git+https://github.com/mitchellh/libxev#f6a672a78436d8efee1aa847a43a900ad773618b",
