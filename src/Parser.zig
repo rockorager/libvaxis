@@ -539,9 +539,9 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
         },
         'y' => {
             // DECRPM (CSI ? Ps ; Pm $ y)
-            const delim_idx = std.mem.indexOfScalarPos(u8, input, 2, ';') orelse return null_event;
-            const ps = std.fmt.parseUnsigned(u16, input[2..delim_idx], 10) catch return null_event;
-            const pm = std.fmt.parseUnsigned(u8, input[delim_idx + 1 .. sequence.len - 1], 10) catch return null_event;
+            const delim_idx = std.mem.indexOfScalarPos(u8, input, 3, ';') orelse return null_event;
+            const ps = std.fmt.parseUnsigned(u16, input[3..delim_idx], 10) catch return null_event;
+            const pm = std.fmt.parseUnsigned(u8, input[delim_idx + 1 .. sequence.len - 2], 10) catch return null_event;
             switch (ps) {
                 // Mouse Pixel reporting
                 1016 => switch (pm) {
@@ -974,7 +974,7 @@ test "parse: multiple codepoint grapheme with more after" {
 test "parse(csi): decrpm" {
     var buf: [1]u8 = undefined;
     {
-        const input = "\x1b[1016;1y";
+        const input = "\x1b[?1016;1$y";
         const result = parseCsi(input, &buf);
         const expected: Result = .{
             .event = .cap_sgr_pixels,
