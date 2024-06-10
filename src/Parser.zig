@@ -985,7 +985,7 @@ test "parse(csi): decrpm" {
         try testing.expectEqual(expected.event, result.event);
     }
     {
-        const input = "\x1b[1016;0y";
+        const input = "\x1b[?1016;0$y";
         const result = parseCsi(input, &buf);
         const expected: Result = .{
             .event = null,
