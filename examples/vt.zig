@@ -65,6 +65,7 @@ pub fn main() !void {
         while (vt.tryEvent()) |event| {
             switch (event) {
                 .bell => {},
+                .title_change => {},
                 .exited => return,
             }
         }
@@ -82,6 +83,7 @@ pub fn main() !void {
 
         const win = vx.window();
         win.clear();
+        win.hideCursor();
         const child = win.child(.{
             .x_off = 4,
             .y_off = 2,
