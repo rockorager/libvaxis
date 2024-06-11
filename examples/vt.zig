@@ -82,8 +82,8 @@ pub fn main() !void {
         }
 
         const win = vx.window();
-        win.clear();
         win.hideCursor();
+        win.clear();
         const child = win.child(.{
             .x_off = 4,
             .y_off = 2,
