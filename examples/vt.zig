@@ -44,10 +44,7 @@ pub fn main() !void {
         },
         .scrollback_size = 0,
     };
-    // const shell = env.get("SHELL") orelse "bash";
-    const shell = "fish";
-    // const ed = env.get("EDITOR") orelse "nvim";
-    // const pager = env.get("EDITOR") orelse "nvim";
+    const shell = env.get("SHELL") orelse "bash";
     const argv = [_][]const u8{shell};
     var vt = try vaxis.widgets.Terminal.init(
         alloc,
