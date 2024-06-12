@@ -3,7 +3,7 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const include_libxev = b.option(bool, "libxev", "Enable support for libxev library (default: true)") orelse true;
     const include_images = b.option(bool, "images", "Enable support for images (default: true)") orelse true;
-    const include_nvim = b.option(bool, "nvim", "Enable support for the neovim widget (default: false)") orelse false;
+    const include_nvim = b.option(bool, "nvim", "Enable support for the neovim widget (default: true)") orelse true;
     const include_text_input = b.option(bool, "text_input", "Enable support for the TextInput widget (default: true)") orelse true;
 
     const options = b.addOptions();
