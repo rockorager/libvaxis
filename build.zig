@@ -3,13 +3,11 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const include_libxev = b.option(bool, "libxev", "Enable support for libxev library (default: true)") orelse true;
     const include_images = b.option(bool, "images", "Enable support for images (default: true)") orelse true;
-    const include_nvim = b.option(bool, "nvim", "Enable support for the neovim widget (default: true)") orelse true;
     const include_text_input = b.option(bool, "text_input", "Enable support for the TextInput widget (default: true)") orelse true;
 
     const options = b.addOptions();
     options.addOption(bool, "libxev", include_libxev);
     options.addOption(bool, "images", include_images);
-    options.addOption(bool, "nvim", include_nvim);
     options.addOption(bool, "text_input", include_text_input);
 
     const options_mod = options.createModule();
@@ -31,10 +29,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .target = target,
     }) else null;
-    const znvim_dep = if (include_nvim) b.lazyDependency("znvim", .{
-        .optimize = optimize,
-        .target = target,
-    }) else null;
     const xev_dep = if (include_libxev) b.lazyDependency("libxev", .{
         .optimize = optimize,
         .target = target,
@@ -51,7 +45,6 @@ pub fn build(b: *std.Build) void {
     vaxis_mod.addImport("DisplayWidth", zg_dep.module("DisplayWidth"));
     if (zigimg_dep) |dep| vaxis_mod.addImport("zigimg", dep.module("zigimg"));
     if (gap_buffer_dep) |dep| vaxis_mod.addImport("gap_buffer", dep.module("gap_buffer"));
-    if (znvim_dep) |dep| vaxis_mod.addImport("znvim", dep.module("znvim"));
     if (xev_dep) |dep| vaxis_mod.addImport("xev", dep.module("xev"));
     vaxis_mod.addImport("build_options", options_mod);
 
@@ -97,7 +90,6 @@ pub fn build(b: *std.Build) void {
     tests.root_module.addImport("DisplayWidth", zg_dep.module("DisplayWidth"));
     if (zigimg_dep) |dep| tests.root_module.addImport("zigimg", dep.module("zigimg"));
     if (gap_buffer_dep) |dep| tests.root_module.addImport("gap_buffer", dep.module("gap_buffer"));
-    if (znvim_dep) |dep| tests.root_module.addImport("znvim", dep.module("znvim"));
     tests.root_module.addImport("build_options", options_mod);
 
     const tests_run = b.addRunArtifact(tests);

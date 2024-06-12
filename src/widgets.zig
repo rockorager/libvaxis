@@ -15,4 +15,3 @@ pub const Terminal = @import("widgets/terminal/Terminal.zig");
 // Widgets with dependencies
 
 pub const TextInput = if (opts.text_input) @import("widgets/TextInput.zig") else undefined;
-pub const nvim = if (opts.nvim) @import("widgets/nvim.zig") else undefined;

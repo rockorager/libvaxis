@@ -13,11 +13,6 @@
             .hash = "1220f525973ae804ec0284556bfc47db7b6a8dc86464a853956ef859d6e0fb5fa93b",
             .lazy = true,
         },
-        .znvim = .{
-            .url = "git+https://github.com/jinzhongjia/znvim#515fb2784f7b0db2ea7a0021aada8d4aa89a08fe",
-            .hash = "1220ca0a762fdf3172623e3f15890e396c975657d8ec57d907896f74ef94a37b73f2",
-            .lazy = true,
-        },
         .zg = .{
             .url = "git+https://codeberg.org/dude_the_builder/zg?ref=master#689ab6b83d08c02724b99d199d650ff731250998",
             .hash = "12200d1ce5f9733a9437415d85665ad5fbc85a4d27689fd337fecad8014acffe3aa5",
