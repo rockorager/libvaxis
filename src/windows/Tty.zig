@@ -24,9 +24,10 @@ const utf8_codepage: c_uint = 65001;
 const InputMode = struct {
     const enable_window_input: u32 = 0x0008; // resize events
     const enable_mouse_input: u32 = 0x0010;
+    const enable_extended_flags: u32 = 0x0080; // allows mouse events
 
     pub fn rawMode() u32 {
-        return enable_window_input | enable_mouse_input;
+        return enable_window_input | enable_mouse_input | enable_extended_flags;
     }
 };
 
@@ -277,7 +278,7 @@ pub fn nextEvent(self: *Tty) !Event {
                     else => return .{ .key_press = key },
                 }
             },
-            0x0002 => { // TODO: ConPTY doesn't pass through MOUSE_EVENT input records yet.
+            0x0002 => { // TODO: Parse mouse events
                 // see https://learn.microsoft.com/en-us/windows/console/mouse-event-record-str
             },
             0x0004 => { // Screen resize events
