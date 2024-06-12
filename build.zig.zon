@@ -1,7 +1,7 @@
 .{
     .name = "vaxis",
     .version = "0.1.0",
-    .minimum_zig_version = "0.12.0",
+    .minimum_zig_version = "0.13.0",
     .dependencies = .{
         .zigimg = .{
             .url = "git+https://github.com/zigimg/zigimg#3a667bdb3d7f0955a5a51c8468eac83210c1439e",
