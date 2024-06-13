@@ -291,10 +291,10 @@ pub fn nextEvent(self: *Tty) !Event {
                 // High word of dwButtonState represents mouse wheel. Positive is wheel_up, negative
                 // is wheel_down
                 // Low word represents button state
-                const mouse_wheel_direction: i32 = blk: {
-                    const wheelu64: u64 = event.dwButtonState >> 16;
-                    const wheelu32: u32 = @truncate(wheelu64);
-                    break :blk @bitCast(wheelu32);
+                const mouse_wheel_direction: i16 = blk: {
+                    const wheelu32: u32 = event.dwButtonState >> 16;
+                    const wheelu16: u16 = @truncate(wheelu32);
+                    break :blk @bitCast(wheelu16);
                 };
 
                 const buttons: u16 = @truncate(event.dwButtonState);
