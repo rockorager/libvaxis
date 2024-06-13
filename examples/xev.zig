@@ -56,6 +56,7 @@ pub fn main() !void {
     const alloc = gpa.allocator();
 
     var tty = try vaxis.Tty.init();
+    defer tty.deinit();
 
     var vx = try vaxis.init(alloc, .{});
     defer vx.deinit(alloc, tty.anyWriter());
