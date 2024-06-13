@@ -43,6 +43,7 @@ pub fn init() !Posix {
         .mask = switch (builtin.os.tag) {
             .macos => 0,
             .linux => posix.empty_sigset,
+            .freebsd => posix.empty_sigset,
             else => @compileError("os not supported"),
         },
         .flags = 0,
