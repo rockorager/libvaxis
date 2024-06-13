@@ -56,17 +56,21 @@ pub fn main() !void {
     defer vt.deinit();
     try vt.spawn();
 
+    var redraw: bool = false;
     while (true) {
         std.time.sleep(8 * std.time.ns_per_ms);
         // try vt events first
         while (vt.tryEvent()) |event| {
+            redraw = true;
             switch (event) {
                 .bell => {},
                 .title_change => {},
                 .exited => return,
+                .redraw => {},
             }
         }
         while (loop.tryEvent()) |event| {
+            redraw = true;
             switch (event) {
                 .key_press => |key| {
                     if (key.matches('c', .{ .ctrl = true })) return;
@@ -77,6 +81,8 @@ pub fn main() !void {
                 },
             }
         }
+        if (!redraw) continue;
+        redraw = false;
 
         const win = vx.window();
         win.hideCursor();
