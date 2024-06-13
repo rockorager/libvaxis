@@ -60,7 +60,10 @@ pub fn main() !void {
     var vx = try vaxis.init(alloc, .{});
     defer vx.deinit(alloc, tty.anyWriter());
 
-    var loop = try xev.Loop.init(.{});
+    var pool = xev.ThreadPool.init(.{});
+    var loop = try xev.Loop.init(.{
+        .thread_pool = &pool,
+    });
     defer loop.deinit();
 
     var app: App = .{
