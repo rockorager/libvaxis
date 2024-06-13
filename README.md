@@ -15,6 +15,9 @@ Vaxis uses zig `0.13.0`.
 
 ## Features
 
+libvaxis supports all major platforms: macOS, Windows, Linux/BSD/and other
+Unix-likes.
+
 | Feature                        |  libvaxis  |
 | ------------------------------ |  :------:  |
 | RGB                            |     ✅     |
