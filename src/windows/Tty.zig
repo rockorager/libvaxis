@@ -5,6 +5,7 @@ const Tty = @This();
 const std = @import("std");
 const Event = @import("../event.zig").Event;
 const Key = @import("../Key.zig");
+const Mouse = @import("../Mouse.zig");
 const windows = std.os.windows;
 
 stdin: windows.HANDLE,
@@ -16,6 +17,10 @@ initial_output_mode: u32,
 
 // a buffer to write key text into
 buf: [4]u8 = undefined,
+
+/// The last mouse button that was pressed. We store the previous state of button presses on each
+/// mouse event so we can detect which button was released
+last_mouse_button_press: u16 = 0,
 
 pub var global_tty: ?Tty = null;
 
@@ -278,8 +283,93 @@ pub fn nextEvent(self: *Tty) !Event {
                     else => return .{ .key_press = key },
                 }
             },
-            0x0002 => { // TODO: Parse mouse events
+            0x0002 => { // Mouse event
                 // see https://learn.microsoft.com/en-us/windows/console/mouse-event-record-str
+
+                const event = input_record.Event.MouseEvent;
+
+                // High word of dwButtonState represents mouse wheel. Positive is wheel_up, negative
+                // is wheel_down
+                // Low word represents button state
+                const mouse_wheel_direction: i32 = blk: {
+                    const wheelu64: u64 = event.dwButtonState >> 16;
+                    const wheelu32: u32 = @truncate(wheelu64);
+                    break :blk @bitCast(wheelu32);
+                };
+
+                const buttons: u16 = @truncate(event.dwButtonState);
+                // save the current state when we are done
+                defer self.last_mouse_button_press = buttons;
+                const button_xor = self.last_mouse_button_press ^ buttons;
+
+                var event_type: Mouse.Type = .press;
+                const btn: Mouse.Button = switch (button_xor) {
+                    0x0000 => blk: {
+                        // Check wheel event
+                        if (event.dwEventFlags & 0x0004 > 0) {
+                            if (mouse_wheel_direction > 0)
+                                break :blk .wheel_up
+                            else
+                                break :blk .wheel_down;
+                        }
+
+                        // If we have no change but one of the buttons is still pressed we have a
+                        // drag event. Find out which button is held down
+                        if (buttons > 0 and event.dwEventFlags & 0x0001 > 0) {
+                            event_type = .drag;
+                            if (buttons & 0x0001 > 0) break :blk .left;
+                            if (buttons & 0x0002 > 0) break :blk .right;
+                            if (buttons & 0x0004 > 0) break :blk .middle;
+                            if (buttons & 0x0008 > 0) break :blk .button_8;
+                            if (buttons & 0x0010 > 0) break :blk .button_9;
+                        }
+
+                        if (event.dwEventFlags & 0x0001 > 0) event_type = .motion;
+                        break :blk .none;
+                    },
+                    0x0001 => blk: {
+                        if (buttons & 0x0001 == 0) event_type = .release;
+                        break :blk .left;
+                    },
+                    0x0002 => blk: {
+                        if (buttons & 0x0002 == 0) event_type = .release;
+                        break :blk .right;
+                    },
+                    0x0004 => blk: {
+                        if (buttons & 0x0004 == 0) event_type = .release;
+                        break :blk .middle;
+                    },
+                    0x0008 => blk: {
+                        if (buttons & 0x0008 == 0) event_type = .release;
+                        break :blk .button_8;
+                    },
+                    0x0010 => blk: {
+                        if (buttons & 0x0010 == 0) event_type = .release;
+                        break :blk .button_9;
+                    },
+                    else => {
+                        std.log.warn("unknown mouse event: {}", .{event});
+                        continue;
+                    },
+                };
+
+                const shift: u32 = 0x0010;
+                const alt: u32 = 0x0001 | 0x0002;
+                const ctrl: u32 = 0x0004 | 0x0008;
+                const mods: Mouse.Modifiers = .{
+                    .shift = event.dwControlKeyState & shift > 0,
+                    .alt = event.dwControlKeyState & alt > 0,
+                    .ctrl = event.dwControlKeyState & ctrl > 0,
+                };
+
+                const mouse: Mouse = .{
+                    .col = @as(u16, @bitCast(event.dwMousePosition.X)), // Windows reports with 0 index
+                    .row = @as(u16, @bitCast(event.dwMousePosition.Y)), // Windows reports with 0 index
+                    .mods = mods,
+                    .type = event_type,
+                    .button = btn,
+                };
+                return .{ .mouse = mouse };
             },
             0x0004 => { // Screen resize events
                 // NOTE: Even though the event comes with a size, it may not be accurate. We ask for
