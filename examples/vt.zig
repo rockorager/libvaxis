@@ -30,6 +30,8 @@ pub fn main() !void {
     try loop.start();
     defer loop.stop();
 
+    var buffered = tty.bufferedWriter();
+
     try vx.enterAltScreen(tty.anyWriter());
     try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
     var env = try std.process.getEnvMap(alloc);
@@ -105,6 +107,7 @@ pub fn main() !void {
         });
         try vt.draw(child);
 
-        try vx.render(tty.anyWriter());
+        try vx.render(buffered.writer().any());
+        try buffered.flush();
     }
 }
