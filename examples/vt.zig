@@ -45,6 +45,7 @@ pub fn main() !void {
             .y_pixel = 0,
         },
         .scrollback_size = 0,
+        .initial_working_directory = env.get("HOME") orelse @panic("no $HOME"),
     };
     const shell = env.get("SHELL") orelse "bash";
     const argv = [_][]const u8{shell};
