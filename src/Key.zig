@@ -43,6 +43,12 @@ base_layout_codepoint: ?u21 = null,
 
 mods: Modifiers = .{},
 
+/// Internal buffer to hold text contents. If text is longer than 16 bytes, it is stored in a
+/// separate ring buffer by the main Vaxis object
+buffer: [16]u8 = undefined,
+/// Length of text stored in the buffer
+text_len: u4 = 0,
+
 // matches follows a loose matching algorithm for key matches.
 // 1. If the codepoint and modifiers are exact matches, after removing caps_lock
 //    and num_lock

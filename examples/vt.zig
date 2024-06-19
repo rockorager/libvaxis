@@ -70,6 +70,7 @@ pub fn main() !void {
                 .title_change => {},
                 .exited => return,
                 .redraw => {},
+                .pwd_change => {},
             }
         }
         while (loop.tryEvent()) |event| {
