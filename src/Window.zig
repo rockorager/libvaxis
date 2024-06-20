@@ -256,6 +256,8 @@ pub fn setCursorShape(self: Window, shape: Cell.CursorShape) void {
 pub const PrintOptions = struct {
     /// vertical offset to start printing at
     row_offset: usize = 0,
+    /// horizontal offset to start printing at
+    col_offset: usize = 0,
 
     /// wrap behavior for printing
     wrap: enum {
@@ -285,7 +287,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
     var row = opts.row_offset;
     switch (opts.wrap) {
         .grapheme => {
-            var col: usize = 0;
+            var col: usize = opts.col_offset;
             const overflow: bool = blk: for (segments) |segment| {
                 var iter = self.screen.unicode.graphemeIterator(segment.text);
                 while (iter.next()) |grapheme| {
@@ -324,7 +326,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
             };
         },
         .word => {
-            var col: usize = 0;
+            var col: usize = opts.col_offset;
             var overflow: bool = false;
             var soft_wrapped: bool = false;
             for (segments) |segment| {
@@ -423,7 +425,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
             };
         },
         .none => {
-            var col: usize = 0;
+            var col: usize = opts.col_offset;
             const overflow: bool = blk: for (segments) |segment| {
                 var iter = self.screen.unicode.graphemeIterator(segment.text);
                 while (iter.next()) |grapheme| {
