@@ -261,8 +261,6 @@ pub fn enableDetectedFeatures(self: *Vaxis, tty: AnyWriter) !void {
         },
         else => {
             // Apply any environment variables
-            if (std.posix.getenv("ASCIINEMA_REC")) |_|
-                self.sgr = .legacy;
             if (std.posix.getenv("TERMUX_VERSION")) |_|
                 self.sgr = .legacy;
             if (std.posix.getenv("VHS_RECORD")) |_| {
