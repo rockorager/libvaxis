@@ -328,92 +328,72 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
         .word => {
             var col: usize = opts.col_offset;
             var overflow: bool = false;
-            var soft_wrapped: bool = false;
             for (segments) |segment| {
                 var start: usize = 0;
-                var i: usize = 0;
-                while (i < segment.text.len) : (i += 1) {
-                    // for (segment.text, 0..) |b, i| {
-                    const b = segment.text[i];
-                    const end = switch (b) {
-                        ' ',
-                        '\r',
-                        '\n',
-                        => i,
-                        else => if (i != segment.text.len - 1) continue else i + 1,
-                    };
-                    const word = segment.text[start..end];
-                    // find the start of the next word
-                    start = while (i + 1 < segment.text.len) : (i += 1) {
-                        if (segment.text[i + 1] == ' ') continue;
-                        break i + 1;
-                    } else i;
-                    const width = self.gwidth(word);
-                    const non_wsp_width: usize = for (word, 0..) |wb, wi| {
-                        if (wb == '\r' or wb == '\n') {
-                            row += 1;
-                            col = 0;
-                            break width -| wi -| 1;
+                var tokenizer = std.mem.tokenizeAny(u8, segment.text, "\r\n");
+                while (tokenizer.peek() != null) {
+                    const returns = segment.text[start..tokenizer.index];
+                    const line = tokenizer.next().?;
+                    start = tokenizer.index;
+                    var i: usize = 0;
+                    while (i < returns.len) : (i += 1) {
+                        const b = returns[i];
+                        if (b == '\r' and i + 1 < returns.len and returns[i + 1] == '\n') {
+                            i += 1;
                         }
-                        if (wb != ' ') break width - wi;
-                    } else 0;
-
-                    if (width + col > self.width and non_wsp_width < self.width) {
-                        // wrap
                         row += 1;
                         col = 0;
-                        soft_wrapped = true;
                     }
-                    if (row >= self.height) {
-                        overflow = true;
-                        break;
-                    }
-                    // if we are soft wrapped, (col == 0 and row > 0), then trim
-                    // leading spaces
-                    const printed_word = if (soft_wrapped)
-                        std.mem.trimLeft(u8, word, " ")
-                    else
-                        word;
-                    defer soft_wrapped = false;
-                    var iter = self.screen.unicode.graphemeIterator(printed_word);
-                    while (iter.next()) |grapheme| {
-                        const s = grapheme.bytes(printed_word);
-                        const w = self.gwidth(s);
-                        if (opts.commit) self.writeCell(col, row, .{
-                            .char = .{
-                                .grapheme = s,
-                                .width = w,
-                            },
-                            .style = segment.style,
-                            .link = segment.link,
-                        });
-                        col += w;
+                    var iter = std.mem.tokenizeScalar(u8, line, ' ');
+                    var ws_start: usize = 0;
+                    while (iter.peek() != null) {
+                        const whitespace = line[ws_start..iter.index];
+                        const word = iter.next().?;
+                        ws_start = iter.index;
+                        var j: usize = 0;
+                        while (j < whitespace.len) : (j += 1) {
+                            if (opts.commit) self.writeCell(col, row, .{
+                                .char = .{
+                                    .grapheme = " ",
+                                    .width = 1,
+                                },
+                                .style = segment.style,
+                                .link = segment.link,
+                            });
+                            col += 1;
+                        }
                         if (col >= self.width) {
+                            col = 0;
+                            row += 1;
+                        }
+                        const width = self.gwidth(word);
+                        if (width + col > self.width and width < self.width) {
                             row += 1;
                             col = 0;
                         }
-                    }
-                    switch (b) {
-                        ' ' => {
-                            if (col > 0) {
-                                if (opts.commit) self.writeCell(col, row, .{
-                                    .char = .{
-                                        .grapheme = " ",
-                                        .width = 1,
-                                    },
-                                    .style = segment.style,
-                                    .link = segment.link,
-                                });
-                                col += 1;
+                        if (row >= self.height) {
+                            overflow = true;
+                            break;
+                        }
+
+                        var grapheme_iterator = self.screen.unicode.graphemeIterator(word);
+                        while (grapheme_iterator.next()) |grapheme| {
+                            const s = grapheme.bytes(word);
+                            const w = self.gwidth(s);
+                            if (opts.commit) self.writeCell(col, row, .{
+                                .char = .{
+                                    .grapheme = s,
+                                    .width = w,
+                                },
+                                .style = segment.style,
+                                .link = segment.link,
+                            });
+                            col += w;
+                            if (col >= self.width) {
+                                row += 1;
+                                col = 0;
                             }
-                        },
-                        '\r',
-                        '\n',
-                        => {
-                            col = 0;
-                            row += 1;
-                        },
-                        else => {},
+                        }
                     }
                 }
             }
