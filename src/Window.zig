@@ -328,10 +328,12 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
         .word => {
             var col: usize = opts.col_offset;
             var overflow: bool = false;
+            var soft_wrapped = false;
             for (segments) |segment| {
                 var start: usize = 0;
                 var tokenizer = std.mem.tokenizeAny(u8, segment.text, "\r\n");
                 while (tokenizer.peek() != null) {
+                    soft_wrapped = false;
                     const returns = segment.text[start..tokenizer.index];
                     const line = tokenizer.next().?;
                     start = tokenizer.index;
@@ -351,20 +353,23 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
                         const word = iter.next().?;
                         ws_start = iter.index;
                         var j: usize = 0;
-                        while (j < whitespace.len) : (j += 1) {
-                            if (opts.commit) self.writeCell(col, row, .{
-                                .char = .{
-                                    .grapheme = " ",
-                                    .width = 1,
-                                },
-                                .style = segment.style,
-                                .link = segment.link,
-                            });
-                            col += 1;
+                        if (soft_wrapped) soft_wrapped = false else {
+                            while (j < whitespace.len) : (j += 1) {
+                                if (opts.commit) self.writeCell(col, row, .{
+                                    .char = .{
+                                        .grapheme = " ",
+                                        .width = 1,
+                                    },
+                                    .style = segment.style,
+                                    .link = segment.link,
+                                });
+                                col += 1;
+                            }
                         }
                         if (col >= self.width) {
                             col = 0;
                             row += 1;
+                            soft_wrapped = true;
                         }
                         const width = self.gwidth(word);
                         if (width + col > self.width and width < self.width) {
@@ -378,6 +383,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
 
                         var grapheme_iterator = self.screen.unicode.graphemeIterator(word);
                         while (grapheme_iterator.next()) |grapheme| {
+                            soft_wrapped = false;
                             const s = grapheme.bytes(word);
                             const w = self.gwidth(s);
                             if (opts.commit) self.writeCell(col, row, .{
@@ -392,8 +398,21 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
                             if (col >= self.width) {
                                 row += 1;
                                 col = 0;
+                                soft_wrapped = true;
                             }
                         }
+                    }
+                } else {
+                    const returns = segment.text[start..tokenizer.index];
+                    start = tokenizer.index;
+                    var i: usize = 0;
+                    while (i < returns.len) : (i += 1) {
+                        const b = returns[i];
+                        if (b == '\r' and i + 1 < returns.len and returns[i + 1] == '\n') {
+                            i += 1;
+                        }
+                        row += 1;
+                        col = 0;
                     }
                 }
             }
