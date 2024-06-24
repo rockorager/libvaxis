@@ -704,18 +704,6 @@ pub fn translateMouse(self: Vaxis, mouse: Mouse) Mouse {
         result.row = ypos / ycell;
         result.xoffset = xpos % xcell;
         result.yoffset = ypos % ycell;
-        log.debug("translateMouse x/ypos:{d}/{d} cell:{d}/{d} xtra:{d}/{d} col/rol:{d}/{d} x/y:{d}/{d}", .{
-            xpos,           ypos,
-            xcell,          ycell,
-            xextra,         yextra,
-            result.col,     result.row,
-            result.xoffset, result.yoffset,
-        });
-    } else {
-        log.debug("translateMouse col/rol:{d}/{d} x/y:{d}/{d}", .{
-            result.col,     result.row,
-            result.xoffset, result.yoffset,
-        });
     }
     return result;
 }
