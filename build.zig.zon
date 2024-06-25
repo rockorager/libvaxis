@@ -22,6 +22,11 @@
             .hash = "12207b7a5b538ffb7fb18f954ae17d2f8490b6e3778a9e30564ad82c58ee8da52361",
             .lazy = true,
         },
+        .aio = .{
+            .url = "git+https://github.com/Cloudef/zig-aio#be8e2b374bf223202090e282447fa4581029c2eb",
+            .hash = "122012a11b37a350395a32fdb514e57ff54a0f9d8d4ce09498b6c45ffb7211232920",
+            .lazy = true,
+        },
     },
     .paths = .{
         "LICENSE",

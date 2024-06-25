@@ -6,6 +6,7 @@ pub const Vaxis = @import("Vaxis.zig");
 
 pub const Loop = @import("Loop.zig").Loop;
 pub const xev = @import("xev.zig");
+pub const aio = @import("aio.zig");
 
 pub const Queue = @import("queue.zig").Queue;
 pub const Key = @import("Key.zig");
