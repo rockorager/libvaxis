@@ -25,8 +25,7 @@ pub fn draw(self: Scrollbar, win: vaxis.Window) void {
     // don't draw when all items can be shown
     if (self.view_size >= self.total) return;
 
-    var bar_height = self.view_size * win.height / self.total;
-    if (bar_height < 0) bar_height = 1;
+    const bar_height = @max(std.math.divCeil(usize, self.view_size * win.height, self.total) catch unreachable, 1);
     const bar_top = self.top * win.height / self.total;
     var i: usize = 0;
     while (i < bar_height) : (i += 1)
