@@ -182,8 +182,8 @@ pub fn child(self: Window, opts: ChildOptions) Window {
     const y_off: usize = if (loc.top) 1 else 0;
     const h_delt: usize = if (loc.bottom) 1 else 0;
     const w_delt: usize = if (loc.right) 1 else 0;
-    const h_ch: usize = h - y_off - h_delt;
-    const w_ch: usize = w - x_off - w_delt;
+    const h_ch: usize = h -| y_off -| h_delt;
+    const w_ch: usize = w -| x_off -| w_delt;
     return result.initChild(x_off, y_off, .{ .limit = w_ch }, .{ .limit = h_ch });
 }
 
