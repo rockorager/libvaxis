@@ -328,91 +328,75 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
         .word => {
             var col: usize = opts.col_offset;
             var overflow: bool = false;
-            var soft_wrapped = false;
-            for (segments) |segment| {
-                var start: usize = 0;
-                var tokenizer = std.mem.tokenizeAny(u8, segment.text, "\r\n");
-                while (tokenizer.peek() != null) {
-                    soft_wrapped = false;
-                    const returns = segment.text[start..tokenizer.index];
-                    const line = tokenizer.next().?;
-                    start = tokenizer.index;
-                    var i: usize = 0;
-                    while (i < returns.len) : (i += 1) {
-                        const b = returns[i];
-                        if (b == '\r' and i + 1 < returns.len and returns[i + 1] == '\n') {
-                            i += 1;
-                        }
-                        row += 1;
-                        col = 0;
-                    }
-                    var iter = std.mem.tokenizeScalar(u8, line, ' ');
-                    var ws_start: usize = 0;
-                    while (iter.peek() != null) {
-                        const whitespace = line[ws_start..iter.index];
-                        const word = iter.next().?;
-                        ws_start = iter.index;
-                        var j: usize = 0;
-                        if (soft_wrapped) soft_wrapped = false else {
-                            while (j < whitespace.len) : (j += 1) {
-                                if (opts.commit) self.writeCell(col, row, .{
-                                    .char = .{
-                                        .grapheme = " ",
-                                        .width = 1,
-                                    },
-                                    .style = segment.style,
-                                    .link = segment.link,
-                                });
-                                col += 1;
-                            }
-                        }
-                        if (col >= self.width) {
-                            col = 0;
-                            row += 1;
-                            soft_wrapped = true;
-                        }
-                        const width = self.gwidth(word);
-                        if (width + col > self.width and width < self.width) {
-                            row += 1;
-                            col = 0;
-                        }
-                        if (row >= self.height) {
-                            overflow = true;
-                            break;
-                        }
-
-                        var grapheme_iterator = self.screen.unicode.graphemeIterator(word);
-                        while (grapheme_iterator.next()) |grapheme| {
+            var soft_wrapped: bool = false;
+            outer: for (segments) |segment| {
+                var line_iter: LineIterator = .{ .buf = segment.text };
+                while (line_iter.next()) |line| {
+                    defer {
+                        // We only set soft_wrapped to false if a segment actually contains a linebreak
+                        if (line_iter.has_break) {
                             soft_wrapped = false;
-                            const s = grapheme.bytes(word);
-                            const w = self.gwidth(s);
-                            if (opts.commit) self.writeCell(col, row, .{
-                                .char = .{
-                                    .grapheme = s,
-                                    .width = w,
-                                },
-                                .style = segment.style,
-                                .link = segment.link,
-                            });
-                            col += w;
-                            if (col >= self.width) {
-                                row += 1;
-                                col = 0;
-                                soft_wrapped = true;
-                            }
+                            row += 1;
+                            col = 0;
                         }
                     }
-                } else {
-                    const returns = segment.text[start..tokenizer.index];
-                    start = tokenizer.index;
-                    var i: usize = 0;
-                    while (i < returns.len) : (i += 1) {
-                        const b = returns[i];
-                        if (b == '\r' and i + 1 < returns.len and returns[i + 1] == '\n') {
-                            i += 1;
+                    var iter: WhitespaceTokenizer = .{ .buf = line };
+                    while (iter.next()) |token| {
+                        switch (token) {
+                            .whitespace => |len| {
+                                if (soft_wrapped) continue;
+                                for (0..len) |_| {
+                                    if (col >= self.width) {
+                                        col = 0;
+                                        row += 1;
+                                        break;
+                                    }
+                                    if (opts.commit) {
+                                        self.writeCell(col, row, .{
+                                            .char = .{
+                                                .grapheme = " ",
+                                                .width = 1,
+                                            },
+                                            .style = segment.style,
+                                            .link = segment.link,
+                                        });
+                                    }
+                                    col += 1;
+                                }
+                            },
+                            .word => |word| {
+                                const width = self.gwidth(word);
+                                if (width + col > self.width and width < self.width) {
+                                    row += 1;
+                                    col = 0;
+                                }
+
+                                var grapheme_iterator = self.screen.unicode.graphemeIterator(word);
+                                while (grapheme_iterator.next()) |grapheme| {
+                                    soft_wrapped = false;
+                                    if (row >= self.height) {
+                                        overflow = true;
+                                        break :outer;
+                                    }
+                                    const s = grapheme.bytes(word);
+                                    const w = self.gwidth(s);
+                                    if (opts.commit) self.writeCell(col, row, .{
+                                        .char = .{
+                                            .grapheme = s,
+                                            .width = w,
+                                        },
+                                        .style = segment.style,
+                                        .link = segment.link,
+                                    });
+                                    col += w;
+                                    if (col >= self.width) {
+                                        row += 1;
+                                        col = 0;
+                                        soft_wrapped = true;
+                                    }
+                                }
+                            },
                         }
-                        row += 1;
-                        col = 0;
                     }
                 }
             }
@@ -639,6 +623,24 @@ test "print: word" {
     }
     {
         var segments = [_]Segment{
+            .{ .text = " " },
+        };
+        const result = try win.print(&segments, opts);
+        try std.testing.expectEqual(1, result.col);
+        try std.testing.expectEqual(0, result.row);
+        try std.testing.expectEqual(false, result.overflow);
+    }
+    {
+        var segments = [_]Segment{
+            .{ .text = " a" },
+        };
+        const result = try win.print(&segments, opts);
+        try std.testing.expectEqual(2, result.col);
+        try std.testing.expectEqual(0, result.row);
+        try std.testing.expectEqual(false, result.overflow);
+    }
+    {
+        var segments = [_]Segment{
             .{ .text = "a b" },
         };
         const result = try win.print(&segments, opts);
@@ -750,4 +752,104 @@ test "print: word" {
         try std.testing.expectEqual(1, result.row);
         try std.testing.expectEqual(false, result.overflow);
     }
+    {
+        var segments = [_]Segment{
+            .{ .text = "note" },
+            .{ .text = " now" },
+        };
+        const result = try win.print(&segments, opts);
+        try std.testing.expectEqual(3, result.col);
+        try std.testing.expectEqual(1, result.row);
+        try std.testing.expectEqual(false, result.overflow);
+    }
+    {
+        var segments = [_]Segment{
+            .{ .text = "note " },
+            .{ .text = "now" },
+        };
+        const result = try win.print(&segments, opts);
+        try std.testing.expectEqual(3, result.col);
+        try std.testing.expectEqual(1, result.row);
+        try std.testing.expectEqual(false, result.overflow);
+    }
 }
+
+/// Iterates a slice of bytes by linebreaks. Lines are split by '\r', '\n', or '\r\n'
+const LineIterator = struct {
+    buf: []const u8,
+    index: usize = 0,
+    has_break: bool = true,
+
+    fn next(self: *LineIterator) ?[]const u8 {
+        if (self.index >= self.buf.len) return null;
+
+        const start = self.index;
+        const end = std.mem.indexOfAnyPos(u8, self.buf, self.index, "\r\n") orelse {
+            if (start == 0) self.has_break = false;
+            self.index = self.buf.len;
+            return self.buf[start..];
+        };
+
+        self.index = end;
+        self.consumeCR();
+        self.consumeLF();
+        return self.buf[start..end];
+    }
+
+    // consumes a \n byte
+    fn consumeLF(self: *LineIterator) void {
+        if (self.index >= self.buf.len) return;
+        if (self.buf[self.index] == '\n') self.index += 1;
+    }
+
+    // consumes a \r byte
+    fn consumeCR(self: *LineIterator) void {
+        if (self.index >= self.buf.len) return;
+        if (self.buf[self.index] == '\r') self.index += 1;
+    }
+};
+
+/// Returns tokens of text and whitespace
+const WhitespaceTokenizer = struct {
+    buf: []const u8,
+    index: usize = 0,
+
+    const Token = union(enum) {
+        // the length of whitespace. Tab = 8
+        whitespace: usize,
+        word: []const u8,
+    };
+
+    fn next(self: *WhitespaceTokenizer) ?Token {
+        if (self.index >= self.buf.len) return null;
+        const Mode = enum {
+            whitespace,
+            word,
+        };
+        const first = self.buf[self.index];
+        const mode: Mode = if (first == ' ' or first == '\t') .whitespace else .word;
+        switch (mode) {
+            .whitespace => {
+                var len: usize = 0;
+                while (self.index < self.buf.len) : (self.index += 1) {
+                    switch (self.buf[self.index]) {
+                        ' ' => len += 1,
+                        '\t' => len += 8,
+                        else => break,
+                    }
+                }
+                return .{ .whitespace = len };
+            },
+            .word => {
+                const start = self.index;
+                while (self.index < self.buf.len) : (self.index += 1) {
+                    switch (self.buf[self.index]) {
+                        ' ', '\t' => break,
+                        else => {},
+                    }
+                }
+                return .{ .word = self.buf[start..self.index] };
+            },
+        }
+    }
+};
