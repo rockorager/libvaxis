@@ -379,8 +379,8 @@ pub fn nextEvent(self: *Tty) !Event {
                     return windows.unexpectedError(windows.kernel32.GetLastError());
                 }
                 const window_rect = console_info.srWindow;
-                const width = window_rect.Right - window_rect.Left;
-                const height = window_rect.Bottom - window_rect.Top;
+                const width = window_rect.Right - window_rect.Left + 1;
+                const height = window_rect.Bottom - window_rect.Top + 1;
                 return .{
                     .winsize = .{
                         .cols = @intCast(width),
