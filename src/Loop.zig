@@ -8,14 +8,13 @@ const Parser = @import("Parser.zig");
 const Queue = @import("queue.zig").Queue;
 const Tty = @import("main.zig").Tty;
 const Vaxis = @import("Vaxis.zig");
+const log = std.log.scoped(.loop);
 
 pub fn Loop(comptime T: type) type {
     return struct {
         const Self = @This();
 
         const Event = T;
-
-        const log = std.log.scoped(.loop);
 
         tty: *Tty,
         vaxis: *Vaxis,
@@ -110,38 +109,7 @@ pub fn Loop(comptime T: type) type {
                 .windows => {
                     while (!self.should_quit) {
                         const event = try self.tty.nextEvent();
-                        switch (event) {
-                            .winsize => |ws| {
-                                if (@hasField(Event, "winsize")) {
-                                    self.postEvent(.{ .winsize = ws });
-                                }
-                            },
-                            .key_press => |key| {
-                                if (@hasField(Event, "key_press")) {
-                                    // HACK: yuck. there has to be a better way
-                                    var mut_key = key;
-                                    if (key.text) |text| {
-                                        mut_key.text = cache.put(text);
-                                    }
-                                    self.postEvent(.{ .key_press = mut_key });
-                                }
-                            },
-                            .key_release => |*key| {
-                                if (@hasField(Event, "key_release")) {
-                                    // HACK: yuck. there has to be a better way
-                                    var mut_key = key;
-                                    if (key.text) |text| {
-                                        mut_key.text = cache.put(text);
-                                    }
-                                    self.postEvent(.{ .key_release = mut_key });
-                                }
-                            },
-                            .cap_da1 => {
-                                std.Thread.Futex.wake(&self.vaxis.query_futex, 10);
-                            },
-                            .mouse => {}, // Unsupported currently
-                            else => {},
-                        }
+                        try handleEventGeneric(self, self.vaxis, &cache, Event, event, null);
                     }
                 },
                 else => {
@@ -178,106 +146,148 @@ pub fn Loop(comptime T: type) type {
                             seq_start += result.n;
 
                             const event = result.event orelse continue;
-                            switch (event) {
-                                .key_press => |key| {
-                                    if (@hasField(Event, "key_press")) {
-                                        // HACK: yuck. there has to be a better way
-                                        var mut_key = key;
-                                        if (key.text) |text| {
-                                            mut_key.text = cache.put(text);
-                                        }
-                                        self.postEvent(.{ .key_press = mut_key });
-                                    }
-                                },
-                                .key_release => |*key| {
-                                    if (@hasField(Event, "key_release")) {
-                                        // HACK: yuck. there has to be a better way
-                                        var mut_key = key;
-                                        if (key.text) |text| {
-                                            mut_key.text = cache.put(text);
-                                        }
-                                        self.postEvent(.{ .key_release = mut_key });
-                                    }
-                                },
-                                .mouse => |mouse| {
-                                    if (@hasField(Event, "mouse")) {
-                                        self.postEvent(.{ .mouse = self.vaxis.translateMouse(mouse) });
-                                    }
-                                },
-                                .focus_in => {
-                                    if (@hasField(Event, "focus_in")) {
-                                        self.postEvent(.focus_in);
-                                    }
-                                },
-                                .focus_out => {
-                                    if (@hasField(Event, "focus_out")) {
-                                        self.postEvent(.focus_out);
-                                    }
-                                },
-                                .paste_start => {
-                                    if (@hasField(Event, "paste_start")) {
-                                        self.postEvent(.paste_start);
-                                    }
-                                },
-                                .paste_end => {
-                                    if (@hasField(Event, "paste_end")) {
-                                        self.postEvent(.paste_end);
-                                    }
-                                },
-                                .paste => |text| {
-                                    if (@hasField(Event, "paste")) {
-                                        self.postEvent(.{ .paste = text });
-                                    } else {
-                                        if (paste_allocator) |_|
-                                            paste_allocator.?.free(text);
-                                    }
-                                },
-                                .color_report => |report| {
-                                    if (@hasField(Event, "color_report")) {
-                                        self.postEvent(.{ .color_report = report });
-                                    }
-                                },
-                                .color_scheme => |scheme| {
-                                    if (@hasField(Event, "color_scheme")) {
-                                        self.postEvent(.{ .color_scheme = scheme });
-                                    }
-                                },
-                                .cap_kitty_keyboard => {
-                                    log.info("kitty keyboard capability detected", .{});
-                                    self.vaxis.caps.kitty_keyboard = true;
-                                },
-                                .cap_kitty_graphics => {
-                                    if (!self.vaxis.caps.kitty_graphics) {
-                                        log.info("kitty graphics capability detected", .{});
-                                        self.vaxis.caps.kitty_graphics = true;
-                                    }
-                                },
-                                .cap_rgb => {
-                                    log.info("rgb capability detected", .{});
-                                    self.vaxis.caps.rgb = true;
-                                },
-                                .cap_unicode => {
-                                    log.info("unicode capability detected", .{});
-                                    self.vaxis.caps.unicode = .unicode;
-                                    self.vaxis.screen.width_method = .unicode;
-                                },
-                                .cap_sgr_pixels => {
-                                    log.info("pixel mouse capability detected", .{});
-                                    self.vaxis.caps.sgr_pixels = true;
-                                },
-                                .cap_color_scheme_updates => {
-                                    log.info("color_scheme_updates capability detected", .{});
-                                    self.vaxis.caps.color_scheme_updates = true;
-                                },
-                                .cap_da1 => {
-                                    std.Thread.Futex.wake(&self.vaxis.query_futex, 10);
-                                },
-                                .winsize => unreachable, // handled elsewhere for posix
-                            }
+                            try handleEventGeneric(self, self.vaxis, &cache, Event, event, paste_allocator);
                         }
                     }
                 },
             }
         }
     };
+}
+
+pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Event: type, event: anytype, paste_allocator: ?std.mem.Allocator) !void {
+    switch (builtin.os.tag) {
+        .windows => {
+            switch (event) {
+                .winsize => |ws| {
+                    if (@hasField(Event, "winsize")) {
+                        return self.postEvent(.{ .winsize = ws });
+                    }
+                },
+                .key_press => |key| {
+                    if (@hasField(Event, "key_press")) {
+                        // HACK: yuck. there has to be a better way
+                        var mut_key = key;
+                        if (key.text) |text| {
+                            mut_key.text = cache.put(text);
+                        }
+                        return self.postEvent(.{ .key_press = mut_key });
+                    }
+                },
+                .key_release => |*key| {
+                    if (@hasField(Event, "key_release")) {
+                        // HACK: yuck. there has to be a better way
+                        var mut_key = key;
+                        if (key.text) |text| {
+                            mut_key.text = cache.put(text);
+                        }
+                        return self.postEvent(.{ .key_release = mut_key });
+                    }
+                },
+                .cap_da1 => {
+                    std.Thread.Futex.wake(&vx.query_futex, 10);
+                },
+                .mouse => {}, // Unsupported currently
+                else => {},
+            }
+        },
+        else => {
+            switch (event) {
+                .key_press => |key| {
+                    if (@hasField(Event, "key_press")) {
+                        // HACK: yuck. there has to be a better way
+                        var mut_key = key;
+                        if (key.text) |text| {
+                            mut_key.text = cache.put(text);
+                        }
+                        return self.postEvent(.{ .key_press = mut_key });
+                    }
+                },
+                .key_release => |*key| {
+                    if (@hasField(Event, "key_release")) {
+                        // HACK: yuck. there has to be a better way
+                        var mut_key = key;
+                        if (key.text) |text| {
+                            mut_key.text = cache.put(text);
+                        }
+                        return self.postEvent(.{ .key_release = mut_key });
+                    }
+                },
+                .mouse => |mouse| {
+                    if (@hasField(Event, "mouse")) {
+                        return self.postEvent(.{ .mouse = vx.translateMouse(mouse) });
+                    }
+                },
+                .focus_in => {
+                    if (@hasField(Event, "focus_in")) {
+                        return self.postEvent(.focus_in);
+                    }
+                },
+                .focus_out => {
+                    if (@hasField(Event, "focus_out")) {
+                        return self.postEvent(.focus_out);
+                    }
+                },
+                .paste_start => {
+                    if (@hasField(Event, "paste_start")) {
+                        return self.postEvent(.paste_start);
+                    }
+                },
+                .paste_end => {
+                    if (@hasField(Event, "paste_end")) {
+                        return self.postEvent(.paste_end);
+                    }
+                },
+                .paste => |text| {
+                    if (@hasField(Event, "paste")) {
+                        return self.postEvent(.{ .paste = text });
+                    } else {
+                        if (paste_allocator) |_|
+                            paste_allocator.?.free(text);
+                    }
+                },
+                .color_report => |report| {
+                    if (@hasField(Event, "color_report")) {
+                        return self.postEvent(.{ .color_report = report });
+                    }
+                },
+                .color_scheme => |scheme| {
+                    if (@hasField(Event, "color_scheme")) {
+                        return self.postEvent(.{ .color_scheme = scheme });
+                    }
+                },
+                .cap_kitty_keyboard => {
+                    log.info("kitty keyboard capability detected", .{});
+                    vx.caps.kitty_keyboard = true;
+                },
+                .cap_kitty_graphics => {
+                    if (!vx.caps.kitty_graphics) {
+                        log.info("kitty graphics capability detected", .{});
+                        vx.caps.kitty_graphics = true;
+                    }
+                },
+                .cap_rgb => {
+                    log.info("rgb capability detected", .{});
+                    vx.caps.rgb = true;
+                },
+                .cap_unicode => {
+                    log.info("unicode capability detected", .{});
+                    vx.caps.unicode = .unicode;
+                    vx.screen.width_method = .unicode;
+                },
+                .cap_sgr_pixels => {
+                    log.info("pixel mouse capability detected", .{});
+                    vx.caps.sgr_pixels = true;
+                },
+                .cap_color_scheme_updates => {
+                    log.info("color_scheme_updates capability detected", .{});
+                    vx.caps.color_scheme_updates = true;
+                },
+                .cap_da1 => {
+                    std.Thread.Futex.wake(&vx.query_futex, 10);
+                },
+                .winsize => unreachable, // handled elsewhere for posix
+            }
+        },
+    }
 }

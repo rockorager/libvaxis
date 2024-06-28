@@ -41,7 +41,7 @@ fn audioTask(allocator: std.mem.Allocator) !void {
 
     const sound = blk: {
         var tpool: coro.ThreadPool = .{};
-        try tpool.start(allocator, 1);
+        try tpool.start(allocator, .{});
         defer tpool.deinit();
         break :blk try tpool.yieldForCompletition(downloadTask, .{ allocator, "https://keroserene.net/lol/roll.s16" });
     };
