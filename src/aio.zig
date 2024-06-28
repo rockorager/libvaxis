@@ -3,13 +3,8 @@ const std = @import("std");
 const aio = @import("aio");
 const coro = @import("coro");
 const vaxis = @import("main.zig");
+const handleEventGeneric = @import("Loop.zig").handleEventGeneric;
 const log = std.log.scoped(.vaxis_aio);
-
-comptime {
-    if (builtin.target.os.tag == .windows) {
-        @compileError("Windows is not supported right now");
-    }
-}
 
 const Yield = enum { no_state, took_event };
 
@@ -52,9 +47,11 @@ pub fn Loop(comptime T: type) type {
 
             // keep on stack
             var ctx: Context = .{ .loop = self, .tty = tty };
-            if (@hasField(Event, "winsize")) {
-                const handler: vaxis.Tty.SignalHandler = .{ .context = &ctx, .callback = Context.cb };
-                try vaxis.Tty.notifyWinsize(handler);
+            if (builtin.target.os.tag != .windows) {
+                if (@hasField(Event, "winsize")) {
+                    const handler: vaxis.Tty.SignalHandler = .{ .context = &ctx, .callback = Context.cb };
+                    try vaxis.Tty.notifyWinsize(handler);
+                }
             }
 
             while (true) {
@@ -74,7 +71,32 @@ pub fn Loop(comptime T: type) type {
             };
         }
 
-        fn ttyReaderInner(self: *@This(), vx: *vaxis.Vaxis, tty: *vaxis.Tty, paste_allocator: ?std.mem.Allocator) !void {
+        fn windowsReadEvent(tty: *vaxis.Tty) !vaxis.Event {
+            var state: vaxis.Tty.EventState = .{};
+            while (true) {
+                var bytes_read: usize = 0;
+                var input_record: vaxis.Tty.INPUT_RECORD = undefined;
+                try coro.io.single(aio.ReadTty{
+                    .tty = .{ .handle = tty.stdin },
+                    .buffer = std.mem.asBytes(&input_record),
+                    .out_read = &bytes_read,
+                });
+
+                if (try tty.eventFromRecord(&input_record, &state)) |ev| {
+                    return ev;
+                }
+            }
+        }
+
+        fn ttyReaderWindows(self: *@This(), vx: *vaxis.Vaxis, tty: *vaxis.Tty) !void {
+            var cache: vaxis.GraphemeCache = .{};
+            while (true) {
+                const event = try windowsReadEvent(tty);
+                try handleEventGeneric(self, vx, &cache, Event, event, null);
+            }
+        }
+
+        fn ttyReaderPosix(self: *@This(), vx: *vaxis.Vaxis, tty: *vaxis.Tty, paste_allocator: ?std.mem.Allocator) !void {
             // initialize a grapheme cache
             var cache: vaxis.GraphemeCache = .{};
 
@@ -93,7 +115,7 @@ pub fn Loop(comptime T: type) type {
                 var buf: [4096]u8 = undefined;
                 var n: usize = undefined;
                 var read_start: usize = 0;
-                try coro.io.single(aio.Read{ .file = file, .buffer = buf[read_start..], .out_read = &n });
+                try coro.io.single(aio.ReadTty{ .tty = file, .buffer = buf[read_start..], .out_read = &n });
                 var seq_start: usize = 0;
                 while (seq_start < n) {
                     const result = try parser.parse(buf[seq_start..n], paste_allocator);
@@ -111,108 +133,16 @@ pub fn Loop(comptime T: type) type {
                     seq_start += result.n;
 
                     const event = result.event orelse continue;
-                    switch (event) {
-                        .key_press => |key| {
-                            if (@hasField(Event, "key_press")) {
-                                // HACK: yuck. there has to be a better way
-                                var mut_key = key;
-                                if (key.text) |text| {
-                                    mut_key.text = cache.put(text);
-                                }
-                                try self.postEvent(.{ .key_press = mut_key });
-                            }
-                        },
-                        .key_release => |*key| {
-                            if (@hasField(Event, "key_release")) {
-                                // HACK: yuck. there has to be a better way
-                                var mut_key = key;
-                                if (key.text) |text| {
-                                    mut_key.text = cache.put(text);
-                                }
-                                try self.postEvent(.{ .key_release = mut_key });
-                            }
-                        },
-                        .mouse => |mouse| {
-                            if (@hasField(Event, "mouse")) {
-                                try self.postEvent(.{ .mouse = vx.translateMouse(mouse) });
-                            }
-                        },
-                        .focus_in => {
-                            if (@hasField(Event, "focus_in")) {
-                                try self.postEvent(.focus_in);
-                            }
-                        },
-                        .focus_out => {
-                            if (@hasField(Event, "focus_out")) {
-                                try self.postEvent(.focus_out);
-                            }
-                        },
-                        .paste_start => {
-                            if (@hasField(Event, "paste_start")) {
-                                try self.postEvent(.paste_start);
-                            }
-                        },
-                        .paste_end => {
-                            if (@hasField(Event, "paste_end")) {
-                                try self.postEvent(.paste_end);
-                            }
-                        },
-                        .paste => |text| {
-                            if (@hasField(Event, "paste")) {
-                                try self.postEvent(.{ .paste = text });
-                            } else {
-                                if (paste_allocator) |_|
-                                    paste_allocator.?.free(text);
-                            }
-                        },
-                        .color_report => |report| {
-                            if (@hasField(Event, "color_report")) {
-                                try self.postEvent(.{ .color_report = report });
-                            }
-                        },
-                        .color_scheme => |scheme| {
-                            if (@hasField(Event, "color_scheme")) {
-                                try self.postEvent(.{ .color_scheme = scheme });
-                            }
-                        },
-                        .cap_kitty_keyboard => {
-                            log.info("kitty keyboard capability detected", .{});
-                            vx.caps.kitty_keyboard = true;
-                        },
-                        .cap_kitty_graphics => {
-                            if (!vx.caps.kitty_graphics) {
-                                log.info("kitty graphics capability detected", .{});
-                                vx.caps.kitty_graphics = true;
-                            }
-                        },
-                        .cap_rgb => {
-                            log.info("rgb capability detected", .{});
-                            vx.caps.rgb = true;
-                        },
-                        .cap_unicode => {
-                            log.info("unicode capability detected", .{});
-                            vx.caps.unicode = .unicode;
-                            vx.screen.width_method = .unicode;
-                        },
-                        .cap_sgr_pixels => {
-                            log.info("pixel mouse capability detected", .{});
-                            vx.caps.sgr_pixels = true;
-                        },
-                        .cap_color_scheme_updates => {
-                            log.info("color_scheme_updates capability detected", .{});
-                            vx.caps.color_scheme_updates = true;
-                        },
-                        .cap_da1 => {
-                            std.Thread.Futex.wake(&vx.query_futex, 10);
-                        },
-                        .winsize => unreachable, // handled elsewhere for posix
-                    }
+                    try handleEventGeneric(self, vx, &cache, Event, event, paste_allocator);
                 }
             }
         }
 
         fn ttyReaderTask(self: *@This(), vx: *vaxis.Vaxis, tty: *vaxis.Tty, paste_allocator: ?std.mem.Allocator) void {
-            self.ttyReaderInner(vx, tty, paste_allocator) catch |err| {
+            return switch (builtin.target.os.tag) {
+                .windows => self.ttyReaderWindows(vx, tty),
+                else => self.ttyReaderPosix(vx, tty, paste_allocator),
+            } catch |err| {
                 if (err != error.Canceled) log.err("ttyReader: {}", .{err});
                 self.fatal = true;
             };
