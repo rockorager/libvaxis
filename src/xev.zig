@@ -99,8 +99,6 @@ pub fn TtyWatcher(comptime Userdata: type) type {
                 .callback = Self.signalCallback,
             };
             try Tty.notifyWinsize(handler);
-            const winsize = try Tty.getWinsize(self.tty.fd);
-            _ = self.callback(self.ud, loop, self, .{ .winsize = winsize });
         }
 
         fn signalCallback(ptr: *anyopaque) void {
