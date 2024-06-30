@@ -32,6 +32,7 @@ Unix-likes.
 | Synchronized Output (DEC 2026) |     ✅     |
 | Unicode Core (DEC 2027)        |     ✅     |
 | Color Mode Updates (DEC 2031)  |     ✅     |
+| [In-Band Resize Reports](https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83)   |     ✅     |
 | Images (kitty)                 |     ✅     |
 
 ## Usage

@@ -85,6 +85,7 @@ state: struct {
     mouse: bool = false,
     pixel_mouse: bool = false,
     color_scheme_updates: bool = false,
+    in_band_resize: bool = false,
     cursor: struct {
         row: usize = 0,
         col: usize = 0,
@@ -150,6 +151,10 @@ pub fn resetState(self: *Vaxis, tty: AnyWriter) !void {
     if (self.state.color_scheme_updates) {
         try tty.writeAll(ctlseqs.color_scheme_reset);
         self.state.color_scheme_updates = false;
+    }
+    if (self.state.in_band_resize) {
+        try tty.writeAll(ctlseqs.in_band_resize_reset);
+        self.state.in_band_resize = false;
     }
 }
 
@@ -244,6 +249,7 @@ pub fn queryTerminalSend(_: Vaxis, tty: AnyWriter) !void {
     try tty.writeAll(ctlseqs.decrqm_sgr_pixels ++
         ctlseqs.decrqm_unicode ++
         ctlseqs.decrqm_color_scheme ++
+        ctlseqs.in_band_resize_set ++
         ctlseqs.xtversion ++
         ctlseqs.csi_u_query ++
         ctlseqs.kitty_graphics_query ++

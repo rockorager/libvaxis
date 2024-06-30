@@ -20,6 +20,10 @@ pub const mouse_set = "\x1b[?1002;1003;1004;1006h";
 pub const mouse_set_pixels = "\x1b[?1002;1003;1004;1016h";
 pub const mouse_reset = "\x1b[?1002;1003;1004;1006;1016l";
 
+// in-band window size reports
+pub const in_band_resize_set = "\x1b[?2048h";
+pub const in_band_resize_reset = "\x1b[?2048l";
+
 // sync
 pub const sync_set = "\x1b[?2026h";
 pub const sync_reset = "\x1b[?2026l";

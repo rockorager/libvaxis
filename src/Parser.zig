@@ -6,6 +6,7 @@ const Key = @import("Key.zig");
 const Mouse = @import("Mouse.zig");
 const code_point = @import("code_point");
 const grapheme = @import("grapheme");
+const Winsize = @import("main.zig").Winsize;
 
 const log = std.log.scoped(.parser);
 
@@ -469,6 +470,31 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
                 },
                 else => return null_event,
             }
+        },
+        't' => {
+            // XTWINOPS
+            // Split first into fields delimited by ';'
+            var iter = std.mem.splitScalar(u8, sequence[2 .. sequence.len - 1], ';');
+            const ps = iter.first();
+            if (std.mem.eql(u8, "48", ps)) {
+                // in band window resize
+                const width_char = iter.next() orelse return null_event;
+                const height_char = iter.next() orelse return null_event;
+                const width_pix = iter.next() orelse "0";
+                const height_pix = iter.next() orelse "0";
+
+                const winsize: Winsize = .{
+                    .rows = std.fmt.parseUnsigned(usize, height_char, 10) catch return null_event,
+                    .cols = std.fmt.parseUnsigned(usize, width_char, 10) catch return null_event,
+                    .x_pixel = std.fmt.parseUnsigned(usize, width_pix, 10) catch return null_event,
+                    .y_pixel = std.fmt.parseUnsigned(usize, height_pix, 10) catch return null_event,
+                };
+                return .{
+                    .event = .{ .winsize = winsize },
+                    .n = sequence.len,
+                };
+            }
+            return null_event;
         },
         'u' => {
             // Kitty keyboard

@@ -89,6 +89,8 @@ pub fn Loop(comptime T: type) type {
 
         pub fn winsizeCallback(ptr: *anyopaque) void {
             const self: *Self = @ptrCast(@alignCast(ptr));
+            // We will be receiving winsize updates in-band
+            if (self.vaxis.state.in_band_resize) return;
 
             const winsize = Tty.getWinsize(self.tty.fd) catch return;
             if (@hasField(Event, "winsize")) {
@@ -286,7 +288,12 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                 .cap_da1 => {
                     std.Thread.Futex.wake(&vx.query_futex, 10);
                 },
-                .winsize => unreachable, // handled elsewhere for posix
+                .winsize => |winsize| {
+                    vx.state.in_band_resize = true;
+                    if (@hasField(Event, "winsize")) {
+                        self.postEvent(.{ .winsize = winsize });
+                    }
+                },
             }
         },
     }
