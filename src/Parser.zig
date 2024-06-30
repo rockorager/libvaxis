@@ -478,10 +478,11 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
             const ps = iter.first();
             if (std.mem.eql(u8, "48", ps)) {
                 // in band window resize
-                const width_char = iter.next() orelse return null_event;
+                // CSI 48 ; height ; width ; height_pix ; width_pix t
                 const height_char = iter.next() orelse return null_event;
-                const width_pix = iter.next() orelse "0";
+                const width_char = iter.next() orelse return null_event;
                 const height_pix = iter.next() orelse "0";
+                const width_pix = iter.next() orelse "0";
 
                 const winsize: Winsize = .{
                     .rows = std.fmt.parseUnsigned(usize, height_char, 10) catch return null_event,
