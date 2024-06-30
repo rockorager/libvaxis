@@ -139,8 +139,17 @@ inline fn parseGround(input: []const u8, data: *const grapheme.GraphemeData) !Re
 }
 
 inline fn parseSs3(input: []const u8) Result {
-    std.debug.assert(input.len >= 3);
+    if (input.len < 3) {
+        return .{
+            .event = null,
+            .n = 0,
+        };
+    }
     const key: Key = switch (input[2]) {
+        0x1B => return .{
+            .event = null,
+            .n = 2,
+        },
         'A' => .{ .codepoint = Key.up },
         'B' => .{ .codepoint = Key.down },
         'C' => .{ .codepoint = Key.right },
@@ -167,7 +176,12 @@ inline fn parseSs3(input: []const u8) Result {
 }
 
 inline fn parseApc(input: []const u8) Result {
-    std.debug.assert(input.len >= 3);
+    if (input.len < 3) {
+        return .{
+            .event = null,
+            .n = 0,
+        };
+    }
     const end = std.mem.indexOfScalarPos(u8, input, 2, 0x1b) orelse return .{
         .event = null,
         .n = 0,
@@ -188,7 +202,12 @@ inline fn parseApc(input: []const u8) Result {
 
 /// Skips sequences until we see an ST (String Terminator, ESC \)
 inline fn skipUntilST(input: []const u8) Result {
-    std.debug.assert(input.len >= 3);
+    if (input.len < 3) {
+        return .{
+            .event = null,
+            .n = 0,
+        };
+    }
     const end = std.mem.indexOfScalarPos(u8, input, 2, 0x1b) orelse return .{
         .event = null,
         .n = 0,
@@ -202,6 +221,12 @@ inline fn skipUntilST(input: []const u8) Result {
 
 /// Parses an OSC sequence
 inline fn parseOsc(input: []const u8, paste_allocator: ?std.mem.Allocator) !Result {
+    if (input.len < 3) {
+        return .{
+            .event = null,
+            .n = 0,
+        };
+    }
     var bel_terminated: bool = false;
     // end is the index of the terminating byte(s) (either the last byte of an
     // ST or BEL)
@@ -289,7 +314,13 @@ inline fn parseOsc(input: []const u8, paste_allocator: ?std.mem.Allocator) !Resu
 }
 
 inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
-    // We start iterating at index 2 to get past te '['
+    if (input.len < 3) {
+        return .{
+            .event = null,
+            .n = 0,
+        };
+    }
+    // We start iterating at index 2 to get past the '['
     const sequence = for (input[2..], 2..) |b, i| {
         switch (b) {
             0x40...0xFF => break input[0 .. i + 1],
