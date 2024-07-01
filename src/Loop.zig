@@ -50,6 +50,8 @@ pub fn Loop(comptime T: type) type {
 
         /// stops reading from the tty.
         pub fn stop(self: *Self) void {
+            // If we don't have a thread, we have nothing to stop
+            if (self.thread == null) return;
             self.should_quit = true;
             // trigger a read
             self.vaxis.deviceStatusReport(self.tty.anyWriter()) catch {};
