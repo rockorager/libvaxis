@@ -301,11 +301,12 @@ pub fn eventFromRecord(self: *Tty, record: *const INPUT_RECORD, state: *EventSta
                 return null;
             }
 
-            const codepoint: u21 = base_layout;
+            var codepoint: u21 = base_layout;
             var text: ?[]const u8 = null;
             switch (event.uChar.UnicodeChar) {
                 0x00...0x1F => {},
-                else => {
+                else => |cp| {
+                    codepoint = cp;
                     const n = try std.unicode.utf8Encode(codepoint, &self.buf);
                     text = self.buf[0..n];
                 },
