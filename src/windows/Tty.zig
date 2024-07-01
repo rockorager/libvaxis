@@ -166,11 +166,13 @@ pub fn eventFromRecord(self: *Tty, record: *const INPUT_RECORD, state: *EventSta
 
             const base_layout: u16 = switch (event.wVirtualKeyCode) {
                 0x00 => blk: { // delivered when we get an escape sequence or a unicode codepoint
+                    if (state.ansi_idx == 0 and event.uChar.AsciiChar != 27)
+                        break :blk event.uChar.UnicodeChar;
                     state.ansi_buf[state.ansi_idx] = event.uChar.AsciiChar;
                     state.ansi_idx += 1;
+                    if (state.ansi_idx <= 2) return null;
                     switch (state.ansi_buf[1]) {
                         '[' => { // CSI, read until 0x40 to 0xFF
-                            if (state.ansi_idx <= 2) return null;
                             switch (event.uChar.UnicodeChar) {
                                 0x40...0xFF => {
                                     return .cap_da1;
@@ -197,9 +199,8 @@ pub fn eventFromRecord(self: *Tty, record: *const INPUT_RECORD, state: *EventSta
                                 else => return null,
                             }
                         },
-                        else => {},
+                        else => return null,
                     }
-                    break :blk event.uChar.UnicodeChar;
                 },
                 0x08 => Key.backspace,
                 0x09 => Key.tab,
