@@ -212,6 +212,12 @@ inline fn skipUntilST(input: []const u8) Result {
         .event = null,
         .n = 0,
     };
+    if (input.len < end + 1 + 1) {
+        return .{
+            .event = null,
+            .n = 0,
+        };
+    }
     const sequence = input[0 .. end + 1 + 1];
     return .{
         .event = null,
