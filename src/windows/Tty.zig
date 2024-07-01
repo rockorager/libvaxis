@@ -6,6 +6,7 @@ const std = @import("std");
 const Event = @import("../event.zig").Event;
 const Key = @import("../Key.zig");
 const Mouse = @import("../Mouse.zig");
+const Parser = @import("../Parser.zig");
 const windows = std.os.windows;
 
 stdin: windows.HANDLE,
@@ -117,7 +118,7 @@ pub fn bufferedWriter(self: *const Tty) std.io.BufferedWriter(4096, std.io.AnyWr
     return std.io.bufferedWriter(self.anyWriter());
 }
 
-pub fn nextEvent(self: *Tty) !Event {
+pub fn nextEvent(self: *Tty, parser: *Parser, paste_allocator: ?std.mem.Allocator) !Event {
     // We use a loop so we can ignore certain events
     var state: EventState = .{};
     while (true) {
@@ -126,7 +127,7 @@ pub fn nextEvent(self: *Tty) !Event {
         if (ReadConsoleInputW(self.stdin, &input_record, 1, &event_count) == 0)
             return windows.unexpectedError(windows.kernel32.GetLastError());
 
-        if (try self.eventFromRecord(&input_record, &state)) |ev| {
+        if (try self.eventFromRecord(&input_record, &state, parser, paste_allocator)) |ev| {
             return ev;
         }
     }
@@ -137,10 +138,9 @@ pub const EventState = struct {
     ansi_idx: usize = 0,
     utf16_buf: [2]u16 = undefined,
     utf16_half: bool = false,
-    escape_st: bool = false,
 };
 
-pub fn eventFromRecord(self: *Tty, record: *const INPUT_RECORD, state: *EventState) !?Event {
+pub fn eventFromRecord(self: *Tty, record: *const INPUT_RECORD, state: *EventState, parser: *Parser, paste_allocator: ?std.mem.Allocator) !?Event {
     switch (record.EventType) {
         0x0001 => { // Key event
             const event = record.Event.KeyEvent;
@@ -171,36 +171,11 @@ pub fn eventFromRecord(self: *Tty, record: *const INPUT_RECORD, state: *EventSta
                     state.ansi_buf[state.ansi_idx] = event.uChar.AsciiChar;
                     state.ansi_idx += 1;
                     if (state.ansi_idx <= 2) return null;
-                    switch (state.ansi_buf[1]) {
-                        '[' => { // CSI, read until 0x40 to 0xFF
-                            switch (event.uChar.UnicodeChar) {
-                                0x40...0xFF => {
-                                    return .cap_da1;
-                                },
-                                else => return null,
-                            }
-                        },
-                        ']' => { // OSC, read until ESC \ or BEL
-                            if (state.ansi_idx <= 2) return null;
-                            switch (event.uChar.UnicodeChar) {
-                                0x07 => {
-                                    return .cap_da1;
-                                },
-                                0x1B => {
-                                    state.escape_st = true;
-                                    return null;
-                                },
-                                '\\' => {
-                                    if (state.escape_st) {
-                                        return .cap_da1;
-                                    }
-                                    return null;
-                                },
-                                else => return null,
-                            }
-                        },
-                        else => return null,
-                    }
+                    const result = try parser.parse(state.ansi_buf[0..state.ansi_idx], paste_allocator);
+                    return if (result.n == 0) null else evt: {
+                        state.ansi_idx = 0;
+                        break :evt result.event;
+                    };
                 },
                 0x08 => Key.backspace,
                 0x09 => Key.tab,
