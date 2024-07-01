@@ -135,6 +135,8 @@ pub fn nextEvent(self: *Tty) !Event {
 pub const EventState = struct {
     ansi_buf: [128]u8 = undefined,
     ansi_idx: usize = 0,
+    utf16_buf: [2]u16 = undefined,
+    utf16_half: bool = false,
     escape_st: bool = false,
 };
 
@@ -143,16 +145,33 @@ pub fn eventFromRecord(self: *Tty, record: *const INPUT_RECORD, state: *EventSta
         0x0001 => { // Key event
             const event = record.Event.KeyEvent;
 
-            const base_layout: u21 = switch (event.wVirtualKeyCode) {
-                0x00 => { // delivered when we get an escape sequence
+            if (state.utf16_half) half: {
+                state.utf16_half = false;
+                state.utf16_buf[1] = event.uChar.UnicodeChar;
+                const codepoint: u21 = std.unicode.utf16DecodeSurrogatePair(&state.utf16_buf) catch break :half;
+                const n = std.unicode.utf8Encode(codepoint, &self.buf) catch return null;
+
+                const key: Key = .{
+                    .codepoint = codepoint,
+                    .base_layout_codepoint = codepoint,
+                    .mods = translateMods(event.dwControlKeyState),
+                    .text = self.buf[0..n],
+                };
+
+                switch (event.bKeyDown) {
+                    0 => return .{ .key_release = key },
+                    else => return .{ .key_press = key },
+                }
+            }
+
+            const base_layout: u16 = switch (event.wVirtualKeyCode) {
+                0x00 => blk: { // delivered when we get an escape sequence or a unicode codepoint
                     state.ansi_buf[state.ansi_idx] = event.uChar.AsciiChar;
                     state.ansi_idx += 1;
-                    if (state.ansi_idx <= 2) {
-                        return null;
-                    }
                     switch (state.ansi_buf[1]) {
                         '[' => { // CSI, read until 0x40 to 0xFF
-                            switch (event.uChar.AsciiChar) {
+                            if (state.ansi_idx <= 2) return null;
+                            switch (event.uChar.UnicodeChar) {
                                 0x40...0xFF => {
                                     return .cap_da1;
                                 },
@@ -160,7 +179,8 @@ pub fn eventFromRecord(self: *Tty, record: *const INPUT_RECORD, state: *EventSta
                             }
                         },
                         ']' => { // OSC, read until ESC \ or BEL
-                            switch (event.uChar.AsciiChar) {
+                            if (state.ansi_idx <= 2) return null;
+                            switch (event.uChar.UnicodeChar) {
                                 0x07 => {
                                     return .cap_da1;
                                 },
@@ -177,8 +197,9 @@ pub fn eventFromRecord(self: *Tty, record: *const INPUT_RECORD, state: *EventSta
                                 else => return null,
                             }
                         },
-                        else => return null,
+                        else => {},
                     }
+                    break :blk event.uChar.UnicodeChar;
                 },
                 0x08 => Key.backspace,
                 0x09 => Key.tab,
@@ -271,13 +292,21 @@ pub fn eventFromRecord(self: *Tty, record: *const INPUT_RECORD, state: *EventSta
                 else => return null,
             };
 
-            var codepoint: u21 = base_layout;
+            if (std.unicode.utf16IsHighSurrogate(base_layout)) {
+                state.utf16_buf[0] = base_layout;
+                state.utf16_half = true;
+                return null;
+            }
+            if (std.unicode.utf16IsLowSurrogate(base_layout)) {
+                return null;
+            }
+
+            const codepoint: u21 = base_layout;
             var text: ?[]const u8 = null;
             switch (event.uChar.UnicodeChar) {
                 0x00...0x1F => {},
-                else => |cp| {
-                    codepoint = cp;
-                    const n = try std.unicode.utf8Encode(cp, &self.buf);
+                else => {
+                    const n = try std.unicode.utf8Encode(codepoint, &self.buf);
                     text = self.buf[0..n];
                 },
             }
