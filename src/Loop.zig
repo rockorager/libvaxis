@@ -111,8 +111,11 @@ pub fn Loop(comptime T: type) type {
 
             switch (builtin.os.tag) {
                 .windows => {
+                    var parser: Parser = .{
+                        .grapheme_data = grapheme_data,
+                    };
                     while (!self.should_quit) {
-                        const event = try self.tty.nextEvent();
+                        const event = try self.tty.nextEvent(&parser, paste_allocator);
                         try handleEventGeneric(self, self.vaxis, &cache, Event, event, null);
                     }
                 },
