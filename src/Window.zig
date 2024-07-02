@@ -7,8 +7,6 @@ const Segment = @import("Cell.zig").Segment;
 const Unicode = @import("Unicode.zig");
 const gw = @import("gwidth.zig");
 
-const log = std.log.scoped(.window);
-
 const Window = @This();
 
 pub const Size = union(enum) {

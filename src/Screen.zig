@@ -8,8 +8,6 @@ const Winsize = @import("main.zig").Winsize;
 const Unicode = @import("Unicode.zig");
 const Method = @import("gwidth.zig").Method;
 
-const log = std.log.scoped(.screen);
-
 const Screen = @This();
 
 width: usize = 0,

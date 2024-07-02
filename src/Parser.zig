@@ -8,7 +8,7 @@ const code_point = @import("code_point");
 const grapheme = @import("grapheme");
 const Winsize = @import("main.zig").Winsize;
 
-const log = std.log.scoped(.parser);
+const log = std.log.scoped(.vaxis_parser);
 
 const Parser = @This();
 

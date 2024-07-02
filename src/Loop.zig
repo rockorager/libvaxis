@@ -6,9 +6,11 @@ const grapheme = @import("grapheme");
 const GraphemeCache = @import("GraphemeCache.zig");
 const Parser = @import("Parser.zig");
 const Queue = @import("queue.zig").Queue;
-const Tty = @import("main.zig").Tty;
+const vaxis = @import("main.zig");
+const Tty = vaxis.Tty;
 const Vaxis = @import("Vaxis.zig");
-const log = std.log.scoped(.loop);
+
+const log = std.log.scoped(.vaxis);
 
 pub fn Loop(comptime T: type) type {
     return struct {

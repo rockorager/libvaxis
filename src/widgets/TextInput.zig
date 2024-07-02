@@ -6,8 +6,6 @@ const Window = @import("../Window.zig");
 const GapBuffer = @import("gap_buffer").GapBuffer;
 const Unicode = @import("../Unicode.zig");
 
-const log = std.log.scoped(.text_input);
-
 const TextInput = @This();
 
 /// The events that this widget handles

@@ -6,8 +6,6 @@ const zigimg = @import("zigimg");
 
 const Window = @import("Window.zig");
 
-const log = std.log.scoped(.image);
-
 const Image = @This();
 
 const transmit_opener = "\x1b_Gf=32,i={d},s={d},v={d},m={d};";

@@ -5,7 +5,7 @@ const Cell = @import("Cell.zig");
 const MouseShape = @import("Mouse.zig").Shape;
 const CursorShape = Cell.CursorShape;
 
-const log = std.log.scoped(.internal_screen);
+const log = std.log.scoped(.vaxis);
 
 const InternalScreen = @This();
 
