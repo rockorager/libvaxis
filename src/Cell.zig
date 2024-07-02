@@ -6,6 +6,9 @@ style: Style = .{},
 link: Hyperlink = .{},
 image: ?Image.Placement = null,
 default: bool = false,
+/// Set to true if this cell is the last cell printed in a row before wrap. Vaxis will determine if
+/// it should rely on the terminal's autowrap feature which can help with primary screen resizes
+wrapped: bool = false,
 
 /// Segment is a contiguous run of text that has a constant style
 pub const Segment = struct {

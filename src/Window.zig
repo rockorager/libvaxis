@@ -309,6 +309,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
                         },
                         .style = segment.style,
                         .link = segment.link,
+                        .wrapped = col + w >= self.width,
                     });
                     col += w;
                 }

@@ -366,7 +366,9 @@ pub fn render(self: *Vaxis, tty: AnyWriter) !void {
         if (col >= self.screen.width) {
             row += 1;
             col = 0;
-            reposition = true;
+            // Rely on terminal wrapping to reposition into next row instead of forcing it
+            if (!cell.wrapped)
+                reposition = true;
         }
         // If cell is the same as our last frame, we don't need to do
         // anything
