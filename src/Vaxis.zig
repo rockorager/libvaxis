@@ -68,7 +68,7 @@ unicode: Unicode,
 
 // statistics
 renders: usize = 0,
-render_dur: i128 = 0,
+render_dur: u64 = 0,
 render_timer: std.time.Timer,
 
 sgr: enum {
