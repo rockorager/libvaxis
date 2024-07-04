@@ -25,6 +25,7 @@ pub fn main() !void {
     defer user_list.deinit();
 
     var tty = try vaxis.Tty.init();
+    defer tty.deinit();
 
     var vx = try vaxis.init(alloc, .{});
     defer vx.deinit(alloc, tty.anyWriter());
