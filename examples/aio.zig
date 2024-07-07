@@ -29,6 +29,7 @@ fn downloadTask(allocator: std.mem.Allocator, url: []const u8) ![]const u8 {
 }
 
 fn audioTask(allocator: std.mem.Allocator) !void {
+    // signals end of audio in case there's a error
     errdefer coro.yield(Audio.end) catch {};
 
     // var child = std.process.Child.init(&.{ "aplay", "-Dplug:default", "-q", "-f", "S16_LE", "-r", "8000" }, allocator);
@@ -36,14 +37,13 @@ fn audioTask(allocator: std.mem.Allocator) !void {
     child.stdin_behavior = .Pipe;
     child.stdout_behavior = .Ignore;
     child.stderr_behavior = .Ignore;
-    child.spawn() catch return; // no sound
+    try child.spawn();
     defer _ = child.kill() catch {};
 
     const sound = blk: {
-        var tpool: coro.ThreadPool = .{};
-        try tpool.start(allocator, .{});
+        var tpool = try coro.ThreadPool.init(allocator, .{});
         defer tpool.deinit();
-        break :blk try tpool.yieldForCompletition(downloadTask, .{ allocator, "https://keroserene.net/lol/roll.s16" });
+        break :blk try tpool.yieldForCompletition(downloadTask, .{ allocator, "https://keroserene.net/lol/roll.s16" }, .{});
     };
     defer allocator.free(sound);
 
@@ -57,11 +57,12 @@ fn audioTask(allocator: std.mem.Allocator) !void {
     }
 
     // the audio is already fed to the player and the defer
-    // would kill the child stay here chilling
+    // would kill the child, so stay here chilling
     coro.yield(Audio.end) catch {};
 }
 
 fn videoTask(writer: std.io.AnyWriter) !void {
+    // signals end of video
     defer coro.yield(Video.end) catch {};
 
     var socket: std.posix.socket_t = undefined;

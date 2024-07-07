@@ -1,16 +1,25 @@
+const build_options = @import("build_options");
 const builtin = @import("builtin");
 const std = @import("std");
-const aio = @import("aio");
-const coro = @import("coro");
 const vaxis = @import("main.zig");
 const handleEventGeneric = @import("Loop.zig").handleEventGeneric;
 const log = std.log.scoped(.vaxis_aio);
 
 const Yield = enum { no_state, took_event };
 
+pub fn Loop(T: type) type {
+    if (!build_options.aio) {
+        @compileError(
+            \\build_options.aio is not enabled.
+            \\Use `LoopWithModules` instead to provide `aio` and `coro` modules from outside vaxis.
+        );
+    }
+    return LoopWithModules(T, @import("aio"), @import("coro"));
+}
+
 /// zig-aio based event loop
 /// <https://github.com/Cloudef/zig-aio>
-pub fn Loop(comptime T: type) type {
+pub fn LoopWithModules(T: type, aio: type, coro: type) type {
     return struct {
         const Event = T;
 

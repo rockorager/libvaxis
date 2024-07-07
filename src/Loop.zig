@@ -164,6 +164,7 @@ pub fn Loop(comptime T: type) type {
     };
 }
 
+// Use return on the self.postEvent's so it can either return error union or void
 pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Event: type, event: anytype, paste_allocator: ?std.mem.Allocator) !void {
     switch (builtin.os.tag) {
         .windows => {
@@ -298,7 +299,7 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                 .winsize => |winsize| {
                     vx.state.in_band_resize = true;
                     if (@hasField(Event, "winsize")) {
-                        self.postEvent(.{ .winsize = winsize });
+                        return self.postEvent(.{ .winsize = winsize });
                     }
                 },
             }
