@@ -23,8 +23,8 @@
             .lazy = true,
         },
         .aio = .{
-            .url = "git+https://github.com/Cloudef/zig-aio#407bb416136b61087cec2c561fa4b4103a44c5b1",
-            .hash = "12202405ca6dd40f314dba6472983fcbb388118ab7446d75065b1efb982d03f515d2",
+            .url = "git+https://github.com/Cloudef/zig-aio#b5a407344379508466c5dcbe4c74438a6166e2ca",
+            .hash = "1220a55aedabdd10578d0c514719ea39ae1bc6d7ed990f508dc100db7f0ccf391437",
             .lazy = true,
         },
     },
