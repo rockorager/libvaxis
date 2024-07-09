@@ -496,7 +496,7 @@ pub fn render(self: *Vaxis, tty: AnyWriter) !void {
         }
         // underline color
         if (!Cell.Color.eql(cursor.ul, cell.style.ul)) {
-            switch (cell.style.bg) {
+            switch (cell.style.ul) {
                 .default => try tty.writeAll(ctlseqs.ul_reset),
                 .index => |idx| {
                     switch (self.sgr) {
