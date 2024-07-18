@@ -9,9 +9,8 @@
             .lazy = true,
         },
         .gap_buffer = .{
-            .url = "git+https://github.com/ryleelyman/GapBuffer.zig#main",
+            .url = "git+https://github.com/ryleelyman/GapBuffer.zig#9039708e09fc3eb5f698ab5694a436afe503c6a6",
             .hash = "1220f525973ae804ec0284556bfc47db7b6a8dc86464a853956ef859d6e0fb5fa93b",
-            .lazy = true,
         },
         .zg = .{
             .url = "git+https://codeberg.org/dude_the_builder/zg?ref=master#689ab6b83d08c02724b99d199d650ff731250998",
