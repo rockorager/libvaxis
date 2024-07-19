@@ -759,9 +759,11 @@ pub fn transmitImage(
 
     if (encoded.len < 4096) {
         try tty.print(
-            "\x1b_Gf={d},i={d};{s}\x1b\\",
+            "\x1b_Gf={d},s={d},v={d},i={d};{s}\x1b\\",
             .{
                 fmt,
+                img.width,
+                img.height,
                 id,
                 encoded,
             },
@@ -770,8 +772,8 @@ pub fn transmitImage(
         var n: usize = 4096;
 
         try tty.print(
-            "\x1b_Gf={d},i={d},m=1;{s}\x1b\\",
-            .{ fmt, id, encoded[0..n] },
+            "\x1b_Gf={d},s={d},v={d},i={d},m=1;{s}\x1b\\",
+            .{ fmt, img.width, img.height, id, encoded[0..n] },
         );
         while (n < encoded.len) : (n += 4096) {
             const end: usize = @min(n + 4096, encoded.len);

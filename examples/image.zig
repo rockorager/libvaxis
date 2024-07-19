@@ -33,8 +33,11 @@ pub fn main() !void {
     try vx.enterAltScreen(tty.anyWriter());
     try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
 
+    var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, "examples/zig.png");
     const imgs = [_]vaxis.Image{
-        try vx.loadImage(alloc, tty.anyWriter(), .{ .path = "examples/zig.png" }),
+        try vx.transmitImage(alloc, tty.anyWriter(), &img1, .rgba),
+        // var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, "examples/zig.png");
+        // try vx.loadImage(alloc, tty.anyWriter(), .{ .path = "examples/zig.png" }),
         try vx.loadImage(alloc, tty.anyWriter(), .{ .path = "examples/vaxis.png" }),
     };
     defer vx.freeImage(tty.anyWriter(), imgs[0].id);
