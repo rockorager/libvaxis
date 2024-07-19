@@ -136,7 +136,7 @@ pub fn Loop(comptime T: type) type {
                     var buf: [1024]u8 = undefined;
                     var read_start: usize = 0;
                     // read loop
-                    while (!self.should_quit) {
+                    read_loop: while (!self.should_quit) {
                         const n = try self.tty.read(buf[read_start..]);
                         var seq_start: usize = 0;
                         while (seq_start < n) {
@@ -154,7 +154,7 @@ pub fn Loop(comptime T: type) type {
                             read_start = 0;
                             seq_start += result.n;
 
-                            const event = result.event orelse continue;
+                            const event = result.event orelse continue :read_loop;
                             try handleEventGeneric(self, self.vaxis, &cache, Event, event, paste_allocator);
                         }
                     }
