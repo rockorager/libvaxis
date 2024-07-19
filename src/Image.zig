@@ -15,6 +15,12 @@ pub const Source = union(enum) {
     mem: []const u8,
 };
 
+pub const TransmitFormat = enum {
+    rgb,
+    rgba,
+    png,
+};
+
 pub const Placement = struct {
     img_id: u32,
     options: Image.DrawOptions,

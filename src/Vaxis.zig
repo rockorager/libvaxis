@@ -717,33 +717,51 @@ pub fn translateMouse(self: Vaxis, mouse: Mouse) Mouse {
     return result;
 }
 
-pub fn loadImage(
+pub fn transmitImage(
     self: *Vaxis,
     alloc: std.mem.Allocator,
     tty: AnyWriter,
-    src: Image.Source,
+    img: *zigimg.Image,
+    format: Image.TransmitFormat,
 ) !Image {
     if (!self.caps.kitty_graphics) return error.NoGraphicsCapability;
     defer self.next_img_id += 1;
 
-    var img = switch (src) {
-        .path => |path| try zigimg.Image.fromFilePath(alloc, path),
-        .mem => |bytes| try zigimg.Image.fromMemory(alloc, bytes),
+    var arena = std.heap.ArenaAllocator.init(alloc);
+    defer arena.deinit();
+
+    const buf = switch (format) {
+        .png => png: {
+            const png_buf = try arena.allocator().alloc(u8, img.imageByteSize());
+            const png = try img.writeToMemory(png_buf, .{ .png = .{} });
+            break :png png;
+        },
+        .rgb => rgb: {
+            try img.convert(.rgb24);
+            break :rgb img.rawBytes();
+        },
+        .rgba => rgba: {
+            try img.convert(.rgba32);
+            break :rgba img.rawBytes();
+        },
     };
-    defer img.deinit();
-    const png_buf = try alloc.alloc(u8, img.imageByteSize());
-    defer alloc.free(png_buf);
-    const png = try img.writeToMemory(png_buf, .{ .png = .{} });
-    const b64_buf = try alloc.alloc(u8, base64Encoder.calcSize(png.len));
-    const encoded = base64Encoder.encode(b64_buf, png);
-    defer alloc.free(b64_buf);
+
+    const b64_buf = try arena.allocator().alloc(u8, base64Encoder.calcSize(buf.len));
+    const encoded = base64Encoder.encode(b64_buf, buf);
 
     const id = self.next_img_id;
 
+    const fmt: u8 = switch (format) {
+        .rgb => 24,
+        .rgba => 32,
+        .png => 100,
+    };
+
     if (encoded.len < 4096) {
         try tty.print(
-            "\x1b_Gf=100,i={d};{s}\x1b\\",
+            "\x1b_Gf={d},i={d};{s}\x1b\\",
             .{
+                fmt,
                 id,
                 encoded,
             },
@@ -752,8 +770,8 @@ pub fn loadImage(
         var n: usize = 4096;
 
         try tty.print(
-            "\x1b_Gf=100,i={d},m=1;{s}\x1b\\",
-            .{ id, encoded[0..n] },
+            "\x1b_Gf={d},i={d},m=1;{s}\x1b\\",
+            .{ fmt, id, encoded[0..n] },
         );
         while (n < encoded.len) : (n += 4096) {
             const end: usize = @min(n + 4096, encoded.len);
@@ -772,6 +790,22 @@ pub fn loadImage(
         .width = img.width,
         .height = img.height,
     };
+}
+
+pub fn loadImage(
+    self: *Vaxis,
+    alloc: std.mem.Allocator,
+    tty: AnyWriter,
+    src: Image.Source,
+) !Image {
+    if (!self.caps.kitty_graphics) return error.NoGraphicsCapability;
+
+    var img = switch (src) {
+        .path => |path| try zigimg.Image.fromFilePath(alloc, path),
+        .mem => |bytes| try zigimg.Image.fromMemory(alloc, bytes),
+    };
+    defer img.deinit();
+    return self.transmitImage(alloc, tty, &img, .png);
 }
 
 /// deletes an image from the terminal's memory
