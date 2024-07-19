@@ -28,6 +28,7 @@ pub fn main() !void {
 
     // Optionally enter the alternate screen
     try vx.enterAltScreen(tty.anyWriter());
+    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
 
     // We'll adjust the color index every keypress
     var color_idx: u8 = 0;

@@ -154,7 +154,7 @@ pub fn Loop(comptime T: type) type {
                             read_start = 0;
                             seq_start += result.n;
 
-                            const event = result.event orelse continue :read_loop;
+                            const event = result.event orelse continue;
                             try handleEventGeneric(self, self.vaxis, &cache, Event, event, paste_allocator);
                         }
                     }
