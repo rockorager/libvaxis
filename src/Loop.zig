@@ -149,7 +149,7 @@ pub fn Loop(comptime T: type) type {
                                     buf[seq_start - initial_start] = buf[seq_start];
                                 }
                                 read_start = seq_start - initial_start + 1;
-                                continue;
+                                continue :read_loop;
                             }
                             read_start = 0;
                             seq_start += result.n;
