@@ -698,6 +698,7 @@ pub fn setMouseMode(self: *Vaxis, tty: AnyWriter, enable: bool) !void {
 
 /// Translate pixel mouse coordinates to cell + offset
 pub fn translateMouse(self: Vaxis, mouse: Mouse) Mouse {
+    if (self.screen.width == 0 or self.screen.height == 0) return mouse;
     var result = mouse;
     if (self.state.pixel_mouse) {
         std.debug.assert(mouse.xoffset == 0);
