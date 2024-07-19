@@ -39,6 +39,8 @@ Unix-likes.
 
 [Documentation](https://rockorager.github.io/libvaxis/#vaxis.Vaxis)
 
+[Starter repo](https://github.com/rockorager/libvaxis-starter)
+
 Vaxis requires three basic primitives to operate:
 
 1. A TTY instance
