@@ -717,6 +717,61 @@ pub fn translateMouse(self: Vaxis, mouse: Mouse) Mouse {
     return result;
 }
 
+/// Transmit an image which has been pre-base64 encoded
+pub fn transmitPreEncodedImage(
+    self: *Vaxis,
+    tty: AnyWriter,
+    bytes: []const u8,
+    width: usize,
+    height: usize,
+    format: Image.TransmitFormat,
+) !Image {
+    defer self.next_img_id += 1;
+    const id = self.next_img_id;
+
+    const fmt: u8 = switch (format) {
+        .rgb => 24,
+        .rgba => 32,
+        .png => 100,
+    };
+
+    if (bytes.len < 4096) {
+        try tty.print(
+            "\x1b_Gf={d},s={d},v={d},i={d};{s}\x1b\\",
+            .{
+                fmt,
+                width,
+                height,
+                id,
+                bytes,
+            },
+        );
+    } else {
+        var n: usize = 4096;
+
+        try tty.print(
+            "\x1b_Gf={d},s={d},v={d},i={d},m=1;{s}\x1b\\",
+            .{ fmt, width, height, id, bytes[0..n] },
+        );
+        while (n < bytes.len) : (n += 4096) {
+            const end: usize = @min(n + 4096, bytes.len);
+            const m: u2 = if (end == bytes.len) 0 else 1;
+            try tty.print(
+                "\x1b_Gm={d};{s}\x1b\\",
+                .{
+                    m,
+                    bytes[n..end],
+                },
+            );
+        }
+    }
+    return .{
+        .id = id,
+        .width = width,
+        .height = height,
+    };
+}
+
 pub fn transmitImage(
     self: *Vaxis,
     alloc: std.mem.Allocator,
@@ -725,7 +780,6 @@ pub fn transmitImage(
     format: Image.TransmitFormat,
 ) !Image {
     if (!self.caps.kitty_graphics) return error.NoGraphicsCapability;
-    defer self.next_img_id += 1;
 
     var arena = std.heap.ArenaAllocator.init(alloc);
     defer arena.deinit();
@@ -749,49 +803,7 @@ pub fn transmitImage(
     const b64_buf = try arena.allocator().alloc(u8, base64Encoder.calcSize(buf.len));
     const encoded = base64Encoder.encode(b64_buf, buf);
 
-    const id = self.next_img_id;
-
-    const fmt: u8 = switch (format) {
-        .rgb => 24,
-        .rgba => 32,
-        .png => 100,
-    };
-
-    if (encoded.len < 4096) {
-        try tty.print(
-            "\x1b_Gf={d},s={d},v={d},i={d};{s}\x1b\\",
-            .{
-                fmt,
-                img.width,
-                img.height,
-                id,
-                encoded,
-            },
-        );
-    } else {
-        var n: usize = 4096;
-
-        try tty.print(
-            "\x1b_Gf={d},s={d},v={d},i={d},m=1;{s}\x1b\\",
-            .{ fmt, img.width, img.height, id, encoded[0..n] },
-        );
-        while (n < encoded.len) : (n += 4096) {
-            const end: usize = @min(n + 4096, encoded.len);
-            const m: u2 = if (end == encoded.len) 0 else 1;
-            try tty.print(
-                "\x1b_Gm={d};{s}\x1b\\",
-                .{
-                    m,
-                    encoded[n..end],
-                },
-            );
-        }
-    }
-    return .{
-        .id = id,
-        .width = img.width,
-        .height = img.height,
-    };
+    return self.transmitPreEncodedImage(tty, encoded, img.width, img.height, format);
 }
 
 pub fn loadImage(
