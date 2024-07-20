@@ -184,7 +184,7 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                         return self.postEvent(.{ .key_press = mut_key });
                     }
                 },
-                .key_release => |*key| {
+                .key_release => |key| {
                     if (@hasField(Event, "key_release")) {
                         // HACK: yuck. there has to be a better way
                         var mut_key = key;
