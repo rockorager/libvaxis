@@ -118,7 +118,7 @@ pub fn draw(self: Image, win: Window, opts: DrawOptions) !void {
                 // Does the image require horizontal scaling?
             else if (!fit_x and fit_y)
                 p_opts.size = .{
-                    .cols = win.height,
+                    .cols = win.width,
                 }
             else if (!fit_x and !fit_y) {
                 const diff_x = self.width - win_width_pix;
