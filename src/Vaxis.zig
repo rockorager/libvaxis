@@ -180,12 +180,11 @@ pub fn resize(
     if (self.state.alt_screen)
         try tty.writeAll(ctlseqs.home)
     else {
+        try tty.writeBytesNTimes(ctlseqs.ri, self.state.cursor.row);
         try tty.writeByte('\r');
-        var i: usize = 0;
-        while (i < self.state.cursor.row) : (i += 1) {
-            try tty.writeAll(ctlseqs.ri);
-        }
     }
+    self.state.cursor.row = 0;
+    self.state.cursor.col = 0;
     try tty.writeAll(ctlseqs.sgr_reset ++ ctlseqs.erase_below_cursor);
 }
 
@@ -401,9 +400,9 @@ pub fn render(self: *Vaxis, tty: AnyWriter) !void {
                     if (n > 0)
                         try tty.print(ctlseqs.cuf, .{n});
                 } else {
-                    try tty.writeByte('\r');
                     const n = row - cursor_pos.row;
                     try tty.writeByteNTimes('\n', n);
+                    try tty.writeByte('\r');
                     if (col > 0)
                         try tty.print(ctlseqs.cuf, .{col});
                 }
