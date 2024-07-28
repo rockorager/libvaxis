@@ -20,6 +20,8 @@ pub const Button = enum(u8) {
     none,
     wheel_up = 64,
     wheel_down = 65,
+    wheel_right = 66,
+    wheel_left = 67,
     button_8 = 128,
     button_9 = 129,
     button_10 = 130,
