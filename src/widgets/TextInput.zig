@@ -55,9 +55,9 @@ pub fn update(self: *TextInput, event: Event) !void {
                 if (self.cursor_idx > 0) self.cursor_idx -= 1;
             } else if (key.matches(Key.right, .{}) or key.matches('f', .{ .ctrl = true })) {
                 if (self.cursor_idx < self.grapheme_count) self.cursor_idx += 1;
-            } else if (key.matches('a', .{ .ctrl = true })) {
+            } else if (key.matches('a', .{ .ctrl = true }) or key.matches(Key.home, .{})) {
                 self.cursor_idx = 0;
-            } else if (key.matches('e', .{ .ctrl = true })) {
+            } else if (key.matches('e', .{ .ctrl = true }) or key.matches(Key.end, .{})) {
                 self.cursor_idx = self.grapheme_count;
             } else if (key.matches('k', .{ .ctrl = true })) {
                 try self.deleteToEnd();
