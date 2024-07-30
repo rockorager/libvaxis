@@ -204,3 +204,8 @@ pub fn main() !void {
     }
 }
 ```
+
+## Contributing
+
+Contributions are welcome. Please submit a PR on Github or a patch on the
+[mailing list](mailto:~rockorager/libvaxis@lists.sr.ht) 
