@@ -392,6 +392,7 @@ pub fn render(self: *Vaxis, tty: AnyWriter) !void {
         // reposition the cursor, if needed
         if (reposition) {
             reposition = false;
+            link = .{};
             if (self.state.alt_screen)
                 try tty.print(ctlseqs.cup, .{ row + 1, col + 1 })
             else {
