@@ -29,8 +29,12 @@ pub fn main() !void {
 
     var tty = try vaxis.Tty.init();
     defer tty.deinit();
-
-    var vx = try vaxis.init(alloc, .{});
+    var tty_buf_writer = tty.bufferedWriter();
+    defer tty_buf_writer.flush() catch {};
+    const tty_writer = tty_buf_writer.writer().any();
+    var vx = try vaxis.init(alloc, .{
+        .kitty_keyboard_flags = .{ .report_events = true },
+    });
     defer vx.deinit(alloc, tty.anyWriter());
 
     var loop: vaxis.Loop(union(enum) {
@@ -38,11 +42,10 @@ pub fn main() !void {
         winsize: vaxis.Winsize,
     }) = .{ .tty = &tty, .vaxis = &vx };
     try loop.init();
-
     try loop.start();
     defer loop.stop();
-    try vx.enterAltScreen(tty.anyWriter());
-    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
+    try vx.enterAltScreen(tty_writer);
+    try vx.queryTerminal(tty.anyWriter(), 250 * std.time.ns_per_ms);
 
     const logo =
         \\░█░█░█▀█░█░█░▀█▀░█▀▀░░░▀█▀░█▀█░█▀▄░█░░░█▀▀░
@@ -71,16 +74,21 @@ pub fn main() !void {
     const other_bg: vaxis.Cell.Color = .{ .rgb = .{ 32, 32, 48 } };
 
     // Table Context
-    var demo_tbl: vaxis.widgets.Table.TableContext = .{ .selected_bg = selected_bg };
+    var demo_tbl: vaxis.widgets.Table.TableContext = .{ 
+        .selected_bg = selected_bg,
+        //.col_width = 10,
+    };
 
     // TUI State
     var active: ActiveSection = .mid;
     var moving = false;
 
+    // Create an Arena Allocator for easy allocations on each Event.
+    var event_arena = heap.ArenaAllocator.init(alloc);
+    defer event_arena.deinit();
     while (true) {
-        // Create an Arena Allocator for easy allocations on each Event.
-        var event_arena = heap.ArenaAllocator.init(alloc);
-        defer event_arena.deinit();
+        defer _ = event_arena.reset(.retain_capacity);
+        defer tty_buf_writer.flush() catch {};
         const event_alloc = event_arena.allocator();
         const event = loop.nextEvent();
 
@@ -163,12 +171,12 @@ pub fn main() !void {
 
         // - Top
         const top_div = 6;
-        const top_bar = win.initChild(
-            0,
-            0,
-            .{ .limit = win.width },
-            .{ .limit = win.height / top_div },
-        );
+        const top_bar = win.child(.{
+            .x_off = 0,
+            .y_off = 0,
+            .width = .{ .limit = win.width },
+            .height = .{ .limit = win.height / top_div },
+        });
         for (title_segs[0..]) |*title_seg|
             title_seg.*.style.bg = if (active == .top) selected_bg else other_bg;
         top_bar.fill(.{ .style = .{
@@ -182,12 +190,12 @@ pub fn main() !void {
         _ = try logo_bar.print(title_segs[0..], .{ .wrap = .word });
 
         // - Middle
-        const middle_bar = win.initChild(
-            0,
-            win.height / top_div,
-            .{ .limit = win.width },
-            .{ .limit = win.height - (top_bar.height + 1) },
-        );
+        const middle_bar = win.child(.{
+            .x_off = 0,
+            .y_off = win.height / top_div,
+            .width = .{ .limit = win.width },
+            .height = .{ .limit = win.height - (top_bar.height + 1) },
+        });
         if (user_list.items.len > 0) {
             demo_tbl.active = active == .mid;
             try vaxis.widgets.Table.drawTable(
@@ -202,17 +210,17 @@ pub fn main() !void {
         }
 
         // - Bottom
-        const bottom_bar = win.initChild(
-            0,
-            win.height - 1,
-            .{ .limit = win.width },
-            .{ .limit = 1 },
-        );
+        const bottom_bar = win.child(.{
+            .x_off = 0,
+            .y_off = win.height - 1,
+            .width = .{ .limit = win.width },
+            .height = .{ .limit = 1 },
+        });
         if (active == .btm) bottom_bar.fill(.{ .style = .{ .bg = selected_bg } });
         cmd_input.draw(bottom_bar);
 
         // Render the screen
-        try vx.render(tty.anyWriter());
+        try vx.render(tty_writer);
     }
 }
 
