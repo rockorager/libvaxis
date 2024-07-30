@@ -23,6 +23,9 @@ pub fn main() !void {
     const users_buf = try alloc.dupe(User, users[0..]);
     const user_list = std.ArrayList(User).fromOwnedSlice(alloc, users_buf);
     defer user_list.deinit();
+    var user_mal = std.MultiArrayList(User){};
+    for (users_buf[0..]) |user| try user_mal.append(alloc, user);
+    defer user_mal.deinit(alloc);
 
     var tty = try vaxis.Tty.init();
     defer tty.deinit();
@@ -191,7 +194,9 @@ pub fn main() !void {
                 event_alloc,
                 middle_bar,
                 &.{ "First", "Last", "Username", "Email", "Phone#" },
+                //users_buf[0..],
                 user_list,
+                //user_mal,
                 &demo_tbl,
             );
         }
