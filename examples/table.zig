@@ -34,6 +34,7 @@ pub fn main() !void {
         key_press: vaxis.Key,
         winsize: vaxis.Winsize,
     }) = .{ .tty = &tty, .vaxis = &vx };
+    try loop.init();
 
     try loop.start();
     defer loop.stop();
