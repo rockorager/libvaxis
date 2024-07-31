@@ -8,18 +8,22 @@ const vaxis = @import("../main.zig");
 
 /// Table Context for maintaining state and drawing Tables with `drawTable()`.
 pub const TableContext = struct {
-    /// Current selected Row of the Table.
+    /// Current active Row of the Table.
     row: usize = 0,
-    /// Current selected Column of the Table.
+    /// Current active Column of the Table.
     col: usize = 0,
     /// Starting point within the Data List.
     start: usize = 0,
+    /// Selected Rows.
+    sel_rows: ?[]usize = null,
 
     /// Active status of the Table.
     active: bool = false,
 
-    /// The Background Color for Selected Rows and Column Headers.
+    /// The Background Color for the Active Row and Column Header.
     selected_bg: vaxis.Cell.Color,
+    /// The Background Color for Selected Rows.
+    active_bg: vaxis.Cell.Color,
     /// First Column Header Background Color
     hdr_bg_1: vaxis.Cell.Color = .{ .rgb = [_]u8{ 64, 64, 64 } },
     /// Second Column Header Background Color
@@ -121,14 +125,14 @@ pub fn drawTable(
     if (table_ctx.col > headers.len - 1) table_ctx.*.col = headers.len - 1;
     for (headers[0..], 0..) |hdr_txt, idx| {
         const hdr_bg =
-            if (table_ctx.active and idx == table_ctx.col) table_ctx.selected_bg else if (idx % 2 == 0) table_ctx.hdr_bg_1 else table_ctx.hdr_bg_2;
-        const hdr_win = table_win.initChild(
-            idx * table_ctx.col_width,
-            0,
-            .{ .limit = table_ctx.col_width },
-            .{ .limit = 1 },
-        );
-        var hdr = vaxis.widgets.alignment.center(hdr_win, @min(table_ctx.col_width -| 1, hdr_txt.len +| 1), 1);
+            if (table_ctx.active and idx == table_ctx.col) table_ctx.active_bg else if (idx % 2 == 0) table_ctx.hdr_bg_1 else table_ctx.hdr_bg_2;
+        const hdr_win = table_win.child(.{
+            .x_off = idx * col_width,
+            .y_off = 0,
+            .width = .{ .limit = col_width },
+            .height = .{ .limit = 1 },
+        });
+        var hdr = vaxis.widgets.alignment.center(hdr_win, @min(col_width -| 1, hdr_txt.len +| 1), 1);
         hdr_win.fill(.{ .style = .{ .bg = hdr_bg } });
         var seg = [_]vaxis.Cell.Segment{.{
             .text = if (hdr_txt.len > table_ctx.col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{hdr_txt[0..(table_ctx.col_width -| 4)]}) else hdr_txt,
@@ -158,8 +162,15 @@ pub fn drawTable(
     end = table_ctx.*.start + max_items;
     if (end > data_items.len) end = data_items.len;
     for (data_items[table_ctx.start..end], 0..) |data, idx| {
-        const row_bg =
-            if (table_ctx.active and table_ctx.start + idx == table_ctx.row) table_ctx.selected_bg else if (idx % 2 == 0) table_ctx.row_bg_1 else table_ctx.row_bg_2;
+        const row_bg = rowBG: {
+            if (table_ctx.active and table_ctx.start + idx == table_ctx.row)
+                break :rowBG table_ctx.active_bg;
+            if (table_ctx.sel_rows) |rows| {
+                if (mem.indexOfScalar(usize, rows, table_ctx.start + idx) != null) break :rowBG table_ctx.selected_bg;
+            }
+            if (idx % 2 == 0) break :rowBG table_ctx.row_bg_1;
+            break :rowBG table_ctx.row_bg_2;
+        };
 
         const row_win = table_win.initChild(
             0,

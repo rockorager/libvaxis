@@ -70,14 +70,18 @@ pub fn main() !void {
     defer cmd_input.deinit();
 
     // Colors
-    const selected_bg: vaxis.Cell.Color = .{ .rgb = .{ 64, 128, 255 } };
+    const active_bg: vaxis.Cell.Color = .{ .rgb = .{ 64, 128, 255 } };
+    const selected_bg: vaxis.Cell.Color = .{ .rgb = .{ 32, 64, 255 } };
     const other_bg: vaxis.Cell.Color = .{ .rgb = .{ 32, 32, 48 } };
 
     // Table Context
-    var demo_tbl: vaxis.widgets.Table.TableContext = .{ 
+    var demo_tbl: vaxis.widgets.Table.TableContext = .{
+        .active_bg = active_bg,
         .selected_bg = selected_bg,
         //.col_width = 10,
+        //.y_off = 10,
     };
+    defer if (demo_tbl.sel_rows) |rows| alloc.free(rows);
 
     // TUI State
     var active: ActiveSection = .mid;
@@ -135,6 +139,21 @@ pub fn main() !void {
                         // Change Column
                         if (key.matchesAny(&.{ vaxis.Key.left, 'h' }, .{})) demo_tbl.col -|= 1;
                         if (key.matchesAny(&.{ vaxis.Key.right, 'l' }, .{})) demo_tbl.col +|= 1;
+                        // Select/Unselect Row
+                        if (key.matches(vaxis.Key.space, .{})) {
+                            const rows = demo_tbl.sel_rows orelse createRows: {
+                                demo_tbl.sel_rows = try alloc.alloc(usize, 1);
+                                break :createRows demo_tbl.sel_rows.?;
+                            };
+                            var rows_list = std.ArrayList(usize).fromOwnedSlice(alloc, rows);
+                            for (rows_list.items, 0..) |row, idx| {
+                                if (row != demo_tbl.row) continue;
+                                _ = rows_list.orderedRemove(idx);
+                                break;
+                            }
+                            else try rows_list.append(demo_tbl.row);
+                            demo_tbl.sel_rows = try rows_list.toOwnedSlice();
+                        }
                     },
                     .btm => {
                         if (key.matchesAny(&.{ vaxis.Key.up, 'k' }, .{}) and moving) active = .mid
@@ -216,7 +235,7 @@ pub fn main() !void {
             .width = .{ .limit = win.width },
             .height = .{ .limit = 1 },
         });
-        if (active == .btm) bottom_bar.fill(.{ .style = .{ .bg = selected_bg } });
+        if (active == .btm) bottom_bar.fill(.{ .style = .{ .bg = active_bg } });
         cmd_input.draw(bottom_bar);
 
         // Render the screen
