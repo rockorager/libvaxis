@@ -37,8 +37,26 @@ pub const TableContext = struct {
     y_off: usize = 0,
 
     /// Column Width
+<<<<<<< HEAD
     /// Note, this should be treated as Read Only. The Column Width will be calculated during `drawTable()`.
     col_width: ?usize = 0,
+=======
+    /// Note, if this is left `null` the Column Width will be dynamically calculated during `drawTable()`.
+    //col_width: ?usize = null,
+    col_width: WidthStyle = .dynamic_fill,
+};
+
+/// Width Styles for `col_width`.
+pub const WidthStyle = union(enum) {
+    /// Dynamically calculate Column Widths such that the entire (or most) of the screen is filled horizontally.
+    dynamic_fill,
+    /// Dynamically calculate the Column Width for each Column based on its Header Length and the provided Padding length.
+    dynamic_header_len: usize,
+    /// Statically set all Column Widths to the same value.
+    static_all: usize,
+    /// Statically set individual Column Widths to specific values.
+    static_individual: []const usize,
+>>>>>>> 7918b49 (widgets(table): implemented customizable column widths)
 };
 
 /// Draw a Table for the TUI.
@@ -118,16 +136,21 @@ pub fn drawTable(
         .{ .limit = win.height },
     );
 
-    table_ctx.col_width = table_win.width / headers.len;
-    if (table_ctx.col_width % 2 != 0) table_ctx.col_width +|= 1;
-    while (table_ctx.col_width * headers.len < table_win.width - 1) table_ctx.col_width +|= 1;
-
     if (table_ctx.col > headers.len - 1) table_ctx.*.col = headers.len - 1;
+    var col_start: usize = 0;
     for (headers[0..], 0..) |hdr_txt, idx| {
+        const col_width = try calcColWidth(
+            idx,
+            headers,
+            table_ctx.col_width,
+            table_win,
+        );
+        defer col_start += col_width;
         const hdr_bg =
             if (table_ctx.active and idx == table_ctx.col) table_ctx.active_bg else if (idx % 2 == 0) table_ctx.hdr_bg_1 else table_ctx.hdr_bg_2;
         const hdr_win = table_win.child(.{
-            .x_off = idx * col_width,
+            //.x_off = idx * col_width,
+            .x_off = col_start,
             .y_off = 0,
             .width = .{ .limit = col_width },
             .height = .{ .limit = 1 },
@@ -179,25 +202,25 @@ pub fn drawTable(
             .{ .limit = 1 },
         );
         const DataT = @TypeOf(data);
-        if (DataT == []const u8) {
-            row_win.fill(.{ .style = .{ .bg = row_bg } });
-            var seg = [_]vaxis.Cell.Segment{.{
-                .text = if (data.len > table_ctx.col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{data[0..(table_ctx.col_width -| 4)]}) else data,
-                .style = .{ .bg = row_bg },
-            }};
-            _ = try row_win.print(seg[0..], .{ .wrap = .word });
-            return;
-        }
+        col_start = 0;
         const item_fields = meta.fields(DataT);
         inline for (item_fields[0..], 0..) |item_field, item_idx| {
+            const col_width = try calcColWidth(
+                item_idx,
+                headers,
+                table_ctx.col_width,
+                table_win,
+            );
+            defer col_start += col_width;
             const item = @field(data, item_field.name);
             const ItemT = @TypeOf(item);
-            const item_win = row_win.initChild(
-                item_idx * table_ctx.col_width,
-                0,
-                .{ .limit = table_ctx.col_width },
-                .{ .limit = 1 },
-            );
+            const item_win = row_win.child(.{
+                //.x_off = item_idx * col_width,
+                .x_off = col_start,
+                .y_off = 0,
+                .width = .{ .limit = col_width },
+                .height =.{ .limit = 1 },
+            });
             const item_txt = switch (ItemT) {
                 []const u8 => item,
                 else => nonStr: {
@@ -225,4 +248,30 @@ pub fn drawTable(
             _ = try item_win.print(seg[0..], .{ .wrap = .word });
         }
     }
+}
+
+/// Calculate the Column Width of `col` using the provided Number of Headers (`num_hdrs`), Width Style (`style`), and Table Window (`table_win`).
+pub fn calcColWidth (
+    col: usize, 
+    headers: []const []const u8,
+    style: WidthStyle, 
+    table_win: vaxis.Window,
+) !usize {
+    return switch (style) {
+        .dynamic_fill => dynFill: {
+            var cw = table_win.width / headers.len;
+            if (cw % 2 != 0) cw +|= 1;
+            while (cw * headers.len < table_win.width - 1) cw +|= 1;
+            break :dynFill cw;
+        },
+        .dynamic_header_len => dynHdrs: {
+            if (col >= headers.len) break :dynHdrs error.NotEnoughStaticWidthsProvided;
+            break :dynHdrs headers[col].len + (style.dynamic_header_len * 2);
+        },
+        .static_all => style.static_all,
+        .static_individual => statInd: {
+            if (col >= headers.len) break :statInd error.NotEnoughStaticWidthsProvided;
+            break :statInd style.static_individual[col];
+        },
+    };
 }

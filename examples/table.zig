@@ -78,7 +78,10 @@ pub fn main() !void {
     var demo_tbl: vaxis.widgets.Table.TableContext = .{
         .active_bg = active_bg,
         .selected_bg = selected_bg,
-        //.col_width = 10,
+        //.col_width = .{ .static_all = 15 },
+        //.col_width = .{ .dynamic_header_len = 3 },
+        //.col_width = .{ .static_individual = &.{ 10, 20, 15, 25, 15 } },
+        //.col_width = .dynamic_fill,
         //.y_off = 10,
     };
     defer if (demo_tbl.sel_rows) |rows| alloc.free(rows);
