@@ -34,6 +34,8 @@ pub fn main() !void {
     try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
 
     var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, "examples/zig.png");
+    defer img1.deinit();
+
     const imgs = [_]vaxis.Image{
         try vx.transmitImage(alloc, tty.anyWriter(), &img1, .rgba),
         // var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, "examples/zig.png");
