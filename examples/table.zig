@@ -40,6 +40,7 @@ pub fn main() !void {
     var loop: vaxis.Loop(union(enum) {
         key_press: vaxis.Key,
         winsize: vaxis.Winsize,
+        table_upd,
     }) = .{ .tty = &tty, .vaxis = &vx };
     try loop.init();
     try loop.start();
@@ -89,6 +90,7 @@ pub fn main() !void {
     // TUI State
     var active: ActiveSection = .mid;
     var moving = false;
+    var see_content = false;
 
     // Create an Arena Allocator for easy allocations on each Event.
     var event_arena = heap.ArenaAllocator.init(alloc);
@@ -157,6 +159,8 @@ pub fn main() !void {
                             else try rows_list.append(demo_tbl.row);
                             demo_tbl.sel_rows = try rows_list.toOwnedSlice();
                         }
+                        // See Row Content
+                        if (key.matches(vaxis.Key.enter, .{})) see_content = !see_content;
                     },
                     .btm => {
                         if (key.matchesAny(&.{ vaxis.Key.up, 'k' }, .{}) and moving) active = .mid
@@ -183,7 +187,57 @@ pub fn main() !void {
                 moving = false;
             },
             .winsize => |ws| try vx.resize(alloc, tty.anyWriter(), ws),
-            //else => {},
+            else => {},
+        }
+
+        // Content
+        seeRow: {
+            if (!see_content) {
+                demo_tbl.active_content_fn = null;
+                demo_tbl.active_ctx = &{};
+                break :seeRow;
+            }
+            const RowContext = struct{
+                row: []const u8,
+                bg: vaxis.Color,
+            };
+            const row_ctx = RowContext{
+                .row = try fmt.allocPrint(event_alloc, "Row #: {d}", .{ demo_tbl.row }),
+                .bg = demo_tbl.active_bg,
+            };
+            demo_tbl.active_ctx = &row_ctx;
+            demo_tbl.active_content_fn = struct{
+                fn see(win: *vaxis.Window, ctx_raw: *const anyopaque) !usize {
+                    const ctx: *const RowContext = @alignCast(@ptrCast(ctx_raw));
+                    win.height = 5;
+                    const see_win = win.child(.{
+                        .x_off = 0,
+                        .y_off = 1,
+                        .width = .{ .limit = win.width },
+                        .height = .{ .limit = 4 },
+                    });
+                    see_win.fill(.{ .style = .{ .bg = ctx.bg } });
+                    const content_logo = 
+                        \\
+                        \\░█▀▄░█▀█░█░█░░░█▀▀░█▀█░█▀█░▀█▀░█▀▀░█▀█░▀█▀
+                        \\░█▀▄░█░█░█▄█░░░█░░░█░█░█░█░░█░░█▀▀░█░█░░█░
+                        \\░▀░▀░▀▀▀░▀░▀░░░▀▀▀░▀▀▀░▀░▀░░▀░░▀▀▀░▀░▀░░▀░
+                    ;
+                    const content_segs: []const vaxis.Cell.Segment = &.{
+                        .{
+                            .text = ctx.row,
+                            .style = .{ .bg = ctx.bg },
+                        },
+                        .{
+                            .text = content_logo,
+                            .style = .{ .bg = ctx.bg },
+                        },
+                    };
+                    _ = try see_win.print(content_segs, .{});
+                    return see_win.height;
+                }
+            }.see;
+            loop.postEvent(.table_upd);
         }
 
         // Sections
@@ -200,7 +254,7 @@ pub fn main() !void {
             .height = .{ .limit = win.height / top_div },
         });
         for (title_segs[0..]) |*title_seg|
-            title_seg.*.style.bg = if (active == .top) selected_bg else other_bg;
+            title_seg.style.bg = if (active == .top) selected_bg else other_bg;
         top_bar.fill(.{ .style = .{
             .bg = if (active == .top) selected_bg else other_bg,
         } });
