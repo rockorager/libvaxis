@@ -161,7 +161,7 @@ pub fn drawTable(
         var hdr = vaxis.widgets.alignment.center(hdr_win, @min(col_width -| 1, hdr_txt.len +| 1), 1);
         hdr_win.fill(.{ .style = .{ .bg = hdr_bg } });
         var seg = [_]vaxis.Cell.Segment{.{
-            .text = if (hdr_txt.len > table_ctx.col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{hdr_txt[0..(table_ctx.col_width -| 4)]}) else hdr_txt,
+            .text = if (hdr_txt.len > col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{hdr_txt[0..(col_width -| 4)]}) else hdr_txt,
             .style = .{
                 .bg = hdr_bg,
                 .bold = true,
@@ -213,8 +213,6 @@ pub fn drawTable(
         });
         if (table_ctx.start + row == table_ctx.row) {
             table_ctx.active_y_off = if (table_ctx.active_content_fn) |content| try content(&row_win, table_ctx.active_ctx) else 0;
-            //if (table_ctx.row + table_ctx.active_y_off >= end)
-            //    try drawTable(alloc, win, headers, data_list, table_ctx);
         }
         const DataT = @TypeOf(data);
         col_start = 0;
@@ -256,7 +254,7 @@ pub fn drawTable(
             };
             item_win.fill(.{ .style = .{ .bg = row_bg } });
             var seg = [_]vaxis.Cell.Segment{.{
-                .text = if (item_txt.len > table_ctx.col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{item_txt[0..(table_ctx.col_width -| 4)]}) else item_txt,
+                .text = if (item_txt.len > col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{item_txt[0..(col_width -| 4)]}) else item_txt,
                 .style = .{ .bg = row_bg },
             }};
             _ = try item_win.print(seg[0..], .{ .wrap = .word });
