@@ -19,6 +19,15 @@ pub const TableContext = struct {
 
     /// Active status of the Table.
     active: bool = false,
+    /// Active Content Callback Function. 
+    /// If available, this will be called to vertically expand the active row with additional info.
+    active_content_fn: ?*const fn(*vaxis.Window, *const anyopaque) anyerror!usize = null,
+    /// Active Content Context
+    /// This will be provided to the `active_content` callback when called.
+    active_ctx: *const anyopaque = &{},
+    /// Y Offset for rows beyond the Active Content.
+    /// (This will be calculated automatically)
+    active_y_off: usize = 0,
 
     /// The Background Color for the Active Row and Column Header.
     selected_bg: vaxis.Cell.Color,
@@ -37,10 +46,6 @@ pub const TableContext = struct {
     y_off: usize = 0,
 
     /// Column Width
-<<<<<<< HEAD
-    /// Note, this should be treated as Read Only. The Column Width will be calculated during `drawTable()`.
-    col_width: ?usize = 0,
-=======
     /// Note, if this is left `null` the Column Width will be dynamically calculated during `drawTable()`.
     //col_width: ?usize = null,
     col_width: WidthStyle = .dynamic_fill,
@@ -56,7 +61,6 @@ pub const WidthStyle = union(enum) {
     static_all: usize,
     /// Statically set individual Column Widths to specific values.
     static_individual: []const usize,
->>>>>>> 7918b49 (widgets(table): implemented customizable column widths)
 };
 
 /// Draw a Table for the TUI.
@@ -136,7 +140,7 @@ pub fn drawTable(
         .{ .limit = win.height },
     );
 
-    if (table_ctx.col > headers.len - 1) table_ctx.*.col = headers.len - 1;
+    if (table_ctx.col > headers.len - 1) table_ctx.col = headers.len - 1;
     var col_start: usize = 0;
     for (headers[0..], 0..) |hdr_txt, idx| {
         const col_width = try calcColWidth(
@@ -149,7 +153,6 @@ pub fn drawTable(
         const hdr_bg =
             if (table_ctx.active and idx == table_ctx.col) table_ctx.active_bg else if (idx % 2 == 0) table_ctx.hdr_bg_1 else table_ctx.hdr_bg_2;
         const hdr_win = table_win.child(.{
-            //.x_off = idx * col_width,
             .x_off = col_start,
             .y_off = 0,
             .width = .{ .limit = col_width },
@@ -168,39 +171,51 @@ pub fn drawTable(
         _ = try hdr.print(seg[0..], .{ .wrap = .word });
     }
 
-    const max_items = if (data_items.len > table_win.height -| 1) table_win.height -| 1 else data_items.len;
-    var end = table_ctx.*.start + max_items;
+    if (table_ctx.active_content_fn == null) table_ctx.active_y_off = 0;
+    const max_items =
+        if (data_items.len > table_win.height -| 1) table_win.height -| 1 
+        else data_items.len;
+    var end = table_ctx.start + max_items;
+    if (table_ctx.row + table_ctx.active_y_off >= end -| 1)
+        end -|= table_ctx.active_y_off;
     if (end > data_items.len) end = data_items.len;
-    table_ctx.*.start = tableStart: {
+    table_ctx.start = tableStart: {
         if (table_ctx.row == 0)
             break :tableStart 0;
         if (table_ctx.row < table_ctx.start)
             break :tableStart table_ctx.start - (table_ctx.start - table_ctx.row);
         if (table_ctx.row >= data_items.len - 1)
-            table_ctx.*.row = data_items.len - 1;
-        if (table_ctx.row >= end)
+            table_ctx.row = data_items.len - 1;
+        if (table_ctx.row >= end) 
             break :tableStart table_ctx.start + (table_ctx.row - end + 1);
         break :tableStart table_ctx.start;
     };
-    end = table_ctx.*.start + max_items;
+    end = table_ctx.start + max_items;
+    if (table_ctx.row + table_ctx.active_y_off >= end -| 1)
+        end -|= table_ctx.active_y_off;
     if (end > data_items.len) end = data_items.len;
-    for (data_items[table_ctx.start..end], 0..) |data, idx| {
+    table_ctx.active_y_off = 0;
+    for (data_items[table_ctx.start..end], 0..) |data, row| {
         const row_bg = rowBG: {
-            if (table_ctx.active and table_ctx.start + idx == table_ctx.row)
+            if (table_ctx.active and table_ctx.start + row == table_ctx.row)
                 break :rowBG table_ctx.active_bg;
             if (table_ctx.sel_rows) |rows| {
-                if (mem.indexOfScalar(usize, rows, table_ctx.start + idx) != null) break :rowBG table_ctx.selected_bg;
+                if (mem.indexOfScalar(usize, rows, table_ctx.start + row) != null) break :rowBG table_ctx.selected_bg;
             }
-            if (idx % 2 == 0) break :rowBG table_ctx.row_bg_1;
+            if (row % 2 == 0) break :rowBG table_ctx.row_bg_1;
             break :rowBG table_ctx.row_bg_2;
         };
-
-        const row_win = table_win.initChild(
-            0,
-            1 + idx,
-            .{ .limit = table_win.width },
-            .{ .limit = 1 },
-        );
+        var row_win = table_win.child(.{
+            .x_off = 0,
+            .y_off = 1 + row + table_ctx.active_y_off,
+            .width = .{ .limit = table_win.width },
+            .height = .{ .limit = 1 },
+        });
+        if (table_ctx.start + row == table_ctx.row) {
+            table_ctx.active_y_off = if (table_ctx.active_content_fn) |content| try content(&row_win, table_ctx.active_ctx) else 0;
+            //if (table_ctx.row + table_ctx.active_y_off >= end)
+            //    try drawTable(alloc, win, headers, data_list, table_ctx);
+        }
         const DataT = @TypeOf(data);
         col_start = 0;
         const item_fields = meta.fields(DataT);
@@ -215,7 +230,6 @@ pub fn drawTable(
             const item = @field(data, item_field.name);
             const ItemT = @TypeOf(item);
             const item_win = row_win.child(.{
-                //.x_off = item_idx * col_width,
                 .x_off = col_start,
                 .y_off = 0,
                 .width = .{ .limit = col_width },
