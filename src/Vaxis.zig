@@ -717,6 +717,61 @@ pub fn translateMouse(self: Vaxis, mouse: Mouse) Mouse {
     return result;
 }
 
+/// Transmit an image using the local filesystem. Allocates only for base64 encoding
+pub fn transmitLocalImagePath(
+    self: *Vaxis,
+    allocator: std.mem.Allocator,
+    tty: AnyWriter,
+    payload: []const u8,
+    height: usize,
+    width: usize,
+    medium: Image.TransmitMedium,
+    format: Image.TransmitFormat,
+) !Image {
+    defer self.next_img_id += 1;
+
+    const id = self.next_img_id;
+
+    const size = base64Encoder.calcSize(payload.len);
+    if (size >= 4096) return error.PathTooLong;
+
+    const buf = try allocator.alloc(u8, size);
+    const encoded = base64Encoder.encode(buf, payload);
+    defer allocator.free(buf);
+
+    const medium_char: u8 = switch (medium) {
+        .file => 'f',
+        .temp_file => 't',
+        .shared_mem => 's',
+    };
+
+    switch (format) {
+        .rgb => {
+            try tty.print(
+                "\x1b_Gf=24,s={d},v={d},i={d},t={c};{s}\x1b\\",
+                .{ width, height, id, medium_char, encoded },
+            );
+        },
+        .rgba => {
+            try tty.print(
+                "\x1b_Gf=32,s={d},v={d},i={d},t={c};{s}\x1b\\",
+                .{ width, height, id, medium_char, encoded },
+            );
+        },
+        .png => {
+            try tty.print(
+                "\x1b_Gf=100,i={d},t={c};{s}\x1b\\",
+                .{ id, medium_char, encoded },
+            );
+        },
+    }
+    return .{
+        .id = id,
+        .width = width,
+        .height = height,
+    };
+}
+
 /// Transmit an image which has been pre-base64 encoded
 pub fn transmitPreEncodedImage(
     self: *Vaxis,

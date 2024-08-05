@@ -21,6 +21,12 @@ pub const TransmitFormat = enum {
     png,
 };
 
+pub const TransmitMedium = enum {
+    file,
+    temp_file,
+    shared_mem,
+};
+
 pub const Placement = struct {
     img_id: u32,
     options: Image.DrawOptions,
