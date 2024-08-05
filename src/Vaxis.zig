@@ -723,8 +723,8 @@ pub fn transmitLocalImagePath(
     allocator: std.mem.Allocator,
     tty: AnyWriter,
     payload: []const u8,
-    height: usize,
     width: usize,
+    height: usize,
     medium: Image.TransmitMedium,
     format: Image.TransmitFormat,
 ) !Image {
