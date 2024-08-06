@@ -217,7 +217,7 @@ pub fn fill(self: Window, cell: Cell) void {
         return;
     if (self.x_off == 0 and self.width == self.screen.width) {
         // we have a full width window, therefore contiguous memory.
-        const start = self.y_off * self.width;
+        const start = @min(self.y_off * self.width, self.screen.buf.len);
         const end = @min(start + (self.height * self.width), self.screen.buf.len);
         @memset(self.screen.buf[start..end], cell);
     } else {
@@ -225,8 +225,9 @@ pub fn fill(self: Window, cell: Cell) void {
         var row: usize = self.y_off;
         const last_row = @min(self.height + self.y_off, self.screen.height);
         while (row < last_row) : (row += 1) {
-            const start = self.x_off + (row * self.screen.width);
-            const end = @min(start + self.width, start + (self.screen.width - self.x_off));
+            const start = @min(self.x_off + (row * self.screen.width), self.screen.buf.len);
+            var end = @min(start + self.width, start + (self.screen.width - self.x_off));
+            end = @min(end, self.screen.buf.len);
             @memset(self.screen.buf[start..end], cell);
         }
     }

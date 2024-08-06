@@ -23,23 +23,30 @@ pub fn main() !void {
     const users_buf = try alloc.dupe(User, users[0..]);
     const user_list = std.ArrayList(User).fromOwnedSlice(alloc, users_buf);
     defer user_list.deinit();
+    var user_mal = std.MultiArrayList(User){};
+    for (users_buf[0..]) |user| try user_mal.append(alloc, user);
+    defer user_mal.deinit(alloc);
 
     var tty = try vaxis.Tty.init();
     defer tty.deinit();
-
-    var vx = try vaxis.init(alloc, .{});
+    var tty_buf_writer = tty.bufferedWriter();
+    defer tty_buf_writer.flush() catch {};
+    const tty_writer = tty_buf_writer.writer().any();
+    var vx = try vaxis.init(alloc, .{
+        .kitty_keyboard_flags = .{ .report_events = true },
+    });
     defer vx.deinit(alloc, tty.anyWriter());
 
     var loop: vaxis.Loop(union(enum) {
         key_press: vaxis.Key,
         winsize: vaxis.Winsize,
+        table_upd,
     }) = .{ .tty = &tty, .vaxis = &vx };
     try loop.init();
-
     try loop.start();
     defer loop.stop();
-    try vx.enterAltScreen(tty.anyWriter());
-    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
+    try vx.enterAltScreen(tty_writer);
+    try vx.queryTerminal(tty.anyWriter(), 250 * std.time.ns_per_ms);
 
     const logo =
         \\░█░█░█▀█░█░█░▀█▀░█▀▀░░░▀█▀░█▀█░█▀▄░█░░░█▀▀░
@@ -64,20 +71,33 @@ pub fn main() !void {
     defer cmd_input.deinit();
 
     // Colors
-    const selected_bg: vaxis.Cell.Color = .{ .rgb = .{ 64, 128, 255 } };
+    const active_bg: vaxis.Cell.Color = .{ .rgb = .{ 64, 128, 255 } };
+    const selected_bg: vaxis.Cell.Color = .{ .rgb = .{ 32, 64, 255 } };
     const other_bg: vaxis.Cell.Color = .{ .rgb = .{ 32, 32, 48 } };
 
     // Table Context
-    var demo_tbl: vaxis.widgets.Table.TableContext = .{ .selected_bg = selected_bg };
+    var demo_tbl: vaxis.widgets.Table.TableContext = .{
+        .active_bg = active_bg,
+        .selected_bg = selected_bg,
+        //.col_width = .{ .static_all = 15 },
+        //.col_width = .{ .dynamic_header_len = 3 },
+        //.col_width = .{ .static_individual = &.{ 10, 20, 15, 25, 15 } },
+        //.col_width = .dynamic_fill,
+        //.y_off = 10,
+    };
+    defer if (demo_tbl.sel_rows) |rows| alloc.free(rows);
 
     // TUI State
     var active: ActiveSection = .mid;
     var moving = false;
+    var see_content = false;
 
+    // Create an Arena Allocator for easy allocations on each Event.
+    var event_arena = heap.ArenaAllocator.init(alloc);
+    defer event_arena.deinit();
     while (true) {
-        // Create an Arena Allocator for easy allocations on each Event.
-        var event_arena = heap.ArenaAllocator.init(alloc);
-        defer event_arena.deinit();
+        defer _ = event_arena.reset(.retain_capacity);
+        defer tty_buf_writer.flush() catch {};
         const event_alloc = event_arena.allocator();
         const event = loop.nextEvent();
 
@@ -124,6 +144,23 @@ pub fn main() !void {
                         // Change Column
                         if (key.matchesAny(&.{ vaxis.Key.left, 'h' }, .{})) demo_tbl.col -|= 1;
                         if (key.matchesAny(&.{ vaxis.Key.right, 'l' }, .{})) demo_tbl.col +|= 1;
+                        // Select/Unselect Row
+                        if (key.matches(vaxis.Key.space, .{})) {
+                            const rows = demo_tbl.sel_rows orelse createRows: {
+                                demo_tbl.sel_rows = try alloc.alloc(usize, 1);
+                                break :createRows demo_tbl.sel_rows.?;
+                            };
+                            var rows_list = std.ArrayList(usize).fromOwnedSlice(alloc, rows);
+                            for (rows_list.items, 0..) |row, idx| {
+                                if (row != demo_tbl.row) continue;
+                                _ = rows_list.orderedRemove(idx);
+                                break;
+                            }
+                            else try rows_list.append(demo_tbl.row);
+                            demo_tbl.sel_rows = try rows_list.toOwnedSlice();
+                        }
+                        // See Row Content
+                        if (key.matches(vaxis.Key.enter, .{})) see_content = !see_content;
                     },
                     .btm => {
                         if (key.matchesAny(&.{ vaxis.Key.up, 'k' }, .{}) and moving) active = .mid
@@ -150,7 +187,57 @@ pub fn main() !void {
                 moving = false;
             },
             .winsize => |ws| try vx.resize(alloc, tty.anyWriter(), ws),
-            //else => {},
+            else => {},
+        }
+
+        // Content
+        seeRow: {
+            if (!see_content) {
+                demo_tbl.active_content_fn = null;
+                demo_tbl.active_ctx = &{};
+                break :seeRow;
+            }
+            const RowContext = struct{
+                row: []const u8,
+                bg: vaxis.Color,
+            };
+            const row_ctx = RowContext{
+                .row = try fmt.allocPrint(event_alloc, "Row #: {d}", .{ demo_tbl.row }),
+                .bg = demo_tbl.active_bg,
+            };
+            demo_tbl.active_ctx = &row_ctx;
+            demo_tbl.active_content_fn = struct{
+                fn see(win: *vaxis.Window, ctx_raw: *const anyopaque) !usize {
+                    const ctx: *const RowContext = @alignCast(@ptrCast(ctx_raw));
+                    win.height = 5;
+                    const see_win = win.child(.{
+                        .x_off = 0,
+                        .y_off = 1,
+                        .width = .{ .limit = win.width },
+                        .height = .{ .limit = 4 },
+                    });
+                    see_win.fill(.{ .style = .{ .bg = ctx.bg } });
+                    const content_logo = 
+                        \\
+                        \\░█▀▄░█▀█░█░█░░░█▀▀░█▀█░█▀█░▀█▀░█▀▀░█▀█░▀█▀
+                        \\░█▀▄░█░█░█▄█░░░█░░░█░█░█░█░░█░░█▀▀░█░█░░█░
+                        \\░▀░▀░▀▀▀░▀░▀░░░▀▀▀░▀▀▀░▀░▀░░▀░░▀▀▀░▀░▀░░▀░
+                    ;
+                    const content_segs: []const vaxis.Cell.Segment = &.{
+                        .{
+                            .text = ctx.row,
+                            .style = .{ .bg = ctx.bg },
+                        },
+                        .{
+                            .text = content_logo,
+                            .style = .{ .bg = ctx.bg },
+                        },
+                    };
+                    _ = try see_win.print(content_segs, .{});
+                    return see_win.height;
+                }
+            }.see;
+            loop.postEvent(.table_upd);
         }
 
         // Sections
@@ -160,14 +247,14 @@ pub fn main() !void {
 
         // - Top
         const top_div = 6;
-        const top_bar = win.initChild(
-            0,
-            0,
-            .{ .limit = win.width },
-            .{ .limit = win.height / top_div },
-        );
+        const top_bar = win.child(.{
+            .x_off = 0,
+            .y_off = 0,
+            .width = .{ .limit = win.width },
+            .height = .{ .limit = win.height / top_div },
+        });
         for (title_segs[0..]) |*title_seg|
-            title_seg.*.style.bg = if (active == .top) selected_bg else other_bg;
+            title_seg.style.bg = if (active == .top) selected_bg else other_bg;
         top_bar.fill(.{ .style = .{
             .bg = if (active == .top) selected_bg else other_bg,
         } });
@@ -179,35 +266,37 @@ pub fn main() !void {
         _ = try logo_bar.print(title_segs[0..], .{ .wrap = .word });
 
         // - Middle
-        const middle_bar = win.initChild(
-            0,
-            win.height / top_div,
-            .{ .limit = win.width },
-            .{ .limit = win.height - (top_bar.height + 1) },
-        );
+        const middle_bar = win.child(.{
+            .x_off = 0,
+            .y_off = win.height / top_div,
+            .width = .{ .limit = win.width },
+            .height = .{ .limit = win.height - (top_bar.height + 1) },
+        });
         if (user_list.items.len > 0) {
             demo_tbl.active = active == .mid;
             try vaxis.widgets.Table.drawTable(
                 event_alloc,
                 middle_bar,
                 &.{ "First", "Last", "Username", "Email", "Phone#" },
+                //users_buf[0..],
                 user_list,
+                //user_mal,
                 &demo_tbl,
             );
         }
 
         // - Bottom
-        const bottom_bar = win.initChild(
-            0,
-            win.height - 1,
-            .{ .limit = win.width },
-            .{ .limit = 1 },
-        );
-        if (active == .btm) bottom_bar.fill(.{ .style = .{ .bg = selected_bg } });
+        const bottom_bar = win.child(.{
+            .x_off = 0,
+            .y_off = win.height - 1,
+            .width = .{ .limit = win.width },
+            .height = .{ .limit = 1 },
+        });
+        if (active == .btm) bottom_bar.fill(.{ .style = .{ .bg = active_bg } });
         cmd_input.draw(bottom_bar);
 
         // Render the screen
-        try vx.render(tty.anyWriter());
+        try vx.render(tty_writer);
     }
 }
 

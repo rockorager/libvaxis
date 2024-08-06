@@ -3,3 +3,5 @@ zig-cache/
 zig-out/
 *.log
 Session*.*vim
+commit_msg
+*.sw?
