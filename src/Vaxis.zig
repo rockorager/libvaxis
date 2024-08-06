@@ -931,3 +931,273 @@ pub fn subscribeToColorSchemeUpdates(self: Vaxis, tty: AnyWriter) !void {
 pub fn deviceStatusReport(_: Vaxis, tty: AnyWriter) !void {
     try tty.writeAll(ctlseqs.device_status_report);
 }
+
+/// prettyPrint is used to print the contents of the Screen to the tty. The state is not stored, and
+/// the cursor will be put on the next line after the last line is printed. This is useful to
+/// sequentially print data in a styled format to eg. stdout. This function returns an error if you
+/// are not in the alt screen. The cursor is always hidden, and mouse shapes are not available
+pub fn prettyPrint(self: *Vaxis, tty: AnyWriter) !void {
+    if (self.state.alt_screen) return error.NotInPrimaryScreen;
+
+    try tty.writeAll(ctlseqs.hide_cursor);
+    try tty.writeAll(ctlseqs.sync_set);
+    defer tty.writeAll(ctlseqs.sync_reset) catch {};
+    try tty.writeAll(ctlseqs.sgr_reset);
+
+    var reposition: bool = false;
+    var row: usize = 0;
+    var col: usize = 0;
+    var cursor: Style = .{};
+    var link: Hyperlink = .{};
+    var cursor_pos: struct {
+        row: usize = 0,
+        col: usize = 0,
+    } = .{};
+
+    var i: usize = 0;
+    while (i < self.screen.buf.len) {
+        const cell = self.screen.buf[i];
+        const w = blk: {
+            if (cell.char.width != 0) break :blk cell.char.width;
+
+            const method: gwidth.Method = self.caps.unicode;
+            const width = gwidth.gwidth(cell.char.grapheme, method, &self.unicode.width_data) catch 1;
+            break :blk @max(1, width);
+        };
+        defer {
+            // advance by the width of this char mod 1
+            std.debug.assert(w > 0);
+            var j = i + 1;
+            while (j < i + w) : (j += 1) {
+                if (j >= self.screen_last.buf.len) break;
+                self.screen_last.buf[j].skipped = true;
+            }
+            col += w;
+            i += w;
+        }
+        if (col >= self.screen.width) {
+            row += 1;
+            col = 0;
+            // Rely on terminal wrapping to reposition into next row instead of forcing it
+            if (!cell.wrapped)
+                reposition = true;
+        }
+        if (cell.default) {
+            reposition = true;
+            continue;
+        }
+        defer {
+            cursor = cell.style;
+            link = cell.link;
+        }
+
+        // reposition the cursor, if needed
+        if (reposition) {
+            reposition = false;
+            link = .{};
+            if (cursor_pos.row == row) {
+                const n = col - cursor_pos.col;
+                if (n > 0)
+                    try tty.print(ctlseqs.cuf, .{n});
+            } else {
+                const n = row - cursor_pos.row;
+                try tty.writeByteNTimes('\n', n);
+                try tty.writeByte('\r');
+                if (col > 0)
+                    try tty.print(ctlseqs.cuf, .{col});
+            }
+        }
+
+        if (cell.image) |img| {
+            try tty.print(
+                ctlseqs.kitty_graphics_preamble,
+                .{img.img_id},
+            );
+            if (img.options.pixel_offset) |offset| {
+                try tty.print(
+                    ",X={d},Y={d}",
+                    .{ offset.x, offset.y },
+                );
+            }
+            if (img.options.clip_region) |clip| {
+                if (clip.x) |x|
+                    try tty.print(",x={d}", .{x});
+                if (clip.y) |y|
+                    try tty.print(",y={d}", .{y});
+                if (clip.width) |width|
+                    try tty.print(",w={d}", .{width});
+                if (clip.height) |height|
+                    try tty.print(",h={d}", .{height});
+            }
+            if (img.options.size) |size| {
+                if (size.rows) |rows|
+                    try tty.print(",r={d}", .{rows});
+                if (size.cols) |cols|
+                    try tty.print(",c={d}", .{cols});
+            }
+            if (img.options.z_index) |z| {
+                try tty.print(",z={d}", .{z});
+            }
+            try tty.writeAll(ctlseqs.kitty_graphics_closing);
+        }
+
+        // something is different, so let's loop through everything and
+        // find out what
+
+        // foreground
+        if (!Cell.Color.eql(cursor.fg, cell.style.fg)) {
+            switch (cell.style.fg) {
+                .default => try tty.writeAll(ctlseqs.fg_reset),
+                .index => |idx| {
+                    switch (idx) {
+                        0...7 => try tty.print(ctlseqs.fg_base, .{idx}),
+                        8...15 => try tty.print(ctlseqs.fg_bright, .{idx - 8}),
+                        else => {
+                            switch (self.sgr) {
+                                .standard => try tty.print(ctlseqs.fg_indexed, .{idx}),
+                                .legacy => try tty.print(ctlseqs.fg_indexed_legacy, .{idx}),
+                            }
+                        },
+                    }
+                },
+                .rgb => |rgb| {
+                    switch (self.sgr) {
+                        .standard => try tty.print(ctlseqs.fg_rgb, .{ rgb[0], rgb[1], rgb[2] }),
+                        .legacy => try tty.print(ctlseqs.fg_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
+                    }
+                },
+            }
+        }
+        // background
+        if (!Cell.Color.eql(cursor.bg, cell.style.bg)) {
+            switch (cell.style.bg) {
+                .default => try tty.writeAll(ctlseqs.bg_reset),
+                .index => |idx| {
+                    switch (idx) {
+                        0...7 => try tty.print(ctlseqs.bg_base, .{idx}),
+                        8...15 => try tty.print(ctlseqs.bg_bright, .{idx - 8}),
+                        else => {
+                            switch (self.sgr) {
+                                .standard => try tty.print(ctlseqs.bg_indexed, .{idx}),
+                                .legacy => try tty.print(ctlseqs.bg_indexed_legacy, .{idx}),
+                            }
+                        },
+                    }
+                },
+                .rgb => |rgb| {
+                    switch (self.sgr) {
+                        .standard => try tty.print(ctlseqs.bg_rgb, .{ rgb[0], rgb[1], rgb[2] }),
+                        .legacy => try tty.print(ctlseqs.bg_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
+                    }
+                },
+            }
+        }
+        // underline color
+        if (!Cell.Color.eql(cursor.ul, cell.style.ul)) {
+            switch (cell.style.ul) {
+                .default => try tty.writeAll(ctlseqs.ul_reset),
+                .index => |idx| {
+                    switch (self.sgr) {
+                        .standard => try tty.print(ctlseqs.ul_indexed, .{idx}),
+                        .legacy => try tty.print(ctlseqs.ul_indexed_legacy, .{idx}),
+                    }
+                },
+                .rgb => |rgb| {
+                    switch (self.sgr) {
+                        .standard => try tty.print(ctlseqs.ul_rgb, .{ rgb[0], rgb[1], rgb[2] }),
+                        .legacy => try tty.print(ctlseqs.ul_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
+                    }
+                },
+            }
+        }
+        // underline style
+        if (cursor.ul_style != cell.style.ul_style) {
+            const seq = switch (cell.style.ul_style) {
+                .off => ctlseqs.ul_off,
+                .single => ctlseqs.ul_single,
+                .double => ctlseqs.ul_double,
+                .curly => ctlseqs.ul_curly,
+                .dotted => ctlseqs.ul_dotted,
+                .dashed => ctlseqs.ul_dashed,
+            };
+            try tty.writeAll(seq);
+        }
+        // bold
+        if (cursor.bold != cell.style.bold) {
+            const seq = switch (cell.style.bold) {
+                true => ctlseqs.bold_set,
+                false => ctlseqs.bold_dim_reset,
+            };
+            try tty.writeAll(seq);
+            if (cell.style.dim) {
+                try tty.writeAll(ctlseqs.dim_set);
+            }
+        }
+        // dim
+        if (cursor.dim != cell.style.dim) {
+            const seq = switch (cell.style.dim) {
+                true => ctlseqs.dim_set,
+                false => ctlseqs.bold_dim_reset,
+            };
+            try tty.writeAll(seq);
+            if (cell.style.bold) {
+                try tty.writeAll(ctlseqs.bold_set);
+            }
+        }
+        // dim
+        if (cursor.italic != cell.style.italic) {
+            const seq = switch (cell.style.italic) {
+                true => ctlseqs.italic_set,
+                false => ctlseqs.italic_reset,
+            };
+            try tty.writeAll(seq);
+        }
+        // dim
+        if (cursor.blink != cell.style.blink) {
+            const seq = switch (cell.style.blink) {
+                true => ctlseqs.blink_set,
+                false => ctlseqs.blink_reset,
+            };
+            try tty.writeAll(seq);
+        }
+        // reverse
+        if (cursor.reverse != cell.style.reverse) {
+            const seq = switch (cell.style.reverse) {
+                true => ctlseqs.reverse_set,
+                false => ctlseqs.reverse_reset,
+            };
+            try tty.writeAll(seq);
+        }
+        // invisible
+        if (cursor.invisible != cell.style.invisible) {
+            const seq = switch (cell.style.invisible) {
+                true => ctlseqs.invisible_set,
+                false => ctlseqs.invisible_reset,
+            };
+            try tty.writeAll(seq);
+        }
+        // strikethrough
+        if (cursor.strikethrough != cell.style.strikethrough) {
+            const seq = switch (cell.style.strikethrough) {
+                true => ctlseqs.strikethrough_set,
+                false => ctlseqs.strikethrough_reset,
+            };
+            try tty.writeAll(seq);
+        }
+
+        // url
+        if (!std.mem.eql(u8, link.uri, cell.link.uri)) {
+            var ps = cell.link.params;
+            if (cell.link.uri.len == 0) {
+                // Empty out the params no matter what if we don't have
+                // a url
+                ps = "";
+            }
+            try tty.print(ctlseqs.osc8, .{ ps, cell.link.uri });
+        }
+        try tty.writeAll(cell.char.grapheme);
+        cursor_pos.col = col + w;
+        cursor_pos.row = row;
+    }
+    try tty.writeAll("\r\n");
+}
