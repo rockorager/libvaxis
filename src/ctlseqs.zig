@@ -130,8 +130,10 @@ pub const kitty_graphics_closing = ",C=1\x1b\\";
 pub const osc4_query = "\x1b]4;{d};?\x1b\\"; // color index {d}
 pub const osc4_reset = "\x1b]104\x1b\\"; // this resets _all_ color indexes
 pub const osc10_query = "\x1b]10;?\x1b\\"; // fg
+pub const osc10_set = "\x1b]10;rgb:{x:0>2}{x:0>2}/{x:0>2}{x:0>2}/{x:0>2}{x:0>2}\x1b\\"; // set default terminal fg
 pub const osc10_reset = "\x1b]110\x1b\\"; // reset fg to terminal default
 pub const osc11_query = "\x1b]11;?\x1b\\"; // bg
+pub const osc11_set = "\x1b]11;rgb:{x:0>2}{x:0>2}/{x:0>2}{x:0>2}/{x:0>2}{x:0>2}\x1b\\"; // set default terminal bg
 pub const osc11_reset = "\x1b]111\x1b\\"; // reset bg to terminal default
 pub const osc12_query = "\x1b]12;?\x1b\\"; // cursor color
 pub const osc12_reset = "\x1b]112\x1b\\"; // reset cursor to terminal default
