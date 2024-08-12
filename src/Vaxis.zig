@@ -86,6 +86,8 @@ state: struct {
     pixel_mouse: bool = false,
     color_scheme_updates: bool = false,
     in_band_resize: bool = false,
+    changed_default_fg: bool = false,
+    changed_default_bg: bool = false,
     cursor: struct {
         row: usize = 0,
         col: usize = 0,
@@ -155,6 +157,14 @@ pub fn resetState(self: *Vaxis, tty: AnyWriter) !void {
     if (self.state.in_band_resize) {
         try tty.writeAll(ctlseqs.in_band_resize_reset);
         self.state.in_band_resize = false;
+    }
+    if (self.state.changed_default_fg) {
+        try tty.writeAll(ctlseqs.osc10_reset);
+        self.state.changed_default_fg = false;
+    }
+    if (self.state.changed_default_bg) {
+        try tty.writeAll(ctlseqs.osc11_reset);
+        self.state.changed_default_bg = false;
     }
 }
 
@@ -903,6 +913,18 @@ pub fn requestSystemClipboard(self: Vaxis, tty: AnyWriter) !void {
         ctlseqs.osc52_clipboard_request,
         .{},
     );
+}
+
+/// Set the default terminal foreground color
+pub fn setTerminalForegroundColor(self: *Vaxis, tty: AnyWriter, rgb: [3]u8) !void {
+    try tty.print(ctlseqs.osc10_set, .{ rgb[0], rgb[0], rgb[1], rgb[1], rgb[2], rgb[2] });
+    self.state.changed_default_fg = true;
+}
+
+/// Set the default terminal background color
+pub fn setTerminalBackgroundColor(self: *Vaxis, tty: AnyWriter, rgb: [3]u8) !void {
+    try tty.print(ctlseqs.osc11_set, .{ rgb[0], rgb[0], rgb[1], rgb[1], rgb[2], rgb[2] });
+    self.state.changed_default_bg = true;
 }
 
 /// Request a color report from the terminal. Note: not all terminals support
