@@ -418,6 +418,11 @@ pub const Buffer = struct {
         @memcpy(buf[0..first_half.len], first_half);
         @memcpy(buf[first_half.len..], second_half);
         self.clearAndFree();
+        return buf;
+    }
+
+    pub fn realLength(self: *const Buffer) usize {
+        return self.firstHalf().len + self.secondHalf().len;
     }
 };
 
