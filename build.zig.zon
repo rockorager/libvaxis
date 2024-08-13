@@ -8,10 +8,6 @@
             .hash = "1220dd654ef941fc76fd96f9ec6adadf83f69b9887a0d3f4ee5ac0a1a3e11be35cf5",
             .lazy = true,
         },
-        .gap_buffer = .{
-            .url = "git+https://github.com/ryleelyman/GapBuffer.zig#9039708e09fc3eb5f698ab5694a436afe503c6a6",
-            .hash = "1220f525973ae804ec0284556bfc47db7b6a8dc86464a853956ef859d6e0fb5fa93b",
-        },
         .zg = .{
             .url = "git+https://codeberg.org/dude_the_builder/zg?ref=master#689ab6b83d08c02724b99d199d650ff731250998",
             .hash = "12200d1ce5f9733a9437415d85665ad5fbc85a4d27689fd337fecad8014acffe3aa5",
