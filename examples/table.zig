@@ -45,7 +45,7 @@ pub fn main() !void {
     try loop.init();
     try loop.start();
     defer loop.stop();
-    try vx.enterAltScreen(tty_writer);
+    try vx.enterAltScreen(tty.anyWriter());
     try vx.queryTerminal(tty.anyWriter(), 250 * std.time.ns_per_ms);
 
     const logo =
@@ -122,9 +122,8 @@ pub fn main() !void {
                     key.matchesAny(&.{ ':', '/', 'g', 'G' }, .{}))
                 {
                     active = .btm;
-                    for (0..cmd_input.buf.items.len) |_| _ = cmd_input.buf.orderedRemove(0);
+                    cmd_input.clearAndFree();
                     try cmd_input.update(.{ .key_press = key });
-                    cmd_input.cursor_idx = 1;
                     break :keyEvt;
                 }
 
@@ -155,8 +154,7 @@ pub fn main() !void {
                                 if (row != demo_tbl.row) continue;
                                 _ = rows_list.orderedRemove(idx);
                                 break;
-                            }
-                            else try rows_list.append(demo_tbl.row);
+                            } else try rows_list.append(demo_tbl.row);
                             demo_tbl.sel_rows = try rows_list.toOwnedSlice();
                         }
                         // See Row Content
@@ -166,7 +164,8 @@ pub fn main() !void {
                         if (key.matchesAny(&.{ vaxis.Key.up, 'k' }, .{}) and moving) active = .mid
                         // Run Command and Clear Command Bar
                         else if (key.matchExact(vaxis.Key.enter, .{})) {
-                            const cmd = cmd_input.buf.items;
+                            const cmd = try cmd_input.toOwnedSlice();
+                            defer alloc.free(cmd);
                             if (mem.eql(u8, ":q", cmd) or
                                 mem.eql(u8, ":quit", cmd) or
                                 mem.eql(u8, ":exit", cmd)) return;
@@ -179,8 +178,6 @@ pub fn main() !void {
                                 demo_tbl.row = goto_row;
                                 active = .mid;
                             }
-                            for (0..cmd_input.buf.items.len) |_| _ = cmd_input.buf.orderedRemove(0);
-                            cmd_input.cursor_idx = 0;
                         } else try cmd_input.update(.{ .key_press = key });
                     },
                 }
@@ -197,16 +194,16 @@ pub fn main() !void {
                 demo_tbl.active_ctx = &{};
                 break :seeRow;
             }
-            const RowContext = struct{
+            const RowContext = struct {
                 row: []const u8,
                 bg: vaxis.Color,
             };
             const row_ctx = RowContext{
-                .row = try fmt.allocPrint(event_alloc, "Row #: {d}", .{ demo_tbl.row }),
+                .row = try fmt.allocPrint(event_alloc, "Row #: {d}", .{demo_tbl.row}),
                 .bg = demo_tbl.active_bg,
             };
             demo_tbl.active_ctx = &row_ctx;
-            demo_tbl.active_content_fn = struct{
+            demo_tbl.active_content_fn = struct {
                 fn see(win: *vaxis.Window, ctx_raw: *const anyopaque) !usize {
                     const ctx: *const RowContext = @alignCast(@ptrCast(ctx_raw));
                     win.height = 5;
@@ -217,7 +214,7 @@ pub fn main() !void {
                         .height = .{ .limit = 4 },
                     });
                     see_win.fill(.{ .style = .{ .bg = ctx.bg } });
-                    const content_logo = 
+                    const content_logo =
                         \\
                         \\░█▀▄░█▀█░█░█░░░█▀▀░█▀█░█▀█░▀█▀░█▀▀░█▀█░▀█▀
                         \\░█▀▄░█░█░█▄█░░░█░░░█░█░█░█░░█░░█▀▀░█░█░░█░
