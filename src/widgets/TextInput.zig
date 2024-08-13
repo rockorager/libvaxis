@@ -3,7 +3,6 @@ const assert = std.debug.assert;
 const Key = @import("../Key.zig");
 const Cell = @import("../Cell.zig");
 const Window = @import("../Window.zig");
-const GapBuffer = @import("gap_buffer").GapBuffer;
 const Unicode = @import("../Unicode.zig");
 
 const TextInput = @This();
@@ -18,7 +17,7 @@ const ellipsis: Cell.Character = .{ .grapheme = "…", .width = 1 };
 // Index of our cursor
 cursor_idx: usize = 0,
 grapheme_count: usize = 0,
-buf: GapBuffer(u8),
+buf: Buffer,
 
 /// the number of graphemes to skip when drawing. Used for horizontal scrolling
 draw_offset: usize = 0,
@@ -33,7 +32,7 @@ unicode: *const Unicode,
 
 pub fn init(alloc: std.mem.Allocator, unicode: *const Unicode) TextInput {
     return TextInput{
-        .buf = GapBuffer(u8).init(alloc),
+        .buf = Buffer.init(alloc),
         .unicode = unicode,
     };
 }
@@ -47,37 +46,36 @@ pub fn update(self: *TextInput, event: Event) !void {
         .key_press => |key| {
             if (key.matches(Key.backspace, .{})) {
                 if (self.cursor_idx == 0) return;
-                try self.deleteBeforeCursor();
+                self.deleteBeforeCursor();
             } else if (key.matches(Key.delete, .{}) or key.matches('d', .{ .ctrl = true })) {
-                if (self.cursor_idx == self.grapheme_count) return;
-                try self.deleteAtCursor();
+                self.deleteAfterCursor();
             } else if (key.matches(Key.left, .{}) or key.matches('b', .{ .ctrl = true })) {
-                if (self.cursor_idx > 0) self.cursor_idx -= 1;
+                self.cursorLeft();
             } else if (key.matches(Key.right, .{}) or key.matches('f', .{ .ctrl = true })) {
-                if (self.cursor_idx < self.grapheme_count) self.cursor_idx += 1;
+                self.cursorRight();
             } else if (key.matches('a', .{ .ctrl = true }) or key.matches(Key.home, .{})) {
+                self.buf.moveGapLeft(self.buf.firstHalf().len);
                 self.cursor_idx = 0;
             } else if (key.matches('e', .{ .ctrl = true }) or key.matches(Key.end, .{})) {
+                self.buf.moveGapRight(self.buf.secondHalf().len);
                 self.cursor_idx = self.grapheme_count;
             } else if (key.matches('k', .{ .ctrl = true })) {
-                try self.deleteToEnd();
+                self.deleteToEnd();
             } else if (key.matches('u', .{ .ctrl = true })) {
-                try self.deleteToStart();
+                self.deleteToStart();
             } else if (key.text) |text| {
-                try self.buf.insertSliceBefore(self.byteOffsetToCursor(), text);
-                self.cursor_idx += 1;
-                self.grapheme_count += 1;
+                try self.insertSliceAtCursor(text);
             }
         },
     }
 }
 
 /// insert text at the cursor position
-pub fn insertSliceAtCursor(self: *TextInput, data: []const u8) !void {
+pub fn insertSliceAtCursor(self: *TextInput, data: []const u8) std.mem.Allocator.Error!void {
     var iter = self.unicode.graphemeIterator(data);
     var byte_offset_to_cursor = self.byteOffsetToCursor();
     while (iter.next()) |text| {
-        try self.buf.insertSliceBefore(byte_offset_to_cursor, text.bytes(data));
+        try self.buf.insertSliceAtCursor(text.bytes(data));
         byte_offset_to_cursor += text.len;
         self.cursor_idx += 1;
         self.grapheme_count += 1;
@@ -85,24 +83,16 @@ pub fn insertSliceAtCursor(self: *TextInput, data: []const u8) !void {
 }
 
 pub fn sliceToCursor(self: *TextInput, buf: []u8) []const u8 {
-    const offset = self.byteOffsetToCursor();
-    assert(offset <= buf.len); // provided buf was too small
-
-    if (offset <= self.buf.items.len) {
-        @memcpy(buf[0..offset], self.buf.items[0..offset]);
-    } else {
-        @memcpy(buf[0..self.buf.items.len], self.buf.items);
-        const second_half = self.buf.secondHalf();
-        const copy_len = offset - self.buf.items.len;
-        @memcpy(buf[self.buf.items.len .. self.buf.items.len + copy_len], second_half[0..copy_len]);
-    }
-    return buf[0..offset];
+    assert(buf.len >= self.buf.cursor);
+    @memcpy(buf[0..self.buf.cursor], self.buf.firstHalf());
+    return buf[0..self.buf.cursor];
 }
 
 /// calculates the display width from the draw_offset to the cursor
 fn widthToCursor(self: *TextInput, win: Window) usize {
     var width: usize = 0;
-    var first_iter = self.unicode.graphemeIterator(self.buf.items);
+    const first_half = self.buf.firstHalf();
+    var first_iter = self.unicode.graphemeIterator(first_half);
     var i: usize = 0;
     while (first_iter.next()) |grapheme| {
         defer i += 1;
@@ -110,21 +100,30 @@ fn widthToCursor(self: *TextInput, win: Window) usize {
             continue;
         }
         if (i == self.cursor_idx) return width;
-        const g = grapheme.bytes(self.buf.items);
-        width += win.gwidth(g);
-    }
-    const second_half = self.buf.secondHalf();
-    var second_iter = self.unicode.graphemeIterator(second_half);
-    while (second_iter.next()) |grapheme| {
-        defer i += 1;
-        if (i < self.draw_offset) {
-            continue;
-        }
-        if (i == self.cursor_idx) return width;
-        const g = grapheme.bytes(second_half);
+        const g = grapheme.bytes(first_half);
         width += win.gwidth(g);
     }
     return width;
+}
+
+fn cursorLeft(self: *TextInput) void {
+    if (self.cursor_idx == 0) return;
+    // We need to find the size of the last grapheme in the first half
+    var iter = self.unicode.graphemeIterator(self.buf.firstHalf());
+    var len: usize = 0;
+    while (iter.next()) |grapheme| {
+        len = grapheme.len;
+    }
+    self.buf.moveGapLeft(len);
+    self.cursor_idx -= 1;
+}
+
+fn cursorRight(self: *TextInput) void {
+    if (self.cursor_idx >= self.grapheme_count) return;
+    var iter = self.unicode.graphemeIterator(self.buf.secondHalf());
+    const grapheme = iter.next() orelse return;
+    self.buf.moveGapRight(grapheme.len);
+    self.cursor_idx += 1;
 }
 
 pub fn draw(self: *TextInput, win: Window) void {
@@ -143,7 +142,8 @@ pub fn draw(self: *TextInput, win: Window) void {
 
     // assumption!! the gap is never within a grapheme
     // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
-    var first_iter = self.unicode.graphemeIterator(self.buf.items);
+    const first_half = self.buf.firstHalf();
+    var first_iter = self.unicode.graphemeIterator(first_half);
     var col: usize = 0;
     var i: usize = 0;
     while (first_iter.next()) |grapheme| {
@@ -151,7 +151,7 @@ pub fn draw(self: *TextInput, win: Window) void {
             i += 1;
             continue;
         }
-        const g = grapheme.bytes(self.buf.items);
+        const g = grapheme.bytes(first_half);
         const w = win.gwidth(g);
         if (col + w >= win.width) {
             win.writeCell(win.width - 1, 0, .{ .char = ellipsis });
@@ -220,98 +220,40 @@ fn reset(self: *TextInput) void {
 }
 
 // returns the number of bytes before the cursor
-// (since GapBuffers are strictly speaking not contiguous, this is a number in 0..realLength()
-// which would need to be fed to realIndex() to get an actual offset into self.buf.items.ptr)
 pub fn byteOffsetToCursor(self: TextInput) usize {
-    // assumption! the gap is never in the middle of a grapheme
-    // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
-    var iter = self.unicode.graphemeIterator(self.buf.items);
-    var offset: usize = 0;
-    var i: usize = 0;
-    while (iter.next()) |grapheme| {
-        if (i == self.cursor_idx) break;
-        offset += grapheme.len;
-        i += 1;
-    } else {
-        var second_iter = self.unicode.graphemeIterator(self.buf.secondHalf());
-        while (second_iter.next()) |grapheme| {
-            if (i == self.cursor_idx) break;
-            offset += grapheme.len;
-            i += 1;
-        }
-    }
-    return offset;
+    return self.buf.cursor;
 }
 
-fn deleteToEnd(self: *TextInput) !void {
-    const offset = self.byteOffsetToCursor();
-    try self.buf.replaceRangeAfter(offset, self.buf.realLength() - offset, &.{});
+fn deleteToEnd(self: *TextInput) void {
+    self.buf.growGapRight(self.buf.secondHalf().len);
     self.grapheme_count = self.cursor_idx;
 }
 
-fn deleteToStart(self: *TextInput) !void {
-    const offset = self.byteOffsetToCursor();
-    try self.buf.replaceRangeBefore(0, offset, &.{});
+fn deleteToStart(self: *TextInput) void {
+    self.buf.growGapLeft(self.buf.cursor);
     self.grapheme_count -= self.cursor_idx;
     self.cursor_idx = 0;
 }
 
-fn deleteBeforeCursor(self: *TextInput) !void {
-    // assumption! the gap is never in the middle of a grapheme
-    // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
-    var iter = self.unicode.graphemeIterator(self.buf.items);
-    var offset: usize = 0;
-    var i: usize = 1;
+fn deleteBeforeCursor(self: *TextInput) void {
+    if (self.cursor_idx == 0) return;
+    // We need to find the size of the last grapheme in the first half
+    var iter = self.unicode.graphemeIterator(self.buf.firstHalf());
+    var len: usize = 0;
     while (iter.next()) |grapheme| {
-        if (i == self.cursor_idx) {
-            try self.buf.replaceRangeBefore(offset, grapheme.len, &.{});
-            self.cursor_idx -= 1;
-            self.grapheme_count -= 1;
-            return;
-        }
-        offset += grapheme.len;
-        i += 1;
-    } else {
-        var second_iter = self.unicode.graphemeIterator(self.buf.secondHalf());
-        while (second_iter.next()) |grapheme| {
-            if (i == self.cursor_idx) {
-                try self.buf.replaceRangeBefore(offset, grapheme.len, &.{});
-                self.cursor_idx -= 1;
-                self.grapheme_count -= 1;
-                return;
-            }
-            offset += grapheme.len;
-            i += 1;
-        }
+        len = grapheme.len;
     }
+    self.buf.growGapLeft(len);
+    self.cursor_idx -= 1;
+    self.grapheme_count -= 1;
 }
 
-fn deleteAtCursor(self: *TextInput) !void {
-    // assumption! the gap is never in the middle of a grapheme
-    // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
-    var iter = self.unicode.graphemeIterator(self.buf.items);
-    var offset: usize = 0;
-    var i: usize = 1;
-    while (iter.next()) |grapheme| {
-        if (i == self.cursor_idx + 1) {
-            try self.buf.replaceRangeAfter(offset, grapheme.len, &.{});
-            self.grapheme_count -= 1;
-            return;
-        }
-        offset += grapheme.len;
-        i += 1;
-    } else {
-        var second_iter = self.unicode.graphemeIterator(self.buf.secondHalf());
-        while (second_iter.next()) |grapheme| {
-            if (i == self.cursor_idx + 1) {
-                try self.buf.replaceRangeAfter(offset, grapheme.len, &.{});
-                self.grapheme_count -= 1;
-                return;
-            }
-            offset += grapheme.len;
-            i += 1;
-        }
-    }
+fn deleteAfterCursor(self: *TextInput) void {
+    if (self.cursor_idx == self.grapheme_count) return;
+    var iter = self.unicode.graphemeIterator(self.buf.secondHalf());
+    const grapheme = iter.next() orelse return;
+    self.buf.growGapRight(grapheme.len);
+    self.grapheme_count -= 1;
 }
 
 test "assertion" {
@@ -337,10 +279,139 @@ test "sliceToCursor" {
     var input = init(alloc, &unicode);
     defer input.deinit();
     try input.insertSliceAtCursor("hello, world");
-    input.cursor_idx = 2;
+    input.cursorLeft();
+    input.cursorLeft();
+    input.cursorLeft();
     var buf: [32]u8 = undefined;
-    try std.testing.expectEqualStrings("he", input.sliceToCursor(&buf));
-    input.buf.moveGap(3);
-    input.cursor_idx = 5;
-    try std.testing.expectEqualStrings("hello", input.sliceToCursor(&buf));
+    try std.testing.expectEqualStrings("hello, wo", input.sliceToCursor(&buf));
+    input.cursorRight();
+    try std.testing.expectEqualStrings("hello, wor", input.sliceToCursor(&buf));
+}
+
+const Buffer = struct {
+    allocator: std.mem.Allocator,
+    buffer: []u8,
+    cursor: usize,
+    gap_size: usize,
+
+    fn init(allocator: std.mem.Allocator) Buffer {
+        return .{
+            .allocator = allocator,
+            .buffer = &.{},
+            .cursor = 0,
+            .gap_size = 0,
+        };
+    }
+
+    fn deinit(self: *Buffer) void {
+        self.allocator.free(self.buffer);
+    }
+
+    fn firstHalf(self: Buffer) []const u8 {
+        return self.buffer[0..self.cursor];
+    }
+
+    fn secondHalf(self: Buffer) []const u8 {
+        return self.buffer[self.cursor + self.gap_size ..];
+    }
+
+    fn grow(self: *Buffer, n: usize) std.mem.Allocator.Error!void {
+        // Always grow by 512 bytes
+        const new_size = self.buffer.len + n + 512;
+        // Allocate the new memory
+        const new_memory = try self.allocator.alloc(u8, new_size);
+        // Copy the first half
+        @memcpy(new_memory[0..self.cursor], self.firstHalf());
+        // Copy the second half
+        const second_half = self.secondHalf();
+        @memcpy(new_memory[new_size - second_half.len ..], second_half);
+        self.allocator.free(self.buffer);
+        self.buffer = new_memory;
+        self.gap_size = new_size - second_half.len - self.cursor;
+    }
+
+    fn insertSliceAtCursor(self: *Buffer, slice: []const u8) std.mem.Allocator.Error!void {
+        if (slice.len == 0) return;
+        if (self.gap_size <= slice.len) try self.grow(slice.len);
+        @memcpy(self.buffer[self.cursor .. self.cursor + slice.len], slice);
+        self.cursor += slice.len;
+        self.gap_size -= slice.len;
+    }
+
+    /// Move the gap n bytes to the left
+    fn moveGapLeft(self: *Buffer, n: usize) void {
+        const new_idx = self.cursor -| n;
+        const dst = self.buffer[new_idx + self.gap_size ..];
+        const src = self.buffer[new_idx..self.cursor];
+        std.mem.copyForwards(u8, dst, src);
+        self.cursor = new_idx;
+    }
+
+    fn moveGapRight(self: *Buffer, n: usize) void {
+        const new_idx = self.cursor + n;
+        const dst = self.buffer[self.cursor..];
+        const src = self.buffer[self.cursor + self.gap_size .. new_idx + self.gap_size];
+        std.mem.copyForwards(u8, dst, src);
+        self.cursor = new_idx;
+    }
+
+    /// grow the gap by moving the cursor n bytes to the left
+    fn growGapLeft(self: *Buffer, n: usize) void {
+        // gap grows by the delta
+        self.gap_size += n;
+        self.cursor -|= n;
+    }
+
+    /// grow the gap by removing n bytes after the cursor
+    fn growGapRight(self: *Buffer, n: usize) void {
+        self.gap_size = @min(self.gap_size + n, self.buffer.len - self.cursor);
+    }
+
+    fn clearAndFree(self: *Buffer) void {
+        self.cursor = 0;
+        self.allocator.free(self.buffer);
+        self.buffer = &.{};
+        self.gap_size = 0;
+    }
+
+    fn clearRetainingCapacity(self: *Buffer) void {
+        self.cursor = 0;
+        self.gap_size = self.buffer.len;
+    }
+
+    fn toOwnedSlice(self: *Buffer) std.mem.Allocator.Error![]const u8 {
+        const first_half = self.firstHalf();
+        const second_half = self.secondHalf();
+        const buf = try self.allocator.alloc(u8, first_half.len + second_half.len);
+        @memcpy(buf[0..first_half.len], first_half);
+        @memcpy(buf[first_half.len..], second_half);
+        self.clearAndFree();
+    }
+};
+
+test "TextInput.zig: Buffer" {
+    var gap_buf = Buffer.init(std.testing.allocator);
+    defer gap_buf.deinit();
+
+    try gap_buf.insertSliceAtCursor("abc");
+    try std.testing.expectEqualStrings("abc", gap_buf.firstHalf());
+    try std.testing.expectEqualStrings("", gap_buf.secondHalf());
+
+    gap_buf.moveGapLeft(1);
+    try std.testing.expectEqualStrings("ab", gap_buf.firstHalf());
+    try std.testing.expectEqualStrings("c", gap_buf.secondHalf());
+
+    try gap_buf.insertSliceAtCursor(" ");
+    try std.testing.expectEqualStrings("ab ", gap_buf.firstHalf());
+    try std.testing.expectEqualStrings("c", gap_buf.secondHalf());
+
+    gap_buf.growGapLeft(1);
+    try std.testing.expectEqualStrings("ab", gap_buf.firstHalf());
+    try std.testing.expectEqualStrings("c", gap_buf.secondHalf());
+    try std.testing.expectEqual(2, gap_buf.cursor);
+
+    gap_buf.growGapRight(1);
+    try std.testing.expectEqualStrings("ab", gap_buf.firstHalf());
+    try std.testing.expectEqualStrings("", gap_buf.secondHalf());
+    try std.testing.expectEqual(2, gap_buf.cursor);
 }

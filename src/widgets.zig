@@ -11,7 +11,4 @@ pub const LineNumbers = @import("widgets/LineNumbers.zig");
 pub const TextView = @import("widgets/TextView.zig");
 pub const CodeView = @import("widgets/CodeView.zig");
 pub const Terminal = @import("widgets/terminal/Terminal.zig");
-
-// Widgets with dependencies
-
-pub const TextInput = if (opts.text_input) @import("widgets/TextInput.zig") else undefined;
+pub const TextInput = @import("widgets/TextInput.zig");

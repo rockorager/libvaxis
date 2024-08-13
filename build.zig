@@ -3,13 +3,11 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const include_libxev = b.option(bool, "libxev", "Enable support for libxev library (default: true)") orelse true;
     const include_images = b.option(bool, "images", "Enable support for images (default: true)") orelse true;
-    const include_text_input = b.option(bool, "text_input", "Enable support for the TextInput widget (default: true)") orelse true;
     const include_aio = b.option(bool, "aio", "Enable support for zig-aio library (default: false)") orelse false;
 
     const options = b.addOptions();
     options.addOption(bool, "libxev", include_libxev);
     options.addOption(bool, "images", include_images);
-    options.addOption(bool, "text_input", include_text_input);
     options.addOption(bool, "aio", include_aio);
 
     const options_mod = options.createModule();
@@ -24,10 +22,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
     });
     const zigimg_dep = if (include_images) b.lazyDependency("zigimg", .{
-        .optimize = optimize,
-        .target = target,
-    }) else null;
-    const gap_buffer_dep = if (include_text_input) b.lazyDependency("gap_buffer", .{
         .optimize = optimize,
         .target = target,
     }) else null;
@@ -50,7 +44,6 @@ pub fn build(b: *std.Build) void {
     vaxis_mod.addImport("grapheme", zg_dep.module("grapheme"));
     vaxis_mod.addImport("DisplayWidth", zg_dep.module("DisplayWidth"));
     if (zigimg_dep) |dep| vaxis_mod.addImport("zigimg", dep.module("zigimg"));
-    if (gap_buffer_dep) |dep| vaxis_mod.addImport("gap_buffer", dep.module("gap_buffer"));
     if (xev_dep) |dep| vaxis_mod.addImport("xev", dep.module("xev"));
     if (aio_dep) |dep| vaxis_mod.addImport("aio", dep.module("aio"));
     if (aio_dep) |dep| vaxis_mod.addImport("coro", dep.module("coro"));
@@ -100,7 +93,6 @@ pub fn build(b: *std.Build) void {
     tests.root_module.addImport("grapheme", zg_dep.module("grapheme"));
     tests.root_module.addImport("DisplayWidth", zg_dep.module("DisplayWidth"));
     if (zigimg_dep) |dep| tests.root_module.addImport("zigimg", dep.module("zigimg"));
-    if (gap_buffer_dep) |dep| tests.root_module.addImport("gap_buffer", dep.module("gap_buffer"));
     tests.root_module.addImport("build_options", options_mod);
 
     const tests_run = b.addRunArtifact(tests);
