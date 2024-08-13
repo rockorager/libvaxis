@@ -87,6 +87,5 @@ test {
 
     _ = @import("gwidth.zig");
     _ = @import("queue.zig");
-    if (build_options.text_input)
-        _ = @import("widgets/TextInput.zig");
+    _ = @import("widgets/TextInput.zig");
 }
