@@ -88,7 +88,7 @@ pub fn sliceToCursor(self: *TextInput, buf: []u8) []const u8 {
 }
 
 /// calculates the display width from the draw_offset to the cursor
-fn widthToCursor(self: *TextInput, win: Window) usize {
+pub fn widthToCursor(self: *TextInput, win: Window) usize {
     var width: usize = 0;
     const first_half = self.buf.firstHalf();
     var first_iter = self.unicode.graphemeIterator(first_half);
@@ -104,7 +104,7 @@ fn widthToCursor(self: *TextInput, win: Window) usize {
     return width;
 }
 
-fn cursorLeft(self: *TextInput) void {
+pub fn cursorLeft(self: *TextInput) void {
     // We need to find the size of the last grapheme in the first half
     var iter = self.unicode.graphemeIterator(self.buf.firstHalf());
     var len: usize = 0;
@@ -114,13 +114,13 @@ fn cursorLeft(self: *TextInput) void {
     self.buf.moveGapLeft(len);
 }
 
-fn cursorRight(self: *TextInput) void {
+pub fn cursorRight(self: *TextInput) void {
     var iter = self.unicode.graphemeIterator(self.buf.secondHalf());
     const grapheme = iter.next() orelse return;
     self.buf.moveGapRight(grapheme.len);
 }
 
-fn graphemesBeforeCursor(self: *const TextInput) usize {
+pub fn graphemesBeforeCursor(self: *const TextInput) usize {
     const first_half = self.buf.firstHalf();
     var first_iter = self.unicode.graphemeIterator(first_half);
     var i: usize = 0;
@@ -216,7 +216,7 @@ pub fn toOwnedSlice(self: *TextInput) ![]const u8 {
     return self.buf.toOwnedSlice();
 }
 
-fn reset(self: *TextInput) void {
+pub fn reset(self: *TextInput) void {
     self.draw_offset = 0;
     self.prev_cursor_col = 0;
     self.prev_cursor_idx = 0;
@@ -227,15 +227,15 @@ pub fn byteOffsetToCursor(self: TextInput) usize {
     return self.buf.cursor;
 }
 
-fn deleteToEnd(self: *TextInput) void {
+pub fn deleteToEnd(self: *TextInput) void {
     self.buf.growGapRight(self.buf.secondHalf().len);
 }
 
-fn deleteToStart(self: *TextInput) void {
+pub fn deleteToStart(self: *TextInput) void {
     self.buf.growGapLeft(self.buf.cursor);
 }
 
-fn deleteBeforeCursor(self: *TextInput) void {
+pub fn deleteBeforeCursor(self: *TextInput) void {
     // We need to find the size of the last grapheme in the first half
     var iter = self.unicode.graphemeIterator(self.buf.firstHalf());
     var len: usize = 0;
@@ -245,7 +245,7 @@ fn deleteBeforeCursor(self: *TextInput) void {
     self.buf.growGapLeft(len);
 }
 
-fn deleteAfterCursor(self: *TextInput) void {
+pub fn deleteAfterCursor(self: *TextInput) void {
     var iter = self.unicode.graphemeIterator(self.buf.secondHalf());
     const grapheme = iter.next() orelse return;
     self.buf.growGapRight(grapheme.len);
@@ -253,7 +253,7 @@ fn deleteAfterCursor(self: *TextInput) void {
 
 /// Moves the cursor backward by words. If the character before the cursor is a space, the cursor is
 /// positioned just after the next previous space
-fn moveBackwardWordwise(self: *TextInput) void {
+pub fn moveBackwardWordwise(self: *TextInput) void {
     const trimmed = std.mem.trimRight(u8, self.buf.firstHalf(), " ");
     const idx = if (std.mem.lastIndexOfScalar(u8, trimmed, ' ')) |last|
         last + 1
@@ -262,7 +262,7 @@ fn moveBackwardWordwise(self: *TextInput) void {
     self.buf.moveGapLeft(self.buf.cursor - idx);
 }
 
-fn moveForwardWordwise(self: *TextInput) void {
+pub fn moveForwardWordwise(self: *TextInput) void {
     const second_half = self.buf.secondHalf();
     var i: usize = 0;
     while (i < second_half.len and second_half[i] == ' ') : (i += 1) {}
@@ -270,7 +270,7 @@ fn moveForwardWordwise(self: *TextInput) void {
     self.buf.moveGapRight(idx);
 }
 
-fn deleteWordBefore(self: *TextInput) void {
+pub fn deleteWordBefore(self: *TextInput) void {
     // Store current cursor position. Move one word backward. Delete after the cursor the bytes we
     // moved
     const pre = self.buf.cursor;
@@ -278,7 +278,7 @@ fn deleteWordBefore(self: *TextInput) void {
     self.buf.growGapRight(pre - self.buf.cursor);
 }
 
-fn deleteWordAfter(self: *TextInput) void {
+pub fn deleteWordAfter(self: *TextInput) void {
     // Store current cursor position. Move one word backward. Delete after the cursor the bytes we
     // moved
     const second_half = self.buf.secondHalf();
@@ -320,13 +320,13 @@ test "sliceToCursor" {
     try std.testing.expectEqualStrings("hello, wor", input.sliceToCursor(&buf));
 }
 
-const Buffer = struct {
+pub const Buffer = struct {
     allocator: std.mem.Allocator,
     buffer: []u8,
     cursor: usize,
     gap_size: usize,
 
-    fn init(allocator: std.mem.Allocator) Buffer {
+    pub fn init(allocator: std.mem.Allocator) Buffer {
         return .{
             .allocator = allocator,
             .buffer = &.{},
@@ -335,19 +335,19 @@ const Buffer = struct {
         };
     }
 
-    fn deinit(self: *Buffer) void {
+    pub fn deinit(self: *Buffer) void {
         self.allocator.free(self.buffer);
     }
 
-    fn firstHalf(self: Buffer) []const u8 {
+    pub fn firstHalf(self: Buffer) []const u8 {
         return self.buffer[0..self.cursor];
     }
 
-    fn secondHalf(self: Buffer) []const u8 {
+    pub fn secondHalf(self: Buffer) []const u8 {
         return self.buffer[self.cursor + self.gap_size ..];
     }
 
-    fn grow(self: *Buffer, n: usize) std.mem.Allocator.Error!void {
+    pub fn grow(self: *Buffer, n: usize) std.mem.Allocator.Error!void {
         // Always grow by 512 bytes
         const new_size = self.buffer.len + n + 512;
         // Allocate the new memory
@@ -362,7 +362,7 @@ const Buffer = struct {
         self.gap_size = new_size - second_half.len - self.cursor;
     }
 
-    fn insertSliceAtCursor(self: *Buffer, slice: []const u8) std.mem.Allocator.Error!void {
+    pub fn insertSliceAtCursor(self: *Buffer, slice: []const u8) std.mem.Allocator.Error!void {
         if (slice.len == 0) return;
         if (self.gap_size <= slice.len) try self.grow(slice.len);
         @memcpy(self.buffer[self.cursor .. self.cursor + slice.len], slice);
@@ -371,7 +371,7 @@ const Buffer = struct {
     }
 
     /// Move the gap n bytes to the left
-    fn moveGapLeft(self: *Buffer, n: usize) void {
+    pub fn moveGapLeft(self: *Buffer, n: usize) void {
         const new_idx = self.cursor -| n;
         const dst = self.buffer[new_idx + self.gap_size ..];
         const src = self.buffer[new_idx..self.cursor];
@@ -379,7 +379,7 @@ const Buffer = struct {
         self.cursor = new_idx;
     }
 
-    fn moveGapRight(self: *Buffer, n: usize) void {
+    pub fn moveGapRight(self: *Buffer, n: usize) void {
         const new_idx = self.cursor + n;
         const dst = self.buffer[self.cursor..];
         const src = self.buffer[self.cursor + self.gap_size .. new_idx + self.gap_size];
@@ -388,30 +388,30 @@ const Buffer = struct {
     }
 
     /// grow the gap by moving the cursor n bytes to the left
-    fn growGapLeft(self: *Buffer, n: usize) void {
+    pub fn growGapLeft(self: *Buffer, n: usize) void {
         // gap grows by the delta
         self.gap_size += n;
         self.cursor -|= n;
     }
 
     /// grow the gap by removing n bytes after the cursor
-    fn growGapRight(self: *Buffer, n: usize) void {
+    pub fn growGapRight(self: *Buffer, n: usize) void {
         self.gap_size = @min(self.gap_size + n, self.buffer.len - self.cursor);
     }
 
-    fn clearAndFree(self: *Buffer) void {
+    pub fn clearAndFree(self: *Buffer) void {
         self.cursor = 0;
         self.allocator.free(self.buffer);
         self.buffer = &.{};
         self.gap_size = 0;
     }
 
-    fn clearRetainingCapacity(self: *Buffer) void {
+    pub fn clearRetainingCapacity(self: *Buffer) void {
         self.cursor = 0;
         self.gap_size = self.buffer.len;
     }
 
-    fn toOwnedSlice(self: *Buffer) std.mem.Allocator.Error![]const u8 {
+    pub fn toOwnedSlice(self: *Buffer) std.mem.Allocator.Error![]const u8 {
         const first_half = self.firstHalf();
         const second_half = self.secondHalf();
         const buf = try self.allocator.alloc(u8, first_half.len + second_half.len);
