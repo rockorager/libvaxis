@@ -19,9 +19,9 @@ pub const TableContext = struct {
 
     /// Active status of the Table.
     active: bool = false,
-    /// Active Content Callback Function. 
+    /// Active Content Callback Function.
     /// If available, this will be called to vertically expand the active row with additional info.
-    active_content_fn: ?*const fn(*vaxis.Window, *const anyopaque) anyerror!usize = null,
+    active_content_fn: ?*const fn (*vaxis.Window, *const anyopaque) anyerror!usize = null,
     /// Active Content Context
     /// This will be provided to the `active_content` callback when called.
     active_ctx: *const anyopaque = &{},
@@ -93,13 +93,12 @@ pub fn drawTable(
             .Struct => {
                 const di_fields = meta.fields(DataListT);
                 const al_fields = meta.fields(std.ArrayList([]const u8));
-                const mal_fields = meta.fields(std.MultiArrayList(struct{ a: u8 = 0, b: u32 = 0 }));
+                const mal_fields = meta.fields(std.MultiArrayList(struct { a: u8 = 0, b: u32 = 0 }));
                 // Probably an ArrayList
-                const is_al = comptime if (
-                    mem.indexOf(u8, @typeName(DataListT), "MultiArrayList") == null and
+                const is_al = comptime if (mem.indexOf(u8, @typeName(DataListT), "MultiArrayList") == null and
                     mem.indexOf(u8, @typeName(DataListT), "ArrayList") != null and
-                    al_fields.len == di_fields.len
-                ) isAL: {
+                    al_fields.len == di_fields.len)
+                isAL: {
                     var is = true;
                     for (al_fields, di_fields) |al_field, di_field|
                         is = is and mem.eql(u8, al_field.name, di_field.name);
@@ -108,12 +107,11 @@ pub fn drawTable(
                 if (is_al) break :getData data_list.items;
 
                 // Probably a MultiArrayList
-                const is_mal = if (
-                    mem.indexOf(u8, @typeName(DataListT), "MultiArrayList") != null and
-                    mal_fields.len == di_fields.len
-                ) isMAL: {
+                const is_mal = if (mem.indexOf(u8, @typeName(DataListT), "MultiArrayList") != null and
+                    mal_fields.len == di_fields.len)
+                isMAL: {
                     var is = true;
-                    inline for (mal_fields, di_fields) |mal_field, di_field| 
+                    inline for (mal_fields, di_fields) |mal_field, di_field|
                         is = is and mem.eql(u8, mal_field.name, di_field.name);
                     break :isMAL is;
                 } else false;
@@ -173,8 +171,7 @@ pub fn drawTable(
 
     if (table_ctx.active_content_fn == null) table_ctx.active_y_off = 0;
     const max_items =
-        if (data_items.len > table_win.height -| 1) table_win.height -| 1 
-        else data_items.len;
+        if (data_items.len > table_win.height -| 1) table_win.height -| 1 else data_items.len;
     var end = table_ctx.start + max_items;
     if (table_ctx.row + table_ctx.active_y_off >= end -| 1)
         end -|= table_ctx.active_y_off;
@@ -186,7 +183,7 @@ pub fn drawTable(
             break :tableStart table_ctx.start - (table_ctx.start - table_ctx.row);
         if (table_ctx.row >= data_items.len - 1)
             table_ctx.row = data_items.len - 1;
-        if (table_ctx.row >= end) 
+        if (table_ctx.row >= end)
             break :tableStart table_ctx.start + (table_ctx.row - end + 1);
         break :tableStart table_ctx.start;
     };
@@ -231,7 +228,7 @@ pub fn drawTable(
                 .x_off = col_start,
                 .y_off = 0,
                 .width = .{ .limit = col_width },
-                .height =.{ .limit = 1 },
+                .height = .{ .limit = 1 },
             });
             const item_txt = switch (ItemT) {
                 []const u8 => item,
@@ -263,10 +260,10 @@ pub fn drawTable(
 }
 
 /// Calculate the Column Width of `col` using the provided Number of Headers (`num_hdrs`), Width Style (`style`), and Table Window (`table_win`).
-pub fn calcColWidth (
-    col: usize, 
+pub fn calcColWidth(
+    col: usize,
     headers: []const []const u8,
-    style: WidthStyle, 
+    style: WidthStyle,
     table_win: vaxis.Window,
 ) !usize {
     return switch (style) {
