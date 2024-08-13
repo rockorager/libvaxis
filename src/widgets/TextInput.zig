@@ -15,8 +15,6 @@ const Event = union(enum) {
 const ellipsis: Cell.Character = .{ .grapheme = "…", .width = 1 };
 
 // Index of our cursor
-cursor_idx: usize = 0,
-grapheme_count: usize = 0,
 buf: Buffer,
 
 /// the number of graphemes to skip when drawing. Used for horizontal scrolling
@@ -45,7 +43,6 @@ pub fn update(self: *TextInput, event: Event) !void {
     switch (event) {
         .key_press => |key| {
             if (key.matches(Key.backspace, .{})) {
-                if (self.cursor_idx == 0) return;
                 self.deleteBeforeCursor();
             } else if (key.matches(Key.delete, .{}) or key.matches('d', .{ .ctrl = true })) {
                 self.deleteAfterCursor();
@@ -55,14 +52,20 @@ pub fn update(self: *TextInput, event: Event) !void {
                 self.cursorRight();
             } else if (key.matches('a', .{ .ctrl = true }) or key.matches(Key.home, .{})) {
                 self.buf.moveGapLeft(self.buf.firstHalf().len);
-                self.cursor_idx = 0;
             } else if (key.matches('e', .{ .ctrl = true }) or key.matches(Key.end, .{})) {
                 self.buf.moveGapRight(self.buf.secondHalf().len);
-                self.cursor_idx = self.grapheme_count;
             } else if (key.matches('k', .{ .ctrl = true })) {
                 self.deleteToEnd();
             } else if (key.matches('u', .{ .ctrl = true })) {
                 self.deleteToStart();
+            } else if (key.matches('b', .{ .alt = true }) or key.matches(Key.left, .{ .alt = true })) {
+                self.moveBackwardWordwise();
+            } else if (key.matches('f', .{ .alt = true }) or key.matches(Key.right, .{ .alt = true })) {
+                self.moveForwardWordwise();
+            } else if (key.matches('w', .{ .ctrl = true }) or key.matches(Key.backspace, .{ .alt = true })) {
+                self.deleteWordBefore();
+            } else if (key.matches('d', .{ .alt = true })) {
+                self.deleteWordAfter();
             } else if (key.text) |text| {
                 try self.insertSliceAtCursor(text);
             }
@@ -73,12 +76,8 @@ pub fn update(self: *TextInput, event: Event) !void {
 /// insert text at the cursor position
 pub fn insertSliceAtCursor(self: *TextInput, data: []const u8) std.mem.Allocator.Error!void {
     var iter = self.unicode.graphemeIterator(data);
-    var byte_offset_to_cursor = self.byteOffsetToCursor();
     while (iter.next()) |text| {
         try self.buf.insertSliceAtCursor(text.bytes(data));
-        byte_offset_to_cursor += text.len;
-        self.cursor_idx += 1;
-        self.grapheme_count += 1;
     }
 }
 
@@ -99,7 +98,6 @@ fn widthToCursor(self: *TextInput, win: Window) usize {
         if (i < self.draw_offset) {
             continue;
         }
-        if (i == self.cursor_idx) return width;
         const g = grapheme.bytes(first_half);
         width += win.gwidth(g);
     }
@@ -107,7 +105,6 @@ fn widthToCursor(self: *TextInput, win: Window) usize {
 }
 
 fn cursorLeft(self: *TextInput) void {
-    if (self.cursor_idx == 0) return;
     // We need to find the size of the last grapheme in the first half
     var iter = self.unicode.graphemeIterator(self.buf.firstHalf());
     var len: usize = 0;
@@ -115,19 +112,27 @@ fn cursorLeft(self: *TextInput) void {
         len = grapheme.len;
     }
     self.buf.moveGapLeft(len);
-    self.cursor_idx -= 1;
 }
 
 fn cursorRight(self: *TextInput) void {
-    if (self.cursor_idx >= self.grapheme_count) return;
     var iter = self.unicode.graphemeIterator(self.buf.secondHalf());
     const grapheme = iter.next() orelse return;
     self.buf.moveGapRight(grapheme.len);
-    self.cursor_idx += 1;
+}
+
+fn graphemesBeforeCursor(self: *const TextInput) usize {
+    const first_half = self.buf.firstHalf();
+    var first_iter = self.unicode.graphemeIterator(first_half);
+    var i: usize = 0;
+    while (first_iter.next()) |_| {
+        i += 1;
+    }
+    return i;
 }
 
 pub fn draw(self: *TextInput, win: Window) void {
-    if (self.cursor_idx < self.draw_offset) self.draw_offset = self.cursor_idx;
+    const cursor_idx = self.graphemesBeforeCursor();
+    if (cursor_idx < self.draw_offset) self.draw_offset = cursor_idx;
     if (win.width == 0) return;
     while (true) {
         const width = self.widthToCursor(win);
@@ -137,7 +142,7 @@ pub fn draw(self: *TextInput, win: Window) void {
         } else break;
     }
 
-    self.prev_cursor_idx = self.cursor_idx;
+    self.prev_cursor_idx = cursor_idx;
     self.prev_cursor_col = 0;
 
     // assumption!! the gap is never within a grapheme
@@ -165,7 +170,7 @@ pub fn draw(self: *TextInput, win: Window) void {
         });
         col += w;
         i += 1;
-        if (i == self.cursor_idx) self.prev_cursor_col = col;
+        if (i == cursor_idx) self.prev_cursor_col = col;
     }
     const second_half = self.buf.secondHalf();
     var second_iter = self.unicode.graphemeIterator(second_half);
@@ -188,7 +193,7 @@ pub fn draw(self: *TextInput, win: Window) void {
         });
         col += w;
         i += 1;
-        if (i == self.cursor_idx) self.prev_cursor_col = col;
+        if (i == cursor_idx) self.prev_cursor_col = col;
     }
     if (self.draw_offset > 0) {
         win.writeCell(0, 0, .{ .char = ellipsis });
@@ -212,8 +217,6 @@ pub fn toOwnedSlice(self: *TextInput) ![]const u8 {
 }
 
 fn reset(self: *TextInput) void {
-    self.cursor_idx = 0;
-    self.grapheme_count = 0;
     self.draw_offset = 0;
     self.prev_cursor_col = 0;
     self.prev_cursor_idx = 0;
@@ -226,17 +229,13 @@ pub fn byteOffsetToCursor(self: TextInput) usize {
 
 fn deleteToEnd(self: *TextInput) void {
     self.buf.growGapRight(self.buf.secondHalf().len);
-    self.grapheme_count = self.cursor_idx;
 }
 
 fn deleteToStart(self: *TextInput) void {
     self.buf.growGapLeft(self.buf.cursor);
-    self.grapheme_count -= self.cursor_idx;
-    self.cursor_idx = 0;
 }
 
 fn deleteBeforeCursor(self: *TextInput) void {
-    if (self.cursor_idx == 0) return;
     // We need to find the size of the last grapheme in the first half
     var iter = self.unicode.graphemeIterator(self.buf.firstHalf());
     var len: usize = 0;
@@ -244,16 +243,49 @@ fn deleteBeforeCursor(self: *TextInput) void {
         len = grapheme.len;
     }
     self.buf.growGapLeft(len);
-    self.cursor_idx -= 1;
-    self.grapheme_count -= 1;
 }
 
 fn deleteAfterCursor(self: *TextInput) void {
-    if (self.cursor_idx == self.grapheme_count) return;
     var iter = self.unicode.graphemeIterator(self.buf.secondHalf());
     const grapheme = iter.next() orelse return;
     self.buf.growGapRight(grapheme.len);
-    self.grapheme_count -= 1;
+}
+
+/// Moves the cursor backward by words. If the character before the cursor is a space, the cursor is
+/// positioned just after the next previous space
+fn moveBackwardWordwise(self: *TextInput) void {
+    const trimmed = std.mem.trimRight(u8, self.buf.firstHalf(), " ");
+    const idx = if (std.mem.lastIndexOfScalar(u8, trimmed, ' ')) |last|
+        last + 1
+    else
+        0;
+    self.buf.moveGapLeft(self.buf.cursor - idx);
+}
+
+fn moveForwardWordwise(self: *TextInput) void {
+    const second_half = self.buf.secondHalf();
+    var i: usize = 0;
+    while (i < second_half.len and second_half[i] == ' ') : (i += 1) {}
+    const idx = std.mem.indexOfScalarPos(u8, second_half, i, ' ') orelse second_half.len;
+    self.buf.moveGapRight(idx);
+}
+
+fn deleteWordBefore(self: *TextInput) void {
+    // Store current cursor position. Move one word backward. Delete after the cursor the bytes we
+    // moved
+    const pre = self.buf.cursor;
+    self.moveBackwardWordwise();
+    self.buf.growGapRight(pre - self.buf.cursor);
+}
+
+fn deleteWordAfter(self: *TextInput) void {
+    // Store current cursor position. Move one word backward. Delete after the cursor the bytes we
+    // moved
+    const second_half = self.buf.secondHalf();
+    var i: usize = 0;
+    while (i < second_half.len and second_half[i] == ' ') : (i += 1) {}
+    const idx = std.mem.indexOfScalarPos(u8, second_half, i, ' ') orelse second_half.len;
+    self.buf.growGapRight(idx);
 }
 
 test "assertion" {
