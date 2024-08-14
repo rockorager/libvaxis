@@ -232,12 +232,20 @@ pub fn drawTable(
             });
             const item_txt = switch (ItemT) {
                 []const u8 => item,
+                [][]const u8, []const []const u8 => strSlice: {
+                    if (alloc) |_alloc| break :strSlice try fmt.allocPrint(_alloc, "{s}", .{ item });
+                    break :strSlice item;
+                },
                 else => nonStr: {
                     switch (@typeInfo(ItemT)) {
+                        .Enum => break :nonStr @tagName(item),
                         .Optional => {
                             const opt_item = item orelse break :nonStr "-";
                             switch (@typeInfo(ItemT).Optional.child) {
                                 []const u8 => break :nonStr opt_item,
+                                [][]const u8, []const []const u8 => {
+                                    break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{s}", .{ opt_item }) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
+                                },
                                 else => {
                                     break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{opt_item}) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
                                 },
