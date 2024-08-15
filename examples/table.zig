@@ -79,6 +79,9 @@ pub fn main() !void {
     var demo_tbl: vaxis.widgets.Table.TableContext = .{
         .active_bg = active_bg,
         .selected_bg = selected_bg,
+        .header_names = .{ .custom = &.{ "First", "Last", "Username", "Email", "Phone#" } },
+        //.header_names = .{ .custom = &.{ "First", "Last", "Email", "Phone#" } },
+        //.col_indexes = .{ .by_idx = &.{ 0, 1, 3, 4 } },
         //.col_width = .{ .static_all = 15 },
         //.col_width = .{ .dynamic_header_len = 3 },
         //.col_width = .{ .static_individual = &.{ 10, 20, 15, 25, 15 } },
@@ -274,7 +277,6 @@ pub fn main() !void {
             try vaxis.widgets.Table.drawTable(
                 event_alloc,
                 middle_bar,
-                &.{ "First", "Last", "Username", "Email", "Phone#" },
                 //users_buf[0..],
                 user_list,
                 //user_mal,
