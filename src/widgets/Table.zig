@@ -49,6 +49,11 @@ pub const TableContext = struct {
     /// Note, if this is left `null` the Column Width will be dynamically calculated during `drawTable()`.
     //col_width: ?usize = null,
     col_width: WidthStyle = .dynamic_fill,
+    
+    // Header Names
+    header_names: HeaderNames = .field_names,
+    // Column Indexes
+    col_indexes: ColumnIndexes = .all,
 };
 
 /// Width Styles for `col_width`.
@@ -63,6 +68,22 @@ pub const WidthStyle = union(enum) {
     static_individual: []const usize,
 };
 
+/// Column Indexes
+pub const ColumnIndexes = union(enum) {
+    /// Use all of the Columns.
+    all,
+    /// Use Columns from the specified indexes.
+    by_idx: []const usize,
+};
+
+/// Header Names
+pub const HeaderNames = union(enum) {
+    /// Use Field Names as Headers
+    field_names,
+    /// Custom
+    custom: []const []const u8,
+};
+
 /// Draw a Table for the TUI.
 pub fn drawTable(
     /// This should be an ArenaAllocator that can be deinitialized after each event call.
@@ -73,8 +94,6 @@ pub fn drawTable(
     alloc: ?mem.Allocator,
     /// The parent Window to draw to.
     win: vaxis.Window,
-    /// Headers for the Table
-    headers: []const []const u8,
     /// This must be a Slice, ArrayList, or MultiArrayList.
     /// Note, MultiArrayList support currently requires allocation.
     data_list: anytype,
@@ -130,6 +149,31 @@ pub fn drawTable(
         }
     };
     defer if (di_is_mal) alloc.?.free(data_items);
+
+    // Headers for the Table
+    var hdrs_buf: [100][]const u8 = undefined;
+    const headers = hdrs: {
+        switch (table_ctx.header_names) {
+            .field_names => {
+                const DataT = @TypeOf(data_items[0]);
+                const fields = meta.fields(DataT);
+                var num_hdrs: usize = 0;
+                inline for (fields, 0..) |field, idx| contFields: {
+                    switch (table_ctx.col_indexes) {
+                        .all => {},
+                        .by_idx => |idxs| {
+                            if (mem.indexOfScalar(usize, idxs, idx) == null) break :contFields;
+                        },
+                    }
+                    num_hdrs += 1;
+                    hdrs_buf[idx] = field.name;
+                }
+                break :hdrs hdrs_buf[0..num_hdrs];
+           },
+            .custom => |hdrs| break :hdrs hdrs,
+        }
+    };
+
 
     const table_win = win.initChild(
         0,
@@ -214,7 +258,13 @@ pub fn drawTable(
         const DataT = @TypeOf(data);
         col_start = 0;
         const item_fields = meta.fields(DataT);
-        inline for (item_fields[0..], 0..) |item_field, item_idx| {
+        inline for (item_fields[0..], 0..) |item_field, item_idx| contFields: {
+            switch (table_ctx.col_indexes) {
+                .all => {},
+                .by_idx => |idxs| {
+                    if (mem.indexOfScalar(usize, idxs, item_idx) == null) break :contFields;
+                },
+            }
             const col_width = try calcColWidth(
                 item_idx,
                 headers,
