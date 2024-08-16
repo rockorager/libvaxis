@@ -29,10 +29,14 @@ pub const TableContext = struct {
     /// (This will be calculated automatically)
     active_y_off: usize = 0,
 
-    /// The Background Color for the Active Row and Column Header.
-    selected_bg: vaxis.Cell.Color,
     /// The Background Color for Selected Rows.
+    selected_bg: vaxis.Cell.Color,
+    /// The Foreground Color for Selected Rows.
+    selected_fg: vaxis.Cell.Color = .default,
+    /// The Background Color for the Active Row and Column Header.
     active_bg: vaxis.Cell.Color,
+    /// The Foreground Color for the Active Row and Column Header.
+    active_fg: vaxis.Cell.Color = .default,
     /// First Column Header Background Color
     hdr_bg_1: vaxis.Cell.Color = .{ .rgb = [_]u8{ 64, 64, 64 } },
     /// Second Column Header Background Color
@@ -181,6 +185,7 @@ pub fn drawTable(
         .{ .limit = win.height },
     );
 
+    // Headers
     if (table_ctx.col > headers.len - 1) table_ctx.col = headers.len - 1;
     var col_start: usize = 0;
     for (headers[0..], 0..) |hdr_txt, idx| {
@@ -191,8 +196,15 @@ pub fn drawTable(
             table_win,
         );
         defer col_start += col_width;
-        const hdr_bg =
-            if (table_ctx.active and idx == table_ctx.col) table_ctx.active_bg else if (idx % 2 == 0) table_ctx.hdr_bg_1 else table_ctx.hdr_bg_2;
+        const hdr_fg,
+        const hdr_bg = hdrColors: {
+            if (table_ctx.active and idx == table_ctx.col) 
+                break :hdrColors .{ table_ctx.active_fg, table_ctx.active_bg } 
+            else if (idx % 2 == 0) 
+                break :hdrColors .{ .default, table_ctx.hdr_bg_1 } 
+            else 
+                break :hdrColors .{ .default, table_ctx.hdr_bg_2 };
+        };
         const hdr_win = table_win.child(.{
             .x_off = col_start,
             .y_off = 0,
@@ -204,6 +216,7 @@ pub fn drawTable(
         var seg = [_]vaxis.Cell.Segment{.{
             .text = if (hdr_txt.len > col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{hdr_txt[0..(col_width -| 4)]}) else hdr_txt,
             .style = .{
+                .fg = hdr_fg,
                 .bg = hdr_bg,
                 .bold = true,
                 .ul_style = if (idx == table_ctx.col) .single else .dotted,
@@ -212,6 +225,7 @@ pub fn drawTable(
         _ = try hdr.print(seg[0..], .{ .wrap = .word });
     }
 
+    // Rows
     if (table_ctx.active_content_fn == null) table_ctx.active_y_off = 0;
     const max_items =
         if (data_items.len > table_win.height -| 1) table_win.height -| 1 else data_items.len;
@@ -236,14 +250,16 @@ pub fn drawTable(
     if (end > data_items.len) end = data_items.len;
     table_ctx.active_y_off = 0;
     for (data_items[table_ctx.start..end], 0..) |data, row| {
-        const row_bg = rowBG: {
+        const row_fg,
+        const row_bg = rowColors: {
             if (table_ctx.active and table_ctx.start + row == table_ctx.row)
-                break :rowBG table_ctx.active_bg;
+                break :rowColors .{ table_ctx.active_fg, table_ctx.active_bg };
             if (table_ctx.sel_rows) |rows| {
-                if (mem.indexOfScalar(usize, rows, table_ctx.start + row) != null) break :rowBG table_ctx.selected_bg;
+                if (mem.indexOfScalar(usize, rows, table_ctx.start + row) != null) 
+                    break :rowColors .{ table_ctx.selected_fg, table_ctx.selected_bg };
             }
-            if (row % 2 == 0) break :rowBG table_ctx.row_bg_1;
-            break :rowBG table_ctx.row_bg_2;
+            if (row % 2 == 0) break :rowColors .{ .default, table_ctx.row_bg_1 };
+            break :rowColors .{ .default, table_ctx.row_bg_2 };
         };
         var row_win = table_win.child(.{
             .x_off = 0,
@@ -309,7 +325,7 @@ pub fn drawTable(
             item_win.fill(.{ .style = .{ .bg = row_bg } });
             var seg = [_]vaxis.Cell.Segment{.{
                 .text = if (item_txt.len > col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{item_txt[0..(col_width -| 4)]}) else item_txt,
-                .style = .{ .bg = row_bg },
+                .style = .{ .fg = row_fg, .bg = row_bg },
             }};
             _ = try item_win.print(seg[0..], .{ .wrap = .word });
         }
