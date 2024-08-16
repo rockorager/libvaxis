@@ -78,6 +78,7 @@ pub fn main() !void {
     // Table Context
     var demo_tbl: vaxis.widgets.Table.TableContext = .{
         .active_bg = active_bg,
+        .active_fg = .{ .rgb = .{ 0, 0, 0 } },
         .selected_bg = selected_bg,
         .header_names = .{ .custom = &.{ "First", "Last", "Username", "Email", "Phone#" } },
         //.header_names = .{ .custom = &.{ "First", "Last", "Email", "Phone#" } },
