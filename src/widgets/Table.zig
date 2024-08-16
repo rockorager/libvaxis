@@ -49,7 +49,7 @@ pub const TableContext = struct {
     /// Note, if this is left `null` the Column Width will be dynamically calculated during `drawTable()`.
     //col_width: ?usize = null,
     col_width: WidthStyle = .dynamic_fill,
-    
+
     // Header Names
     header_names: HeaderNames = .field_names,
     // Column Indexes
@@ -169,11 +169,10 @@ pub fn drawTable(
                     hdrs_buf[idx] = field.name;
                 }
                 break :hdrs hdrs_buf[0..num_hdrs];
-           },
+            },
             .custom => |hdrs| break :hdrs hdrs,
         }
     };
-
 
     const table_win = win.initChild(
         0,
@@ -283,7 +282,7 @@ pub fn drawTable(
             const item_txt = switch (ItemT) {
                 []const u8 => item,
                 [][]const u8, []const []const u8 => strSlice: {
-                    if (alloc) |_alloc| break :strSlice try fmt.allocPrint(_alloc, "{s}", .{ item });
+                    if (alloc) |_alloc| break :strSlice try fmt.allocPrint(_alloc, "{s}", .{item});
                     break :strSlice item;
                 },
                 else => nonStr: {
@@ -294,7 +293,7 @@ pub fn drawTable(
                             switch (@typeInfo(ItemT).Optional.child) {
                                 []const u8 => break :nonStr opt_item,
                                 [][]const u8, []const []const u8 => {
-                                    break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{s}", .{ opt_item }) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
+                                    break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{s}", .{opt_item}) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
                                 },
                                 else => {
                                     break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{opt_item}) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
