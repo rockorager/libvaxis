@@ -279,8 +279,8 @@ pub fn main() !void {
                 event_alloc,
                 middle_bar,
                 //users_buf[0..],
-                user_list,
-                //user_mal,
+                //user_list,
+                user_mal,
                 &demo_tbl,
             );
         }
