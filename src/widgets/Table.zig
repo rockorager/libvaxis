@@ -144,7 +144,10 @@ pub fn drawTable(
                 if (alloc) |_alloc| {
                     di_is_mal = true;
                     const mal_slice = data_list.slice();
-                    const DataT = @TypeOf(mal_slice.get(0));
+                    const DataT = dataType: {
+                        const fn_info = @typeInfo(@TypeOf(@field(@TypeOf(mal_slice), "get")));
+                        break :dataType fn_info.Fn.return_type orelse @panic("No Child Type");
+                    };
                     var data_out_list = std.ArrayList(DataT).init(_alloc);
                     for (0..mal_slice.len) |idx| try data_out_list.append(mal_slice.get(idx));
                     break :getData try data_out_list.toOwnedSlice();
@@ -250,6 +253,7 @@ pub fn drawTable(
     if (table_ctx.row + table_ctx.active_y_off >= end -| 1)
         end -|= table_ctx.active_y_off;
     if (end > data_items.len) end = data_items.len;
+    table_ctx.start = @min(table_ctx.start, end);
     table_ctx.active_y_off = 0;
     for (data_items[table_ctx.start..end], 0..) |data, row| {
         const row_fg,
