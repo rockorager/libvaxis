@@ -1228,6 +1228,9 @@ pub fn prettyPrint(self: *Vaxis, tty: AnyWriter) !void {
 pub fn setTerminalWorkingDirectory(_: *Vaxis, tty: AnyWriter, path: []const u8) !void {
     if (path.len == 0 or path[0] != '/')
         return error.InvalidAbsolutePath;
-    const hostname = std.posix.getenv("HOSTNAME") orelse "localhost";
+    const hostname = switch (builtin.os.tag) {
+        .windows => null,
+        else => std.posix.getenv("HOSTNAME"),
+    } orelse "localhost";
     try tty.print(ctlseqs.osc7, .{ hostname, path });
 }
