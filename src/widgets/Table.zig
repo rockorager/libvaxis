@@ -235,7 +235,7 @@ pub fn drawTable(
     const max_items =
         if (data_items.len > table_win.height -| 1) table_win.height -| 1 else data_items.len;
     var end = table_ctx.start + max_items;
-    if (table_ctx.row + table_ctx.active_y_off >= end -| 1)
+    if (table_ctx.row + table_ctx.active_y_off >= win.height -| 2)
         end -|= table_ctx.active_y_off;
     if (end > data_items.len) end = data_items.len;
     table_ctx.start = tableStart: {
@@ -250,7 +250,7 @@ pub fn drawTable(
         break :tableStart table_ctx.start;
     };
     end = table_ctx.start + max_items;
-    if (table_ctx.row + table_ctx.active_y_off >= end -| 1)
+    if (table_ctx.row + table_ctx.active_y_off >= win.height -| 2)
         end -|= table_ctx.active_y_off;
     if (end > data_items.len) end = data_items.len;
     table_ctx.start = @min(table_ctx.start, end);
