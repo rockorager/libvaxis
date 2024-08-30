@@ -1232,5 +1232,11 @@ pub fn setTerminalWorkingDirectory(_: *Vaxis, tty: AnyWriter, path: []const u8) 
         .windows => null,
         else => std.posix.getenv("HOSTNAME"),
     } orelse "localhost";
-    try tty.print(ctlseqs.osc7, .{ hostname, path });
+
+    const uri: std.Uri = .{
+        .scheme = "file",
+        .host = .{ .raw = hostname },
+        .path = .{ .raw = path },
+    };
+    try tty.print(ctlseqs.osc7, .{uri});
 }
