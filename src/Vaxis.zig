@@ -283,6 +283,10 @@ pub fn enableDetectedFeatures(self: *Vaxis, tty: AnyWriter) !void {
                 self.caps.kitty_keyboard = false;
                 self.sgr = .legacy;
             }
+            if (std.posix.getenv("TERM_PROGRAM")) |prg| {
+                if (std.mem.eql(u8, prg, "vscode"))
+                    self.sgr = .legacy;
+            }
             if (std.posix.getenv("VAXIS_FORCE_LEGACY_SGR")) |_|
                 self.sgr = .legacy;
             if (std.posix.getenv("VAXIS_FORCE_WCWIDTH")) |_|
