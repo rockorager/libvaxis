@@ -114,6 +114,11 @@ pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator, tty: AnyWriter) void {
 
     // always show the cursor on exit
     tty.writeAll(ctlseqs.show_cursor) catch {};
+    if (self.screen.cursor_shape != .default) {
+        // In many terminals, `.default` will set to the configured cursor shape. Others, it will
+        // change to a blinking block.
+        tty.print(ctlseqs.cursor_shape, .{@intFromEnum(Cell.CursorShape.default)}) catch {};
+    }
     if (alloc) |a| {
         self.screen.deinit(a);
         self.screen_last.deinit(a);
