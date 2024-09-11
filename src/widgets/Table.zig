@@ -158,26 +158,30 @@ pub fn drawTable(
         }
     };
     defer if (di_is_mal) alloc.?.free(data_items);
+    const DataT = @TypeOf(data_items[0]);
+    const fields = meta.fields(DataT);
+    const field_indexes = switch (table_ctx.col_indexes) {
+        .all => comptime allIdx: {
+            var indexes_buf: [fields.len]usize = undefined;
+            for (0..fields.len) |idx| indexes_buf[idx] = idx;
+            const indexes = indexes_buf;
+            break :allIdx indexes[0..];
+        },
+        .by_idx => |by_idx| by_idx,
+    };
 
     // Headers for the Table
-    var hdrs_buf: [100][]const u8 = undefined;
+    var hdrs_buf: [fields.len][]const u8 = undefined;
     const headers = hdrs: {
         switch (table_ctx.header_names) {
             .field_names => {
-                const DataT = @TypeOf(data_items[0]);
-                const fields = meta.fields(DataT);
-                var num_hdrs: usize = 0;
-                inline for (fields, 0..) |field, idx| contFields: {
-                    switch (table_ctx.col_indexes) {
-                        .all => {},
-                        .by_idx => |idxs| {
-                            if (mem.indexOfScalar(usize, idxs, idx) == null) break :contFields;
-                        },
+                for (field_indexes) |f_idx| {
+                    inline for (fields, 0..) |field, idx| {
+                        if (f_idx == idx)
+                            hdrs_buf[idx] = field.name;
                     }
-                    num_hdrs += 1;
-                    hdrs_buf[idx] = field.name;
                 }
-                break :hdrs hdrs_buf[0..num_hdrs];
+                break :hdrs hdrs_buf[0..];
             },
             .custom => |hdrs| break :hdrs hdrs,
         }
@@ -201,13 +205,12 @@ pub fn drawTable(
             table_win,
         );
         defer col_start += col_width;
-        const hdr_fg,
-        const hdr_bg = hdrColors: {
-            if (table_ctx.active and idx == table_ctx.col) 
-                break :hdrColors .{ table_ctx.active_fg, table_ctx.active_bg } 
-            else if (idx % 2 == 0) 
-                break :hdrColors .{ .default, table_ctx.hdr_bg_1 } 
-            else 
+        const hdr_fg, const hdr_bg = hdrColors: {
+            if (table_ctx.active and idx == table_ctx.col)
+                break :hdrColors .{ table_ctx.active_fg, table_ctx.active_bg }
+            else if (idx % 2 == 0)
+                break :hdrColors .{ .default, table_ctx.hdr_bg_1 }
+            else
                 break :hdrColors .{ .default, table_ctx.hdr_bg_2 };
         };
         const hdr_win = table_win.child(.{
@@ -256,12 +259,11 @@ pub fn drawTable(
     table_ctx.start = @min(table_ctx.start, end);
     table_ctx.active_y_off = 0;
     for (data_items[table_ctx.start..end], 0..) |data, row| {
-        const row_fg,
-        const row_bg = rowColors: {
+        const row_fg, const row_bg = rowColors: {
             if (table_ctx.active and table_ctx.start + row == table_ctx.row)
                 break :rowColors .{ table_ctx.active_fg, table_ctx.active_bg };
             if (table_ctx.sel_rows) |rows| {
-                if (mem.indexOfScalar(usize, rows, table_ctx.start + row) != null) 
+                if (mem.indexOfScalar(usize, rows, table_ctx.start + row) != null)
                     break :rowColors .{ table_ctx.selected_fg, table_ctx.selected_bg };
             }
             if (row % 2 == 0) break :rowColors .{ .default, table_ctx.row_bg_1 };
@@ -276,64 +278,65 @@ pub fn drawTable(
         if (table_ctx.start + row == table_ctx.row) {
             table_ctx.active_y_off = if (table_ctx.active_content_fn) |content| try content(&row_win, table_ctx.active_ctx) else 0;
         }
-        const DataT = @TypeOf(data);
         col_start = 0;
         const item_fields = meta.fields(DataT);
-        inline for (item_fields[0..], 0..) |item_field, item_idx| contFields: {
-            switch (table_ctx.col_indexes) {
-                .all => {},
-                .by_idx => |idxs| {
-                    if (mem.indexOfScalar(usize, idxs, item_idx) == null) break :contFields;
-                },
+        for (field_indexes) |f_idx| {
+            inline for (item_fields[0..], 0..) |item_field, item_idx| contFields: {
+                switch (table_ctx.col_indexes) {
+                    .all => {},
+                    .by_idx => {
+                        if (item_idx != f_idx) break :contFields;
+                    },
+                }
+                const col_width = try calcColWidth(
+                    item_idx,
+                    headers,
+                    table_ctx.col_width,
+                    table_win,
+                );
+                defer col_start += col_width;
+                const item = @field(data, item_field.name);
+                const ItemT = @TypeOf(item);
+                const item_win = row_win.child(.{
+                    .x_off = col_start,
+                    .y_off = 0,
+                    .width = .{ .limit = col_width },
+                    .height = .{ .limit = 1 },
+                });
+                const item_txt = switch (ItemT) {
+                    []const u8 => item,
+                    [][]const u8, []const []const u8 => strSlice: {
+                        if (alloc) |_alloc| break :strSlice try fmt.allocPrint(_alloc, "{s}", .{item});
+                        break :strSlice item;
+                    },
+                    else => nonStr: {
+                        switch (@typeInfo(ItemT)) {
+                            .Enum => break :nonStr @tagName(item),
+                            .Optional => {
+                                const opt_item = item orelse break :nonStr "-";
+                                switch (@typeInfo(ItemT).Optional.child) {
+                                    []const u8 => break :nonStr opt_item,
+                                    [][]const u8, []const []const u8 => {
+                                        break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{s}", .{opt_item}) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
+                                    },
+                                    else => {
+                                        break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{opt_item}) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
+                                    },
+                                }
+                            },
+                            else => {
+                                break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{item}) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
+                            },
+                        }
+                    },
+                };
+                item_win.fill(.{ .style = .{ .bg = row_bg } });
+                var seg = [_]vaxis.Cell.Segment{.{
+                    .text = if (item_txt.len > col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{item_txt[0..(col_width -| 4)]}) else item_txt,
+                    .style = .{ .fg = row_fg, .bg = row_bg },
+                }};
+                _ = try item_win.print(seg[0..], .{ .wrap = .word, .col_offset = table_ctx.cell_x_off });
             }
-            const col_width = try calcColWidth(
-                item_idx,
-                headers,
-                table_ctx.col_width,
-                table_win,
-            );
-            defer col_start += col_width;
-            const item = @field(data, item_field.name);
-            const ItemT = @TypeOf(item);
-            const item_win = row_win.child(.{
-                .x_off = col_start,
-                .y_off = 0,
-                .width = .{ .limit = col_width },
-                .height = .{ .limit = 1 },
-            });
-            const item_txt = switch (ItemT) {
-                []const u8 => item,
-                [][]const u8, []const []const u8 => strSlice: {
-                    if (alloc) |_alloc| break :strSlice try fmt.allocPrint(_alloc, "{s}", .{item});
-                    break :strSlice item;
-                },
-                else => nonStr: {
-                    switch (@typeInfo(ItemT)) {
-                        .Enum => break :nonStr @tagName(item),
-                        .Optional => {
-                            const opt_item = item orelse break :nonStr "-";
-                            switch (@typeInfo(ItemT).Optional.child) {
-                                []const u8 => break :nonStr opt_item,
-                                [][]const u8, []const []const u8 => {
-                                    break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{s}", .{opt_item}) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
-                                },
-                                else => {
-                                    break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{opt_item}) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
-                                },
-                            }
-                        },
-                        else => {
-                            break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{item}) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
-                        },
-                    }
-                },
-            };
-            item_win.fill(.{ .style = .{ .bg = row_bg } });
-            var seg = [_]vaxis.Cell.Segment{.{
-                .text = if (item_txt.len > col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{item_txt[0..(col_width -| 4)]}) else item_txt,
-                .style = .{ .fg = row_fg, .bg = row_bg },
-            }};
-            _ = try item_win.print(seg[0..], .{ .wrap = .word, .col_offset = table_ctx.cell_x_off });
         }
     }
 }
