@@ -953,7 +953,7 @@ pub fn queryColor(_: Vaxis, tty: AnyWriter, kind: Cell.Color.Kind) !void {
 /// capability. Support can be detected by checking the value of
 /// vaxis.caps.color_scheme_updates. The initial scheme will be reported when
 /// subscribing.
-pub fn subscribeToColorSchemeUpdates(self: Vaxis, tty: AnyWriter) !void {
+pub fn subscribeToColorSchemeUpdates(self: *Vaxis, tty: AnyWriter) !void {
     try tty.writeAll(ctlseqs.color_scheme_request);
     try tty.writeAll(ctlseqs.color_scheme_set);
     self.state.color_scheme_updates = true;
