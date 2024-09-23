@@ -1,0 +1,153 @@
+//! A View is effectively an "oversized" Window that can be written to and rendered in pieces.
+
+const std = @import("std");
+const mem = std.mem;
+
+const View = @This();
+
+const Screen = @import("Screen.zig");
+const Window = @import("Window.zig");
+const Unicode = @import("Unicode.zig");
+const Cell = @import("Cell.zig");
+
+/// View Allocator
+alloc: mem.Allocator,
+/// Underlying Screen
+screen: *Screen,
+/// Underlying Window
+win: *Window,
+
+
+pub const Config = struct {
+    max_width: usize = 10_000,
+    max_height: usize = 10_000,
+    x_pixel: usize = 0,
+    y_pixel: usize = 0,
+};
+pub fn init(alloc: mem.Allocator, unicode: *const Unicode, config: Config) !View {
+    const screen = try alloc.create(Screen);
+    screen.* = try Screen.init(
+        alloc,
+        .{
+            .cols = config.max_width,
+            .rows = config.max_height,
+            .x_pixel = config.x_pixel,
+            .y_pixel = config.y_pixel,
+        },
+        unicode,
+    );
+    const window = try alloc.create(Window);
+    window.* = .{
+        .x_off = 0,
+        .y_off = 0,
+        .width = config.max_width,
+        .height = config.max_height,
+        .screen = screen,
+    };
+    return .{
+        .alloc = alloc,
+        .screen = screen,
+        .win = window,
+    };
+}
+
+pub fn deinit(self: *View) void {
+    self.alloc.destroy(self.win);
+    self.screen.deinit(self.alloc);
+    self.alloc.destroy(self.screen);
+}
+
+///Render Config f/ `toWin()`
+pub const RenderConfig = struct {
+    x: usize = 0,
+    y: usize = 0,
+    width: Extent = .fit,
+    height: Extent = .fit,
+
+    pub const Extent = union(enum) {
+        fit,
+        max: usize,
+    };
+};
+/// Render a portion of this View to the provided Window (`win`).
+pub fn toWin(self: *View, win: *const Window, config: RenderConfig) !void {
+    //if (config.x >= self.screen.width or config.y >= self.screen.height)
+    //    return error.PositionOutOfBounds;
+    const x = @min(self.screen.width - 1, config.x);
+    const y = @min(self.screen.height - 1, config.y);
+    const width = width: {
+        const width = switch (config.width) {
+            .fit => win.width,
+            .max => |w| @min(win.width, w),
+        };
+        break :width @min(width, self.screen.width -| x);
+    };
+    const height = height: {
+        const height = switch (config.height) {
+            .fit => win.height,
+            .max => |h| @min(win.height, h),
+        };
+        break :height @min(height, self.screen.height -| y);
+    };
+    //win.clear();
+    for (0..height) |row| {
+        for (0..width) |col| {
+            win.writeCell(
+                col, 
+                row, 
+                self.win.readCell(
+                    @min(self.screen.width, x +| col),
+                    //self.screen.height -| 1 -| @min(self.screen.height, y +| row),
+                    @min(self.screen.height, y +| row),
+                ) orelse {
+                    std.log.err(
+                        \\ Position Out of Bounds:
+                        \\ - Pos:  {d}, {d}
+                        \\ - Size: {d}, {d}
+                        , .{
+                            col, row,
+                            self.screen.width, self.screen.height,
+                        },
+                    );
+                    return error.PositionOutOfBounds;
+                },
+            );
+        }
+    }
+}
+
+/// Writes a cell to the location in the View
+pub fn writeCell(self: View, col: usize, row: usize, cell: Cell) void {
+    self.win.writeCell(col, row, cell);
+}
+
+/// Reads a cell at the location in the View
+pub fn readCell(self: View, col: usize, row: usize) ?Cell {
+    return self.win.readCell(col, row);
+}
+
+/// Fills the View with the default cell
+pub fn clear(self: View) void {
+    self.win.clear();
+}
+
+/// Returns the width of the grapheme. This depends on the terminal capabilities
+pub fn gwidth(self: View, str: []const u8) usize {
+    return self.win.gwidth(str);
+}
+
+/// Fills the View with the provided cell
+pub fn fill(self: View, cell: Cell) void {
+    self.fill(cell);
+}
+
+/// Prints segments to the View. Returns true if the text overflowed with the
+/// given wrap strategy and size.
+pub fn print(self: View, segments: []const Cell.Segment, opts: Window.PrintOptions) !Window.PrintResult {
+    return self.win.print(segments, opts);
+}
+
+/// Print a single segment. This is just a shortcut for print(&.{segment}, opts)
+pub fn printSegment(self: View, segment: Cell.Segment, opts: Window.PrintOptions) !Window.PrintResult {
+    return self.print(&.{segment}, opts);
+}

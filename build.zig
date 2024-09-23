@@ -51,6 +51,7 @@ pub fn build(b: *std.Build) void {
 
     // Examples
     const Example = enum {
+        aio,
         cli,
         image,
         main,
@@ -58,9 +59,9 @@ pub fn build(b: *std.Build) void {
         table,
         text_input,
         vaxis,
+        view,
         vt,
         xev,
-        aio,
     };
     const example_option = b.option(Example, "example", "Example to run (default: text_input)") orelse .text_input;
     const example_step = b.step("example", "Run example");
