@@ -60,6 +60,10 @@ pub const TableContext = struct {
     header_names: HeaderNames = .field_names,
     // Column Indexes
     col_indexes: ColumnIndexes = .all,
+    // Header Alignment
+    header_align: HorizontalAlignment = .center,
+    // Column Alignment
+    col_align: ColumnAlignment = .{ .all = .left },
 };
 
 /// Width Styles for `col_width`.
@@ -88,6 +92,17 @@ pub const HeaderNames = union(enum) {
     field_names,
     /// Custom
     custom: []const []const u8,
+};
+
+/// Horizontal Alignment
+pub const HorizontalAlignment = enum {
+    left,
+    center,
+};
+/// Column Alignment
+pub const ColumnAlignment = union(enum) {
+    all: HorizontalAlignment,
+    by_idx: []const HorizontalAlignment,
 };
 
 /// Draw a Table for the TUI.
@@ -219,7 +234,10 @@ pub fn drawTable(
             .width = .{ .limit = col_width },
             .height = .{ .limit = 1 },
         });
-        var hdr = vaxis.widgets.alignment.center(hdr_win, @min(col_width -| 1, hdr_txt.len +| 1), 1);
+        var hdr = switch (table_ctx.header_align) {
+            .left => hdr_win,
+            .center => vaxis.widgets.alignment.center(hdr_win, @min(col_width -| 1, hdr_txt.len +| 1), 1),
+        };
         hdr_win.fill(.{ .style = .{ .bg = hdr_bg } });
         var seg = [_]vaxis.Cell.Segment{.{
             .text = if (hdr_txt.len > col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{hdr_txt[0..(col_width -| 4)]}) else hdr_txt,
@@ -280,6 +298,7 @@ pub fn drawTable(
         }
         col_start = 0;
         const item_fields = meta.fields(DataT);
+        var col_idx: usize = 0;
         for (field_indexes) |f_idx| {
             inline for (item_fields[0..], 0..) |item_field, item_idx| contFields: {
                 switch (table_ctx.col_indexes) {
@@ -288,6 +307,7 @@ pub fn drawTable(
                         if (item_idx != f_idx) break :contFields;
                     },
                 }
+                defer col_idx += 1;
                 const col_width = try calcColWidth(
                     item_idx,
                     headers,
@@ -331,11 +351,25 @@ pub fn drawTable(
                     },
                 };
                 item_win.fill(.{ .style = .{ .bg = row_bg } });
+                const item_align_win = itemAlignWin: {
+                    const col_align = switch (table_ctx.col_align) {
+                        .all => |all| all,
+                        .by_idx => |aligns| aligns[col_idx],
+                    };
+                    break :itemAlignWin switch (col_align) {
+                        .left => item_win,
+                        .center => center: {
+                            const center = vaxis.widgets.alignment.center(item_win, @min(col_width -| 1, item_txt.len +| 1), 1);
+                            center.fill(.{ .style = .{ .bg = row_bg } });
+                            break :center center;
+                        },
+                    };
+                };
                 var seg = [_]vaxis.Cell.Segment{.{
                     .text = if (item_txt.len > col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{item_txt[0..(col_width -| 4)]}) else item_txt,
                     .style = .{ .fg = row_fg, .bg = row_bg },
                 }};
-                _ = try item_win.print(seg[0..], .{ .wrap = .word, .col_offset = table_ctx.cell_x_off });
+                _ = try item_align_win.print(seg[0..], .{ .wrap = .word, .col_offset = table_ctx.cell_x_off });
             }
         }
     }
