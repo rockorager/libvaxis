@@ -125,8 +125,6 @@ pub fn main() !void {
                         map_view = sm_map_view;
                     }
                     use_sm_map = !use_sm_map;
-                    x = 0;
-                    y = 0;
                     w = map_width;
                     h = map_height;
                 }
@@ -170,6 +168,7 @@ pub fn main() !void {
         // 2. A RenderConfig consisting of:
         //    a. An x/y (col, row) position within the View as the start point of the render.
         //    b. A Width and Height extending Right and Down from the start point that will represent the square being rendered.
+        // It also returns the calculated x/y position to help maintain scrolloing boundaries.
         x, y = try map_view.toWin(
             &map_win,
             if (!use_mini_view).{ 
