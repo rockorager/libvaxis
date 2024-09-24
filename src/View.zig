@@ -154,3 +154,8 @@ pub fn print(self: View, segments: []const Cell.Segment, opts: Window.PrintOptio
 pub fn printSegment(self: View, segment: Cell.Segment, opts: Window.PrintOptions) !Window.PrintResult {
     return self.print(&.{segment}, opts);
 }
+
+/// Create a child window
+pub fn child(self: View, opts: Window.ChildOptions) Window {
+    return self.win.child(opts);
+}
