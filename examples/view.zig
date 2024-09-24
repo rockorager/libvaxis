@@ -24,14 +24,21 @@ pub fn main() !void {
     }
     const alloc = gpa.allocator();
 
+    var world_map: []const u8 = lg_world_map;
+    var map_width = lg_map_width;
+    var map_height = lg_map_height;
+    var use_sm_map = false;
+    var use_mini_view = false;
+
     var x: usize = 0;
     var y: usize = 0;
     var h: usize = 0;
     var w: usize = 0;
     defer log.info(
-        \\Map Size:    {d}x{d}
-        \\Screen Size: {d}x{d}
-        \\Position:    {d}, {d}
+        \\Results:
+        \\ - Map Size:    {d}x{d}
+        \\ - Screen Size: {d}x{d}
+        \\ - Position:    {d}, {d}
         , .{ 
             map_width, map_height,
             w, h,
@@ -60,39 +67,120 @@ pub fn main() !void {
     try vx.enterAltScreen(writer);
     try buffered_writer.flush();
     try vx.queryTerminal(tty.anyWriter(), 20 * std.time.ns_per_s);
-    // Initialize a View
-    var map_view = try View.init(alloc, &vx.unicode, .{ .max_width = map_width, .max_height = map_height });
-    defer map_view.deinit();
-    w = map_view.screen.width;
-    h = map_view.screen.height;
-    var map_buf: [map_width * map_height]u8 = undefined;
-    _ = mem.replace(u8, world_map, "\n", "", map_buf[0..]);
-    _ = try map_view.printSegment(.{ .text = map_buf[0..] }, .{ .wrap = .grapheme });
 
+    // Initialize Views
+    // - Large Map
+    var lg_map_view = try View.init(alloc, &vx.unicode, .{ .max_width = lg_map_width, .max_height = lg_map_height });
+    defer lg_map_view.deinit();
+    //w = lg_map_view.screen.width;
+    //h = lg_map_view.screen.height;
+    var lg_map_buf: [lg_map_width * lg_map_height]u8 = undefined;
+    _ = mem.replace(u8, lg_world_map, "\n", "", lg_map_buf[0..]);
+    _ = try lg_map_view.printSegment(.{ .text = lg_map_buf[0..] }, .{ .wrap = .grapheme });
+    // - Small Map
+    var sm_map_view = try View.init(alloc, &vx.unicode, .{ .max_width = sm_map_width, .max_height = sm_map_height });
+    defer sm_map_view.deinit();
+    w = sm_map_view.screen.width;
+    h = sm_map_view.screen.height;
+    var sm_map_buf: [sm_map_width * sm_map_height]u8 = undefined;
+    _ = mem.replace(u8, sm_world_map, "\n", "", sm_map_buf[0..]);
+    _ = try sm_map_view.printSegment(.{ .text = sm_map_buf[0..] }, .{ .wrap = .grapheme });
+    // - Active Map
+    var map_view = lg_map_view;
+
+    // 
     while (true) {
         const event = loop.nextEvent();
         switch (event) {
             .key_press => |key| {
+                // Close Demo
                 if (key.matches('c', .{ .ctrl = true })) break;
+                // Scroll
                 if (key.matches(vaxis.Key.left, .{})) x -|= 1;
                 if (key.matches(vaxis.Key.right, .{})) x +|= 1;
                 if (key.matches(vaxis.Key.up, .{})) y -|= 1;
                 if (key.matches(vaxis.Key.down, .{})) y +|= 1;
+                // Quick Scroll
+                if (key.matches(vaxis.Key.left, .{ .ctrl = true })) x -|= 30;
+                if (key.matches(vaxis.Key.right, .{ .ctrl = true })) x +|= 30;
+                if (key.matches(vaxis.Key.up, .{ .ctrl = true })) y -|= 10;
+                if (key.matches(vaxis.Key.down, .{ .ctrl = true })) y +|= 10;
+                // Goto Side
+                if (key.matches(vaxis.Key.left, .{ .shift = true })) x -|= map_width;
+                if (key.matches(vaxis.Key.right, .{ .shift = true })) x +|= map_width;
+                if (key.matches(vaxis.Key.up, .{ .shift = true })) y -|= map_height;
+                if (key.matches(vaxis.Key.down, .{ .shift = true })) y +|= map_height;
+                // Change Zoom (Swap Map Views)
+                if (key.matches('z', .{})) {
+                    if (use_sm_map) {
+                        world_map = lg_world_map;
+                        map_width = lg_map_width;
+                        map_height = lg_map_height;
+                        map_view = lg_map_view;
+                    }
+                    else {
+                        world_map = sm_world_map;
+                        map_width = sm_map_width;
+                        map_height = sm_map_height;
+                        map_view = sm_map_view;
+                    }
+                    use_sm_map = !use_sm_map;
+                    x = 0;
+                    y = 0;
+                    w = map_width;
+                    h = map_height;
+                }
+                // Mini View (Forced Width & Height Limits)
+                if (key.matches('m', .{})) use_mini_view = !use_mini_view;
             },
             .winsize => |ws| try vx.resize(alloc, tty.anyWriter(), ws),
         }
+        // Bounds Check
         x = @min(x, map_width -| 1);
         y = @min(y, map_height -| 1);
 
         const win = vx.window();
         win.clear();
-        try map_view.toWin(
-            &win, 
-            .{ 
+
+        const controls_win = win.child(.{
+            .height = .{ .limit = 1 },
+        });
+        _ = try controls_win.print(
+            if (win.width >= 112) &.{
+                .{ .text = "Controls:", .style = .{ .bold = true, .ul_style = .single } },
+                .{ .text = " Exit: ctrl + c | Scroll: dpad | Quick Scroll: ctrl + dpad | Goto Side: shift + dpad | Zoom: z | Mini: m" },
+            }
+            else if (win.width >= 25) &.{
+                .{ .text = "Controls:", .style = .{ .bold = true, .ul_style = .single } },
+                .{ .text = " Win too small!" },
+            }
+            else &.{
+                .{ .text = "" },
+            },
+            .{ .wrap = .none },
+        );
+
+        // Views require a Window to render to.
+        const map_win = win.child(.{ 
+            .y_off = controls_win.height,
+            .border = .{ .where = .top },
+        });
+        // The `View.toWin()` method takes:
+        // 1. A Window to render to.
+        // 2. A RenderConfig consisting of:
+        //    a. An x/y (col, row) position within the View as the start point of the render.
+        //    b. A Width and Height extending Right and Down from the start point that will represent the square being rendered.
+        x, y = try map_view.toWin(
+            &map_win,
+            if (!use_mini_view).{ 
                 .x = x, 
                 .y = y, 
-                //.width = .{ .max = 10 }, 
-                //.height = .{ .max = 10 },
+            }
+            else .{ 
+                .x = x, 
+                .y = y, 
+                .width = .{ .max = 45 }, 
+                .height = .{ .max = 15 },
             }
         );
 
@@ -102,7 +190,7 @@ pub fn main() !void {
     }
 }
 
-const _world_map = 
+const sm_world_map = 
 \\ +NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN+
 \\ W................................................................................................E
 \\ W................................................................................................E
@@ -135,8 +223,16 @@ const _world_map =
 \\ +SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS+
 \\
 ;
+const sm_map_width = mapWidth: {
+    @setEvalBranchQuota(100_000);
+    break :mapWidth mem.indexOfScalar(u8, sm_world_map, '\n').?;
+};
+const sm_map_height = mapHeight: {
+    @setEvalBranchQuota(100_000);
+    break :mapHeight mem.count(u8, sm_world_map, "\n");
+};
 
-const world_map = 
+const lg_world_map = 
 \\  +NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN+ 
 \\  W...........................................................................................................................................................................................................................................................................................................................................................................................................E 
 \\  W...........................................................................................................................................................................................................................................................................................................................................................................................................E 
@@ -260,11 +356,11 @@ const world_map =
 \\  +SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS+ 
 \\
 ;
-const map_width = mapWidth: {
+const lg_map_width = mapWidth: {
     @setEvalBranchQuota(100_000);
-    break :mapWidth mem.indexOfScalar(u8, world_map, '\n').?;
+    break :mapWidth mem.indexOfScalar(u8, lg_world_map, '\n').?;
 };
-const map_height = mapHeight: {
+const lg_map_height = mapHeight: {
     @setEvalBranchQuota(100_000);
-    break :mapHeight mem.count(u8, world_map, "\n");
+    break :mapHeight mem.count(u8, lg_world_map, "\n");
 };
