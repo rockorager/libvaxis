@@ -57,7 +57,7 @@ pub fn deinit(self: *View) void {
     self.alloc.destroy(self.screen);
 }
 
-///Render Config f/ `toWin()`
+/// Render Config f/ `toWin()`
 pub const RenderConfig = struct {
     x: usize = 0,
     y: usize = 0,
@@ -70,35 +70,37 @@ pub const RenderConfig = struct {
     };
 };
 /// Render a portion of this View to the provided Window (`win`).
-pub fn toWin(self: *View, win: *const Window, config: RenderConfig) !void {
-    //if (config.x >= self.screen.width or config.y >= self.screen.height)
-    //    return error.PositionOutOfBounds;
-    const x = @min(self.screen.width - 1, config.x);
-    const y = @min(self.screen.height - 1, config.y);
+/// This will return the bounded X (col), Y (row) coordinates based on the rendering.
+pub fn toWin(self: *View, win: *const Window, config: RenderConfig) !struct{ usize, usize } {
+    var x = @min(self.screen.width - 1, config.x);
+    var y = @min(self.screen.height - 1, config.y);
     const width = width: {
-        const width = switch (config.width) {
+        var width = switch (config.width) {
             .fit => win.width,
             .max => |w| @min(win.width, w),
         };
-        break :width @min(width, self.screen.width -| x);
+        width = @min(width, self.screen.width);
+        break :width @min(width, self.screen.width -| 1 -| x +| win.width);
     };
     const height = height: {
-        const height = switch (config.height) {
+        var height = switch (config.height) {
             .fit => win.height,
             .max => |h| @min(win.height, h),
         };
-        break :height @min(height, self.screen.height -| y);
+        height = @min(height, self.screen.height);
+        break :height @min(height, self.screen.height -| 1 -| y +| win.height);
     };
-    //win.clear();
+    x = @min(x, self.screen.width -| width);
+    y = @min(y, self.screen.height -| height);
+
     for (0..height) |row| {
         for (0..width) |col| {
             win.writeCell(
                 col, 
                 row, 
                 self.win.readCell(
-                    @min(self.screen.width, x +| col),
-                    //self.screen.height -| 1 -| @min(self.screen.height, y +| row),
-                    @min(self.screen.height, y +| row),
+                    @min(self.screen.width -| 1, x +| col),
+                    @min(self.screen.height -| 1, y +| row),
                 ) orelse {
                     std.log.err(
                         \\ Position Out of Bounds:
@@ -114,6 +116,7 @@ pub fn toWin(self: *View, win: *const Window, config: RenderConfig) !void {
             );
         }
     }
+    return .{ x, y };
 }
 
 /// Writes a cell to the location in the View
