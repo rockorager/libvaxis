@@ -17,7 +17,6 @@ screen: *Screen,
 /// Underlying Window
 win: *Window,
 
-
 pub const Config = struct {
     max_width: usize = 10_000,
     max_height: usize = 10_000,
@@ -71,7 +70,7 @@ pub const RenderConfig = struct {
 };
 /// Render a portion of this View to the provided Window (`win`).
 /// This will return the bounded X (col), Y (row) coordinates based on the rendering.
-pub fn toWin(self: *View, win: *const Window, config: RenderConfig) !struct{ usize, usize } {
+pub fn toWin(self: *View, win: *const Window, config: RenderConfig) !struct { usize, usize } {
     var x = @min(self.screen.width - 1, config.x);
     var y = @min(self.screen.height - 1, config.y);
     const width = width: {
@@ -96,8 +95,8 @@ pub fn toWin(self: *View, win: *const Window, config: RenderConfig) !struct{ usi
     for (0..height) |row| {
         for (0..width) |col| {
             win.writeCell(
-                col, 
-                row, 
+                col,
+                row,
                 self.win.readCell(
                     @min(self.screen.width -| 1, x +| col),
                     @min(self.screen.height -| 1, y +| row),
@@ -106,8 +105,9 @@ pub fn toWin(self: *View, win: *const Window, config: RenderConfig) !struct{ usi
                         \\ Position Out of Bounds:
                         \\ - Pos:  {d}, {d}
                         \\ - Size: {d}, {d}
-                        , .{
-                            col, row,
+                    ,
+                        .{
+                            col,               row,
                             self.screen.width, self.screen.height,
                         },
                     );
