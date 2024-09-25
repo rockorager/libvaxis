@@ -240,7 +240,7 @@ pub fn drawTable(
             .y_off = 0,
             .width = .{ .limit = col_width },
             .height = .{ .limit = 1 },
-            .border = .{ .where = if (table_ctx.header_borders and idx > 0) .left else .none }
+            .border = .{ .where = if (table_ctx.header_borders and idx > 0) .left else .none },
         });
         var hdr = switch (table_ctx.header_align) {
             .left => hdr_win,
