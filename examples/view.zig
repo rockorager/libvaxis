@@ -68,7 +68,7 @@ pub fn main() !void {
 
     // Initialize Views
     // - Large Map
-    var lg_map_view = try View.init(alloc, &vx.unicode, .{ .max_width = lg_map_width, .max_height = lg_map_height });
+    var lg_map_view = try View.init(alloc, &vx.unicode, .{ .width = lg_map_width, .height = lg_map_height });
     defer lg_map_view.deinit();
     //w = lg_map_view.screen.width;
     //h = lg_map_view.screen.height;
@@ -76,7 +76,7 @@ pub fn main() !void {
     _ = mem.replace(u8, lg_world_map, "\n", "", lg_map_buf[0..]);
     _ = try lg_map_view.printSegment(.{ .text = lg_map_buf[0..] }, .{ .wrap = .grapheme });
     // - Small Map
-    var sm_map_view = try View.init(alloc, &vx.unicode, .{ .max_width = sm_map_width, .max_height = sm_map_height });
+    var sm_map_view = try View.init(alloc, &vx.unicode, .{ .width = sm_map_width, .height = sm_map_height });
     defer sm_map_view.deinit();
     w = sm_map_view.screen.width;
     h = sm_map_view.screen.height;
@@ -86,7 +86,7 @@ pub fn main() !void {
     // - Active Map
     var map_view = lg_map_view;
 
-    //
+    // TUI Loop
     while (true) {
         const event = loop.nextEvent();
         switch (event) {
@@ -164,7 +164,7 @@ pub fn main() !void {
         //    a. An x/y (col, row) position within the View as the start point of the render.
         //    b. A Width and Height extending Right and Down from the start point that will represent the square being rendered.
         // It also returns the calculated x/y position to help maintain scrolloing boundaries.
-        x, y = try map_view.toWin(&map_win, if (!use_mini_view) .{
+        x, y = try map_view.toWin(map_win, if (!use_mini_view) .{
             .x = x,
             .y = y,
         } else .{
@@ -173,6 +173,12 @@ pub fn main() !void {
             .width = .{ .max = 45 },
             .height = .{ .max = 15 },
         });
+        if (use_mini_view) {
+            _ = try map_win.printSegment(
+                .{ .text = "This is a mini portion of the View."  }, 
+                .{ .row_offset = 16, .col_offset = 5, .wrap = .word },
+            );
+        }
 
         // Render the screen
         try vx.render(writer);

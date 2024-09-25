@@ -15,43 +15,41 @@ alloc: mem.Allocator,
 /// Underlying Screen
 screen: *Screen,
 /// Underlying Window
-win: *Window,
+win: Window,
 
+/// View Initialization Config
 pub const Config = struct {
-    max_width: usize = 10_000,
-    max_height: usize = 10_000,
-    x_pixel: usize = 0,
-    y_pixel: usize = 0,
+    width: usize,
+    height: usize,
 };
+/// Initialize a new View
 pub fn init(alloc: mem.Allocator, unicode: *const Unicode, config: Config) !View {
     const screen = try alloc.create(Screen);
     screen.* = try Screen.init(
         alloc,
         .{
-            .cols = config.max_width,
-            .rows = config.max_height,
-            .x_pixel = config.x_pixel,
-            .y_pixel = config.y_pixel,
+            .cols = config.width,
+            .rows = config.height,
+            .x_pixel = 0,
+            .y_pixel = 0,
         },
         unicode,
     );
-    const window = try alloc.create(Window);
-    window.* = .{
-        .x_off = 0,
-        .y_off = 0,
-        .width = config.max_width,
-        .height = config.max_height,
-        .screen = screen,
-    };
     return .{
         .alloc = alloc,
         .screen = screen,
-        .win = window,
+        .win = .{
+            .x_off = 0,
+            .y_off = 0,
+            .width = config.width,
+            .height = config.height,
+            .screen = screen,
+        },
     };
 }
 
+/// Deinitialize this View
 pub fn deinit(self: *View) void {
-    self.alloc.destroy(self.win);
     self.screen.deinit(self.alloc);
     self.alloc.destroy(self.screen);
 }
@@ -70,7 +68,7 @@ pub const RenderConfig = struct {
 };
 /// Render a portion of this View to the provided Window (`win`).
 /// This will return the bounded X (col), Y (row) coordinates based on the rendering.
-pub fn toWin(self: *View, win: *const Window, config: RenderConfig) !struct { usize, usize } {
+pub fn toWin(self: *View, win: Window, config: RenderConfig) !struct { usize, usize } {
     var x = @min(self.screen.width - 1, config.x);
     var y = @min(self.screen.height - 1, config.y);
     const width = width: {
@@ -105,8 +103,7 @@ pub fn toWin(self: *View, win: *const Window, config: RenderConfig) !struct { us
                         \\ Position Out of Bounds:
                         \\ - Pos:  {d}, {d}
                         \\ - Size: {d}, {d}
-                    ,
-                        .{
+                        , .{
                             col,               row,
                             self.screen.width, self.screen.height,
                         },
@@ -141,7 +138,7 @@ pub fn gwidth(self: View, str: []const u8) usize {
 
 /// Fills the View with the provided cell
 pub fn fill(self: View, cell: Cell) void {
-    self.fill(cell);
+    self.win.fill(cell);
 }
 
 /// Prints segments to the View. Returns true if the text overflowed with the
