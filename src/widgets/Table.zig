@@ -64,6 +64,13 @@ pub const TableContext = struct {
     header_align: HorizontalAlignment = .center,
     // Column Alignment
     col_align: ColumnAlignment = .{ .all = .left },
+
+    // Header Borders
+    header_borders: bool = false,
+    // Row Borders
+    //row_borders: bool = false,
+    // Col Borders
+    col_borders: bool = false,
 };
 
 /// Width Styles for `col_width`.
@@ -233,6 +240,7 @@ pub fn drawTable(
             .y_off = 0,
             .width = .{ .limit = col_width },
             .height = .{ .limit = 1 },
+            .border = .{ .where = if (table_ctx.header_borders and idx > 0) .left else .none }
         });
         var hdr = switch (table_ctx.header_align) {
             .left => hdr_win,
@@ -292,6 +300,7 @@ pub fn drawTable(
             .y_off = 1 + row + table_ctx.active_y_off,
             .width = .{ .limit = table_win.width },
             .height = .{ .limit = 1 },
+            //.border = .{ .where = if (table_ctx.row_borders) .top else .none },
         });
         if (table_ctx.start + row == table_ctx.row) {
             table_ctx.active_y_off = if (table_ctx.active_content_fn) |content| try content(&row_win, table_ctx.active_ctx) else 0;
@@ -322,6 +331,7 @@ pub fn drawTable(
                     .y_off = 0,
                     .width = .{ .limit = col_width },
                     .height = .{ .limit = 1 },
+                    .border = .{ .where = if (table_ctx.col_borders and col_idx > 0) .left else .none },
                 });
                 const item_txt = switch (ItemT) {
                     []const u8 => item,
