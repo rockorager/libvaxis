@@ -175,7 +175,7 @@ pub fn main() !void {
         });
         if (use_mini_view) {
             _ = try map_win.printSegment(
-                .{ .text = "This is a mini portion of the View."  }, 
+                .{ .text = "This is a mini portion of the View." },
                 .{ .row_offset = 16, .col_offset = 5, .wrap = .word },
             );
         }

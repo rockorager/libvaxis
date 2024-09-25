@@ -103,7 +103,8 @@ pub fn toWin(self: *View, win: Window, config: RenderConfig) !struct { usize, us
                         \\ Position Out of Bounds:
                         \\ - Pos:  {d}, {d}
                         \\ - Size: {d}, {d}
-                        , .{
+                    ,
+                        .{
                             col,               row,
                             self.screen.width, self.screen.height,
                         },
