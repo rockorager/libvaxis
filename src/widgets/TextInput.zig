@@ -131,6 +131,10 @@ pub fn graphemesBeforeCursor(self: *const TextInput) usize {
 }
 
 pub fn draw(self: *TextInput, win: Window) void {
+    self.drawWithStyle(win, .{});
+}
+
+pub fn drawWithStyle(self: *TextInput, win: Window, style: Cell.Style) void {
     const cursor_idx = self.graphemesBeforeCursor();
     if (cursor_idx < self.draw_offset) self.draw_offset = cursor_idx;
     if (win.width == 0) return;
@@ -159,7 +163,10 @@ pub fn draw(self: *TextInput, win: Window) void {
         const g = grapheme.bytes(first_half);
         const w = win.gwidth(g);
         if (col + w >= win.width) {
-            win.writeCell(win.width - 1, 0, .{ .char = ellipsis });
+            win.writeCell(win.width - 1, 0, .{
+                .char = ellipsis,
+                .style = style,
+            });
             break;
         }
         win.writeCell(col, 0, .{
@@ -167,6 +174,7 @@ pub fn draw(self: *TextInput, win: Window) void {
                 .grapheme = g,
                 .width = w,
             },
+            .style = style,
         });
         col += w;
         i += 1;
@@ -182,7 +190,10 @@ pub fn draw(self: *TextInput, win: Window) void {
         const g = grapheme.bytes(second_half);
         const w = win.gwidth(g);
         if (col + w > win.width) {
-            win.writeCell(win.width - 1, 0, .{ .char = ellipsis });
+            win.writeCell(win.width - 1, 0, .{
+                .char = ellipsis,
+                .style = style,
+            });
             break;
         }
         win.writeCell(col, 0, .{
@@ -190,13 +201,17 @@ pub fn draw(self: *TextInput, win: Window) void {
                 .grapheme = g,
                 .width = w,
             },
+            .style = style,
         });
         col += w;
         i += 1;
         if (i == cursor_idx) self.prev_cursor_col = col;
     }
     if (self.draw_offset > 0) {
-        win.writeCell(0, 0, .{ .char = ellipsis });
+        win.writeCell(0, 0, .{
+            .char = ellipsis,
+            .style = style,
+        });
     }
     win.showCursor(self.prev_cursor_col, 0);
 }
