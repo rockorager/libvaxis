@@ -114,6 +114,7 @@ pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator, tty: AnyWriter) void {
 
     // always show the cursor on exit
     tty.writeAll(ctlseqs.show_cursor) catch {};
+    tty.writeAll(ctlseqs.sgr_reset) catch {};
     if (self.screen.cursor_shape != .default) {
         // In many terminals, `.default` will set to the configured cursor shape. Others, it will
         // change to a blinking block.
@@ -974,6 +975,7 @@ pub fn prettyPrint(self: *Vaxis, tty: AnyWriter) !void {
     try tty.writeAll(ctlseqs.sync_set);
     defer tty.writeAll(ctlseqs.sync_reset) catch {};
     try tty.writeAll(ctlseqs.sgr_reset);
+    defer tty.writeAll(ctlseqs.sgr_reset) catch {};
 
     var reposition: bool = false;
     var row: usize = 0;
