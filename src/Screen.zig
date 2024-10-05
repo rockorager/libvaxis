@@ -29,7 +29,7 @@ width_method: Method = .wcwidth,
 mouse_shape: Shape = .default,
 cursor_shape: Cell.CursorShape = .default,
 
-pub fn init(alloc: std.mem.Allocator, winsize: Winsize, unicode: *const Unicode) !Screen {
+pub fn init(alloc: std.mem.Allocator, winsize: Winsize, unicode: *const Unicode) std.mem.Allocator.Error!Screen {
     const w = winsize.cols;
     const h = winsize.rows;
     const self = Screen{
