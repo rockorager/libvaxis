@@ -25,7 +25,7 @@ pub const Config = struct {
 };
 
 /// Initialize a new View
-pub fn init(alloc: mem.Allocator, unicode: *const Unicode, config: Config) !View {
+pub fn init(alloc: mem.Allocator, unicode: *const Unicode, config: Config) mem.Allocator.Error!View {
     const screen = try Screen.init(
         alloc,
         .{
@@ -115,12 +115,10 @@ pub fn toWin(self: *View, win: Window, config: RenderConfig) !struct { usize, us
     x = @min(x, self.screen.width -| width);
     y = @min(y, self.screen.height -| height);
     const child = win.child(.{
-        .x_off = x,
-        .y_off = y,
         .width = .{ .limit = width },
         .height = .{ .limit = height },
     });
-    self.draw(child, .{});
+    self.draw(child, .{ .x_off = x, .y_off = y });
     return .{ x, y };
 }
 
