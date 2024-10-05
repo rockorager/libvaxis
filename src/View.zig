@@ -5,6 +5,8 @@ const mem = std.mem;
 
 const View = @This();
 
+const gw = @import("gwidth.zig");
+
 const Screen = @import("Screen.zig");
 const Window = @import("Window.zig");
 const Unicode = @import("Unicode.zig");
@@ -12,20 +14,19 @@ const Cell = @import("Cell.zig");
 
 /// View Allocator
 alloc: mem.Allocator,
+
 /// Underlying Screen
-screen: *Screen,
-/// Underlying Window
-win: Window,
+screen: Screen,
 
 /// View Initialization Config
 pub const Config = struct {
     width: usize,
     height: usize,
 };
+
 /// Initialize a new View
 pub fn init(alloc: mem.Allocator, unicode: *const Unicode, config: Config) !View {
-    const screen = try alloc.create(Screen);
-    screen.* = try Screen.init(
+    const screen = try Screen.init(
         alloc,
         .{
             .cols = config.width,
@@ -38,23 +39,46 @@ pub fn init(alloc: mem.Allocator, unicode: *const Unicode, config: Config) !View
     return .{
         .alloc = alloc,
         .screen = screen,
-        .win = .{
-            .x_off = 0,
-            .y_off = 0,
-            .width = config.width,
-            .height = config.height,
-            .screen = screen,
-        },
+    };
+}
+
+pub fn window(self: *View) Window {
+    return .{
+        .x_off = 0,
+        .y_off = 0,
+        .width = self.screen.width,
+        .height = self.screen.height,
+        .screen = &self.screen,
     };
 }
 
 /// Deinitialize this View
 pub fn deinit(self: *View) void {
     self.screen.deinit(self.alloc);
-    self.alloc.destroy(self.screen);
 }
 
-/// Render Config f/ `toWin()`
+pub const DrawOptions = struct {
+    x_off: usize = 0,
+    y_off: usize = 0,
+};
+
+pub fn draw(self: *View, win: Window, opts: DrawOptions) void {
+    if (opts.x_off >= self.screen.width) return;
+    if (opts.y_off >= self.screen.height) return;
+
+    const width = @min(win.width, self.screen.width - opts.x_off);
+    const height = @min(win.height, self.screen.height - opts.y_off);
+
+    for (0..height) |row| {
+        const src_start = opts.x_off + ((row + opts.y_off) * self.screen.width);
+        const src_end = src_start + width;
+        const dst_start = win.x_off + ((row + win.y_off) * win.screen.width);
+        const dst_end = dst_start + width;
+        @memcpy(win.screen.buf[dst_start..dst_end], self.screen.buf[src_start..src_end]);
+    }
+}
+
+/// Render Config for `toWin()`
 pub const RenderConfig = struct {
     x: usize = 0,
     y: usize = 0,
@@ -66,6 +90,7 @@ pub const RenderConfig = struct {
         max: usize,
     };
 };
+
 /// Render a portion of this View to the provided Window (`win`).
 /// This will return the bounded X (col), Y (row) coordinates based on the rendering.
 pub fn toWin(self: *View, win: Window, config: RenderConfig) !struct { usize, usize } {
@@ -89,71 +114,48 @@ pub fn toWin(self: *View, win: Window, config: RenderConfig) !struct { usize, us
     };
     x = @min(x, self.screen.width -| width);
     y = @min(y, self.screen.height -| height);
-
-    for (0..height) |row| {
-        for (0..width) |col| {
-            win.writeCell(
-                col,
-                row,
-                self.win.readCell(
-                    @min(self.screen.width -| 1, x +| col),
-                    @min(self.screen.height -| 1, y +| row),
-                ) orelse {
-                    std.log.err(
-                        \\ Position Out of Bounds:
-                        \\ - Pos:  {d}, {d}
-                        \\ - Size: {d}, {d}
-                    ,
-                        .{
-                            col,               row,
-                            self.screen.width, self.screen.height,
-                        },
-                    );
-                    return error.PositionOutOfBounds;
-                },
-            );
-        }
-    }
+    const child = win.child(.{
+        .x_off = x,
+        .y_off = y,
+        .width = .{ .limit = width },
+        .height = .{ .limit = height },
+    });
+    self.draw(child, .{});
     return .{ x, y };
 }
 
 /// Writes a cell to the location in the View
-pub fn writeCell(self: View, col: usize, row: usize, cell: Cell) void {
-    self.win.writeCell(col, row, cell);
+pub fn writeCell(self: *View, col: usize, row: usize, cell: Cell) void {
+    self.screen.writeCell(col, row, cell);
 }
 
 /// Reads a cell at the location in the View
-pub fn readCell(self: View, col: usize, row: usize) ?Cell {
-    return self.win.readCell(col, row);
+pub fn readCell(self: *const View, col: usize, row: usize) ?Cell {
+    return self.screen.readCell(col, row);
 }
 
 /// Fills the View with the default cell
 pub fn clear(self: View) void {
-    self.win.clear();
+    self.fill(.{ .default = true });
 }
 
 /// Returns the width of the grapheme. This depends on the terminal capabilities
 pub fn gwidth(self: View, str: []const u8) usize {
-    return self.win.gwidth(str);
+    return gw.gwidth(str, self.screen.width_method, &self.screen.unicode.width_data) catch 1;
 }
 
 /// Fills the View with the provided cell
 pub fn fill(self: View, cell: Cell) void {
-    self.win.fill(cell);
+    @memset(self.screen.buf, cell);
 }
 
 /// Prints segments to the View. Returns true if the text overflowed with the
 /// given wrap strategy and size.
-pub fn print(self: View, segments: []const Cell.Segment, opts: Window.PrintOptions) !Window.PrintResult {
-    return self.win.print(segments, opts);
+pub fn print(self: *View, segments: []const Cell.Segment, opts: Window.PrintOptions) !Window.PrintResult {
+    return self.window().print(segments, opts);
 }
 
 /// Print a single segment. This is just a shortcut for print(&.{segment}, opts)
-pub fn printSegment(self: View, segment: Cell.Segment, opts: Window.PrintOptions) !Window.PrintResult {
+pub fn printSegment(self: *View, segment: Cell.Segment, opts: Window.PrintOptions) !Window.PrintResult {
     return self.print(&.{segment}, opts);
-}
-
-/// Create a child window
-pub fn child(self: View, opts: Window.ChildOptions) Window {
-    return self.win.child(opts);
 }
