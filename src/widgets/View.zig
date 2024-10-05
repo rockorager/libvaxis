@@ -5,12 +5,12 @@ const mem = std.mem;
 
 const View = @This();
 
-const gw = @import("gwidth.zig");
+const gw = @import("../gwidth.zig");
 
-const Screen = @import("Screen.zig");
-const Window = @import("Window.zig");
-const Unicode = @import("Unicode.zig");
-const Cell = @import("Cell.zig");
+const Screen = @import("../Screen.zig");
+const Window = @import("../Window.zig");
+const Unicode = @import("../Unicode.zig");
+const Cell = @import("../Cell.zig");
 
 /// View Allocator
 alloc: mem.Allocator,
