@@ -165,8 +165,8 @@ pub fn main() !void {
             });
 
         // Clamp x and y
-        x = @min(x, map_width - map_win.width);
-        y = @min(y, map_height - map_win.height);
+        x = @min(x, map_width -| map_win.width);
+        y = @min(y, map_height -| map_win.height);
 
         map_view.draw(map_win, .{
             .x_off = x,
