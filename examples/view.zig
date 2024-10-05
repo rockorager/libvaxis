@@ -130,9 +130,6 @@ pub fn main() !void {
             },
             .winsize => |ws| try vx.resize(alloc, tty.anyWriter(), ws),
         }
-        // Bounds Check
-        x = @min(x, map_width -| 1);
-        y = @min(y, map_height -| 1);
 
         const win = vx.window();
         win.clear();
@@ -154,27 +151,29 @@ pub fn main() !void {
         );
 
         // Views require a Window to render to.
-        const map_win = win.child(.{
-            .y_off = controls_win.height,
-            .border = .{ .where = .top },
-        });
-        // The `View.toWin()` method takes:
-        // 1. A Window to render to.
-        // 2. A RenderConfig consisting of:
-        //    a. An x/y (col, row) position within the View as the start point of the render.
-        //    b. A Width and Height extending Right and Down from the start point that will represent the square being rendered.
-        // It also returns the calculated x/y position to help maintain scrolloing boundaries.
-        x, y = try map_view.toWin(map_win, if (!use_mini_view) .{
-            .x = x,
-            .y = y,
-        } else .{
-            .x = x,
-            .y = y,
-            .width = .{ .max = 45 },
-            .height = .{ .max = 15 },
+        const map_win = if (use_mini_view)
+            win.child(.{
+                .y_off = controls_win.height,
+                .border = .{ .where = .top },
+                .width = .{ .limit = 45 },
+                .height = .{ .limit = 15 },
+            })
+        else
+            win.child(.{
+                .y_off = controls_win.height,
+                .border = .{ .where = .top },
+            });
+
+        // Clamp x and y
+        x = @min(x, map_width - map_win.width);
+        y = @min(y, map_height - map_win.height);
+
+        map_view.draw(map_win, .{
+            .x_off = x,
+            .y_off = y,
         });
         if (use_mini_view) {
-            _ = try map_win.printSegment(
+            _ = try win.printSegment(
                 .{ .text = "This is a mini portion of the View." },
                 .{ .row_offset = 16, .col_offset = 5, .wrap = .word },
             );
