@@ -4,7 +4,7 @@ const mem = std.mem;
 const process = std.process;
 
 const vaxis = @import("vaxis");
-const View = vaxis.View;
+const View = vaxis.widgets.View;
 const Cell = vaxis.Cell;
 const border = vaxis.widgets.border;
 
