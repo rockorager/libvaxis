@@ -63,7 +63,7 @@ pub fn writeCell(self: *Screen, col: usize, row: usize, cell: Cell) void {
     self.buf[i] = cell;
 }
 
-pub fn readCell(self: *Screen, col: usize, row: usize) ?Cell {
+pub fn readCell(self: *const Screen, col: usize, row: usize) ?Cell {
     if (self.width <= col) {
         // column out of bounds
         return null;
