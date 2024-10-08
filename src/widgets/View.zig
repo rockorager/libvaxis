@@ -139,7 +139,7 @@ pub fn clear(self: View) void {
 
 /// Returns the width of the grapheme. This depends on the terminal capabilities
 pub fn gwidth(self: View, str: []const u8) usize {
-    return gw.gwidth(str, self.screen.width_method, &self.screen.unicode.width_data) catch 1;
+    return gw.gwidth(str, self.screen.width_method, &self.screen.unicode.width_data);
 }
 
 /// Fills the View with the provided cell
