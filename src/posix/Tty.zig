@@ -23,6 +23,8 @@ var handlers: [8]SignalHandler = undefined;
 var handler_mutex: std.Thread.Mutex = .{};
 var handler_idx: usize = 0;
 
+var handler_installed: bool = false;
+
 /// global tty instance, used in case of a panic. Not guaranteed to work if
 /// for some reason there are multiple TTYs open under a single vaxis
 /// compilation unit - but this is better than nothing
@@ -49,6 +51,7 @@ pub fn init() !Posix {
         .flags = 0,
     };
     try posix.sigaction(posix.SIG.WINCH, &act, null);
+    handler_installed = true;
 
     const self: Posix = .{
         .fd = fd,
@@ -67,6 +70,23 @@ pub fn deinit(self: Posix) void {
     };
     if (builtin.os.tag != .macos) // closing /dev/tty may block indefinitely on macos
         posix.close(self.fd);
+}
+
+/// Resets the signal handler to it's default
+pub fn resetSignalHandler() void {
+    if (!handler_installed) return;
+    handler_installed = false;
+    var act = posix.Sigaction{
+        .handler = posix.SIG.DFL,
+        .mask = switch (builtin.os.tag) {
+            .macos => 0,
+            .linux => posix.empty_sigset,
+            .freebsd => posix.empty_sigset,
+            else => @compileError("os not supported"),
+        },
+        .flags = 0,
+    };
+    posix.sigaction(posix.SIG.WINCH, &act, null) catch {};
 }
 
 /// Write bytes to the tty
