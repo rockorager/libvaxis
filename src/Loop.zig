@@ -301,6 +301,12 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                     if (@hasField(Event, "winsize")) {
                         return self.postEvent(.{ .winsize = winsize });
                     }
+
+                    switch (builtin.os.tag) {
+                        .windows => {},
+                        // Reset the signal handler if we are receiving in_band_resize
+                        else => self.tty.resetSignalHandler(),
+                    }
                 },
             }
         },
