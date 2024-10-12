@@ -170,11 +170,11 @@ pub fn child(self: Window, opts: ChildOptions) Window {
     if (loc.top and loc.left)
         result.writeCell(0, 0, .{ .char = top_left, .style = style });
     if (loc.top and loc.right)
-        result.writeCell(w - 1, 0, .{ .char = top_right, .style = style });
+        result.writeCell(w -| 1, 0, .{ .char = top_right, .style = style });
     if (loc.bottom and loc.left)
         result.writeCell(0, h -| 1, .{ .char = bottom_left, .style = style });
     if (loc.bottom and loc.right)
-        result.writeCell(w - 1, h -| 1, .{ .char = bottom_right, .style = style });
+        result.writeCell(w -| 1, h -| 1, .{ .char = bottom_right, .style = style });
 
     const x_off: usize = if (loc.left) 1 else 0;
     const y_off: usize = if (loc.top) 1 else 0;
