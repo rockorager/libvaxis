@@ -306,7 +306,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
                     if (opts.commit) self.writeCell(col, row, .{
                         .char = .{
                             .grapheme = s,
-                            .width = w,
+                            .width = @intCast(w),
                         },
                         .style = segment.style,
                         .link = segment.link,
@@ -383,7 +383,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
                                     if (opts.commit) self.writeCell(col, row, .{
                                         .char = .{
                                             .grapheme = s,
-                                            .width = w,
+                                            .width = @intCast(w),
                                         },
                                         .style = segment.style,
                                         .link = segment.link,
@@ -420,7 +420,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
                     if (opts.commit) self.writeCell(col, row, .{
                         .char = .{
                             .grapheme = s,
-                            .width = w,
+                            .width = @intCast(w),
                         },
                         .style = segment.style,
                         .link = segment.link,
