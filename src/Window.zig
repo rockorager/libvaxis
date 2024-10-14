@@ -25,12 +25,10 @@ height: usize,
 
 screen: *Screen,
 
-/// Deprecated. Use `child` instead
-///
 /// Creates a new window with offset relative to parent and size clamped to the
 /// parent's size. Windows do not retain a reference to their parent and are
 /// unaware of resizes.
-pub fn initChild(
+fn initChild(
     self: Window,
     x_off: usize,
     y_off: usize,
