@@ -98,7 +98,7 @@ fn drawCode(self: *@This(), win: vaxis.Window, buffer: Buffer, opts: DrawOptions
             self.scroll_view.writeCell(win, pos.x, pos.y, cell);
         } else {
             self.scroll_view.writeCell(win, pos.x, pos.y, .{
-                .char = .{ .grapheme = cluster, .width = width },
+                .char = .{ .grapheme = cluster, .width = @intCast(width) },
                 .style = style,
             });
         }
