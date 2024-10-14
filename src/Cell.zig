@@ -23,7 +23,7 @@ pub const Character = struct {
     /// will measure the same width. This can be ensure by using the gwidth method
     /// included in libvaxis. If width is 0, libvaxis will measure the glyph at
     /// render time
-    width: usize = 1,
+    width: u8 = 1,
 };
 
 pub const CursorShape = enum {

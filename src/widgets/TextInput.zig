@@ -172,7 +172,7 @@ pub fn drawWithStyle(self: *TextInput, win: Window, style: Cell.Style) void {
         win.writeCell(col, 0, .{
             .char = .{
                 .grapheme = g,
-                .width = w,
+                .width = @intCast(w),
             },
             .style = style,
         });
@@ -199,7 +199,7 @@ pub fn drawWithStyle(self: *TextInput, win: Window, style: Cell.Style) void {
         win.writeCell(col, 0, .{
             .char = .{
                 .grapheme = g,
-                .width = w,
+                .width = @intCast(w),
             },
             .style = style,
         });
