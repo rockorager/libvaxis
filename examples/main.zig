@@ -71,7 +71,9 @@ pub fn main() !void {
         // fill the remaining space of the parent. Child windows do not store a
         // reference to their parent: this is true immediate mode. Do not store
         // windows, always create new windows each render cycle
-        const child = win.initChild(win.width / 2 - msg.len / 2, win.height / 2, .expand, .expand);
+        const child = win.child(
+            .{ .x_off = win.width / 2 - msg.len / 2, .y_off = win.height / 2 },
+        );
         // Loop through the message and print the cells to the screen
         for (msg, 0..) |_, i| {
             const cell: Cell = .{
