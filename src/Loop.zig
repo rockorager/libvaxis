@@ -45,7 +45,7 @@ pub fn Loop(comptime T: type) type {
             if (self.thread) |_| return;
             self.thread = try std.Thread.spawn(.{}, Self.ttyRun, .{
                 self,
-                &self.vaxis.unicode.grapheme_data,
+                &self.vaxis.unicode.width_data.g_data,
                 self.vaxis.opts.system_clipboard_allocator,
             });
         }

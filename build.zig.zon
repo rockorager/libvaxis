@@ -9,8 +9,8 @@
             .lazy = true,
         },
         .zg = .{
-            .url = "git+https://codeberg.org/dude_the_builder/zg?ref=master#689ab6b83d08c02724b99d199d650ff731250998",
-            .hash = "12200d1ce5f9733a9437415d85665ad5fbc85a4d27689fd337fecad8014acffe3aa5",
+            .url = "git+https://codeberg.org/dude_the_builder/zg#7ddce488e074c3f052949ba513a340446cea86e9",
+            .hash = "12205e2e7108385a1ec280b6365166e902a690d6a0e8fcc015fdea62d63cf79be8ec",
         },
         .libxev = .{
             .url = "git+https://github.com/mitchellh/libxev#f6a672a78436d8efee1aa847a43a900ad773618b",
