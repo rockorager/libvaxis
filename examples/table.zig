@@ -239,7 +239,7 @@ pub fn main() !void {
                             .style = .{ .bg = ctx.bg },
                         },
                     };
-                    _ = try see_win.print(content_segs, .{});
+                    _ = see_win.print(content_segs, .{});
                     return see_win.height;
                 }
             }.see;
@@ -269,7 +269,7 @@ pub fn main() !void {
             44,
             top_bar.height - (top_bar.height / 3),
         );
-        _ = try logo_bar.print(title_segs[0..], .{ .wrap = .word });
+        _ = logo_bar.print(title_segs[0..], .{ .wrap = .word });
 
         // - Middle
         const middle_bar = win.child(.{

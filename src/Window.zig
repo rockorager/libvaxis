@@ -280,7 +280,7 @@ pub const PrintResult = struct {
 
 /// prints segments to the window. returns true if the text overflowed with the
 /// given wrap strategy and size.
-pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !PrintResult {
+pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintResult {
     var row = opts.row_offset;
     switch (opts.wrap) {
         .grapheme => {
@@ -437,7 +437,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) !Print
 }
 
 /// print a single segment. This is just a shortcut for print(&.{segment}, opts)
-pub fn printSegment(self: Window, segment: Segment, opts: PrintOptions) !PrintResult {
+pub fn printSegment(self: Window, segment: Segment, opts: PrintOptions) PrintResult {
     return self.print(&.{segment}, opts);
 }
 
@@ -547,7 +547,7 @@ test "print: grapheme" {
         var segments = [_]Segment{
             .{ .text = "a" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(1, result.col);
         try std.testing.expectEqual(0, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -556,7 +556,7 @@ test "print: grapheme" {
         var segments = [_]Segment{
             .{ .text = "abcd" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(0, result.col);
         try std.testing.expectEqual(1, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -565,7 +565,7 @@ test "print: grapheme" {
         var segments = [_]Segment{
             .{ .text = "abcde" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(1, result.col);
         try std.testing.expectEqual(1, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -574,7 +574,7 @@ test "print: grapheme" {
         var segments = [_]Segment{
             .{ .text = "abcdefgh" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(0, result.col);
         try std.testing.expectEqual(2, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -583,7 +583,7 @@ test "print: grapheme" {
         var segments = [_]Segment{
             .{ .text = "abcdefghi" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(0, result.col);
         try std.testing.expectEqual(2, result.row);
         try std.testing.expectEqual(true, result.overflow);
@@ -614,7 +614,7 @@ test "print: word" {
         var segments = [_]Segment{
             .{ .text = "a" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(1, result.col);
         try std.testing.expectEqual(0, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -623,7 +623,7 @@ test "print: word" {
         var segments = [_]Segment{
             .{ .text = " " },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(1, result.col);
         try std.testing.expectEqual(0, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -632,7 +632,7 @@ test "print: word" {
         var segments = [_]Segment{
             .{ .text = " a" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(2, result.col);
         try std.testing.expectEqual(0, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -641,7 +641,7 @@ test "print: word" {
         var segments = [_]Segment{
             .{ .text = "a b" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(3, result.col);
         try std.testing.expectEqual(0, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -650,7 +650,7 @@ test "print: word" {
         var segments = [_]Segment{
             .{ .text = "a b c" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(1, result.col);
         try std.testing.expectEqual(1, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -659,7 +659,7 @@ test "print: word" {
         var segments = [_]Segment{
             .{ .text = "hello" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(1, result.col);
         try std.testing.expectEqual(1, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -668,7 +668,7 @@ test "print: word" {
         var segments = [_]Segment{
             .{ .text = "hi tim" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(3, result.col);
         try std.testing.expectEqual(1, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -677,7 +677,7 @@ test "print: word" {
         var segments = [_]Segment{
             .{ .text = "hello tim" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(0, result.col);
         try std.testing.expectEqual(2, result.row);
         try std.testing.expectEqual(true, result.overflow);
@@ -686,7 +686,7 @@ test "print: word" {
         var segments = [_]Segment{
             .{ .text = "hello ti" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(0, result.col);
         try std.testing.expectEqual(2, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -696,7 +696,7 @@ test "print: word" {
             .{ .text = "h" },
             .{ .text = "e" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(2, result.col);
         try std.testing.expectEqual(0, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -709,7 +709,7 @@ test "print: word" {
             .{ .text = "l" },
             .{ .text = "o" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(1, result.col);
         try std.testing.expectEqual(1, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -718,7 +718,7 @@ test "print: word" {
         var segments = [_]Segment{
             .{ .text = "he\n" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(0, result.col);
         try std.testing.expectEqual(1, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -727,7 +727,7 @@ test "print: word" {
         var segments = [_]Segment{
             .{ .text = "he\n\n" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(0, result.col);
         try std.testing.expectEqual(2, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -736,7 +736,7 @@ test "print: word" {
         var segments = [_]Segment{
             .{ .text = "not now" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(3, result.col);
         try std.testing.expectEqual(1, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -745,7 +745,7 @@ test "print: word" {
         var segments = [_]Segment{
             .{ .text = "note now" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(3, result.col);
         try std.testing.expectEqual(1, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -755,7 +755,7 @@ test "print: word" {
             .{ .text = "note" },
             .{ .text = " now" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(3, result.col);
         try std.testing.expectEqual(1, result.row);
         try std.testing.expectEqual(false, result.overflow);
@@ -765,7 +765,7 @@ test "print: word" {
             .{ .text = "note " },
             .{ .text = "now" },
         };
-        const result = try win.print(&segments, opts);
+        const result = win.print(&segments, opts);
         try std.testing.expectEqual(3, result.col);
         try std.testing.expectEqual(1, result.row);
         try std.testing.expectEqual(false, result.overflow);

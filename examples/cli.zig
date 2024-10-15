@@ -92,7 +92,7 @@ pub fn main() !void {
                     .text = opt,
                     .style = if (j == i) .{ .reverse = true } else .{},
                 }};
-                _ = try win.print(&seg, .{ .row_offset = j + 1 });
+                _ = win.print(&seg, .{ .row_offset = j + 1 });
             }
         }
         try vx.render(tty.anyWriter());

@@ -255,7 +255,7 @@ pub fn drawTable(
                 .ul_style = if (idx == table_ctx.col) .single else .dotted,
             },
         }};
-        _ = try hdr.print(seg[0..], .{ .wrap = .word });
+        _ = hdr.print(seg[0..], .{ .wrap = .word });
     }
 
     // Rows
@@ -378,7 +378,7 @@ pub fn drawTable(
                     .text = if (item_txt.len > col_width and alloc != null) try fmt.allocPrint(alloc.?, "{s}...", .{item_txt[0..(col_width -| 4)]}) else item_txt,
                     .style = .{ .fg = row_fg, .bg = row_bg },
                 }};
-                _ = try item_align_win.print(seg[0..], .{ .wrap = .word, .col_offset = table_ctx.cell_x_off });
+                _ = item_align_win.print(seg[0..], .{ .wrap = .word, .col_offset = table_ctx.cell_x_off });
             }
         }
     }

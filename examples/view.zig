@@ -74,7 +74,7 @@ pub fn main() !void {
     //h = lg_map_view.screen.height;
     var lg_map_buf: [lg_map_width * lg_map_height]u8 = undefined;
     _ = mem.replace(u8, lg_world_map, "\n", "", lg_map_buf[0..]);
-    _ = try lg_map_view.printSegment(.{ .text = lg_map_buf[0..] }, .{ .wrap = .grapheme });
+    _ = lg_map_view.printSegment(.{ .text = lg_map_buf[0..] }, .{ .wrap = .grapheme });
     // - Small Map
     var sm_map_view = try View.init(alloc, &vx.unicode, .{ .width = sm_map_width, .height = sm_map_height });
     defer sm_map_view.deinit();
@@ -82,7 +82,7 @@ pub fn main() !void {
     h = sm_map_view.screen.height;
     var sm_map_buf: [sm_map_width * sm_map_height]u8 = undefined;
     _ = mem.replace(u8, sm_world_map, "\n", "", sm_map_buf[0..]);
-    _ = try sm_map_view.printSegment(.{ .text = sm_map_buf[0..] }, .{ .wrap = .grapheme });
+    _ = sm_map_view.printSegment(.{ .text = sm_map_buf[0..] }, .{ .wrap = .grapheme });
     // - Active Map
     var map_view = lg_map_view;
 
@@ -137,7 +137,7 @@ pub fn main() !void {
         const controls_win = win.child(.{
             .height = .{ .limit = 1 },
         });
-        _ = try controls_win.print(
+        _ = controls_win.print(
             if (win.width >= 112) &.{
                 .{ .text = "Controls:", .style = .{ .bold = true, .ul_style = .single } },
                 .{ .text = " Exit: ctrl + c | Scroll: dpad | Quick Scroll: ctrl + dpad | Goto Side: shift + dpad | Zoom: z | Mini: m" },
@@ -173,7 +173,7 @@ pub fn main() !void {
             .y_off = y,
         });
         if (use_mini_view) {
-            _ = try win.printSegment(
+            _ = win.printSegment(
                 .{ .text = "This is a mini portion of the View." },
                 .{ .row_offset = 16, .col_offset = 5, .wrap = .word },
             );
