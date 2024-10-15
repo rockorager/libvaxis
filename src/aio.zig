@@ -116,7 +116,7 @@ pub fn LoopWithModules(T: type, aio: type, coro: type) type {
             }
 
             var parser: vaxis.Parser = .{
-                .grapheme_data = &vx.unicode.grapheme_data,
+                .grapheme_data = &vx.unicode.width_data.g_data,
             };
 
             const file: std.fs.File = .{ .handle = tty.fd };

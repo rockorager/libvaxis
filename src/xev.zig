@@ -76,7 +76,7 @@ pub fn TtyWatcher(comptime Userdata: type) type {
                 .callback = callback,
                 .ud = userdata,
                 .vx = vaxis,
-                .parser = .{ .grapheme_data = &vaxis.unicode.grapheme_data },
+                .parser = .{ .grapheme_data = &vaxis.unicode.width_data.g_data },
             };
 
             self.file.read(
