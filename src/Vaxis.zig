@@ -66,11 +66,6 @@ next_img_id: u32 = 1,
 
 unicode: Unicode,
 
-// statistics
-renders: usize = 0,
-render_dur: u64 = 0,
-render_timer: std.time.Timer,
-
 sgr: enum {
     standard,
     legacy,
@@ -100,7 +95,6 @@ pub fn init(alloc: std.mem.Allocator, opts: Options) !Vaxis {
         .opts = opts,
         .screen = .{},
         .screen_last = .{},
-        .render_timer = try std.time.Timer.start(),
         .unicode = try Unicode.init(alloc),
     };
 }
@@ -123,11 +117,6 @@ pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator, tty: AnyWriter) void {
     if (alloc) |a| {
         self.screen.deinit(a);
         self.screen_last.deinit(a);
-    }
-    if (self.renders > 0) {
-        const tpr = @divTrunc(self.render_dur, self.renders);
-        log.debug("total renders = {d}\r", .{self.renders});
-        log.debug("microseconds per render = {d}\r", .{tpr});
     }
     self.unicode.deinit();
 }
@@ -318,12 +307,6 @@ pub fn queueRefresh(self: *Vaxis) void {
 
 /// draws the screen to the terminal
 pub fn render(self: *Vaxis, tty: AnyWriter) !void {
-    self.renders += 1;
-    self.render_timer.reset();
-    defer {
-        self.render_dur += self.render_timer.read() / std.time.ns_per_us;
-    }
-
     defer self.refresh = false;
 
     // Set up sync before we write anything
