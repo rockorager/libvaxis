@@ -149,11 +149,11 @@ pub fn fill(self: View, cell: Cell) void {
 
 /// Prints segments to the View. Returns true if the text overflowed with the
 /// given wrap strategy and size.
-pub fn print(self: *View, segments: []const Cell.Segment, opts: Window.PrintOptions) !Window.PrintResult {
+pub fn print(self: *View, segments: []const Cell.Segment, opts: Window.PrintOptions) Window.PrintResult {
     return self.window().print(segments, opts);
 }
 
 /// Print a single segment. This is just a shortcut for print(&.{segment}, opts)
-pub fn printSegment(self: *View, segment: Cell.Segment, opts: Window.PrintOptions) !Window.PrintResult {
+pub fn printSegment(self: *View, segment: Cell.Segment, opts: Window.PrintOptions) Window.PrintResult {
     return self.print(&.{segment}, opts);
 }
