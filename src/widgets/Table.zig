@@ -209,12 +209,11 @@ pub fn drawTable(
         }
     };
 
-    const table_win = win.initChild(
-        0,
-        table_ctx.y_off,
-        .{ .limit = win.width },
-        .{ .limit = win.height },
-    );
+    const table_win = win.child(.{
+        .y_off = table_ctx.y_off,
+        .width = .{ .limit = win.width },
+        .height = .{ .limit = win.height },
+    });
 
     // Headers
     if (table_ctx.col > headers.len - 1) table_ctx.col = headers.len - 1;
