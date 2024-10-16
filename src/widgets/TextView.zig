@@ -184,7 +184,7 @@ pub fn draw(self: *@This(), win: vaxis.Window, buffer: Buffer) void {
         };
 
         self.scroll_view.writeCell(win, pos.x, pos.y, .{
-            .char = .{ .grapheme = cluster, .width = width },
+            .char = .{ .grapheme = cluster, .width = @intCast(width) },
             .style = style,
         });
     }
