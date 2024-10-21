@@ -1,8 +1,5 @@
 //! Specialized TUI Widgets
 
-const opts = @import("build_options");
-
-pub const border = @import("widgets/border.zig");
 pub const alignment = @import("widgets/alignment.zig");
 pub const Scrollbar = @import("widgets/Scrollbar.zig");
 pub const Table = @import("widgets/Table.zig");
