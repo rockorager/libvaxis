@@ -65,8 +65,8 @@ pub fn draw(self: *@This(), parent: vaxis.Window, content_size: struct {
         };
         const bg = parent.child(.{
             .x_off = parent.width -| opts.character.width,
-            .width = .{ .limit = opts.character.width },
-            .height = .{ .limit = parent.height },
+            .width = opts.character.width,
+            .height = parent.height,
         });
         bg.fill(.{ .char = opts.character, .style = opts.bg });
         vbar.draw(bg);
@@ -115,7 +115,7 @@ pub fn bounds(self: *@This(), parent: vaxis.Window) BoundingBox {
 pub fn writeCell(self: *@This(), parent: vaxis.Window, col: usize, row: usize, cell: vaxis.Cell) void {
     const b = self.bounds(parent);
     if (!b.inside(col, row)) return;
-    const win = parent.child(.{ .width = .{ .limit = b.x2 - b.x1 }, .height = .{ .limit = b.y2 - b.y1 } });
+    const win = parent.child(.{ .width = b.x2 - b.x1, .height = b.y2 - b.y1 });
     win.writeCell(col -| self.scroll.x, row -| self.scroll.y, cell);
 }
 
@@ -123,6 +123,6 @@ pub fn writeCell(self: *@This(), parent: vaxis.Window, col: usize, row: usize, c
 pub fn readCell(self: *@This(), parent: vaxis.Window, col: usize, row: usize) ?vaxis.Cell {
     const b = self.bounds(parent);
     if (!b.inside(col, row)) return;
-    const win = parent.child(.{ .width = .{ .limit = b.width }, .height = .{ .limit = b.height } });
+    const win = parent.child(.{ .width = b.width, .height = b.height });
     return win.readCell(col -| self.scroll.x, row -| self.scroll.y);
 }

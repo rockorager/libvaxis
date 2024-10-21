@@ -115,8 +115,8 @@ pub fn toWin(self: *View, win: Window, config: RenderConfig) !struct { u16, u16 
     x = @min(x, self.screen.width -| width);
     y = @min(y, self.screen.height -| height);
     const child = win.child(.{
-        .width = .{ .limit = width },
-        .height = .{ .limit = height },
+        .width = width,
+        .height = height,
     });
     self.draw(child, .{ .x_off = x, .y_off = y });
     return .{ x, y };

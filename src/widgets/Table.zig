@@ -211,8 +211,8 @@ pub fn drawTable(
 
     const table_win = win.child(.{
         .y_off = table_ctx.y_off,
-        .width = .{ .limit = win.width },
-        .height = .{ .limit = win.height },
+        .width = win.width,
+        .height = win.height,
     });
 
     // Headers
@@ -237,8 +237,8 @@ pub fn drawTable(
         const hdr_win = table_win.child(.{
             .x_off = col_start,
             .y_off = 0,
-            .width = .{ .limit = col_width },
-            .height = .{ .limit = 1 },
+            .width = col_width,
+            .height = 1,
             .border = .{ .where = if (table_ctx.header_borders and idx > 0) .left else .none },
         });
         var hdr = switch (table_ctx.header_align) {
@@ -297,8 +297,8 @@ pub fn drawTable(
         var row_win = table_win.child(.{
             .x_off = 0,
             .y_off = @intCast(1 + row + table_ctx.active_y_off),
-            .width = .{ .limit = table_win.width },
-            .height = .{ .limit = 1 },
+            .width = table_win.width,
+            .height = 1,
             //.border = .{ .where = if (table_ctx.row_borders) .top else .none },
         });
         if (table_ctx.start + row == table_ctx.row) {
@@ -328,8 +328,8 @@ pub fn drawTable(
                 const item_win = row_win.child(.{
                     .x_off = col_start,
                     .y_off = 0,
-                    .width = .{ .limit = col_width },
-                    .height = .{ .limit = 1 },
+                    .width = col_width,
+                    .height = 1,
                     .border = .{ .where = if (table_ctx.col_borders and col_idx > 0) .left else .none },
                 });
                 const item_txt = switch (ItemT) {

@@ -9,11 +9,6 @@ const gw = @import("gwidth.zig");
 
 const Window = @This();
 
-pub const Size = union(enum) {
-    expand,
-    limit: u16,
-};
-
 /// horizontal offset from the screen
 x_off: u16,
 /// vertical offset from the screen
@@ -32,27 +27,18 @@ fn initChild(
     self: Window,
     x_off: u16,
     y_off: u16,
-    width: Size,
-    height: Size,
+    maybe_width: ?u16,
+    maybe_height: ?u16,
 ) Window {
-    const resolved_width: u16 = switch (width) {
-        .expand => self.width -| x_off,
-        .limit => |w| blk: {
-            if (w + x_off > self.width) {
-                break :blk self.width -| x_off;
-            }
-            break :blk w;
-        },
-    };
-    const resolved_height: u16 = switch (height) {
-        .expand => self.height -| y_off,
-        .limit => |h| blk: {
-            if (h + y_off > self.height) {
-                break :blk self.height -| y_off;
-            }
-            break :blk h;
-        },
-    };
+    const resolved_width: u16 = if (maybe_width) |width|
+        @min(width, self.width -| x_off)
+    else
+        self.width -| x_off;
+
+    const resolved_height: u16 = if (maybe_height) |height|
+        @min(height, self.height -| y_off)
+    else
+        self.height -| y_off;
     return Window{
         .x_off = x_off + self.x_off,
         .y_off = y_off + self.y_off,
@@ -66,9 +52,9 @@ pub const ChildOptions = struct {
     x_off: u16 = 0,
     y_off: u16 = 0,
     /// the width of the resulting child, including any borders
-    width: Size = .expand,
+    width: ?u16 = null,
     /// the height of the resulting child, including any borders
-    height: Size = .expand,
+    height: ?u16 = null,
     border: BorderOptions = .{},
 };
 
@@ -180,7 +166,7 @@ pub fn child(self: Window, opts: ChildOptions) Window {
     const w_delt: u16 = if (loc.right) 1 else 0;
     const h_ch: u16 = h -| y_off -| h_delt;
     const w_ch: u16 = w -| x_off -| w_delt;
-    return result.initChild(x_off, y_off, .{ .limit = w_ch }, .{ .limit = h_ch });
+    return result.initChild(x_off, y_off, w_ch, h_ch);
 }
 
 /// writes a cell to the location in the window
@@ -479,7 +465,7 @@ test "Window size set" {
         .screen = undefined,
     };
 
-    const ch = parent.initChild(1, 1, .expand, .expand);
+    const ch = parent.initChild(1, 1, null, null);
     try std.testing.expectEqual(19, ch.width);
     try std.testing.expectEqual(19, ch.height);
 }
@@ -493,7 +479,7 @@ test "Window size set too big" {
         .screen = undefined,
     };
 
-    const ch = parent.initChild(0, 0, .{ .limit = 21 }, .{ .limit = 21 });
+    const ch = parent.initChild(0, 0, 21, 21);
     try std.testing.expectEqual(20, ch.width);
     try std.testing.expectEqual(20, ch.height);
 }
@@ -507,7 +493,7 @@ test "Window size set too big with offset" {
         .screen = undefined,
     };
 
-    const ch = parent.initChild(10, 10, .{ .limit = 21 }, .{ .limit = 21 });
+    const ch = parent.initChild(10, 10, 21, 21);
     try std.testing.expectEqual(10, ch.width);
     try std.testing.expectEqual(10, ch.height);
 }
@@ -521,7 +507,7 @@ test "Window size nested offsets" {
         .screen = undefined,
     };
 
-    const ch = parent.initChild(10, 10, .{ .limit = 21 }, .{ .limit = 21 });
+    const ch = parent.initChild(10, 10, 21, 21);
     try std.testing.expectEqual(11, ch.x_off);
     try std.testing.expectEqual(11, ch.y_off);
 }

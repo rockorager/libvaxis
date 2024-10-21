@@ -94,8 +94,8 @@ pub fn main() !void {
         const child = win.child(.{
             .x_off = 4,
             .y_off = 2,
-            .width = .{ .limit = win.width - 8 },
-            .height = .{ .limit = win.width - 6 },
+            .width = 8,
+            .height = 6,
             .border = .{
                 .where = .all,
             },

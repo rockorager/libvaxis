@@ -39,8 +39,8 @@ pub fn draw(self: *@This(), win: vaxis.Window, buffer: Buffer, opts: DrawOptions
         nl.draw(win.child(.{
             .x_off = 0,
             .y_off = 0,
-            .width = .{ .limit = pad_left },
-            .height = .{ .limit = win.height },
+            .width = pad_left,
+            .height = win.height,
         }), self.scroll_view.scroll.y);
     }
     self.drawCode(win.child(.{ .x_off = pad_left }), buffer, opts);

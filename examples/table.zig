@@ -219,8 +219,8 @@ pub fn main() !void {
                     const see_win = win.child(.{
                         .x_off = 0,
                         .y_off = 1,
-                        .width = .{ .limit = win.width },
-                        .height = .{ .limit = 4 },
+                        .width = win.width,
+                        .height = 4,
                     });
                     see_win.fill(.{ .style = .{ .bg = ctx.bg } });
                     const content_logo =
@@ -256,8 +256,8 @@ pub fn main() !void {
         const top_bar = win.child(.{
             .x_off = 0,
             .y_off = 0,
-            .width = .{ .limit = win.width },
-            .height = .{ .limit = win.height / top_div },
+            .width = win.width,
+            .height = win.height / top_div,
         });
         for (title_segs[0..]) |*title_seg|
             title_seg.style.bg = if (active == .top) selected_bg else other_bg;
@@ -275,8 +275,8 @@ pub fn main() !void {
         const middle_bar = win.child(.{
             .x_off = 0,
             .y_off = win.height / top_div,
-            .width = .{ .limit = win.width },
-            .height = .{ .limit = win.height - (top_bar.height + 1) },
+            .width = win.width,
+            .height = win.height - (top_bar.height + 1),
         });
         if (user_list.items.len > 0) {
             demo_tbl.active = active == .mid;
@@ -294,8 +294,8 @@ pub fn main() !void {
         const bottom_bar = win.child(.{
             .x_off = 0,
             .y_off = win.height - 1,
-            .width = .{ .limit = win.width },
-            .height = .{ .limit = 1 },
+            .width = win.width,
+            .height = 1,
         });
         if (active == .btm) bottom_bar.fill(.{ .style = .{ .bg = active_bg } });
         cmd_input.draw(bottom_bar);

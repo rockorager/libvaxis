@@ -135,7 +135,7 @@ pub fn main() !void {
         win.clear();
 
         const controls_win = win.child(.{
-            .height = .{ .limit = 1 },
+            .height = 1,
         });
         _ = controls_win.print(
             if (win.width >= 112) &.{
@@ -155,8 +155,8 @@ pub fn main() !void {
             win.child(.{
                 .y_off = controls_win.height,
                 .border = .{ .where = .top },
-                .width = .{ .limit = 45 },
-                .height = .{ .limit = 15 },
+                .width = 45,
+                .height = 15,
             })
         else
             win.child(.{

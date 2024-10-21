@@ -6,7 +6,7 @@ pub fn center(parent: Window, cols: u16, rows: u16) Window {
     return parent.child(.{
         .x_off = x_off,
         .y_off = y_off,
-        .width = .{ .limit = cols },
-        .height = .{ .limit = rows },
+        .width = cols,
+        .height = rows,
     });
 }
