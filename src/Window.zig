@@ -11,17 +11,17 @@ const Window = @This();
 
 pub const Size = union(enum) {
     expand,
-    limit: usize,
+    limit: u16,
 };
 
 /// horizontal offset from the screen
-x_off: usize,
+x_off: u16,
 /// vertical offset from the screen
-y_off: usize,
+y_off: u16,
 /// width of the window. This can't be larger than the terminal screen
-width: usize,
+width: u16,
 /// height of the window. This can't be larger than the terminal screen
-height: usize,
+height: u16,
 
 screen: *Screen,
 
@@ -30,12 +30,12 @@ screen: *Screen,
 /// unaware of resizes.
 fn initChild(
     self: Window,
-    x_off: usize,
-    y_off: usize,
+    x_off: u16,
+    y_off: u16,
     width: Size,
     height: Size,
 ) Window {
-    const resolved_width = switch (width) {
+    const resolved_width: u16 = switch (width) {
         .expand => self.width -| x_off,
         .limit => |w| blk: {
             if (w + x_off > self.width) {
@@ -44,7 +44,7 @@ fn initChild(
             break :blk w;
         },
     };
-    const resolved_height = switch (height) {
+    const resolved_height: u16 = switch (height) {
         .expand => self.height -| y_off,
         .limit => |h| blk: {
             if (h + y_off > self.height) {
@@ -63,8 +63,8 @@ fn initChild(
 }
 
 pub const ChildOptions = struct {
-    x_off: usize = 0,
-    y_off: usize = 0,
+    x_off: u16 = 0,
+    y_off: u16 = 0,
     /// the width of the resulting child, including any borders
     width: Size = .expand,
     /// the height of the resulting child, including any borders
@@ -141,25 +141,25 @@ pub fn child(self: Window, opts: ChildOptions) Window {
         .other => |loc| loc,
     };
     if (loc.top) {
-        var i: usize = 0;
+        var i: u16 = 0;
         while (i < w) : (i += 1) {
             result.writeCell(i, 0, .{ .char = horizontal, .style = style });
         }
     }
     if (loc.bottom) {
-        var i: usize = 0;
+        var i: u16 = 0;
         while (i < w) : (i += 1) {
             result.writeCell(i, h -| 1, .{ .char = horizontal, .style = style });
         }
     }
     if (loc.left) {
-        var i: usize = 0;
+        var i: u16 = 0;
         while (i < h) : (i += 1) {
             result.writeCell(0, i, .{ .char = vertical, .style = style });
         }
     }
     if (loc.right) {
-        var i: usize = 0;
+        var i: u16 = 0;
         while (i < h) : (i += 1) {
             result.writeCell(w -| 1, i, .{ .char = vertical, .style = style });
         }
@@ -174,24 +174,24 @@ pub fn child(self: Window, opts: ChildOptions) Window {
     if (loc.bottom and loc.right)
         result.writeCell(w -| 1, h -| 1, .{ .char = bottom_right, .style = style });
 
-    const x_off: usize = if (loc.left) 1 else 0;
-    const y_off: usize = if (loc.top) 1 else 0;
-    const h_delt: usize = if (loc.bottom) 1 else 0;
-    const w_delt: usize = if (loc.right) 1 else 0;
-    const h_ch: usize = h -| y_off -| h_delt;
-    const w_ch: usize = w -| x_off -| w_delt;
+    const x_off: u16 = if (loc.left) 1 else 0;
+    const y_off: u16 = if (loc.top) 1 else 0;
+    const h_delt: u16 = if (loc.bottom) 1 else 0;
+    const w_delt: u16 = if (loc.right) 1 else 0;
+    const h_ch: u16 = h -| y_off -| h_delt;
+    const w_ch: u16 = w -| x_off -| w_delt;
     return result.initChild(x_off, y_off, .{ .limit = w_ch }, .{ .limit = h_ch });
 }
 
 /// writes a cell to the location in the window
-pub fn writeCell(self: Window, col: usize, row: usize, cell: Cell) void {
+pub fn writeCell(self: Window, col: u16, row: u16, cell: Cell) void {
     if (self.height == 0 or self.width == 0) return;
     if (self.height <= row or self.width <= col) return;
     self.screen.writeCell(col + self.x_off, row + self.y_off, cell);
 }
 
 /// reads a cell at the location in the window
-pub fn readCell(self: Window, col: usize, row: usize) ?Cell {
+pub fn readCell(self: Window, col: u16, row: u16) ?Cell {
     if (self.height == 0 or self.width == 0) return null;
     if (self.height <= row or self.width <= col) return null;
     return self.screen.readCell(col + self.x_off, row + self.y_off);
@@ -203,7 +203,7 @@ pub fn clear(self: Window) void {
 }
 
 /// returns the width of the grapheme. This depends on the terminal capabilities
-pub fn gwidth(self: Window, str: []const u8) usize {
+pub fn gwidth(self: Window, str: []const u8) u16 {
     return gw.gwidth(str, self.screen.width_method, &self.screen.unicode.width_data);
 }
 
@@ -220,7 +220,7 @@ pub fn fill(self: Window, cell: Cell) void {
         @memset(self.screen.buf[start..end], cell);
     } else {
         // Non-contiguous. Iterate over rows an memset
-        var row: usize = self.y_off;
+        var row: u16 = self.y_off;
         const last_row = @min(self.height + self.y_off, self.screen.height);
         while (row < last_row) : (row += 1) {
             const start = @min(self.x_off + (row * self.screen.width), self.screen.buf.len);
@@ -237,7 +237,7 @@ pub fn hideCursor(self: Window) void {
 }
 
 /// show the cursor at the given coordinates, 0 indexed
-pub fn showCursor(self: Window, col: usize, row: usize) void {
+pub fn showCursor(self: Window, col: u16, row: u16) void {
     if (self.height == 0 or self.width == 0) return;
     if (self.height <= row or self.width <= col) return;
     self.screen.cursor_vis = true;
@@ -252,9 +252,9 @@ pub fn setCursorShape(self: Window, shape: Cell.CursorShape) void {
 /// Options to use when printing Segments to a window
 pub const PrintOptions = struct {
     /// vertical offset to start printing at
-    row_offset: usize = 0,
+    row_offset: u16 = 0,
     /// horizontal offset to start printing at
-    col_offset: usize = 0,
+    col_offset: u16 = 0,
 
     /// wrap behavior for printing
     wrap: enum {
@@ -273,8 +273,8 @@ pub const PrintOptions = struct {
 };
 
 pub const PrintResult = struct {
-    col: usize,
-    row: usize,
+    col: u16,
+    row: u16,
     overflow: bool,
 };
 
@@ -284,7 +284,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
     var row = opts.row_offset;
     switch (opts.wrap) {
         .grapheme => {
-            var col: usize = opts.col_offset;
+            var col: u16 = opts.col_offset;
             const overflow: bool = blk: for (segments) |segment| {
                 var iter = self.screen.unicode.graphemeIterator(segment.text);
                 while (iter.next()) |grapheme| {
@@ -324,7 +324,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
             };
         },
         .word => {
-            var col: usize = opts.col_offset;
+            var col: u16 = opts.col_offset;
             var overflow: bool = false;
             var soft_wrapped: bool = false;
             outer: for (segments) |segment| {
@@ -406,7 +406,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
             };
         },
         .none => {
-            var col: usize = opts.col_offset;
+            var col: u16 = opts.col_offset;
             const overflow: bool = blk: for (segments) |segment| {
                 var iter = self.screen.unicode.graphemeIterator(segment.text);
                 while (iter.next()) |grapheme| {
@@ -443,7 +443,7 @@ pub fn printSegment(self: Window, segment: Segment, opts: PrintOptions) PrintRes
 
 /// scrolls the window down one row (IE inserts a blank row at the bottom of the
 /// screen and shifts all rows up one)
-pub fn scroll(self: Window, n: usize) void {
+pub fn scroll(self: Window, n: u16) void {
     if (n > self.height) return;
     var row = self.y_off;
     while (row < self.height - n) : (row += 1) {

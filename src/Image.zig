@@ -33,8 +33,8 @@ pub const Placement = struct {
 };
 
 pub const CellSize = struct {
-    rows: usize,
-    cols: usize,
+    rows: u16,
+    cols: u16,
 };
 
 pub const DrawOptions = struct {
@@ -42,8 +42,8 @@ pub const DrawOptions = struct {
     /// origin of the image. These must be less than the pixel size of a single
     /// cell
     pixel_offset: ?struct {
-        x: usize,
-        y: usize,
+        x: u16,
+        y: u16,
     } = null,
     /// the vertical stacking order
     /// < 0: Drawn beneath text
@@ -51,10 +51,10 @@ pub const DrawOptions = struct {
     z_index: ?i32 = null,
     /// A clip region of the source image to draw.
     clip_region: ?struct {
-        x: ?usize = null,
-        y: ?usize = null,
-        width: ?usize = null,
-        height: ?usize = null,
+        x: ?u16 = null,
+        y: ?u16 = null,
+        width: ?u16 = null,
+        height: ?u16 = null,
     } = null,
     /// Scaling to apply to the Image
     scale: enum {
@@ -71,8 +71,8 @@ pub const DrawOptions = struct {
     /// field, and should prefer to use scale. `draw` will fill in this field with
     /// the correct values if a scale method is applied.
     size: ?struct {
-        rows: ?usize = null,
-        cols: ?usize = null,
+        rows: ?u16 = null,
+        cols: ?u16 = null,
     } = null,
 };
 
@@ -80,9 +80,9 @@ pub const DrawOptions = struct {
 id: u32,
 
 /// width in pixels
-width: usize,
+width: u16,
 /// height in pixels
-height: usize,
+height: u16,
 
 pub fn draw(self: Image, win: Window, opts: DrawOptions) !void {
     var p_opts = opts;
@@ -176,11 +176,11 @@ pub fn cellSize(self: Image, win: Window) !CellSize {
     const w = win.screen.width;
     const h = win.screen.height;
 
-    const pix_per_col = try std.math.divCeil(usize, x_pix, w);
-    const pix_per_row = try std.math.divCeil(usize, y_pix, h);
+    const pix_per_col = try std.math.divCeil(u16, x_pix, w);
+    const pix_per_row = try std.math.divCeil(u16, y_pix, h);
 
-    const cell_width = std.math.divCeil(usize, self.width, pix_per_col) catch 0;
-    const cell_height = std.math.divCeil(usize, self.height, pix_per_row) catch 0;
+    const cell_width = std.math.divCeil(u16, self.width, pix_per_col) catch 0;
+    const cell_height = std.math.divCeil(u16, self.height, pix_per_row) catch 0;
     return .{
         .rows = cell_height,
         .cols = cell_width,

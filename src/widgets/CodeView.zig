@@ -4,9 +4,9 @@ const ScrollView = vaxis.widgets.ScrollView;
 const LineNumbers = vaxis.widgets.LineNumbers;
 
 pub const DrawOptions = struct {
-    highlighted_line: usize = 0,
+    highlighted_line: u16 = 0,
     draw_line_numbers: bool = true,
-    indentation: usize = 0,
+    indentation: u16 = 0,
 };
 
 pub const Buffer = vaxis.widgets.TextView.Buffer;

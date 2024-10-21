@@ -23,6 +23,8 @@ const Winsize = @import("main.zig").Winsize;
 const ctlseqs = @import("ctlseqs.zig");
 const gwidth = @import("gwidth.zig");
 
+const assert = std.debug.assert;
+
 const Vaxis = @This();
 
 const log = std.log.scoped(.vaxis);
@@ -84,8 +86,8 @@ state: struct {
     changed_default_fg: bool = false,
     changed_default_bg: bool = false,
     cursor: struct {
-        row: usize = 0,
-        col: usize = 0,
+        row: u16 = 0,
+        col: u16 = 0,
     } = .{},
 } = .{},
 
@@ -139,7 +141,7 @@ pub fn resetState(self: *Vaxis, tty: AnyWriter) !void {
         try self.exitAltScreen(tty);
     } else {
         try tty.writeByte('\r');
-        var i: usize = 0;
+        var i: u16 = 0;
         while (i < self.state.cursor.row) : (i += 1) {
             try tty.writeAll(ctlseqs.ri);
         }
@@ -308,6 +310,8 @@ pub fn queueRefresh(self: *Vaxis) void {
 /// draws the screen to the terminal
 pub fn render(self: *Vaxis, tty: AnyWriter) !void {
     defer self.refresh = false;
+    assert(self.screen.buf.len == self.screen.width * self.screen.height); // correct size
+    assert(self.screen.buf.len == self.screen_last.buf.len); // same size
 
     // Set up sync before we write anything
     // TODO: optimize sync so we only sync _when we have changes_. This
@@ -331,27 +335,27 @@ pub fn render(self: *Vaxis, tty: AnyWriter) !void {
 
     // initialize some variables
     var reposition: bool = false;
-    var row: usize = 0;
-    var col: usize = 0;
+    var row: u16 = 0;
+    var col: u16 = 0;
     var cursor: Style = .{};
     var link: Hyperlink = .{};
     var cursor_pos: struct {
-        row: usize = 0,
-        col: usize = 0,
+        row: u16 = 0,
+        col: u16 = 0,
     } = .{};
 
     // Clear all images
     if (self.caps.kitty_graphics)
         try tty.writeAll(ctlseqs.kitty_graphics_clear);
 
-    var i: usize = 0;
+    var i: u16 = 0;
     while (i < self.screen.buf.len) {
         const cell = self.screen.buf[i];
-        const w = blk: {
+        const w: u16 = blk: {
             if (cell.char.width != 0) break :blk cell.char.width;
 
             const method: gwidth.Method = self.caps.unicode;
-            const width = gwidth.gwidth(cell.char.grapheme, method, &self.unicode.width_data);
+            const width: u16 = @intCast(gwidth.gwidth(cell.char.grapheme, method, &self.unicode.width_data));
             break :blk @max(1, width);
         };
         defer {
@@ -726,8 +730,8 @@ pub fn transmitLocalImagePath(
     allocator: std.mem.Allocator,
     tty: AnyWriter,
     payload: []const u8,
-    width: usize,
-    height: usize,
+    width: u16,
+    height: u16,
     medium: Image.TransmitMedium,
     format: Image.TransmitFormat,
 ) !Image {
@@ -780,8 +784,8 @@ pub fn transmitPreEncodedImage(
     self: *Vaxis,
     tty: AnyWriter,
     bytes: []const u8,
-    width: usize,
-    height: usize,
+    width: u16,
+    height: u16,
     format: Image.TransmitFormat,
 ) !Image {
     defer self.next_img_id += 1;
@@ -861,7 +865,7 @@ pub fn transmitImage(
     const b64_buf = try arena.allocator().alloc(u8, base64Encoder.calcSize(buf.len));
     const encoded = base64Encoder.encode(b64_buf, buf);
 
-    return self.transmitPreEncodedImage(tty, encoded, img.width, img.height, format);
+    return self.transmitPreEncodedImage(tty, encoded, @intCast(img.width), @intCast(img.height), format);
 }
 
 pub fn loadImage(
@@ -961,16 +965,16 @@ pub fn prettyPrint(self: *Vaxis, tty: AnyWriter) !void {
     defer tty.writeAll(ctlseqs.sgr_reset) catch {};
 
     var reposition: bool = false;
-    var row: usize = 0;
-    var col: usize = 0;
+    var row: u16 = 0;
+    var col: u16 = 0;
     var cursor: Style = .{};
     var link: Hyperlink = .{};
     var cursor_pos: struct {
-        row: usize = 0,
-        col: usize = 0,
+        row: u16 = 0,
+        col: u16 = 0,
     } = .{};
 
-    var i: usize = 0;
+    var i: u16 = 0;
     while (i < self.screen.buf.len) {
         const cell = self.screen.buf[i];
         const w = blk: {

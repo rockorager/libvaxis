@@ -39,10 +39,10 @@ pub const Tty = switch (builtin.os.tag) {
 
 /// The size of the terminal screen
 pub const Winsize = struct {
-    rows: usize,
-    cols: usize,
-    x_pixel: usize,
-    y_pixel: usize,
+    rows: u16,
+    cols: u16,
+    x_pixel: u16,
+    y_pixel: u16,
 };
 
 /// Initialize a Vaxis application.

@@ -18,13 +18,13 @@ const ellipsis: Cell.Character = .{ .grapheme = "…", .width = 1 };
 buf: Buffer,
 
 /// the number of graphemes to skip when drawing. Used for horizontal scrolling
-draw_offset: usize = 0,
+draw_offset: u16 = 0,
 /// the column we placed the cursor the last time we drew
-prev_cursor_col: usize = 0,
+prev_cursor_col: u16 = 0,
 /// the grapheme index of the cursor the last time we drew
-prev_cursor_idx: usize = 0,
+prev_cursor_idx: u16 = 0,
 /// approximate distance from an edge before we scroll
-scroll_offset: usize = 4,
+scroll_offset: u16 = 4,
 
 unicode: *const Unicode,
 
@@ -88,8 +88,8 @@ pub fn sliceToCursor(self: *TextInput, buf: []u8) []const u8 {
 }
 
 /// calculates the display width from the draw_offset to the cursor
-pub fn widthToCursor(self: *TextInput, win: Window) usize {
-    var width: usize = 0;
+pub fn widthToCursor(self: *TextInput, win: Window) u16 {
+    var width: u16 = 0;
     const first_half = self.buf.firstHalf();
     var first_iter = self.unicode.graphemeIterator(first_half);
     var i: usize = 0;
@@ -120,10 +120,10 @@ pub fn cursorRight(self: *TextInput) void {
     self.buf.moveGapRight(grapheme.len);
 }
 
-pub fn graphemesBeforeCursor(self: *const TextInput) usize {
+pub fn graphemesBeforeCursor(self: *const TextInput) u16 {
     const first_half = self.buf.firstHalf();
     var first_iter = self.unicode.graphemeIterator(first_half);
-    var i: usize = 0;
+    var i: u16 = 0;
     while (first_iter.next()) |_| {
         i += 1;
     }
@@ -153,8 +153,8 @@ pub fn drawWithStyle(self: *TextInput, win: Window, style: Cell.Style) void {
     // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
     const first_half = self.buf.firstHalf();
     var first_iter = self.unicode.graphemeIterator(first_half);
-    var col: usize = 0;
-    var i: usize = 0;
+    var col: u16 = 0;
+    var i: u16 = 0;
     while (first_iter.next()) |grapheme| {
         if (i < self.draw_offset) {
             i += 1;

@@ -20,8 +20,8 @@ screen: Screen,
 
 /// View Initialization Config
 pub const Config = struct {
-    width: usize,
-    height: usize,
+    width: u16,
+    height: u16,
 };
 
 /// Initialize a new View
@@ -58,8 +58,8 @@ pub fn deinit(self: *View) void {
 }
 
 pub const DrawOptions = struct {
-    x_off: usize = 0,
-    y_off: usize = 0,
+    x_off: u16 = 0,
+    y_off: u16 = 0,
 };
 
 pub fn draw(self: *View, win: Window, opts: DrawOptions) void {
@@ -80,20 +80,20 @@ pub fn draw(self: *View, win: Window, opts: DrawOptions) void {
 
 /// Render Config for `toWin()`
 pub const RenderConfig = struct {
-    x: usize = 0,
-    y: usize = 0,
+    x: u16 = 0,
+    y: u16 = 0,
     width: Extent = .fit,
     height: Extent = .fit,
 
     pub const Extent = union(enum) {
         fit,
-        max: usize,
+        max: u16,
     };
 };
 
 /// Render a portion of this View to the provided Window (`win`).
 /// This will return the bounded X (col), Y (row) coordinates based on the rendering.
-pub fn toWin(self: *View, win: Window, config: RenderConfig) !struct { usize, usize } {
+pub fn toWin(self: *View, win: Window, config: RenderConfig) !struct { u16, u16 } {
     var x = @min(self.screen.width - 1, config.x);
     var y = @min(self.screen.height - 1, config.y);
     const width = width: {
@@ -123,12 +123,12 @@ pub fn toWin(self: *View, win: Window, config: RenderConfig) !struct { usize, us
 }
 
 /// Writes a cell to the location in the View
-pub fn writeCell(self: *View, col: usize, row: usize, cell: Cell) void {
+pub fn writeCell(self: *View, col: u16, row: u16, cell: Cell) void {
     self.screen.writeCell(col, row, cell);
 }
 
 /// Reads a cell at the location in the View
-pub fn readCell(self: *const View, col: usize, row: usize) ?Cell {
+pub fn readCell(self: *const View, col: u16, row: u16) ?Cell {
     return self.screen.readCell(col, row);
 }
 
@@ -138,7 +138,7 @@ pub fn clear(self: View) void {
 }
 
 /// Returns the width of the grapheme. This depends on the terminal capabilities
-pub fn gwidth(self: View, str: []const u8) usize {
+pub fn gwidth(self: View, str: []const u8) u16 {
     return gw.gwidth(str, self.screen.width_method, &self.screen.unicode.width_data);
 }
 

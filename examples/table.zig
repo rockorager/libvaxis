@@ -155,10 +155,10 @@ pub fn main() !void {
                         // Select/Unselect Row
                         if (key.matches(vaxis.Key.space, .{})) {
                             const rows = demo_tbl.sel_rows orelse createRows: {
-                                demo_tbl.sel_rows = try alloc.alloc(usize, 1);
+                                demo_tbl.sel_rows = try alloc.alloc(u16, 1);
                                 break :createRows demo_tbl.sel_rows.?;
                             };
-                            var rows_list = std.ArrayList(usize).fromOwnedSlice(alloc, rows);
+                            var rows_list = std.ArrayList(u16).fromOwnedSlice(alloc, rows);
                             for (rows_list.items, 0..) |row, idx| {
                                 if (row != demo_tbl.row) continue;
                                 _ = rows_list.orderedRemove(idx);
@@ -179,11 +179,11 @@ pub fn main() !void {
                                 mem.eql(u8, ":quit", cmd) or
                                 mem.eql(u8, ":exit", cmd)) return;
                             if (mem.eql(u8, "G", cmd)) {
-                                demo_tbl.row = user_list.items.len - 1;
+                                demo_tbl.row = @intCast(user_list.items.len - 1);
                                 active = .mid;
                             }
                             if (cmd.len >= 2 and mem.eql(u8, "gg", cmd[0..2])) {
-                                const goto_row = fmt.parseInt(usize, cmd[2..], 0) catch 0;
+                                const goto_row = fmt.parseInt(u16, cmd[2..], 0) catch 0;
                                 demo_tbl.row = goto_row;
                                 active = .mid;
                             }
@@ -213,7 +213,7 @@ pub fn main() !void {
             };
             demo_tbl.active_ctx = &row_ctx;
             demo_tbl.active_content_fn = struct {
-                fn see(win: *vaxis.Window, ctx_raw: *const anyopaque) !usize {
+                fn see(win: *vaxis.Window, ctx_raw: *const anyopaque) !u16 {
                     const ctx: *const RowContext = @alignCast(@ptrCast(ctx_raw));
                     win.height = 5;
                     const see_win = win.child(.{

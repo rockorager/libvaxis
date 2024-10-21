@@ -29,10 +29,10 @@ pub fn main() !void {
     var use_sm_map = false;
     var use_mini_view = false;
 
-    var x: usize = 0;
-    var y: usize = 0;
-    var h: usize = 0;
-    var w: usize = 0;
+    var x: u16 = 0;
+    var y: u16 = 0;
+    var h: u16 = 0;
+    var w: u16 = 0;
     defer log.info(
         \\Results:
         \\ - Map Size:    {d}x{d}
@@ -351,11 +351,11 @@ const lg_world_map =
     \\  +SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS+ 
     \\
 ;
-const lg_map_width = mapWidth: {
+const lg_map_width: u16 = mapWidth: {
     @setEvalBranchQuota(100_000);
-    break :mapWidth mem.indexOfScalar(u8, lg_world_map, '\n').?;
+    break :mapWidth @intCast(mem.indexOfScalar(u8, lg_world_map, '\n').?);
 };
-const lg_map_height = mapHeight: {
+const lg_map_height: u16 = mapHeight: {
     @setEvalBranchQuota(100_000);
-    break :mapHeight mem.count(u8, lg_world_map, "\n");
+    break :mapHeight @intCast(mem.count(u8, lg_world_map, "\n"));
 };

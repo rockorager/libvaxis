@@ -32,20 +32,20 @@ pub const InternalCell = struct {
     }
 };
 
-width: usize = 0,
-height: usize = 0,
+width: u16 = 0,
+height: u16 = 0,
 
 buf: []InternalCell = undefined,
 
-cursor_row: usize = 0,
-cursor_col: usize = 0,
+cursor_row: u16 = 0,
+cursor_col: u16 = 0,
 cursor_vis: bool = false,
 cursor_shape: CursorShape = .default,
 
 mouse_shape: MouseShape = .default,
 
 /// sets each cell to the default cell
-pub fn init(alloc: std.mem.Allocator, w: usize, h: usize) !InternalScreen {
+pub fn init(alloc: std.mem.Allocator, w: u16, h: u16) !InternalScreen {
     var screen = InternalScreen{
         .buf = try alloc.alloc(InternalCell, w * h),
     };
@@ -75,8 +75,8 @@ pub fn deinit(self: *InternalScreen, alloc: std.mem.Allocator) void {
 /// writes a cell to a location. 0 indexed
 pub fn writeCell(
     self: *InternalScreen,
-    col: usize,
-    row: usize,
+    col: u16,
+    row: u16,
     cell: Cell,
 ) void {
     if (self.width < col) {
@@ -105,7 +105,7 @@ pub fn writeCell(
     self.buf[i].default = cell.default;
 }
 
-pub fn readCell(self: *InternalScreen, col: usize, row: usize) ?Cell {
+pub fn readCell(self: *InternalScreen, col: u16, row: u16) ?Cell {
     if (self.width < col) {
         // column out of bounds
         return null;

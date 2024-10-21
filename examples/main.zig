@@ -67,12 +67,13 @@ pub fn main() !void {
         // the old and only updated cells will be drawn
         win.clear();
 
+        const msg_len: u16 = @intCast(msg.len);
         // Create some child window. .expand means the height and width will
         // fill the remaining space of the parent. Child windows do not store a
         // reference to their parent: this is true immediate mode. Do not store
         // windows, always create new windows each render cycle
         const child = win.child(
-            .{ .x_off = win.width / 2 - msg.len / 2, .y_off = win.height / 2 },
+            .{ .x_off = win.width / 2 - msg_len / 2, .y_off = win.height / 2 },
         );
         // Loop through the message and print the cells to the screen
         for (msg, 0..) |_, i| {
@@ -86,7 +87,7 @@ pub fn main() !void {
                     .fg = .{ .index = color_idx },
                 },
             };
-            child.writeCell(i, 0, cell);
+            child.writeCell(@intCast(i), 0, cell);
         }
         // Render the screen
         try vx.render(tty.anyWriter());

@@ -10,16 +10,16 @@ const Method = @import("gwidth.zig").Method;
 
 const Screen = @This();
 
-width: usize = 0,
-height: usize = 0,
+width: u16 = 0,
+height: u16 = 0,
 
-width_pix: usize = 0,
-height_pix: usize = 0,
+width_pix: u16 = 0,
+height_pix: u16 = 0,
 
 buf: []Cell = undefined,
 
-cursor_row: usize = 0,
-cursor_col: usize = 0,
+cursor_row: u16 = 0,
+cursor_col: u16 = 0,
 cursor_vis: bool = false,
 
 unicode: *const Unicode = undefined,
@@ -49,7 +49,7 @@ pub fn deinit(self: *Screen, alloc: std.mem.Allocator) void {
 }
 
 /// writes a cell to a location. 0 indexed
-pub fn writeCell(self: *Screen, col: usize, row: usize, cell: Cell) void {
+pub fn writeCell(self: *Screen, col: u16, row: u16, cell: Cell) void {
     if (self.width <= col) {
         // column out of bounds
         return;
@@ -63,7 +63,7 @@ pub fn writeCell(self: *Screen, col: usize, row: usize, cell: Cell) void {
     self.buf[i] = cell;
 }
 
-pub fn readCell(self: *const Screen, col: usize, row: usize) ?Cell {
+pub fn readCell(self: *const Screen, col: u16, row: u16) ?Cell {
     if (self.width <= col) {
         // column out of bounds
         return null;

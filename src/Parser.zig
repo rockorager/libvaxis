@@ -522,10 +522,10 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
                 const width_pix = iter.next() orelse "0";
 
                 const winsize: Winsize = .{
-                    .rows = std.fmt.parseUnsigned(usize, height_char, 10) catch return null_event,
-                    .cols = std.fmt.parseUnsigned(usize, width_char, 10) catch return null_event,
-                    .x_pixel = std.fmt.parseUnsigned(usize, width_pix, 10) catch return null_event,
-                    .y_pixel = std.fmt.parseUnsigned(usize, height_pix, 10) catch return null_event,
+                    .rows = std.fmt.parseUnsigned(u16, height_char, 10) catch return null_event,
+                    .cols = std.fmt.parseUnsigned(u16, width_char, 10) catch return null_event,
+                    .x_pixel = std.fmt.parseUnsigned(u16, width_pix, 10) catch return null_event,
+                    .y_pixel = std.fmt.parseUnsigned(u16, height_pix, 10) catch return null_event,
                 };
                 return .{
                     .event = .{ .winsize = winsize },

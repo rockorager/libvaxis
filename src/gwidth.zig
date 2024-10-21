@@ -12,30 +12,29 @@ pub const Method = enum {
 };
 
 /// returns the width of the provided string, as measured by the method chosen
-pub fn gwidth(str: []const u8, method: Method, data: *const DisplayWidth.DisplayWidthData) usize {
+pub fn gwidth(str: []const u8, method: Method, data: *const DisplayWidth.DisplayWidthData) u16 {
     switch (method) {
         .unicode => {
             const dw: DisplayWidth = .{ .data = data };
-            return dw.strWidth(str);
+            return @intCast(dw.strWidth(str));
         },
         .wcwidth => {
-            var total: usize = 0;
+            var total: u16 = 0;
             var iter: code_point.Iterator = .{ .bytes = str };
             while (iter.next()) |cp| {
-                const w = switch (cp.code) {
+                const w: u16 = switch (cp.code) {
                     // undo an override in zg for emoji skintone selectors
                     0x1f3fb...0x1f3ff,
                     => 2,
-                    else => data.codePointWidth(cp.code),
+                    else => @max(0, data.codePointWidth(cp.code)),
                 };
-                if (w < 0) continue;
-                total += @intCast(w);
+                total += w;
             }
             return total;
         },
         .no_zwj => {
             var iter = std.mem.split(u8, str, "\u{200D}");
-            var result: usize = 0;
+            var result: u16 = 0;
             while (iter.next()) |s| {
                 result += gwidth(s, .unicode, data);
             }

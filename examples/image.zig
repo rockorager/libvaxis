@@ -47,7 +47,7 @@ pub fn main() !void {
 
     var n: usize = 0;
 
-    var clip_y: usize = 0;
+    var clip_y: u16 = 0;
 
     while (true) {
         const event = loop.nextEvent();

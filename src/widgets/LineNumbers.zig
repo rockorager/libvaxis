@@ -12,7 +12,7 @@ pub fn extractDigit(v: usize, n: usize) usize {
     return (v / (std.math.powi(usize, 10, n) catch unreachable)) % 10;
 }
 
-pub fn numDigits(v: usize) usize {
+pub fn numDigits(v: usize) u8 {
     return switch (v) {
         0...9 => 1,
         10...99 => 2,

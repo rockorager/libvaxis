@@ -9,25 +9,25 @@ const vaxis = @import("../main.zig");
 /// Table Context for maintaining state and drawing Tables with `drawTable()`.
 pub const TableContext = struct {
     /// Current active Row of the Table.
-    row: usize = 0,
+    row: u16 = 0,
     /// Current active Column of the Table.
-    col: usize = 0,
+    col: u16 = 0,
     /// Starting point within the Data List.
-    start: usize = 0,
+    start: u16 = 0,
     /// Selected Rows.
-    sel_rows: ?[]usize = null,
+    sel_rows: ?[]u16 = null,
 
     /// Active status of the Table.
     active: bool = false,
     /// Active Content Callback Function.
     /// If available, this will be called to vertically expand the active row with additional info.
-    active_content_fn: ?*const fn (*vaxis.Window, *const anyopaque) anyerror!usize = null,
+    active_content_fn: ?*const fn (*vaxis.Window, *const anyopaque) anyerror!u16 = null,
     /// Active Content Context
     /// This will be provided to the `active_content` callback when called.
     active_ctx: *const anyopaque = &{},
     /// Y Offset for rows beyond the Active Content.
     /// (This will be calculated automatically)
-    active_y_off: usize = 0,
+    active_y_off: u16 = 0,
 
     /// The Background Color for Selected Rows.
     selected_bg: vaxis.Cell.Color,
@@ -47,9 +47,9 @@ pub const TableContext = struct {
     row_bg_2: vaxis.Cell.Color = .{ .rgb = [_]u8{ 8, 8, 8 } },
 
     /// Y Offset for drawing to the parent Window.
-    y_off: usize = 0,
+    y_off: u16 = 0,
     /// X Offset for printing each Cell/Item.
-    cell_x_off: usize = 1,
+    cell_x_off: u16 = 1,
 
     /// Column Width
     /// Note, if this is left `null` the Column Width will be dynamically calculated during `drawTable()`.
@@ -78,11 +78,11 @@ pub const WidthStyle = union(enum) {
     /// Dynamically calculate Column Widths such that the entire (or most) of the screen is filled horizontally.
     dynamic_fill,
     /// Dynamically calculate the Column Width for each Column based on its Header Length and the provided Padding length.
-    dynamic_header_len: usize,
+    dynamic_header_len: u16,
     /// Statically set all Column Widths to the same value.
-    static_all: usize,
+    static_all: u16,
     /// Statically set individual Column Widths to specific values.
-    static_individual: []const usize,
+    static_individual: []const u16,
 };
 
 /// Column Indexes
@@ -216,11 +216,11 @@ pub fn drawTable(
     });
 
     // Headers
-    if (table_ctx.col > headers.len - 1) table_ctx.col = headers.len - 1;
-    var col_start: usize = 0;
+    if (table_ctx.col > headers.len - 1) table_ctx.col = @intCast(headers.len - 1);
+    var col_start: u16 = 0;
     for (headers[0..], 0..) |hdr_txt, idx| {
         const col_width = try calcColWidth(
-            idx,
+            @intCast(idx),
             headers,
             table_ctx.col_width,
             table_win,
@@ -260,19 +260,19 @@ pub fn drawTable(
 
     // Rows
     if (table_ctx.active_content_fn == null) table_ctx.active_y_off = 0;
-    const max_items =
-        if (data_items.len > table_win.height -| 1) table_win.height -| 1 else data_items.len;
+    const max_items: u16 =
+        if (data_items.len > table_win.height -| 1) table_win.height -| 1 else @intCast(data_items.len);
     var end = table_ctx.start + max_items;
     if (table_ctx.row + table_ctx.active_y_off >= win.height -| 2)
         end -|= table_ctx.active_y_off;
-    if (end > data_items.len) end = data_items.len;
+    if (end > data_items.len) end = @intCast(data_items.len);
     table_ctx.start = tableStart: {
         if (table_ctx.row == 0)
             break :tableStart 0;
         if (table_ctx.row < table_ctx.start)
             break :tableStart table_ctx.start - (table_ctx.start - table_ctx.row);
         if (table_ctx.row >= data_items.len - 1)
-            table_ctx.row = data_items.len - 1;
+            table_ctx.row = @intCast(data_items.len - 1);
         if (table_ctx.row >= end)
             break :tableStart table_ctx.start + (table_ctx.row - end + 1);
         break :tableStart table_ctx.start;
@@ -280,7 +280,7 @@ pub fn drawTable(
     end = table_ctx.start + max_items;
     if (table_ctx.row + table_ctx.active_y_off >= win.height -| 2)
         end -|= table_ctx.active_y_off;
-    if (end > data_items.len) end = data_items.len;
+    if (end > data_items.len) end = @intCast(data_items.len);
     table_ctx.start = @min(table_ctx.start, end);
     table_ctx.active_y_off = 0;
     for (data_items[table_ctx.start..end], 0..) |data, row| {
@@ -288,7 +288,7 @@ pub fn drawTable(
             if (table_ctx.active and table_ctx.start + row == table_ctx.row)
                 break :rowColors .{ table_ctx.active_fg, table_ctx.active_bg };
             if (table_ctx.sel_rows) |rows| {
-                if (mem.indexOfScalar(usize, rows, table_ctx.start + row) != null)
+                if (mem.indexOfScalar(u16, rows, @intCast(table_ctx.start + row)) != null)
                     break :rowColors .{ table_ctx.selected_fg, table_ctx.selected_bg };
             }
             if (row % 2 == 0) break :rowColors .{ .default, table_ctx.row_bg_1 };
@@ -296,7 +296,7 @@ pub fn drawTable(
         };
         var row_win = table_win.child(.{
             .x_off = 0,
-            .y_off = 1 + row + table_ctx.active_y_off,
+            .y_off = @intCast(1 + row + table_ctx.active_y_off),
             .width = .{ .limit = table_win.width },
             .height = .{ .limit = 1 },
             //.border = .{ .where = if (table_ctx.row_borders) .top else .none },
@@ -386,21 +386,21 @@ pub fn drawTable(
 
 /// Calculate the Column Width of `col` using the provided Number of Headers (`num_hdrs`), Width Style (`style`), and Table Window (`table_win`).
 pub fn calcColWidth(
-    col: usize,
+    col: u16,
     headers: []const []const u8,
     style: WidthStyle,
     table_win: vaxis.Window,
-) !usize {
+) !u16 {
     return switch (style) {
         .dynamic_fill => dynFill: {
-            var cw = table_win.width / headers.len;
+            var cw: u16 = table_win.width / @as(u16, @intCast(headers.len));
             if (cw % 2 != 0) cw +|= 1;
             while (cw * headers.len < table_win.width - 1) cw +|= 1;
             break :dynFill cw;
         },
         .dynamic_header_len => dynHdrs: {
             if (col >= headers.len) break :dynHdrs error.NotEnoughStaticWidthsProvided;
-            break :dynHdrs headers[col].len + (style.dynamic_header_len * 2);
+            break :dynHdrs @as(u16, @intCast(headers[col].len)) + (style.dynamic_header_len * 2);
         },
         .static_all => style.static_all,
         .static_individual => statInd: {
