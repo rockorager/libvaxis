@@ -17,8 +17,8 @@ pub fn topLeft(parent: Window, cols: u16, rows: u16) Window {
     return parent.child(.{
         .x_off = x_off,
         .y_off = y_off,
-        .width = .{ .limit = cols },
-        .height = .{ .limit = rows }
+        .width = cols,
+        .height = rows
     });
 }
 
@@ -28,8 +28,8 @@ pub fn topRight(parent: Window, cols: u16, rows: u16) Window {
     return parent.child(.{
         .x_off = x_off,
         .y_off = y_off,
-        .width = .{ .limit = cols },
-        .height = .{ .limit = rows }
+        .width = cols,
+        .height = rows
     });
 }
 
@@ -39,8 +39,8 @@ pub fn bottomLeft(parent: Window, cols: u16, rows: u16) Window {
     return parent.child(.{
         .x_off = x_off,
         .y_off = y_off,
-        .width = .{ .limit = cols },
-        .height = .{ .limit = rows }
+        .width = cols,
+        .height = rows
     });
 }
 
@@ -50,7 +50,7 @@ pub fn bottomRight(parent: Window, cols: u16, rows: u16) Window {
     return parent.child(.{
         .x_off = x_off,
         .y_off = y_off,
-        .width = .{ .limit = cols },
-        .height = .{ .limit = rows }
+        .width = cols,
+        .height = rows
     });
 }
