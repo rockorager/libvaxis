@@ -34,7 +34,10 @@ pub const Unicode = @import("Unicode.zig");
 /// The target TTY implementation
 pub const Tty = switch (builtin.os.tag) {
     .windows => @import("windows/Tty.zig"),
-    else => @import("posix/Tty.zig"),
+    else => if (builtin.is_test)
+        @import("test/Tty.zig")
+    else
+        @import("posix/Tty.zig"),
 };
 
 /// The size of the terminal screen
@@ -88,4 +91,6 @@ test {
     _ = @import("gwidth.zig");
     _ = @import("queue.zig");
     _ = @import("widgets/TextInput.zig");
+
+    _ = @import("Loop.zig");
 }
