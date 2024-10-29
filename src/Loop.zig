@@ -31,11 +31,13 @@ pub fn Loop(comptime T: type) type {
             switch (builtin.os.tag) {
                 .windows => {},
                 else => {
-                    const handler: Tty.SignalHandler = .{
-                        .context = self,
-                        .callback = Self.winsizeCallback,
-                    };
-                    try Tty.notifyWinsize(handler);
+                    if (!builtin.is_test) {
+                        const handler: Tty.SignalHandler = .{
+                            .context = self,
+                            .callback = Self.winsizeCallback,
+                        };
+                        try Tty.notifyWinsize(handler);
+                    }
                 },
             }
         }
@@ -311,4 +313,30 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
             }
         },
     }
+}
+
+test Loop {
+    if (builtin.os.tag == .windows) return;
+    const Event = union(enum) {
+        key_press: vaxis.Key,
+        winsize: vaxis.Winsize,
+        focus_in,
+        foo: u8,
+    };
+
+    var tty = try vaxis.Tty.init();
+    defer tty.deinit();
+
+    var vx = try vaxis.init(std.testing.allocator, .{});
+    defer vx.deinit(std.testing.allocator, tty.anyWriter());
+
+    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
+    try loop.init();
+
+    try loop.start();
+    defer loop.stop();
+
+    // Optionally enter the alternate screen
+    try vx.enterAltScreen(tty.anyWriter());
+    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_ms);
 }
