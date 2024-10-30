@@ -10,9 +10,9 @@ const gw = @import("gwidth.zig");
 const Window = @This();
 
 /// horizontal offset from the screen
-x_off: u16,
+x_off: i17,
 /// vertical offset from the screen
-y_off: u16,
+y_off: i17,
 /// width of the window. This can't be larger than the terminal screen
 width: u16,
 /// height of the window. This can't be larger than the terminal screen
@@ -25,32 +25,26 @@ screen: *Screen,
 /// unaware of resizes.
 fn initChild(
     self: Window,
-    x_off: u16,
-    y_off: u16,
+    x_off: i17,
+    y_off: i17,
     maybe_width: ?u16,
     maybe_height: ?u16,
 ) Window {
-    const resolved_width: u16 = if (maybe_width) |width|
-        @min(width, self.width -| x_off)
-    else
-        self.width -| x_off;
+    const width: u16 = maybe_width orelse @max(self.width - x_off, 0);
+    const height: u16 = maybe_height orelse @max(self.height - y_off, 0);
 
-    const resolved_height: u16 = if (maybe_height) |height|
-        @min(height, self.height -| y_off)
-    else
-        self.height -| y_off;
     return Window{
         .x_off = x_off + self.x_off,
         .y_off = y_off + self.y_off,
-        .width = resolved_width,
-        .height = resolved_height,
+        .width = width,
+        .height = height,
         .screen = self.screen,
     };
 }
 
 pub const ChildOptions = struct {
-    x_off: u16 = 0,
-    y_off: u16 = 0,
+    x_off: i17 = 0,
+    y_off: i17 = 0,
     /// the width of the resulting child, including any borders
     width: ?u16 = null,
     /// the height of the resulting child, including any borders
@@ -171,16 +165,20 @@ pub fn child(self: Window, opts: ChildOptions) Window {
 
 /// writes a cell to the location in the window
 pub fn writeCell(self: Window, col: u16, row: u16, cell: Cell) void {
-    if (self.height == 0 or self.width == 0) return;
     if (self.height <= row or self.width <= col) return;
-    self.screen.writeCell(col + self.x_off, row + self.y_off, cell);
+    if (self.x_off + col < 0) return;
+    if (self.y_off + row < 0) return;
+    self.screen.writeCell(@intCast(col + self.x_off), @intCast(row + self.y_off), cell);
 }
 
 /// reads a cell at the location in the window
 pub fn readCell(self: Window, col: u16, row: u16) ?Cell {
-    if (self.height == 0 or self.width == 0) return null;
-    if (self.height <= row or self.width <= col) return null;
-    return self.screen.readCell(col + self.x_off, row + self.y_off);
+    if (self.height <= row or
+        self.width <= col or
+        self.x_off + col < 0 or
+        self.y_off + row < 0)
+        return null;
+    return self.screen.readCell(@intCast(col + self.x_off), @intCast(row + self.y_off));
 }
 
 /// fills the window with the default cell
@@ -195,22 +193,25 @@ pub fn gwidth(self: Window, str: []const u8) u16 {
 
 /// fills the window with the provided cell
 pub fn fill(self: Window, cell: Cell) void {
-    if (self.screen.width < self.x_off)
+    if (self.x_off + self.width < 0 or
+        self.y_off + self.height < 0 or
+        self.screen.width < self.x_off or
+        self.screen.height < self.y_off)
         return;
-    if (self.screen.height < self.y_off)
-        return;
+    const first_row: u16 = @intCast(@max(self.y_off, 0));
     if (self.x_off == 0 and self.width == self.screen.width) {
         // we have a full width window, therefore contiguous memory.
-        const start = @min(self.y_off * self.width, self.screen.buf.len);
+        const start = @min(first_row * self.width, self.screen.buf.len);
         const end = @min(start + (self.height * self.width), self.screen.buf.len);
         @memset(self.screen.buf[start..end], cell);
     } else {
         // Non-contiguous. Iterate over rows an memset
-        var row: u16 = self.y_off;
+        var row: u16 = first_row;
+        const first_col: u16 = @max(self.x_off, 0);
         const last_row = @min(self.height + self.y_off, self.screen.height);
         while (row < last_row) : (row += 1) {
-            const start = @min(self.x_off + (row * self.screen.width), self.screen.buf.len);
-            var end = @min(start + self.width, start + (self.screen.width - self.x_off));
+            const start = @min(first_col + (row * self.screen.width), self.screen.buf.len);
+            var end = @min(start + self.width, start + (self.screen.width - first_col));
             end = @min(end, self.screen.buf.len);
             @memset(self.screen.buf[start..end], cell);
         }
@@ -224,11 +225,14 @@ pub fn hideCursor(self: Window) void {
 
 /// show the cursor at the given coordinates, 0 indexed
 pub fn showCursor(self: Window, col: u16, row: u16) void {
-    if (self.height == 0 or self.width == 0) return;
-    if (self.height <= row or self.width <= col) return;
+    if (self.x_off + col < 0 or
+        self.y_off + row < 0 or
+        row >= self.height or
+        col >= self.width)
+        return;
     self.screen.cursor_vis = true;
-    self.screen.cursor_row = row + self.y_off;
-    self.screen.cursor_col = col + self.x_off;
+    self.screen.cursor_row = @intCast(row + self.y_off);
+    self.screen.cursor_col = @intCast(col + self.x_off);
 }
 
 pub fn setCursorShape(self: Window, shape: Cell.CursorShape) void {
@@ -431,12 +435,13 @@ pub fn printSegment(self: Window, segment: Segment, opts: PrintOptions) PrintRes
 /// screen and shifts all rows up one)
 pub fn scroll(self: Window, n: u16) void {
     if (n > self.height) return;
-    var row = self.y_off;
+    var row: u16 = @max(self.y_off, 0);
+    const first_col: u16 = @max(self.x_off, 0);
     while (row < self.height - n) : (row += 1) {
-        const dst_start = (row * self.width) + self.x_off;
+        const dst_start = (row * self.width) + first_col;
         const dst_end = dst_start + self.width;
 
-        const src_start = ((row + n) * self.width) + self.x_off;
+        const src_start = ((row + n) * self.width) + first_col;
         const src_end = src_start + self.width;
         @memcpy(self.screen.buf[dst_start..dst_end], self.screen.buf[src_start..src_end]);
     }
@@ -480,8 +485,8 @@ test "Window size set too big" {
     };
 
     const ch = parent.initChild(0, 0, 21, 21);
-    try std.testing.expectEqual(20, ch.width);
-    try std.testing.expectEqual(20, ch.height);
+    try std.testing.expectEqual(21, ch.width);
+    try std.testing.expectEqual(21, ch.height);
 }
 
 test "Window size set too big with offset" {
@@ -494,8 +499,8 @@ test "Window size set too big with offset" {
     };
 
     const ch = parent.initChild(10, 10, 21, 21);
-    try std.testing.expectEqual(10, ch.width);
-    try std.testing.expectEqual(10, ch.height);
+    try std.testing.expectEqual(21, ch.width);
+    try std.testing.expectEqual(21, ch.height);
 }
 
 test "Window size nested offsets" {
@@ -837,3 +842,7 @@ const WhitespaceTokenizer = struct {
         }
     }
 };
+
+test "refAllDecls" {
+    std.testing.refAllDecls(@This());
+}
