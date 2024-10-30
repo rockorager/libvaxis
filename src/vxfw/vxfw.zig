@@ -8,6 +8,8 @@ const assert = std.debug.assert;
 
 const Allocator = std.mem.Allocator;
 
+pub const App = @import("App.zig");
+
 pub const CommandList = std.ArrayList(Command);
 
 pub const UserEvent = struct {
@@ -421,12 +423,16 @@ test "SubSurface: containsPoint" {
     try testing.expect(!surf.containsPoint(.{ .row = 12, .col = 2 }));
 }
 
+test "refAllDecls" {
+    std.testing.refAllDecls(@This());
+}
+
 test "All widgets have a doctest and refAllDecls test" {
     // This test goes through every file in src/ and checks that it has a doctest (the filename
     // stripped of ".zig" matches a test name) and a test called "refAllDecls". It makes no
     // guarantees about the quality of the test, but it does ensure it exists which at least makes
     // it easy to fail CI early, or spot bad tests vs non-existant tests
-    const excludes = &[_][]const u8{"vxfw.zig"};
+    const excludes = &[_][]const u8{ "vxfw.zig", "App.zig" };
 
     var cwd = try std.fs.cwd().openDir("./src/vxfw", .{ .iterate = true });
     var iter = cwd.iterate();
