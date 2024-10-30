@@ -18,6 +18,7 @@ pub const FlexRow = @import("FlexRow.zig");
 pub const ListView = @import("ListView.zig");
 pub const Padding = @import("Padding.zig");
 pub const RichText = @import("RichText.zig");
+pub const SizedBox = @import("SizedBox.zig");
 pub const Text = @import("Text.zig");
 pub const TextField = @import("TextField.zig");
 
