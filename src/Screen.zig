@@ -50,28 +50,18 @@ pub fn deinit(self: *Screen, alloc: std.mem.Allocator) void {
 
 /// writes a cell to a location. 0 indexed
 pub fn writeCell(self: *Screen, col: u16, row: u16, cell: Cell) void {
-    if (self.width <= col) {
-        // column out of bounds
+    if (col >= self.width or
+        row >= self.height)
         return;
-    }
-    if (self.height <= row) {
-        // height out of bounds
-        return;
-    }
     const i = (row * self.width) + col;
     assert(i < self.buf.len);
     self.buf[i] = cell;
 }
 
 pub fn readCell(self: *const Screen, col: u16, row: u16) ?Cell {
-    if (self.width <= col) {
-        // column out of bounds
+    if (col >= self.width or
+        row >= self.height)
         return null;
-    }
-    if (self.height <= row) {
-        // height out of bounds
-        return null;
-    }
     const i = (row * self.width) + col;
     assert(i < self.buf.len);
     return self.buf[i];

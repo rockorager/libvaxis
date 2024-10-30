@@ -73,16 +73,6 @@ pub const logo =
     \\ ▀▄▀  █   █ █   █ ▄█▄ ▀▄▄▄▀
 ;
 
-test {
-    _ = @import("gwidth.zig");
-    _ = @import("Cell.zig");
-    _ = @import("Key.zig");
-    _ = @import("Parser.zig");
-    _ = @import("Window.zig");
-
-    _ = @import("gwidth.zig");
-    _ = @import("queue.zig");
-    _ = @import("widgets/TextInput.zig");
-
-    _ = @import("Loop.zig");
+test "refAllDecls" {
+    std.testing.refAllDecls(@This());
 }
