@@ -108,14 +108,6 @@ pub fn init(alloc: std.mem.Allocator, opts: Options) !Vaxis {
 pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator, tty: AnyWriter) void {
     self.resetState(tty) catch {};
 
-    // always show the cursor on exit
-    tty.writeAll(ctlseqs.show_cursor) catch {};
-    tty.writeAll(ctlseqs.sgr_reset) catch {};
-    if (self.screen.cursor_shape != .default) {
-        // In many terminals, `.default` will set to the configured cursor shape. Others, it will
-        // change to a blinking block.
-        tty.print(ctlseqs.cursor_shape, .{@intFromEnum(Cell.CursorShape.default)}) catch {};
-    }
     if (alloc) |a| {
         self.screen.deinit(a);
         self.screen_last.deinit(a);
@@ -125,6 +117,14 @@ pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator, tty: AnyWriter) void {
 
 /// resets enabled features, sends cursor to home and clears below cursor
 pub fn resetState(self: *Vaxis, tty: AnyWriter) !void {
+    // always show the cursor on state reset
+    tty.writeAll(ctlseqs.show_cursor) catch {};
+    tty.writeAll(ctlseqs.sgr_reset) catch {};
+    if (self.screen.cursor_shape != .default) {
+        // In many terminals, `.default` will set to the configured cursor shape. Others, it will
+        // change to a blinking block.
+        tty.print(ctlseqs.cursor_shape, .{@intFromEnum(Cell.CursorShape.default)}) catch {};
+    }
     if (self.state.kitty_keyboard) {
         try tty.writeAll(ctlseqs.csi_u_pop);
         self.state.kitty_keyboard = false;
