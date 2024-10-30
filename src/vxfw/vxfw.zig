@@ -14,6 +14,7 @@ pub const App = @import("App.zig");
 pub const ListView = @import("ListView.zig");
 pub const RichText = @import("RichText.zig");
 pub const Text = @import("Text.zig");
+pub const TextField = @import("TextField.zig");
 
 pub const CommandList = std.ArrayList(Command);
 
