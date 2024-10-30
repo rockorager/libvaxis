@@ -12,16 +12,6 @@
             .url = "git+https://codeberg.org/dude_the_builder/zg#7ddce488e074c3f052949ba513a340446cea86e9",
             .hash = "12205e2e7108385a1ec280b6365166e902a690d6a0e8fcc015fdea62d63cf79be8ec",
         },
-        .libxev = .{
-            .url = "git+https://github.com/mitchellh/libxev#f6a672a78436d8efee1aa847a43a900ad773618b",
-            .hash = "12207b7a5b538ffb7fb18f954ae17d2f8490b6e3778a9e30564ad82c58ee8da52361",
-            .lazy = true,
-        },
-        .aio = .{
-            .url = "git+https://github.com/Cloudef/zig-aio#b5a407344379508466c5dcbe4c74438a6166e2ca",
-            .hash = "1220a55aedabdd10578d0c514719ea39ae1bc6d7ed990f508dc100db7f0ccf391437",
-            .lazy = true,
-        },
     },
     .paths = .{
         "LICENSE",
