@@ -30,6 +30,8 @@ pub const grapheme = @import("grapheme");
 pub const Event = @import("event.zig").Event;
 pub const Unicode = @import("Unicode.zig");
 
+pub const vxfw = @import("vxfw/vxfw.zig");
+
 pub const Tty = tty.Tty;
 
 /// The size of the terminal screen
