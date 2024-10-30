@@ -1,5 +1,5 @@
 const std = @import("std");
-const vaxis = @import("vaxis");
+const vaxis = @import("../main.zig");
 const vxfw = @import("vxfw.zig");
 
 const assert = std.debug.assert;
