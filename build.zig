@@ -1,13 +1,6 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
-    const include_images = b.option(bool, "images", "Enable support for images (default: true)") orelse true;
-
-    const options = b.addOptions();
-    options.addOption(bool, "images", include_images);
-
-    const options_mod = options.createModule();
-
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const root_source_file = b.path("src/main.zig");
@@ -17,10 +10,10 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .target = target,
     });
-    const zigimg_dep = if (include_images) b.lazyDependency("zigimg", .{
+    const zigimg_dep = b.dependency("zigimg", .{
         .optimize = optimize,
         .target = target,
-    }) else null;
+    });
 
     // Module
     const vaxis_mod = b.addModule("vaxis", .{
@@ -31,8 +24,7 @@ pub fn build(b: *std.Build) void {
     vaxis_mod.addImport("code_point", zg_dep.module("code_point"));
     vaxis_mod.addImport("grapheme", zg_dep.module("grapheme"));
     vaxis_mod.addImport("DisplayWidth", zg_dep.module("DisplayWidth"));
-    if (zigimg_dep) |dep| vaxis_mod.addImport("zigimg", dep.module("zigimg"));
-    vaxis_mod.addImport("build_options", options_mod);
+    vaxis_mod.addImport("zigimg", zigimg_dep.module("zigimg"));
 
     // Examples
     const Example = enum {
@@ -75,8 +67,7 @@ pub fn build(b: *std.Build) void {
     tests.root_module.addImport("code_point", zg_dep.module("code_point"));
     tests.root_module.addImport("grapheme", zg_dep.module("grapheme"));
     tests.root_module.addImport("DisplayWidth", zg_dep.module("DisplayWidth"));
-    if (zigimg_dep) |dep| tests.root_module.addImport("zigimg", dep.module("zigimg"));
-    tests.root_module.addImport("build_options", options_mod);
+    tests.root_module.addImport("zigimg", zigimg_dep.module("zigimg"));
 
     const tests_run = b.addRunArtifact(tests);
     b.installArtifact(tests);
