@@ -76,3 +76,7 @@ pub fn readCell(self: *const Screen, col: u16, row: u16) ?Cell {
     assert(i < self.buf.len);
     return self.buf[i];
 }
+
+test "refAllDecls" {
+    std.testing.refAllDecls(@This());
+}

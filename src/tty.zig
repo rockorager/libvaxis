@@ -14,12 +14,11 @@ const Parser = vaxis.Parser;
 const Winsize = vaxis.Winsize;
 
 /// The target TTY implementation
-pub const Tty = switch (builtin.os.tag) {
+pub const Tty = if (builtin.is_test)
+    TestTty
+else switch (builtin.os.tag) {
     .windows => WindowsTty,
-    else => if (builtin.is_test)
-        TestTty
-    else
-        PosixTty,
+    else => PosixTty,
 };
 
 /// global tty instance, used in case of a panic. Not guaranteed to work if
@@ -708,6 +707,7 @@ pub const TestTty = struct {
 
     /// Initializes a TestTty.
     pub fn init() !TestTty {
+        if (builtin.os.tag == .windows) return error.SkipZigTest;
         const list = try std.testing.allocator.create(std.ArrayList(u8));
         list.* = std.ArrayList(u8).init(std.testing.allocator);
         const r, const w = try posix.pipe();
@@ -774,5 +774,10 @@ pub const TestTty = struct {
 
     pub fn bufferedWriter(self: *const TestTty) std.io.BufferedWriter(4096, std.io.AnyWriter) {
         return std.io.bufferedWriter(self.anyWriter());
+    }
+
+    /// Implemented for the Windows API
+    pub fn nextEvent(_: *Tty, _: *Parser, _: ?std.mem.Allocator) !Event {
+        return error.SkipZigTest;
     }
 };
