@@ -1,14 +1,10 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
-    const include_libxev = b.option(bool, "libxev", "Enable support for libxev library (default: true)") orelse true;
     const include_images = b.option(bool, "images", "Enable support for images (default: true)") orelse true;
-    const include_aio = b.option(bool, "aio", "Enable support for zig-aio library (default: false)") orelse false;
 
     const options = b.addOptions();
-    options.addOption(bool, "libxev", include_libxev);
     options.addOption(bool, "images", include_images);
-    options.addOption(bool, "aio", include_aio);
 
     const options_mod = options.createModule();
 
@@ -25,14 +21,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .target = target,
     }) else null;
-    const xev_dep = if (include_libxev) b.lazyDependency("libxev", .{
-        .optimize = optimize,
-        .target = target,
-    }) else null;
-    const aio_dep = if (include_aio) b.lazyDependency("aio", .{
-        .optimize = optimize,
-        .target = target,
-    }) else null;
 
     // Module
     const vaxis_mod = b.addModule("vaxis", .{
@@ -44,9 +32,6 @@ pub fn build(b: *std.Build) void {
     vaxis_mod.addImport("grapheme", zg_dep.module("grapheme"));
     vaxis_mod.addImport("DisplayWidth", zg_dep.module("DisplayWidth"));
     if (zigimg_dep) |dep| vaxis_mod.addImport("zigimg", dep.module("zigimg"));
-    if (xev_dep) |dep| vaxis_mod.addImport("xev", dep.module("xev"));
-    if (aio_dep) |dep| vaxis_mod.addImport("aio", dep.module("aio"));
-    if (aio_dep) |dep| vaxis_mod.addImport("coro", dep.module("coro"));
     vaxis_mod.addImport("build_options", options_mod);
 
     // Examples
@@ -75,9 +60,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     example.root_module.addImport("vaxis", vaxis_mod);
-    if (xev_dep) |dep| example.root_module.addImport("xev", dep.module("xev"));
-    if (aio_dep) |dep| example.root_module.addImport("aio", dep.module("aio"));
-    if (aio_dep) |dep| example.root_module.addImport("coro", dep.module("coro"));
 
     const example_run = b.addRunArtifact(example);
     example_step.dependOn(&example_run.step);

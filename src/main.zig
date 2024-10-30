@@ -5,8 +5,6 @@ const build_options = @import("build_options");
 pub const Vaxis = @import("Vaxis.zig");
 
 pub const Loop = @import("Loop.zig").Loop;
-pub const xev = @import("xev.zig");
-pub const aio = @import("aio.zig");
 
 pub const zigimg = @import("zigimg");
 
