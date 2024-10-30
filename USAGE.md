@@ -303,7 +303,6 @@ Note that this code is not necessarily up-to-date with the latest `zig-aio`
 release and is shown here merely as a proof of concept.
 
 ```zig
-const build_options = @import("build_options");
 const builtin = @import("builtin");
 const std = @import("std");
 const vaxis = @import("main.zig");
@@ -313,12 +312,6 @@ const log = std.log.scoped(.vaxis_aio);
 const Yield = enum { no_state, took_event };
 
 pub fn Loop(T: type) type {
-    if (!build_options.aio) {
-        @compileError(
-            \\build_options.aio is not enabled.
-            \\Use `LoopWithModules` instead to provide `aio` and `coro` modules from outside vaxis.
-        );
-    }
     return LoopWithModules(T, @import("aio"), @import("coro"));
 }
 
