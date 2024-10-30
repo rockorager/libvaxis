@@ -47,7 +47,7 @@ pub fn init(alloc: std.mem.Allocator, opts: Vaxis.Options) !Vaxis {
 
 /// Resets terminal state on a panic, then calls the default zig panic handler
 pub fn panic_handler(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_addr: ?usize) noreturn {
-    if (Tty.global_tty) |gty| {
+    if (tty.global_tty) |gty| {
         const reset: []const u8 = ctlseqs.csi_u_pop ++
             ctlseqs.mouse_reset ++
             ctlseqs.bp_reset ++
