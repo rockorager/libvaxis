@@ -11,6 +11,7 @@ const Allocator = std.mem.Allocator;
 pub const App = @import("App.zig");
 
 // Widgets
+pub const Button = @import("Button.zig");
 pub const Center = @import("Center.zig");
 pub const ListView = @import("ListView.zig");
 pub const RichText = @import("RichText.zig");
