@@ -1,6 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
+const tty = @import("tty.zig");
+
 pub const Vaxis = @import("Vaxis.zig");
 
 pub const Loop = @import("Loop.zig").Loop;
@@ -28,14 +30,7 @@ pub const grapheme = @import("grapheme");
 pub const Event = @import("event.zig").Event;
 pub const Unicode = @import("Unicode.zig");
 
-/// The target TTY implementation
-pub const Tty = switch (builtin.os.tag) {
-    .windows => @import("windows/Tty.zig"),
-    else => if (builtin.is_test)
-        @import("test/Tty.zig")
-    else
-        @import("posix/Tty.zig"),
-};
+pub const Tty = tty.Tty;
 
 /// The size of the terminal screen
 pub const Winsize = struct {
