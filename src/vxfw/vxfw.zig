@@ -10,6 +10,9 @@ const Allocator = std.mem.Allocator;
 
 pub const App = @import("App.zig");
 
+// Widgets
+pub const Text = @import("Text.zig");
+
 pub const CommandList = std.ArrayList(Command);
 
 pub const UserEvent = struct {
