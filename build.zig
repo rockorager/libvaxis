@@ -100,17 +100,6 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(tests);
     tests_step.dependOn(&tests_run.step);
 
-    // Lints
-    const lints_step = b.step("lint", "Run lints");
-
-    const lints = b.addFmt(.{
-        .paths = &.{ "src", "build.zig" },
-        .check = true,
-    });
-
-    lints_step.dependOn(&lints.step);
-    b.default_step.dependOn(lints_step);
-
     // Docs
     const docs_step = b.step("docs", "Build the vaxis library docs");
     const docs_obj = b.addObject(.{
