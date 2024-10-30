@@ -28,8 +28,8 @@ pub fn build(b: *std.Build) void {
 
     // Examples
     const Example = enum {
-        aio,
         cli,
+        fuzzy,
         image,
         main,
         nvim,
@@ -38,7 +38,6 @@ pub fn build(b: *std.Build) void {
         vaxis,
         view,
         vt,
-        xev,
     };
     const example_option = b.option(Example, "example", "Example to run (default: text_input)") orelse .text_input;
     const example_step = b.step("example", "Run example");
