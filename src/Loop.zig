@@ -316,7 +316,6 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
 }
 
 test Loop {
-    if (builtin.os.tag == .windows) return;
     const Event = union(enum) {
         key_press: vaxis.Key,
         winsize: vaxis.Winsize,
