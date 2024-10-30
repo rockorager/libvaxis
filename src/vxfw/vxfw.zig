@@ -13,6 +13,7 @@ pub const App = @import("App.zig");
 // Widgets
 pub const Button = @import("Button.zig");
 pub const Center = @import("Center.zig");
+pub const FlexColumn = @import("FlexColumn.zig");
 pub const ListView = @import("ListView.zig");
 pub const RichText = @import("RichText.zig");
 pub const Text = @import("Text.zig");
