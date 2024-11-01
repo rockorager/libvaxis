@@ -196,11 +196,14 @@ fn checkTimers(self: *App, ctx: *vxfw.EventContext) anyerror!void {
 
     // timers are always sorted descending
     while (self.timers.popOrNull()) |tick| {
-        if (now_ms < tick.deadline_ms)
+        if (now_ms < tick.deadline_ms) {
+            // re-add the timer
+            try self.timers.append(tick);
             break;
+        }
         try tick.widget.handleEvent(ctx, .tick);
-        try self.handleCommand(&ctx.cmds);
     }
+    try self.handleCommand(&ctx.cmds);
 }
 
 const MouseHandler = struct {
