@@ -63,7 +63,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
         if (!vx.state.in_band_resize) try loop.init();
     }
 
-    // HACK: Ghostty is reporting incorrect pixel screen size
+    // NOTE: We don't use pixel mouse anywhere
     vx.caps.sgr_pixels = false;
     try vx.setMouseMode(tty.anyWriter(), true);
 
@@ -402,6 +402,7 @@ const FocusHandler = struct {
     }
 
     fn deinit(self: *FocusHandler) void {
+        self.path_to_focused.deinit();
         self.arena.deinit();
     }
 
