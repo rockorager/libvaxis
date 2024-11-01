@@ -86,8 +86,7 @@ pub const EventContext = struct {
     quit: bool = false,
 
     pub const Phase = enum {
-        // TODO: Capturing phase
-        // capturing,
+        capturing,
         at_target,
         bubbling,
     };
@@ -196,11 +195,13 @@ pub const MaxSize = struct {
 /// The Widget interface
 pub const Widget = struct {
     userdata: *anyopaque,
-    eventHandler: *const fn (userdata: *anyopaque, ctx: *EventContext, event: Event) anyerror!void,
+    eventHandler: ?*const fn (userdata: *anyopaque, ctx: *EventContext, event: Event) anyerror!void = null,
     drawFn: *const fn (userdata: *anyopaque, ctx: DrawContext) Allocator.Error!Surface,
 
     pub fn handleEvent(self: Widget, ctx: *EventContext, event: Event) anyerror!void {
-        return self.eventHandler(self.userdata, ctx, event);
+        if (self.eventHandler) |handle| {
+            return handle(self.userdata, ctx, event);
+        }
     }
 
     pub fn draw(self: Widget, ctx: DrawContext) Allocator.Error!Surface {
