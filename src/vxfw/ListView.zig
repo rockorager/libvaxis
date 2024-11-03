@@ -257,7 +257,7 @@ fn insertChildren(
 
         // Insert the child to the beginning of the list
         try child_list.insert(0, .{
-            .origin = .{ .col = 2, .row = upheight },
+            .origin = .{ .col = if (self.draw_cursor) 2 else 0, .row = upheight },
             .surface = surf,
             .z_index = 0,
         });
