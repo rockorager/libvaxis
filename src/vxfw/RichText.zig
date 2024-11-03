@@ -83,6 +83,7 @@ pub fn draw(self: *const RichText, ctx: vxfw.DrawContext) Allocator.Error!vxfw.S
                 {
                     surface.writeCell(col, row, .{
                         .char = .{ .grapheme = "…", .width = 1 },
+                        .style = cell.style,
                     });
                     col = container_size.width;
                     continue;
