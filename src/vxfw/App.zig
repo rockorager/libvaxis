@@ -240,6 +240,17 @@ const MouseHandler = struct {
         if (sub.containsPoint(mouse_point)) {
             try last_frame.hitTest(&hits, mouse_point);
         }
+
+        // See if our new hit test contains our last handler. If it doesn't we'll send a mouse_leave
+        // event
+        if (self.maybe_last_handler) |last_handler| {
+            for (hits.items) |item| {
+                if (item.widget.eql(last_handler)) break;
+            } else {
+                try last_handler.handleEvent(ctx, .mouse_leave);
+                try app.handleCommand(&ctx.cmds);
+            }
+        }
         while (hits.popOrNull()) |item| {
             var m_local = mouse;
             m_local.col = item.local.col;
@@ -250,12 +261,6 @@ const MouseHandler = struct {
             // If the event wasn't consumed, we keep passing it on
             if (!ctx.consume_event) continue;
 
-            if (self.maybe_last_handler) |last_mouse_handler| {
-                if (!last_mouse_handler.eql(item.widget)) {
-                    try last_mouse_handler.handleEvent(ctx, .mouse_leave);
-                    try app.handleCommand(&ctx.cmds);
-                }
-            }
             self.maybe_last_handler = item.widget;
             return;
         }
