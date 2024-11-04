@@ -35,7 +35,14 @@ pub fn widget(self: *const SplitView) vxfw.Widget {
 
 fn typeErasedEventHandler(ptr: *anyopaque, ctx: *vxfw.EventContext, event: vxfw.Event) anyerror!void {
     const self: *SplitView = @ptrCast(@alignCast(ptr));
-    if (event != .mouse) return;
+    switch (event) {
+        .mouse_leave => {
+            self.pressed = false;
+            return;
+        },
+        .mouse => {},
+        else => return,
+    }
     const mouse = event.mouse;
 
     const separator_col: u16 = switch (self.constrain) {
@@ -71,6 +78,7 @@ fn typeErasedEventHandler(ptr: *anyopaque, ctx: *vxfw.EventContext, event: vxfw.
         if (self.max_width) |max| {
             self.width = @min(self.width, max);
         }
+        ctx.consume_event = true;
     }
 }
 
