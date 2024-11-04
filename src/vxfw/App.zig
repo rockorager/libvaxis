@@ -248,9 +248,60 @@ const MouseHandler = struct {
                 if (item.widget.eql(last_handler)) break;
             } else {
                 try last_handler.handleEvent(ctx, .mouse_leave);
+                self.maybe_last_handler = null;
                 try app.handleCommand(&ctx.cmds);
             }
         }
+
+        const maybe_target = hits.popOrNull();
+
+        // capturing phase
+        ctx.phase = .capturing;
+        for (hits.items) |item| {
+            var m_local = mouse;
+            m_local.col = item.local.col;
+            m_local.row = item.local.row;
+            try item.widget.handleEvent(ctx, .{ .mouse = m_local });
+            try app.handleCommand(&ctx.cmds);
+
+            // If the event was consumed, we check if we need to send a mouse_leave and return
+            if (ctx.consume_event) {
+                if (self.maybe_last_handler) |last_handler| {
+                    if (!last_handler.eql(item.widget)) {
+                        try last_handler.handleEvent(ctx, .mouse_leave);
+                        self.maybe_last_handler = item.widget;
+                        try app.handleCommand(&ctx.cmds);
+                    }
+                    self.maybe_last_handler = item.widget;
+                    return;
+                }
+            }
+        }
+
+        // target phase
+        ctx.phase = .at_target;
+        if (maybe_target) |target| {
+            var m_local = mouse;
+            m_local.col = target.local.col;
+            m_local.row = target.local.row;
+            try target.widget.handleEvent(ctx, .{ .mouse = m_local });
+            try app.handleCommand(&ctx.cmds);
+            // If the event was consumed, we check if we need to send a mouse_leave and return
+            if (ctx.consume_event) {
+                if (self.maybe_last_handler) |last_handler| {
+                    if (!last_handler.eql(target.widget)) {
+                        try last_handler.handleEvent(ctx, .mouse_leave);
+                        self.maybe_last_handler = target.widget;
+                        try app.handleCommand(&ctx.cmds);
+                    }
+                    self.maybe_last_handler = target.widget;
+                    return;
+                }
+            }
+        }
+
+        // Bubbling phase
+        ctx.phase = .bubbling;
         while (hits.popOrNull()) |item| {
             var m_local = mouse;
             m_local.col = item.local.col;
@@ -258,11 +309,18 @@ const MouseHandler = struct {
             try item.widget.handleEvent(ctx, .{ .mouse = m_local });
             try app.handleCommand(&ctx.cmds);
 
-            // If the event wasn't consumed, we keep passing it on
-            if (!ctx.consume_event) continue;
-
-            self.maybe_last_handler = item.widget;
-            return;
+            // If the event was consumed, we check if we need to send a mouse_leave and return
+            if (ctx.consume_event) {
+                if (self.maybe_last_handler) |last_handler| {
+                    if (!last_handler.eql(item.widget)) {
+                        try last_handler.handleEvent(ctx, .mouse_leave);
+                        self.maybe_last_handler = item.widget;
+                        try app.handleCommand(&ctx.cmds);
+                    }
+                    self.maybe_last_handler = item.widget;
+                    return;
+                }
+            }
         }
 
         // If no one handled the mouse, we assume it exited
