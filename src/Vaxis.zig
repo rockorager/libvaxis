@@ -85,6 +85,7 @@ state: struct {
     in_band_resize: bool = false,
     changed_default_fg: bool = false,
     changed_default_bg: bool = false,
+    changed_cursor_color: bool = false,
     cursor: struct {
         row: u16 = 0,
         col: u16 = 0,
@@ -162,6 +163,10 @@ pub fn resetState(self: *Vaxis, tty: AnyWriter) !void {
     if (self.state.changed_default_bg) {
         try tty.writeAll(ctlseqs.osc11_reset);
         self.state.changed_default_bg = false;
+    }
+    if (self.state.changed_cursor_color) {
+        try tty.writeAll(ctlseqs.osc12_reset);
+        self.state.changed_cursor_color = false;
     }
 }
 
@@ -927,6 +932,12 @@ pub fn setTerminalForegroundColor(self: *Vaxis, tty: AnyWriter, rgb: [3]u8) !voi
 pub fn setTerminalBackgroundColor(self: *Vaxis, tty: AnyWriter, rgb: [3]u8) !void {
     try tty.print(ctlseqs.osc11_set, .{ rgb[0], rgb[0], rgb[1], rgb[1], rgb[2], rgb[2] });
     self.state.changed_default_bg = true;
+}
+
+/// Set the terminal cursor color
+pub fn setTerminalCursorColor(self: *Vaxis, tty: AnyWriter, rgb: [3]u8) !void {
+    try tty.print(ctlseqs.osc12_set, .{ rgb[0], rgb[0], rgb[1], rgb[1], rgb[2], rgb[2] });
+    self.state.changed_cursor_color = true;
 }
 
 /// Request a color report from the terminal. Note: not all terminals support
