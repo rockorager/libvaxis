@@ -105,12 +105,21 @@ pub fn matchText(self: Key, cp: u21, mods: Modifiers) bool {
     self_mods.shift = false;
     self_mods.caps_lock = false;
     var arg_mods = mods;
+
+    // TODO: Use zg case_data for full unicode support. We'll need to allocate the case data
+    // somewhere
+    const _cp: u21 = if (cp < 128 and (mods.shift or mods.caps_lock))
+        // Uppercase our codepoint
+        std.ascii.toUpper(@intCast(cp))
+    else
+        cp;
+
     arg_mods.num_lock = false;
     arg_mods.shift = false;
     arg_mods.caps_lock = false;
 
     var buf: [4]u8 = undefined;
-    const n = std.unicode.utf8Encode(cp, buf[0..]) catch return false;
+    const n = std.unicode.utf8Encode(_cp, &buf) catch return false;
     return std.mem.eql(u8, self.text.?, buf[0..n]) and std.meta.eql(self_mods, arg_mods);
 }
 
@@ -388,17 +397,21 @@ test "matches 'a'" {
     const key: Key = .{
         .codepoint = 'a',
         .mods = .{ .num_lock = true },
+        .text = "a",
     };
     try testing.expect(key.matches('a', .{}));
+    try testing.expect(!key.matches('a', .{ .shift = true }));
 }
 
 test "matches 'shift+a'" {
     const key: Key = .{
         .codepoint = 'a',
+        .shifted_codepoint = 'A',
         .mods = .{ .shift = true },
         .text = "A",
     };
     try testing.expect(key.matches('a', .{ .shift = true }));
+    try testing.expect(!key.matches('a', .{}));
     try testing.expect(key.matches('A', .{}));
     try testing.expect(!key.matches('A', .{ .ctrl = true }));
 }
