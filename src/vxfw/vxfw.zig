@@ -196,8 +196,15 @@ pub const MaxSize = struct {
 /// The Widget interface
 pub const Widget = struct {
     userdata: *anyopaque,
+    captureHandler: ?*const fn (userdata: *anyopaque, ctx: *EventContext, event: Event) anyerror!void = null,
     eventHandler: ?*const fn (userdata: *anyopaque, ctx: *EventContext, event: Event) anyerror!void = null,
     drawFn: *const fn (userdata: *anyopaque, ctx: DrawContext) Allocator.Error!Surface,
+
+    pub fn captureEvent(self: Widget, ctx: *EventContext, event: Event) anyerror!void {
+        if (self.captureHandler) |handle| {
+            return handle(self.userdata, ctx, event);
+        }
+    }
 
     pub fn handleEvent(self: Widget, ctx: *EventContext, event: Event) anyerror!void {
         if (self.eventHandler) |handle| {

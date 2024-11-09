@@ -261,7 +261,7 @@ const MouseHandler = struct {
             var m_local = mouse;
             m_local.col = item.local.col;
             m_local.row = item.local.row;
-            try item.widget.handleEvent(ctx, .{ .mouse = m_local });
+            try item.widget.captureEvent(ctx, .{ .mouse = m_local });
             try app.handleCommand(&ctx.cmds);
 
             // If the event was consumed, we check if we need to send a mouse_leave and return
