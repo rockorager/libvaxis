@@ -113,6 +113,7 @@ pub fn handleEvent(self: *ListView, ctx: *vxfw.EventContext, event: vxfw.Event) 
             // All other keypresses go to our focused child
             switch (self.children) {
                 .slice => |slice| {
+                    if (slice.len == 0) return;
                     const child = slice[self.cursor];
                     return child.handleEvent(ctx, event);
                 },
