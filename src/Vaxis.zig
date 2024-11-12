@@ -735,6 +735,8 @@ pub fn transmitLocalImagePath(
     medium: Image.TransmitMedium,
     format: Image.TransmitFormat,
 ) !Image {
+    if (!self.caps.kitty_graphics) return error.NoGraphicsCapability;
+
     defer self.next_img_id += 1;
 
     const id = self.next_img_id;
@@ -788,6 +790,8 @@ pub fn transmitPreEncodedImage(
     height: u16,
     format: Image.TransmitFormat,
 ) !Image {
+    if (!self.caps.kitty_graphics) return error.NoGraphicsCapability;
+
     defer self.next_img_id += 1;
     const id = self.next_img_id;
 
