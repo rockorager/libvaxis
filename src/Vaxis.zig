@@ -716,6 +716,7 @@ pub fn translateMouse(self: Vaxis, mouse: Mouse) Mouse {
         const yextra = self.screen.height_pix % self.screen.height;
         const xcell = (self.screen.width_pix - xextra) / self.screen.width;
         const ycell = (self.screen.height_pix - yextra) / self.screen.height;
+        if (xcell == 0 or ycell == 0) return mouse;
         result.col = xpos / xcell;
         result.row = ypos / ycell;
         result.xoffset = xpos % xcell;
