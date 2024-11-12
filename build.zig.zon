@@ -8,8 +8,8 @@
             .hash = "1220dd654ef941fc76fd96f9ec6adadf83f69b9887a0d3f4ee5ac0a1a3e11be35cf5",
         },
         .zg = .{
-            .url = "git+https://codeberg.org/dude_the_builder/zg#7ddce488e074c3f052949ba513a340446cea86e9",
-            .hash = "12205e2e7108385a1ec280b6365166e902a690d6a0e8fcc015fdea62d63cf79be8ec",
+            .url = "https://codeberg.org/atman/zg/archive/v0.13.2.tar.gz",
+            .hash = "122055beff332830a391e9895c044d33b15ea21063779557024b46169fb1984c6e40",
         },
     },
     .paths = .{
