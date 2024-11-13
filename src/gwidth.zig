@@ -33,7 +33,7 @@ pub fn gwidth(str: []const u8, method: Method, data: *const DisplayWidth.Display
             return total;
         },
         .no_zwj => {
-            var iter = std.mem.split(u8, str, "\u{200D}");
+            var iter = std.mem.splitSequence(u8, str, "\u{200D}");
             var result: u16 = 0;
             while (iter.next()) |s| {
                 result += gwidth(s, .unicode, data);
