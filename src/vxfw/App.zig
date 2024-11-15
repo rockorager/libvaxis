@@ -16,6 +16,7 @@ tty: vaxis.Tty,
 vx: vaxis.Vaxis,
 timers: std.ArrayList(vxfw.Tick),
 wants_focus: ?vxfw.Widget,
+loop: ?EventLoop,
 
 /// Runtime options
 pub const Options = struct {
@@ -33,6 +34,7 @@ pub fn init(allocator: Allocator) !App {
         .vx = try vaxis.init(allocator, .{ .system_clipboard_allocator = allocator }),
         .timers = std.ArrayList(vxfw.Tick).init(allocator),
         .wants_focus = null,
+        .loop = null,
     };
 }
 
@@ -46,12 +48,12 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     const tty = &self.tty;
     const vx = &self.vx;
 
-    var loop: EventLoop = .{ .tty = tty, .vaxis = vx };
-    try loop.start();
-    defer loop.stop();
+    self.loop = .{ .tty = tty, .vaxis = vx };
+    try self.loop.?.start();
+    defer self.loop.?.stop();
 
     // Send the init event
-    loop.postEvent(.init);
+    self.loop.?.postEvent(.init);
 
     try vx.enterAltScreen(tty.anyWriter());
     try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
@@ -60,7 +62,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
         // This part deserves a comment. loop.init installs a signal handler for the tty. We wait to
         // init the loop until we know if we need this handler. We don't need it if the terminal
         // supports in-band-resize
-        if (!vx.state.in_band_resize) try loop.init();
+        if (!vx.state.in_band_resize) try self.loop.?.init();
     }
 
     // NOTE: We don't use pixel mouse anywhere
@@ -112,7 +114,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
 
         try self.checkTimers(&ctx);
 
-        while (loop.tryEvent()) |event| {
+        while (self.loop.?.tryEvent()) |event| {
             defer {
                 // Reset our context
                 ctx.consume_event = false;
