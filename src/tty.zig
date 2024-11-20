@@ -65,7 +65,7 @@ pub const PosixTty = struct {
             },
             .flags = 0,
         };
-        try posix.sigaction(posix.SIG.WINCH, &act, null);
+        posix.sigaction(posix.SIG.WINCH, &act, null);
         handler_installed = true;
 
         const self: PosixTty = .{
@@ -191,19 +191,19 @@ pub const PosixTty = struct {
     /// Get the window size from the kernel
     pub fn getWinsize(fd: posix.fd_t) !Winsize {
         var winsize = posix.winsize{
-            .ws_row = 0,
-            .ws_col = 0,
-            .ws_xpixel = 0,
-            .ws_ypixel = 0,
+            .row = 0,
+            .col = 0,
+            .xpixel = 0,
+            .ypixel = 0,
         };
 
         const err = posix.system.ioctl(fd, posix.T.IOCGWINSZ, @intFromPtr(&winsize));
         if (posix.errno(err) == .SUCCESS)
             return Winsize{
-                .rows = winsize.ws_row,
-                .cols = winsize.ws_col,
-                .x_pixel = winsize.ws_xpixel,
-                .y_pixel = winsize.ws_ypixel,
+                .rows = winsize.row,
+                .cols = winsize.col,
+                .x_pixel = winsize.xpixel,
+                .y_pixel = winsize.ypixel,
             };
         return error.IoctlError;
     }
