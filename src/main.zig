@@ -48,10 +48,20 @@ pub fn init(alloc: std.mem.Allocator, opts: Vaxis.Options) !Vaxis {
     return Vaxis.init(alloc, opts);
 }
 
+pub const Panic = struct {
+    pub const call = panic_handler;
+    pub const sentinelMismatch = std.debug.FormattedPanic.sentinelMismatch;
+    pub const unwrapError = std.debug.FormattedPanic.unwrapError;
+    pub const outOfBounds = std.debug.FormattedPanic.outOfBounds;
+    pub const startGreaterThanEnd = std.debug.FormattedPanic.startGreaterThanEnd;
+    pub const inactiveUnionField = std.debug.FormattedPanic.inactiveUnionField;
+    pub const messages = std.debug.FormattedPanic.messages;
+};
+
 /// Resets terminal state on a panic, then calls the default zig panic handler
 pub fn panic_handler(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_addr: ?usize) noreturn {
     recover();
-    std.builtin.default_panic(msg, error_return_trace, ret_addr);
+    std.debug.defaultPanic(msg, error_return_trace, ret_addr);
 }
 
 /// Resets the terminal state using the global tty instance. Use this only to recover during a panic
