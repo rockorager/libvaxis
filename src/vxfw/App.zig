@@ -577,7 +577,7 @@ const FocusHandler = struct {
         // Capturing phase
         ctx.phase = .capturing;
         for (path[0..target_idx]) |widget| {
-            try widget.handleEvent(ctx, event);
+            try widget.captureEvent(ctx, event);
             if (ctx.consume_event) return;
         }
 
