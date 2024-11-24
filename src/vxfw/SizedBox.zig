@@ -13,14 +13,8 @@ size: vxfw.Size,
 pub fn widget(self: *const SizedBox) vxfw.Widget {
     return .{
         .userdata = @constCast(self),
-        .eventHandler = typeErasedEventHandler,
         .drawFn = typeErasedDrawFn,
     };
-}
-
-fn typeErasedEventHandler(ptr: *anyopaque, ctx: *vxfw.EventContext, event: vxfw.Event) anyerror!void {
-    const self: *const SizedBox = @ptrCast(@alignCast(ptr));
-    return self.child.handleEvent(ctx, event);
 }
 
 fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surface {

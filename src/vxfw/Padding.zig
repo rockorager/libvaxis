@@ -43,14 +43,8 @@ pub fn vertical(padding: u16) PadValues {
 pub fn widget(self: *const Padding) vxfw.Widget {
     return .{
         .userdata = @constCast(self),
-        .eventHandler = typeErasedEventHandler,
         .drawFn = typeErasedDrawFn,
     };
-}
-
-fn typeErasedEventHandler(ptr: *anyopaque, ctx: *vxfw.EventContext, event: vxfw.Event) anyerror!void {
-    const self: *const Padding = @ptrCast(@alignCast(ptr));
-    return self.child.handleEvent(ctx, event);
 }
 
 fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surface {

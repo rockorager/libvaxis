@@ -109,20 +109,6 @@ pub fn handleEvent(self: *ListView, ctx: *vxfw.EventContext, event: vxfw.Event) 
                 self.ensureScroll();
                 return ctx.consumeAndRedraw();
             }
-
-            // All other keypresses go to our focused child
-            switch (self.children) {
-                .slice => |slice| {
-                    if (slice.len == 0) return;
-                    const child = slice[self.cursor];
-                    return child.handleEvent(ctx, event);
-                },
-                .builder => |builder| {
-                    if (builder.itemAtIdx(self.cursor, self.cursor)) |child| {
-                        return child.handleEvent(ctx, event);
-                    }
-                },
-            }
         },
         else => {},
     }
@@ -307,7 +293,6 @@ fn drawBuilder(self: *ListView, ctx: vxfw.DrawContext, builder: Builder) Allocat
     // Set state
     {
         surface.focusable = true;
-        surface.handles_mouse = true;
         // Assume we have more. We only know we don't after drawing
         self.scroll.has_more = true;
     }

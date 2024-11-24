@@ -129,7 +129,6 @@ fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) Allocator.Error!vxfw
     }
 
     var surface = try vxfw.Surface.initWithChildren(ctx.arena, self.widget(), max, &self.children);
-    surface.handles_mouse = true;
     for (0..max.height) |row| {
         surface.writeCell(self.width + 1, @intCast(row), .{
             .char = .{ .grapheme = "│", .width = 1 },
