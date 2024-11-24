@@ -267,8 +267,6 @@ pub const Surface = struct {
 
     /// If this widget / Surface is focusable
     focusable: bool = false,
-    /// If this widget can handle mouse events
-    handles_mouse: bool = false,
 
     /// Cursor state
     cursor: ?CursorState = null,
@@ -332,7 +330,6 @@ pub const Surface = struct {
             .buffer = self.buffer[0 .. self.size.width * height],
             .children = self.children,
             .focusable = self.focusable,
-            .handles_mouse = self.handles_mouse,
         };
     }
 
@@ -340,8 +337,7 @@ pub const Surface = struct {
     /// always be translated to local Surface coordinates. Asserts that this Surface does contain Point
     pub fn hitTest(self: Surface, list: *std.ArrayList(HitResult), point: Point) Allocator.Error!void {
         assert(point.col < self.size.width and point.row < self.size.height);
-        if (self.handles_mouse)
-            try list.append(.{ .local = point, .widget = self.widget });
+        try list.append(.{ .local = point, .widget = self.widget });
         for (self.children) |child| {
             if (!child.containsPoint(point)) continue;
             const child_point: Point = .{

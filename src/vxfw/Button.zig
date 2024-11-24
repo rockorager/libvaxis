@@ -110,7 +110,6 @@ pub fn draw(self: *Button, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surface {
 
     var button_surf = try vxfw.Surface.initWithChildren(ctx.arena, self.widget(), surf.size, surf.children);
     @memset(button_surf.buffer, .{ .style = style });
-    button_surf.handles_mouse = true;
     button_surf.focusable = true;
     return button_surf;
 }

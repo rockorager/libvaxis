@@ -207,7 +207,6 @@ pub fn draw(self: *TextField, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfac
         .{ .width = max_width, .height = @max(ctx.min.height, 1) },
     );
     surface.focusable = true;
-    surface.handles_mouse = true;
 
     const base: vaxis.Cell = .{ .style = .{} };
     @memset(surface.buffer, base);
