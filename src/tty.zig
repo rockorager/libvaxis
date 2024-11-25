@@ -469,9 +469,14 @@ pub const WindowsTty = struct {
                     0xc0 => '`',
                     0xdb => '[',
                     0xdc => '\\',
+                    0xe2 => '\\',
                     0xdd => ']',
                     0xde => '\'',
-                    else => return null,
+                    else => {
+                        const log = std.log.scoped(.vaxis);
+                        log.warn("unknown wVirtualKeyCode: 0x{x}", .{event.wVirtualKeyCode});
+                        return null;
+                    },
                 };
 
                 if (std.unicode.utf16IsHighSurrogate(base_layout)) {
