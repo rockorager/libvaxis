@@ -273,8 +273,8 @@ const MouseHandler = struct {
                         try app.handleCommand(&ctx.cmds);
                     }
                     self.maybe_last_handler = item.widget;
-                    return;
                 }
+                return;
             }
         }
 
@@ -295,8 +295,8 @@ const MouseHandler = struct {
                         try app.handleCommand(&ctx.cmds);
                     }
                     self.maybe_last_handler = target.widget;
-                    return;
                 }
+                return;
             }
         }
 
@@ -318,8 +318,8 @@ const MouseHandler = struct {
                         try app.handleCommand(&ctx.cmds);
                     }
                     self.maybe_last_handler = item.widget;
-                    return;
                 }
+                return;
             }
         }
 
