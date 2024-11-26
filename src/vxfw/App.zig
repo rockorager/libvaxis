@@ -165,7 +165,11 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
         const surface = try widget.draw(draw_context);
 
         const focused = self.wants_focus orelse focus_handler.focused.widget;
-        surface.render(win, focused);
+        const root_win = win.child(.{
+            .width = surface.size.width,
+            .height = surface.size.height,
+        });
+        surface.render(root_win, focused);
         try vx.render(buffered.writer().any());
         try buffered.flush();
 
