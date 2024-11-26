@@ -17,7 +17,6 @@ width_basis: enum { parent, longest_line } = .longest_line,
 pub fn widget(self: *const Text) vxfw.Widget {
     return .{
         .userdata = @constCast(self),
-        .eventHandler = vxfw.noopEventHandler,
         .drawFn = typeErasedDrawFn,
     };
 }

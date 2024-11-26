@@ -12,7 +12,6 @@ children: []const vxfw.FlexItem,
 pub fn widget(self: *const FlexColumn) vxfw.Widget {
     return .{
         .userdata = @constCast(self),
-        .eventHandler = vxfw.noopEventHandler,
         .drawFn = typeErasedDrawFn,
     };
 }

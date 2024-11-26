@@ -57,14 +57,13 @@ pub fn handleEvent(self: *Button, ctx: *vxfw.EventContext, event: vxfw.Event) an
                 self.mouse_down = true;
                 return ctx.consumeAndRedraw();
             }
-            if (!self.has_mouse) {
-                self.has_mouse = true;
-
-                // implicit redraw
-                try ctx.setMouseShape(.pointer);
-                return ctx.consumeAndRedraw();
-            }
             return ctx.consumeEvent();
+        },
+        .mouse_enter => {
+            // implicit redraw
+            self.has_mouse = true;
+            try ctx.setMouseShape(.pointer);
+            return ctx.consumeAndRedraw();
         },
         .mouse_leave => {
             self.has_mouse = false;

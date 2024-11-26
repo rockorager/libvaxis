@@ -39,7 +39,6 @@ test SizedBox {
         pub fn widget(self: *@This()) vxfw.Widget {
             return .{
                 .userdata = self,
-                .eventHandler = vxfw.noopEventHandler,
                 .drawFn = @This().typeErasedDrawFn,
             };
         }
