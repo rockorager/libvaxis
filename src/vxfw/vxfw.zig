@@ -47,6 +47,7 @@ pub const Event = union(enum) {
     tick, // An event from a Tick command
     init, // sent when the application starts
     mouse_leave, // The mouse has left the widget
+    mouse_enter, // The mouse has enterred the widget
 };
 
 pub const Tick = struct {
@@ -216,10 +217,10 @@ pub const Widget = struct {
         return self.drawFn(self.userdata, ctx);
     }
 
-    /// Returns true if the Widgets point to the same widget instance
+    /// Returns true if the Widgets point to the same widget instance. To be considered the same,
+    /// the userdata and drawFn fields must point to the same values in both widgets
     pub fn eql(self: Widget, other: Widget) bool {
         return @intFromPtr(self.userdata) == @intFromPtr(other.userdata) and
-            @intFromPtr(self.eventHandler) == @intFromPtr(other.eventHandler) and
             @intFromPtr(self.drawFn) == @intFromPtr(other.drawFn);
     }
 };
@@ -337,7 +338,9 @@ pub const Surface = struct {
     /// always be translated to local Surface coordinates. Asserts that this Surface does contain Point
     pub fn hitTest(self: Surface, list: *std.ArrayList(HitResult), point: Point) Allocator.Error!void {
         assert(point.col < self.size.width and point.row < self.size.height);
-        try list.append(.{ .local = point, .widget = self.widget });
+        // Add this widget to the hit list if it has an event or capture handler
+        if (self.widget.eventHandler != null or self.widget.captureHandler != null)
+            try list.append(.{ .local = point, .widget = self.widget });
         for (self.children) |child| {
             if (!child.containsPoint(point)) continue;
             const child_point: Point = .{
@@ -411,9 +414,6 @@ pub const SubSurface = struct {
             point.row < (self.origin.row + self.surface.size.height);
     }
 };
-
-/// A noop event handler for widgets which don't require any event handling
-pub fn noopEventHandler(_: *anyopaque, _: *EventContext, _: Event) anyerror!void {}
 
 test {
     std.testing.refAllDecls(@This());

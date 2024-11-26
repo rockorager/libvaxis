@@ -81,6 +81,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     var buffered = tty.bufferedWriter();
 
     var mouse_handler = MouseHandler.init(widget);
+    defer mouse_handler.deinit(self.allocator);
     var focus_handler = FocusHandler.init(self.allocator, widget);
     focus_handler.intrusiveInit();
     try focus_handler.path_to_focused.append(widget);
@@ -208,7 +209,7 @@ fn checkTimers(self: *App, ctx: *vxfw.EventContext) anyerror!void {
 
 const MouseHandler = struct {
     last_frame: vxfw.Surface,
-    maybe_last_handler: ?vxfw.Widget = null,
+    last_hit_list: []vxfw.HitResult,
 
     fn init(root: Widget) MouseHandler {
         return .{
@@ -218,14 +219,18 @@ const MouseHandler = struct {
                 .buffer = &.{},
                 .children = &.{},
             },
-            .maybe_last_handler = null,
+            .last_hit_list = &.{},
         };
     }
 
+    fn deinit(self: MouseHandler, gpa: Allocator) void {
+        gpa.free(self.last_hit_list);
+    }
+
     fn handleMouse(self: *MouseHandler, app: *App, ctx: *vxfw.EventContext, mouse: vaxis.Mouse) anyerror!void {
+        // For mouse events we store the last frame and use that for hit testing
         const last_frame = self.last_frame;
 
-        // For mouse events we store the last frame and use that for hit testing
         var hits = std.ArrayList(vxfw.HitResult).init(app.allocator);
         defer hits.deinit();
         const sub: vxfw.SubSurface = .{
@@ -241,19 +246,48 @@ const MouseHandler = struct {
             try last_frame.hitTest(&hits, mouse_point);
         }
 
-        // See if our new hit test contains our last handler. If it doesn't we'll send a mouse_leave
-        // event
-        if (self.maybe_last_handler) |last_handler| {
-            for (hits.items) |item| {
-                if (item.widget.eql(last_handler)) break;
-            } else {
-                try last_handler.handleEvent(ctx, .mouse_leave);
-                self.maybe_last_handler = null;
-                try app.handleCommand(&ctx.cmds);
+        // Handle mouse_enter and mouse_leave events
+        {
+            // We store the hit list from the last mouse event to determine mouse_enter and mouse_leave
+            // events. If list a is the previous hit list, and list b is the current hit list:
+            // - Widgets in a but not in b get a mouse_leave event
+            // - Widgets in b but not in a get a mouse_enter event
+            // - Widgets in both receive nothing
+            const a = self.last_hit_list;
+            const b = hits.items;
+
+            // Find widgets in a but not b
+            for (a) |a_item| {
+                const a_widget = a_item.widget;
+                for (b) |b_item| {
+                    const b_widget = b_item.widget;
+                    if (a_widget.eql(b_widget)) break;
+                } else {
+                    // a_item is not in b
+                    try a_widget.handleEvent(ctx, .mouse_leave);
+                    try app.handleCommand(&ctx.cmds);
+                }
             }
+
+            // Widgets in b but not in a
+            for (b) |b_item| {
+                const b_widget = b_item.widget;
+                for (a) |a_item| {
+                    const a_widget = a_item.widget;
+                    if (b_widget.eql(a_widget)) break;
+                } else {
+                    // b_item is not in a.
+                    try b_widget.handleEvent(ctx, .mouse_enter);
+                    try app.handleCommand(&ctx.cmds);
+                }
+            }
+
+            // Store a copy of this hit list for next frame
+            app.allocator.free(self.last_hit_list);
+            self.last_hit_list = try app.allocator.dupe(vxfw.HitResult, hits.items);
         }
 
-        const maybe_target = hits.popOrNull();
+        const target = hits.popOrNull() orelse return;
 
         // capturing phase
         ctx.phase = .capturing;
@@ -264,40 +298,19 @@ const MouseHandler = struct {
             try item.widget.captureEvent(ctx, .{ .mouse = m_local });
             try app.handleCommand(&ctx.cmds);
 
-            // If the event was consumed, we check if we need to send a mouse_leave and return
-            if (ctx.consume_event) {
-                if (self.maybe_last_handler) |last_handler| {
-                    if (!last_handler.eql(item.widget)) {
-                        try last_handler.handleEvent(ctx, .mouse_leave);
-                        self.maybe_last_handler = item.widget;
-                        try app.handleCommand(&ctx.cmds);
-                    }
-                }
-                self.maybe_last_handler = item.widget;
-                return;
-            }
+            if (ctx.consume_event) return;
         }
 
         // target phase
         ctx.phase = .at_target;
-        if (maybe_target) |target| {
+        {
             var m_local = mouse;
             m_local.col = target.local.col;
             m_local.row = target.local.row;
             try target.widget.handleEvent(ctx, .{ .mouse = m_local });
             try app.handleCommand(&ctx.cmds);
-            // If the event was consumed, we check if we need to send a mouse_leave and return
-            if (ctx.consume_event) {
-                if (self.maybe_last_handler) |last_handler| {
-                    if (!last_handler.eql(target.widget)) {
-                        try last_handler.handleEvent(ctx, .mouse_leave);
-                        self.maybe_last_handler = target.widget;
-                        try app.handleCommand(&ctx.cmds);
-                    }
-                }
-                self.maybe_last_handler = target.widget;
-                return;
-            }
+
+            if (ctx.consume_event) return;
         }
 
         // Bubbling phase
@@ -309,29 +322,15 @@ const MouseHandler = struct {
             try item.widget.handleEvent(ctx, .{ .mouse = m_local });
             try app.handleCommand(&ctx.cmds);
 
-            // If the event was consumed, we check if we need to send a mouse_leave and return
-            if (ctx.consume_event) {
-                if (self.maybe_last_handler) |last_handler| {
-                    if (!last_handler.eql(item.widget)) {
-                        try last_handler.handleEvent(ctx, .mouse_leave);
-                        self.maybe_last_handler = item.widget;
-                        try app.handleCommand(&ctx.cmds);
-                    }
-                }
-                self.maybe_last_handler = item.widget;
-                return;
-            }
+            if (ctx.consume_event) return;
         }
-
-        // If no one handled the mouse, we assume it exited
-        return self.mouseExit(app, ctx);
     }
 
+    /// sends .mouse_leave to all of the widgets from the last_hit_list
     fn mouseExit(self: *MouseHandler, app: *App, ctx: *vxfw.EventContext) anyerror!void {
-        if (self.maybe_last_handler) |last_handler| {
-            try last_handler.handleEvent(ctx, .mouse_leave);
+        for (self.last_hit_list) |item| {
+            try item.widget.handleEvent(ctx, .mouse_leave);
             try app.handleCommand(&ctx.cmds);
-            self.maybe_last_handler = null;
         }
     }
 };
