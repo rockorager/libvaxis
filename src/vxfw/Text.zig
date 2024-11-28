@@ -57,6 +57,16 @@ pub fn draw(self: *const Text, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfa
             var char_iter = ctx.graphemeIterator(line.bytes);
             while (char_iter.next()) |char| {
                 const grapheme = char.bytes(line.bytes);
+                if (std.mem.eql(u8, grapheme, "\t")) {
+                    for (0..8) |i| {
+                        surface.writeCell(@intCast(col + i), row, .{
+                            .char = .{ .grapheme = " ", .width = 1 },
+                            .style = self.style,
+                        });
+                    }
+                    col += 8;
+                    continue;
+                }
                 const grapheme_width: u8 = @intCast(ctx.stringWidth(grapheme));
                 surface.writeCell(col, row, .{
                     .char = .{ .grapheme = grapheme, .width = grapheme_width },
@@ -69,7 +79,8 @@ pub fn draw(self: *const Text, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfa
         var line_iter: LineIterator = .{ .buf = self.text };
         while (line_iter.next()) |line| {
             if (row >= container_size.height) break;
-            const line_width = ctx.stringWidth(line);
+            // \t is default 1 wide. We add 7x the count of tab characters to get the full width
+            const line_width = ctx.stringWidth(line) + 7 * std.mem.count(u8, line, "\t");
             defer row += 1;
             const resolved_line_width = @min(container_size.width, line_width);
             var col: u16 = switch (self.text_align) {
