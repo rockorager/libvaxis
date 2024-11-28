@@ -162,6 +162,16 @@ pub const SoftwrapIterator = struct {
             var iter = ctx.graphemeIterator(span.text);
             while (iter.next()) |grapheme| {
                 const char = grapheme.bytes(span.text);
+                if (std.mem.eql(u8, char, "\t")) {
+                    const cell: vaxis.Cell = .{
+                        .char = .{ .grapheme = " ", .width = 1 },
+                        .style = span.style,
+                    };
+                    for (0..8) |_| {
+                        try list.append(cell);
+                    }
+                    continue;
+                }
                 const width = ctx.stringWidth(char);
                 const cell: vaxis.Cell = .{
                     .char = .{ .grapheme = char, .width = @intCast(width) },
