@@ -33,7 +33,7 @@ pub fn init(alloc: std.mem.Allocator, winsize: Winsize, unicode: *const Unicode)
     const w = winsize.cols;
     const h = winsize.rows;
     const self = Screen{
-        .buf = try alloc.alloc(Cell, w * h),
+        .buf = try alloc.alloc(Cell, @as(usize, @intCast(w)) * h),
         .width = w,
         .height = h,
         .width_pix = winsize.x_pixel,
@@ -53,7 +53,7 @@ pub fn writeCell(self: *Screen, col: u16, row: u16, cell: Cell) void {
     if (col >= self.width or
         row >= self.height)
         return;
-    const i = (row * self.width) + col;
+    const i = (@as(usize, @intCast(row)) * self.width) + col;
     assert(i < self.buf.len);
     self.buf[i] = cell;
 }
@@ -62,7 +62,7 @@ pub fn readCell(self: *const Screen, col: u16, row: u16) ?Cell {
     if (col >= self.width or
         row >= self.height)
         return null;
-    const i = (row * self.width) + col;
+    const i = (@as(usize, @intCast(row)) * self.width) + col;
     assert(i < self.buf.len);
     return self.buf[i];
 }
