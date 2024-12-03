@@ -47,7 +47,7 @@ mouse_shape: MouseShape = .default,
 /// sets each cell to the default cell
 pub fn init(alloc: std.mem.Allocator, w: u16, h: u16) !InternalScreen {
     var screen = InternalScreen{
-        .buf = try alloc.alloc(InternalCell, w * h),
+        .buf = try alloc.alloc(InternalCell, @as(usize, @intCast(w)) * h),
     };
     for (screen.buf, 0..) |_, i| {
         screen.buf[i] = .{
@@ -87,7 +87,7 @@ pub fn writeCell(
         // height out of bounds
         return;
     }
-    const i = (row * self.width) + col;
+    const i = (@as(usize, @intCast(row)) * self.width) + col;
     assert(i < self.buf.len);
     self.buf[i].char.clearRetainingCapacity();
     self.buf[i].char.appendSlice(cell.char.grapheme) catch {

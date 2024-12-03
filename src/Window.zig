@@ -198,16 +198,16 @@ pub fn fill(self: Window, cell: Cell) void {
         self.screen.width < self.x_off or
         self.screen.height < self.y_off)
         return;
-    const first_row: u16 = @intCast(@max(self.y_off, 0));
+    const first_row: usize = @intCast(@max(self.y_off, 0));
     if (self.x_off == 0 and self.width == self.screen.width) {
         // we have a full width window, therefore contiguous memory.
         const start = @min(first_row * self.width, self.screen.buf.len);
-        const end = @min(start + (self.height * self.width), self.screen.buf.len);
+        const end = @min(start + (@as(usize, @intCast(self.height)) * self.width), self.screen.buf.len);
         @memset(self.screen.buf[start..end], cell);
     } else {
         // Non-contiguous. Iterate over rows an memset
-        var row: u16 = first_row;
-        const first_col: u16 = @max(self.x_off, 0);
+        var row: usize = first_row;
+        const first_col: usize = @max(self.x_off, 0);
         const last_row = @min(self.height + self.y_off, self.screen.height);
         while (row < last_row) : (row += 1) {
             const start = @min(first_col + (row * self.screen.width), self.screen.buf.len);

@@ -315,7 +315,7 @@ pub fn queueRefresh(self: *Vaxis) void {
 /// draws the screen to the terminal
 pub fn render(self: *Vaxis, tty: AnyWriter) !void {
     defer self.refresh = false;
-    assert(self.screen.buf.len == self.screen.width * self.screen.height); // correct size
+    assert(self.screen.buf.len == @as(usize, @intCast(self.screen.width)) * self.screen.height); // correct size
     assert(self.screen.buf.len == self.screen_last.buf.len); // same size
 
     // Set up sync before we write anything
@@ -353,7 +353,7 @@ pub fn render(self: *Vaxis, tty: AnyWriter) !void {
     if (self.caps.kitty_graphics)
         try tty.writeAll(ctlseqs.kitty_graphics_clear);
 
-    var i: u16 = 0;
+    var i: usize = 0;
     while (i < self.screen.buf.len) {
         const cell = self.screen.buf[i];
         const w: u16 = blk: {
