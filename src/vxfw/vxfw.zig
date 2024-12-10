@@ -19,6 +19,7 @@ pub const FlexRow = @import("FlexRow.zig");
 pub const ListView = @import("ListView.zig");
 pub const Padding = @import("Padding.zig");
 pub const RichText = @import("RichText.zig");
+pub const ScrollView = @import("ScrollView.zig");
 pub const SizedBox = @import("SizedBox.zig");
 pub const SplitView = @import("SplitView.zig");
 pub const Spinner = @import("Spinner.zig");
