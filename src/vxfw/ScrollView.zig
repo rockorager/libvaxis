@@ -58,6 +58,9 @@ draw_cursor: bool = true,
 wheel_scroll: u8 = 3,
 /// Set this if the exact item count is known.
 item_count: ?u32 = null,
+/// When true, the widget will draw horizontal and vertical scrollbars on the right and bottom
+/// sides of the contained widget.
+draw_scrollbars: bool = true,
 
 /// scroll position
 scroll: Scroll = .{},
@@ -226,8 +229,8 @@ fn insertChildren(
 
         // Set up constraints. We let the child be the entire height if it wants
         const child_ctx = ctx.withConstraints(
-            .{ .width = max_size.width - child_offset, .height = 0 },
-            .{ .width = max_size.width - child_offset, .height = null },
+            .{ .width = max_size.width - 1 - child_offset, .height = 0 },
+            .{ .width = max_size.width - 1 - child_offset, .height = null },
         );
 
         // Draw the child
@@ -344,8 +347,8 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
 
         // Set up constraints. We let the child be the entire height if it wants
         const child_ctx = ctx.withConstraints(
-            .{ .width = max_size.width - child_offset, .height = 0 },
-            .{ .width = max_size.width - child_offset, .height = null },
+            .{ .width = max_size.width - 1 - child_offset, .height = 0 },
+            .{ .width = max_size.width - 1 - child_offset, .height = null },
         );
 
         // Draw the child
@@ -484,7 +487,52 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
         }
     }
 
-    surface.children = child_list.items[start..end];
+    var children_with_scrollbar = std.ArrayList(vxfw.SubSurface).init(ctx.arena);
+
+    // We need to draw all the children to calculate the right total height.
+    var th: u32 = 0;
+    var idx: usize = 0;
+    while (builder.itemAtIdx(idx, self.cursor)) |child| {
+        defer idx += 1;
+
+        const child_surf = try child.draw(ctx.withConstraints(
+            .{ .width = max_size.width - 1 - child_offset, .height = 0 },
+            .{ .width = max_size.width - 1 - child_offset, .height = null },
+        ));
+        th +|= child_surf.size.height;
+        // th +|= 1;
+    }
+
+    // We only show the scrollbar if the content height is larger than the widget height and
+    // drawing the scrollbars is requested.
+    if (self.draw_scrollbars and th > max_size.height) {
+        // The scroll bar surface needs to span the entire widget so dragging the scroll bar can work
+        // even if the mouse leaves the scrollbar itself.
+        const scroll_bar = try vxfw.Surface.init(ctx.arena, self.widget(), max_size);
+
+        const widget_height_f: f32 = @floatFromInt(max_size.height);
+        const total_height_f: f32 = @floatFromInt(th);
+        const scroll_top_f: f32 = @floatFromInt(self.scroll.top);
+
+        const scroll_bar_height_f: f32 = widget_height_f * (widget_height_f / total_height_f);
+        const scroll_bar_height: u32 = @intFromFloat(scroll_bar_height_f);
+
+        const scroll_bar_top_f: f32 = widget_height_f * (scroll_top_f / total_height_f);
+        const scroll_bar_top: u32 = @intFromFloat(scroll_bar_top_f);
+
+        for (scroll_bar_top..scroll_bar_top + @max(scroll_bar_height, 1)) |row| {
+            scroll_bar.writeCell(max_size.width - 1, @intCast(row), cursor_indicator);
+        }
+
+        try children_with_scrollbar.append(.{
+            .surface = scroll_bar,
+            .origin = .{ .row = 0, .col = 0 },
+        });
+    }
+
+    try children_with_scrollbar.appendSlice(child_list.items[start..end]);
+
+    surface.children = children_with_scrollbar.items;
     return surface;
 }
 
