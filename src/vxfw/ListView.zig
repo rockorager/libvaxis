@@ -43,7 +43,7 @@ const Scroll = struct {
 
     fn linesUp(self: *Scroll, n: u8) bool {
         if (self.top == 0 and self.offset == 0) return false;
-        self.pending_lines = -1 * @as(i17, @intCast(n));
+        self.pending_lines -= @intCast(n);
         return true;
     }
 };
@@ -665,6 +665,96 @@ test ListView {
     try std.testing.expectEqual(0, list_view.scroll.offset);
     try std.testing.expectEqual(3, surface.children.len);
     try std.testing.expectEqual(3, list_view.cursor);
+}
+
+// @reykjalin found an issue on mac with ghostty where the scroll up and scroll down were uneven.
+// Ghostty has high precision scrolling and sends a lot of wheel events for each tick
+test "ListView: uneven scroll" {
+    // Create child widgets
+    const Text = @import("Text.zig");
+    const zero: Text = .{ .text = "0" };
+    const one: Text = .{ .text = "1" };
+    const two: Text = .{ .text = "2" };
+    const three: Text = .{ .text = "3" };
+    const four: Text = .{ .text = "4" };
+    const five: Text = .{ .text = "5" };
+    const six: Text = .{ .text = "6" };
+    // 0 |
+    // 1 |
+    // 2 |
+    // 3 |
+    // 4
+    // 5
+    // 6
+
+    // Create the list view
+    const list_view: ListView = .{
+        .wheel_scroll = 1, // Set wheel scroll to one
+        .children = .{ .slice = &.{
+            zero.widget(),
+            one.widget(),
+            two.widget(),
+            three.widget(),
+            four.widget(),
+            five.widget(),
+            six.widget(),
+        } },
+    };
+
+    // Boiler plate draw context
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const ucd = try vaxis.Unicode.init(arena.allocator());
+    vxfw.DrawContext.init(&ucd, .unicode);
+
+    const list_widget = list_view.widget();
+    const draw_ctx: vxfw.DrawContext = .{
+        .arena = arena.allocator(),
+        .min = .{},
+        .max = .{ .width = 16, .height = 4 },
+    };
+
+    var surface = try list_widget.draw(draw_ctx);
+
+    var mouse_event: vaxis.Mouse = .{
+        .col = 0,
+        .row = 0,
+        .button = .wheel_up,
+        .mods = .{},
+        .type = .press,
+    };
+    // Event handlers need a context
+    var ctx: vxfw.EventContext = .{
+        .cmds = std.ArrayList(vxfw.Command).init(std.testing.allocator),
+    };
+    defer ctx.cmds.deinit();
+
+    // Send a wheel down x 3
+    mouse_event.button = .wheel_down;
+    try list_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
+    try list_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
+    try list_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
+    // We have to draw the widget for scrolls to take effect
+    surface = try list_widget.draw(draw_ctx);
+    // 0
+    // 1
+    // 2
+    // 3 |
+    // 4 |
+    // 5 |
+    // 6 |
+    try std.testing.expectEqual(3, list_view.scroll.top);
+    try std.testing.expectEqual(0, list_view.scroll.offset);
+    try std.testing.expectEqual(4, surface.children.len);
+
+    // Now wheel_up two times should move us two lines up
+    mouse_event.button = .wheel_up;
+    try list_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
+    try list_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
+    surface = try list_widget.draw(draw_ctx);
+    try std.testing.expectEqual(1, list_view.scroll.top);
+    try std.testing.expectEqual(0, list_view.scroll.offset);
+    try std.testing.expectEqual(4, surface.children.len);
 }
 
 test "refAllDecls" {
