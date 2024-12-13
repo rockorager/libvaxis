@@ -438,10 +438,10 @@ pub fn scroll(self: Window, n: u16) void {
     var row: u16 = @max(self.y_off, 0);
     const first_col: u16 = @max(self.x_off, 0);
     while (row < self.height - n) : (row += 1) {
-        const dst_start = (row * self.width) + first_col;
+        const dst_start = (row * self.screen.width) + first_col;
         const dst_end = dst_start + self.width;
 
-        const src_start = ((row + n) * self.width) + first_col;
+        const src_start = ((row + n) * self.screen.width) + first_col;
         const src_end = src_start + self.width;
         @memcpy(self.screen.buf[dst_start..dst_end], self.screen.buf[src_start..src_end]);
     }
