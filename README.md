@@ -18,22 +18,20 @@ Vaxis uses zig `0.13.0`.
 libvaxis supports all major platforms: macOS, Windows, Linux/BSD/and other
 Unix-likes.
 
-| Feature                        |  libvaxis  |
-| ------------------------------ |  :------:  |
-| RGB                            |     ✅     |
-| Hyperlinks                     |     ✅     |
-| Bracketed Paste                |     ✅     |
-| Kitty Keyboard                 |     ✅     |
-| Styled Underlines              |     ✅     |
-| Mouse Shapes (OSC 22)          |     ✅     |
-| System Clipboard (OSC 52)      |     ✅     |
-| System Notifications (OSC 9)   |     ✅     |
-| System Notifications (OSC 777) |     ✅     |
-| Synchronized Output (DEC 2026) |     ✅     |
-| Unicode Core (DEC 2027)        |     ✅     |
-| Color Mode Updates (DEC 2031)  |     ✅     |
-| [In-Band Resize Reports](https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83)   |     ✅     |
-| Images (kitty)                 |     ✅     |
+- RGB
+- [Hyperlinks](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda) (OSC 8)
+- Bracketed Paste
+- [Kitty Keyboard Protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/)
+- [Fancy underlines](https://sw.kovidgoyal.net/kitty/underlines/) (undercurl, etc)
+- Mouse Shapes (OSC 22)
+- System Clipboard (OSC 52)
+- System Notifications (OSC 9)
+- System Notifications (OSC 777)
+- Synchronized Output (Mode 2026)
+- [Unicode Core](https://github.com/contour-terminal/terminal-unicode-core) (Mode 2027)
+- Color Mode Updates (Mode 2031)
+- [In-Band Resize Reports](https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83) (Mode 2048)
+- Images ([kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/))
 
 ## Usage
 
@@ -208,4 +206,12 @@ pub fn main() !void {
 ## Contributing
 
 Contributions are welcome. Please submit a PR on Github or a patch on the
-[mailing list](mailto:~rockorager/libvaxis@lists.sr.ht) 
+[mailing list](mailto:~rockorager/libvaxis@lists.sr.ht)
+
+## Community
+
+We use [Github Discussions](https://github.com/rockorager/libvaxis/discussions)
+as the primary location for community support, showcasing what you are working
+on, and discussing library features and usage.
+
+We also have an IRC channel on libera.chat: join us in #vaxis.
