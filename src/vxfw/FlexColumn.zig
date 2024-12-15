@@ -84,7 +84,7 @@ pub fn draw(self: *const FlexColumn, ctx: vxfw.DrawContext) Allocator.Error!vxfw
         second_pass_height += surf.size.height;
     }
 
-    const size = .{ .width = max_width, .height = second_pass_height };
+    const size: vxfw.Size = .{ .width = max_width, .height = second_pass_height };
     return .{
         .size = size,
         .widget = self.widget(),
