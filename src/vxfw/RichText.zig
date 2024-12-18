@@ -288,7 +288,10 @@ pub const SoftwrapIterator = struct {
             if (cur_width + next_width > max_width) {
                 // Trim the word to see if it can fit on a line by itself
                 const trimmed = trimWSPLeft(word);
-                const trimmed_width = next_width - trimmed.len;
+                // New width is the previous width minus the number of cells we trimmed because we
+                // are only trimming cells that would have been 1 wide (' ' and '\t' both measure as
+                // 1 wide)
+                const trimmed_width = next_width -| (word.len - trimmed.len);
                 if (trimmed_width > max_width) {
                     // Won't fit on line by itself, so fit as much on this line as we can
                     for (word) |cell| {
@@ -377,6 +380,34 @@ test RichText {
         // The last character will be an ellipsis
         try std.testing.expectEqualStrings("…", surface.buffer[surface.buffer.len - 1].char.grapheme);
     }
+}
+
+test "long word wrapping" {
+    var rich_text: RichText = .{
+        .text = &.{
+            .{ .text = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+        },
+    };
+
+    const rich_widget = rich_text.widget();
+
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const ucd = try vaxis.Unicode.init(arena.allocator());
+    vxfw.DrawContext.init(&ucd, .unicode);
+
+    const len = rich_text.text[0].text.len;
+    const width: u16 = 8;
+
+    const ctx: vxfw.DrawContext = .{
+        .arena = arena.allocator(),
+        .min = .{},
+        .max = .{ .width = width, .height = null },
+    };
+
+    const surface = try rich_widget.draw(ctx);
+    // Height should be length / width
+    try std.testing.expectEqual(len / width, surface.size.height);
 }
 
 test "refAllDecls" {
