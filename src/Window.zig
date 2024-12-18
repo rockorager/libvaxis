@@ -9,10 +9,16 @@ const gw = @import("gwidth.zig");
 
 const Window = @This();
 
-/// horizontal offset from the screen
+/// absolute horizontal offset from the screen
 x_off: i17,
-/// vertical offset from the screen
+/// absolute vertical offset from the screen
 y_off: i17,
+/// relative horizontal offset, from parent window. This only accumulates if it is negative so that
+/// we can clip the window correctly
+parent_x_off: i17,
+/// relative vertical offset, from parent window. This only accumulates if it is negative so that
+/// we can clip the window correctly
+parent_y_off: i17,
 /// width of the window. This can't be larger than the terminal screen
 width: u16,
 /// height of the window. This can't be larger than the terminal screen
@@ -36,6 +42,8 @@ fn initChild(
     return Window{
         .x_off = x_off + self.x_off,
         .y_off = y_off + self.y_off,
+        .parent_x_off = @min(self.parent_x_off + x_off, 0),
+        .parent_y_off = @min(self.parent_y_off + y_off, 0),
         .width = width,
         .height = height,
         .screen = self.screen,
@@ -165,9 +173,14 @@ pub fn child(self: Window, opts: ChildOptions) Window {
 
 /// writes a cell to the location in the window
 pub fn writeCell(self: Window, col: u16, row: u16, cell: Cell) void {
-    if (self.height <= row or self.width <= col) return;
-    if (self.x_off + col < 0) return;
-    if (self.y_off + row < 0) return;
+    if (self.height <= row or
+        self.width <= col or
+        self.x_off + col < 0 or
+        self.y_off + row < 0 or
+        self.parent_x_off + col < 0 or
+        self.parent_y_off + row < 0)
+        return;
+
     self.screen.writeCell(@intCast(col + self.x_off), @intCast(row + self.y_off), cell);
 }
 
@@ -176,7 +189,9 @@ pub fn readCell(self: Window, col: u16, row: u16) ?Cell {
     if (self.height <= row or
         self.width <= col or
         self.x_off + col < 0 or
-        self.y_off + row < 0)
+        self.y_off + row < 0 or
+        self.parent_x_off + col < 0 or
+        self.parent_y_off + row < 0)
         return null;
     return self.screen.readCell(@intCast(col + self.x_off), @intCast(row + self.y_off));
 }
@@ -465,6 +480,8 @@ test "Window size set" {
     var parent = Window{
         .x_off = 0,
         .y_off = 0,
+        .parent_x_off = 0,
+        .parent_y_off = 0,
         .width = 20,
         .height = 20,
         .screen = undefined,
@@ -479,6 +496,8 @@ test "Window size set too big" {
     var parent = Window{
         .x_off = 0,
         .y_off = 0,
+        .parent_x_off = 0,
+        .parent_y_off = 0,
         .width = 20,
         .height = 20,
         .screen = undefined,
@@ -493,6 +512,8 @@ test "Window size set too big with offset" {
     var parent = Window{
         .x_off = 0,
         .y_off = 0,
+        .parent_x_off = 0,
+        .parent_y_off = 0,
         .width = 20,
         .height = 20,
         .screen = undefined,
@@ -507,6 +528,8 @@ test "Window size nested offsets" {
     var parent = Window{
         .x_off = 1,
         .y_off = 1,
+        .parent_x_off = 0,
+        .parent_y_off = 0,
         .width = 20,
         .height = 20,
         .screen = undefined,
@@ -517,6 +540,25 @@ test "Window size nested offsets" {
     try std.testing.expectEqual(11, ch.y_off);
 }
 
+test "Window offsets" {
+    var parent = Window{
+        .x_off = 0,
+        .y_off = 0,
+        .parent_x_off = 0,
+        .parent_y_off = 0,
+        .width = 20,
+        .height = 20,
+        .screen = undefined,
+    };
+
+    const ch = parent.initChild(10, 10, 21, 21);
+    const ch2 = ch.initChild(-4, -4, null, null);
+    // Reading ch2 at row 0 should be null
+    try std.testing.expect(ch2.readCell(0, 0) == null);
+    // Should not panic us
+    ch2.writeCell(0, 0, undefined);
+}
+
 test "print: grapheme" {
     const alloc = std.testing.allocator_instance.allocator();
     const unicode = try Unicode.init(alloc);
@@ -525,6 +567,8 @@ test "print: grapheme" {
     const win: Window = .{
         .x_off = 0,
         .y_off = 0,
+        .parent_x_off = 0,
+        .parent_y_off = 0,
         .width = 4,
         .height = 2,
         .screen = &screen,
@@ -592,6 +636,8 @@ test "print: word" {
     const win: Window = .{
         .x_off = 0,
         .y_off = 0,
+        .parent_x_off = 0,
+        .parent_y_off = 0,
         .width = 4,
         .height = 2,
         .screen = &screen,

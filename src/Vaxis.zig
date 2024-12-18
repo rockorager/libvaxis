@@ -205,6 +205,8 @@ pub fn window(self: *Vaxis) Window {
     return .{
         .x_off = 0,
         .y_off = 0,
+        .parent_x_off = 0,
+        .parent_y_off = 0,
         .width = self.screen.width,
         .height = self.screen.height,
         .screen = &self.screen,
