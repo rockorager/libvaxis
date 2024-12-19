@@ -139,6 +139,11 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
             }
         }
 
+        if (self.wants_focus) |wants_focus| {
+            try focus_handler.focusWidget(&ctx, wants_focus);
+            try self.handleCommand(&ctx.cmds);
+        }
+
         // Check if we should quit
         if (ctx.quit) return;
 
@@ -164,18 +169,17 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
         win.setCursorShape(.default);
         const surface = try widget.draw(draw_context);
 
-        const focused = self.wants_focus orelse focus_handler.focused.widget;
         const root_win = win.child(.{
             .width = surface.size.width,
             .height = surface.size.height,
         });
-        surface.render(root_win, focused);
+        surface.render(root_win, focus_handler.focused_widget);
         try vx.render(buffered.writer().any());
         try buffered.flush();
 
         // Store the last frame
         mouse_handler.last_frame = surface;
-        try focus_handler.update(surface, self.wants_focus);
+        try focus_handler.update(surface);
         self.wants_focus = null;
     }
 }
@@ -346,8 +350,8 @@ const FocusHandler = struct {
 
     root: Node,
     focused: *Node,
+    focused_widget: vxfw.Widget,
     path_to_focused: std.ArrayList(Widget),
-    maybe_wants_focus: ?vxfw.Widget = null,
 
     const Node = struct {
         widget: Widget,
@@ -460,8 +464,8 @@ const FocusHandler = struct {
         return .{
             .root = node,
             .focused = undefined,
+            .focused_widget = root,
             .arena = std.heap.ArenaAllocator.init(allocator),
-            .maybe_wants_focus = null,
             .path_to_focused = std.ArrayList(Widget).init(allocator),
         };
     }
@@ -476,24 +480,28 @@ const FocusHandler = struct {
     }
 
     /// Update the focus list
-    fn update(self: *FocusHandler, root: vxfw.Surface, maybe_wants_focus: ?vxfw.Widget) Allocator.Error!void {
+    fn update(self: *FocusHandler, root: vxfw.Surface) Allocator.Error!void {
         _ = self.arena.reset(.retain_capacity);
-        self.maybe_wants_focus = maybe_wants_focus;
 
         var list = std.ArrayList(*Node).init(self.arena.allocator());
         for (root.children) |child| {
             try self.findFocusableChildren(&self.root, &list, child.surface);
         }
+
+        // Update children
+        self.root.children = list.items;
+
+        // Update path
         self.path_to_focused.clearAndFree();
+        if (!self.root.widget.eql(root.widget)) {
+            // Always make sure the root widget (the one we started with) is the first item, even if
+            // it isn't focusable or in the path
+            try self.path_to_focused.append(self.root.widget);
+        }
         _ = try childHasFocus(root, &self.path_to_focused, self.focused.widget);
-        try self.path_to_focused.append(root.widget);
+
         // reverse path_to_focused so that it is root first
         std.mem.reverse(Widget, self.path_to_focused.items);
-        self.root = .{
-            .widget = root.widget,
-            .children = list.items,
-            .parent = null,
-        };
     }
 
     /// Returns true if a child of surface is the focused widget
@@ -524,7 +532,12 @@ const FocusHandler = struct {
         list: *std.ArrayList(*Node),
         surface: vxfw.Surface,
     ) Allocator.Error!void {
-        if (surface.focusable) {
+        if (self.root.widget.eql(surface.widget)) {
+            // Never add the root_widget. We will always have this as the root
+            for (surface.children) |child| {
+                try self.findFocusableChildren(parent, list, child.surface);
+            }
+        } else if (surface.focusable) {
             // We are a focusable child of parent. Create a new node, and find our own focusable
             // children
             const node = try self.arena.allocator().create(Node);
@@ -537,11 +550,8 @@ const FocusHandler = struct {
                 .parent = parent,
                 .children = child_list.items,
             };
-            if (self.maybe_wants_focus) |wants_focus| {
-                if (wants_focus.eql(surface.widget)) {
-                    self.focused = node;
-                    self.maybe_wants_focus = null;
-                }
+            if (self.focused_widget.eql(surface.widget)) {
+                self.focused = node;
             }
             try list.append(node);
         } else {
@@ -549,6 +559,15 @@ const FocusHandler = struct {
                 try self.findFocusableChildren(parent, list, child.surface);
             }
         }
+    }
+
+    fn focusWidget(self: *FocusHandler, ctx: *vxfw.EventContext, widget: vxfw.Widget) anyerror!void {
+        if (self.focused_widget.eql(widget)) return;
+
+        ctx.phase = .at_target;
+        try self.focused_widget.handleEvent(ctx, .focus_out);
+        self.focused_widget = widget;
+        try self.focused_widget.handleEvent(ctx, .focus_in);
     }
 
     fn focusNode(self: *FocusHandler, ctx: *vxfw.EventContext, node: *Node) anyerror!void {
