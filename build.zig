@@ -32,7 +32,6 @@ pub fn build(b: *std.Build) void {
         fuzzy,
         image,
         main,
-        nvim,
         table,
         text_input,
         vaxis,
