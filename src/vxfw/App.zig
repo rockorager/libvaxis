@@ -118,7 +118,6 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
                 // Reset our context
                 ctx.consume_event = false;
                 ctx.phase = .capturing;
-                ctx.cmds.clearRetainingCapacity();
             }
             switch (event) {
                 .key_press => {
