@@ -43,7 +43,7 @@ const Scroll = struct {
 
     pub fn linesUp(self: *Scroll, n: u8) bool {
         if (self.top == 0 and self.offset == 0) return false;
-        self.pending_lines = -1 * @as(i17, @intCast(n));
+        self.pending_lines -= @intCast(n);
         return true;
     }
 };
@@ -487,40 +487,57 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
         }
     }
 
+    // If we know the count, and the end index is at the last item we can be sure there is nothing
+    // more to draw, and thus we are at the end of the scroll view.
+    if (self.item_count) |count| {
+        std.log.debug("count: {d} ~ end: {d}", .{ count, end });
+        if (end == count - 1) self.scroll.has_more = false;
+    }
+
     var children_with_scrollbar = std.ArrayList(vxfw.SubSurface).init(ctx.arena);
 
-    // We need to draw all the children to calculate the right total height.
-    var th: u32 = 0;
-    var idx: usize = 0;
-    while (builder.itemAtIdx(idx, self.cursor)) |child| {
-        defer idx += 1;
+    const num_children_rendered: usize = @max(end - start, 1);
+    const average_child_height: usize = max_size.height / num_children_rendered;
 
-        const child_surf = try child.draw(ctx.withConstraints(
-            .{ .width = max_size.width - 1 - child_offset, .height = 0 },
-            .{ .width = max_size.width - 1 - child_offset, .height = null },
-        ));
-        th +|= child_surf.size.height;
-        // th +|= 1;
-    }
+    const estimated_total_height = height: {
+        if (self.item_count) |count| break :height count * average_child_height;
+
+        var child_count: usize = 0;
+        while (builder.itemAtIdx(child_count, self.cursor)) |_| {
+            child_count += 1;
+        }
+
+        break :height child_count * average_child_height;
+    };
 
     // We only show the scrollbar if the content height is larger than the widget height and
     // drawing the scrollbars is requested.
-    if (self.draw_scrollbars and th > max_size.height) {
+    if (self.draw_scrollbars and estimated_total_height > max_size.height) {
         // The scroll bar surface needs to span the entire widget so dragging the scroll bar can work
         // even if the mouse leaves the scrollbar itself.
         const scroll_bar = try vxfw.Surface.init(ctx.arena, self.widget(), max_size);
 
         const widget_height_f: f32 = @floatFromInt(max_size.height);
-        const total_height_f: f32 = @floatFromInt(th);
+        const total_height_f: f32 = @floatFromInt(estimated_total_height);
         const scroll_top_f: f32 = @floatFromInt(self.scroll.top);
 
         const scroll_bar_height_f: f32 = widget_height_f * (widget_height_f / total_height_f);
         const scroll_bar_height: u32 = @intFromFloat(scroll_bar_height_f);
 
         const scroll_bar_top_f: f32 = widget_height_f * (scroll_top_f / total_height_f);
-        const scroll_bar_top: u32 = @intFromFloat(scroll_bar_top_f);
+        const scroll_bar_top: u32 = if (self.scroll.has_more)
+            @intFromFloat(scroll_bar_top_f)
+        else if (self.scroll.top == 0)
+            0
+        else
+            max_size.height - scroll_bar_height;
 
-        for (scroll_bar_top..scroll_bar_top + @max(scroll_bar_height, 1)) |row| {
+        std.log.debug("has more? {s}", .{if (self.scroll.has_more) "yes" else "no"});
+        std.log.debug("max_height: {d} ~ scroll_bar_height: {d} ~ scroll_bar_top: {d}", .{ max_size.height, scroll_bar_height, scroll_bar_top });
+
+        // We need the scroll bar to be at least 1 row high so it's visible.
+        const end_row = scroll_bar_top + @max(scroll_bar_height, 1);
+        for (scroll_bar_top..end_row) |row| {
             scroll_bar.writeCell(max_size.width - 1, @intCast(row), cursor_indicator);
         }
 
