@@ -46,6 +46,8 @@ pub fn window(self: *View) Window {
     return .{
         .x_off = 0,
         .y_off = 0,
+        .parent_x_off = 0,
+        .parent_y_off = 0,
         .width = self.screen.width,
         .height = self.screen.height,
         .screen = &self.screen,
@@ -69,11 +71,12 @@ pub fn draw(self: *View, win: Window, opts: DrawOptions) void {
     const width = @min(win.width, self.screen.width - opts.x_off);
     const height = @min(win.height, self.screen.height - opts.y_off);
 
-    for (0..height) |row| {
-        const src_start = opts.x_off + ((row + opts.y_off) * self.screen.width);
-        const src_end = src_start + width;
-        const dst_start = win.x_off + ((row + win.y_off) * win.screen.width);
-        const dst_end = dst_start + width;
+    for (0..height) |_row| {
+        const row: i17 = @intCast(_row);
+        const src_start: usize = @intCast(opts.x_off + ((row + opts.y_off) * self.screen.width));
+        const src_end: usize = @intCast(src_start + width);
+        const dst_start: usize = @intCast(win.x_off + ((row + win.y_off) * win.screen.width));
+        const dst_end: usize = @intCast(dst_start + width);
         @memcpy(win.screen.buf[dst_start..dst_end], self.screen.buf[src_start..src_end]);
     }
 }
