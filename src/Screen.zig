@@ -16,7 +16,7 @@ height: u16 = 0,
 width_pix: u16 = 0,
 height_pix: u16 = 0,
 
-buf: []Cell = undefined,
+buf: []Cell = &.{},
 
 cursor_row: u16 = 0,
 cursor_col: u16 = 0,
