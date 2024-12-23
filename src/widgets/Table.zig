@@ -133,11 +133,11 @@ pub fn drawTable(
         const DataListT = @TypeOf(data_list);
         const data_ti = @typeInfo(DataListT);
         switch (data_ti) {
-            .Pointer => |ptr| {
+            .pointer => |ptr| {
                 if (ptr.size != .Slice) return error.UnsupportedTableDataType;
                 break :getData data_list;
             },
-            .Struct => {
+            .@"struct" => {
                 const di_fields = meta.fields(DataListT);
                 const al_fields = meta.fields(std.ArrayList([]const u8));
                 const mal_fields = meta.fields(std.MultiArrayList(struct { a: u8 = 0, b: u32 = 0 }));
@@ -168,7 +168,7 @@ pub fn drawTable(
                     const mal_slice = data_list.slice();
                     const DataT = dataType: {
                         const fn_info = @typeInfo(@TypeOf(@field(@TypeOf(mal_slice), "get")));
-                        break :dataType fn_info.Fn.return_type orelse @panic("No Child Type");
+                        break :dataType fn_info.@"fn".return_type orelse @panic("No Child Type");
                     };
                     var data_out_list = std.ArrayList(DataT).init(_alloc);
                     for (0..mal_slice.len) |idx| try data_out_list.append(mal_slice.get(idx));
@@ -340,10 +340,10 @@ pub fn drawTable(
                     },
                     else => nonStr: {
                         switch (@typeInfo(ItemT)) {
-                            .Enum => break :nonStr @tagName(item),
-                            .Optional => {
+                            .@"enum" => break :nonStr @tagName(item),
+                            .optional => {
                                 const opt_item = item orelse break :nonStr "-";
-                                switch (@typeInfo(ItemT).Optional.child) {
+                                switch (@typeInfo(ItemT).optional.child) {
                                     []const u8 => break :nonStr opt_item,
                                     [][]const u8, []const []const u8 => {
                                         break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{s}", .{opt_item}) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
