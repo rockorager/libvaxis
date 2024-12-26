@@ -195,6 +195,14 @@ fn handleCommand(self: *App, cmds: *vxfw.CommandList) Allocator.Error!void {
             .tick => |tick| try self.addTick(tick),
             .set_mouse_shape => |shape| self.vx.setMouseShape(shape),
             .request_focus => |widget| self.wants_focus = widget,
+            .copy_to_clipboard => |content| {
+                self.vx.copyToSystemClipboard(self.tty.anyWriter(), content, self.allocator) catch |err| {
+                    switch (err) {
+                        error.OutOfMemory => return Allocator.Error.OutOfMemory,
+                        else => std.log.err("copy error: {}", .{err}),
+                    }
+                };
+            },
         }
     }
 }
