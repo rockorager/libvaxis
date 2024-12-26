@@ -74,6 +74,10 @@ pub const Command = union(enum) {
     set_mouse_shape: vaxis.Mouse.Shape,
     /// Request that this widget receives focus
     request_focus: Widget,
+
+    /// Try to copy the provided text to the host clipboard. Uses OSC 52. Silently fails if terminal
+    /// doesn't support OSC 52
+    copy_to_clipboard: []const u8,
 };
 
 pub const EventContext = struct {
@@ -117,6 +121,10 @@ pub const EventContext = struct {
 
     pub fn requestFocus(self: *EventContext, widget: Widget) Allocator.Error!void {
         try self.addCmd(.{ .request_focus = widget });
+    }
+
+    pub fn copyToClipboard(self: *EventContext, content: []const u8) Allocator.Error!void {
+        try self.addCmd(.{ .copy_to_clipboard = content });
     }
 };
 
