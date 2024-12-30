@@ -375,6 +375,13 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
         self.scroll.has_more = false;
     }
 
+    // If we've looped through all the items without hitting the end we check for one more item to
+    // see if we just drew the last item on the bottom of the screen. If we just drew the last item
+    // we can set `scroll.has_more` to false.
+    if (self.scroll.has_more) {
+        if (builder.itemAtIdx(i, self.cursor) == null) self.scroll.has_more = false;
+    }
+
     var total_height: usize = totalHeight(&child_list);
 
     // If we reached the bottom, don't have enough height to fill the screen, and have room to add
@@ -485,13 +492,6 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
             end = idx;
             break;
         }
-    }
-
-    // If we know the count, and the end index is at the last item we can be sure there is nothing
-    // more to draw, and thus we are at the end of the scroll view.
-    if (self.item_count) |count| {
-        std.log.debug("count: {d} ~ end: {d}", .{ count, end });
-        if (end == count - 1) self.scroll.has_more = false;
     }
 
     var children_with_scrollbar = std.ArrayList(vxfw.SubSurface).init(ctx.arena);
