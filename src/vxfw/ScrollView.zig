@@ -532,9 +532,6 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
         else
             max_size.height - scroll_bar_height;
 
-        std.log.debug("has more? {s}", .{if (self.scroll.has_more) "yes" else "no"});
-        std.log.debug("max_height: {d} ~ scroll_bar_height: {d} ~ scroll_bar_top: {d}", .{ max_size.height, scroll_bar_height, scroll_bar_top });
-
         // We need the scroll bar to be at least 1 row high so it's visible.
         const end_row = scroll_bar_top + @max(scroll_bar_height, 1);
         for (scroll_bar_top..end_row) |row| {
@@ -595,20 +592,20 @@ test ScrollView {
     const ucd = try vaxis.Unicode.init(arena.allocator());
     vxfw.DrawContext.init(&ucd, .unicode);
 
-    const list_widget = scroll_view
-        .widget();
+    const scroll_widget = scroll_view.widget();
     const draw_ctx: vxfw.DrawContext = .{
         .arena = arena.allocator(),
         .min = .{},
         .max = .{ .width = 16, .height = 4 },
     };
 
-    var surface = try list_widget.draw(draw_ctx);
+    var surface = try scroll_widget.draw(draw_ctx);
     // ScrollView expands to max height and max width
     try std.testing.expectEqual(4, surface.size.height);
     try std.testing.expectEqual(16, surface.size.width);
-    // We have 2 children, because only visible children appear as a surface
-    try std.testing.expectEqual(2, surface.children.len);
+    // We have 3 children, because only visible children appear as a surface, abc, def, and
+    // scroll bar.
+    try std.testing.expectEqual(3, surface.children.len);
 
     var mouse_event: vaxis.Mouse = .{
         .col = 0,
@@ -623,18 +620,16 @@ test ScrollView {
     };
     defer ctx.cmds.deinit();
 
-    try list_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
+    try scroll_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
     // Wheel up doesn't adjust the scroll
-    try std.testing.expectEqual(0, scroll_view
-        .scroll.top);
-    try std.testing.expectEqual(0, scroll_view
-        .scroll.offset);
+    try std.testing.expectEqual(0, scroll_view.scroll.top);
+    try std.testing.expectEqual(0, scroll_view.scroll.offset);
 
     // Send a wheel down
     mouse_event.button = .wheel_down;
-    try list_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
+    try scroll_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
     // We have to draw the widget for scrolls to take effect
-    surface = try list_widget.draw(draw_ctx);
+    surface = try scroll_widget.draw(draw_ctx);
     // 0  *abc
     // 1 |   def
     // 2 |   ghi
@@ -643,17 +638,15 @@ test ScrollView {
     // 5   jkl
     // 6     mno
     // We should have gone down 1 line, and not changed our top widget
-    try std.testing.expectEqual(0, scroll_view
-        .scroll.top);
-    try std.testing.expectEqual(1, scroll_view
-        .scroll.offset);
+    try std.testing.expectEqual(0, scroll_view.scroll.top);
+    try std.testing.expectEqual(1, scroll_view.scroll.offset);
     // One more widget has scrolled into view
-    try std.testing.expectEqual(3, surface.children.len);
+    try std.testing.expectEqual(4, surface.children.len);
 
     // Scroll down two more lines
-    try list_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
-    try list_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
-    surface = try list_widget.draw(draw_ctx);
+    try scroll_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
+    try scroll_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
+    surface = try scroll_widget.draw(draw_ctx);
     // 0  *abc
     // 1     def
     // 2     ghi
@@ -662,34 +655,28 @@ test ScrollView {
     // 5 | jkl
     // 6 |   mno
     // We should have gone down 2 lines, which scrolls our top widget out of view
-    try std.testing.expectEqual(1, scroll_view
-        .scroll.top);
-    try std.testing.expectEqual(0, scroll_view
-        .scroll.offset);
-    try std.testing.expectEqual(3, surface.children.len);
+    try std.testing.expectEqual(1, scroll_view.scroll.top);
+    try std.testing.expectEqual(0, scroll_view.scroll.offset);
+    try std.testing.expectEqual(4, surface.children.len);
 
     // Scroll down again. We shouldn't advance anymore since we are at the bottom
-    try list_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
-    surface = try list_widget.draw(draw_ctx);
-    try std.testing.expectEqual(1, scroll_view
-        .scroll.top);
-    try std.testing.expectEqual(0, scroll_view
-        .scroll.offset);
-    try std.testing.expectEqual(3, surface.children.len);
+    try scroll_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
+    surface = try scroll_widget.draw(draw_ctx);
+    try std.testing.expectEqual(1, scroll_view.scroll.top);
+    try std.testing.expectEqual(0, scroll_view.scroll.offset);
+    try std.testing.expectEqual(4, surface.children.len);
 
     // Mouse wheel events don't change the cursor position. Let's press "escape" to reset the
     // viewport and bring our cursor into view
-    try list_widget.handleEvent(&ctx, .{ .key_press = .{ .codepoint = vaxis.Key.escape } });
-    surface = try list_widget.draw(draw_ctx);
-    try std.testing.expectEqual(0, scroll_view
-        .scroll.top);
-    try std.testing.expectEqual(0, scroll_view
-        .scroll.offset);
-    try std.testing.expectEqual(2, surface.children.len);
+    try scroll_widget.handleEvent(&ctx, .{ .key_press = .{ .codepoint = vaxis.Key.escape } });
+    surface = try scroll_widget.draw(draw_ctx);
+    try std.testing.expectEqual(0, scroll_view.scroll.top);
+    try std.testing.expectEqual(0, scroll_view.scroll.offset);
+    try std.testing.expectEqual(3, surface.children.len);
 
     // Cursor down
-    try list_widget.handleEvent(&ctx, .{ .key_press = .{ .codepoint = 'j' } });
-    surface = try list_widget.draw(draw_ctx);
+    try scroll_widget.handleEvent(&ctx, .{ .key_press = .{ .codepoint = 'j' } });
+    surface = try scroll_widget.draw(draw_ctx);
     // 0 | abc
     // 1 |   def
     // 2 |   ghi
@@ -698,17 +685,14 @@ test ScrollView {
     // 5   jkl
     // 6     mno
     // Scroll doesn't change
-    try std.testing.expectEqual(0, scroll_view
-        .scroll.top);
-    try std.testing.expectEqual(0, scroll_view
-        .scroll.offset);
-    try std.testing.expectEqual(2, surface.children.len);
-    try std.testing.expectEqual(1, scroll_view
-        .cursor);
+    try std.testing.expectEqual(0, scroll_view.scroll.top);
+    try std.testing.expectEqual(0, scroll_view.scroll.offset);
+    try std.testing.expectEqual(3, surface.children.len);
+    try std.testing.expectEqual(1, scroll_view.cursor);
 
     // Cursor down
-    try list_widget.handleEvent(&ctx, .{ .key_press = .{ .codepoint = 'j' } });
-    surface = try list_widget.draw(draw_ctx);
+    try scroll_widget.handleEvent(&ctx, .{ .key_press = .{ .codepoint = 'j' } });
+    surface = try scroll_widget.draw(draw_ctx);
     // 0   abc
     // 1 |   def
     // 2 |   ghi
@@ -717,17 +701,14 @@ test ScrollView {
     // 5   jkl
     // 6     mno
     // Scroll advances one row
-    try std.testing.expectEqual(0, scroll_view
-        .scroll.top);
-    try std.testing.expectEqual(1, scroll_view
-        .scroll.offset);
-    try std.testing.expectEqual(3, surface.children.len);
-    try std.testing.expectEqual(2, scroll_view
-        .cursor);
+    try std.testing.expectEqual(0, scroll_view.scroll.top);
+    try std.testing.expectEqual(1, scroll_view.scroll.offset);
+    try std.testing.expectEqual(4, surface.children.len);
+    try std.testing.expectEqual(2, scroll_view.cursor);
 
     // Cursor down
-    try list_widget.handleEvent(&ctx, .{ .key_press = .{ .codepoint = 'j' } });
-    surface = try list_widget.draw(draw_ctx);
+    try scroll_widget.handleEvent(&ctx, .{ .key_press = .{ .codepoint = 'j' } });
+    surface = try scroll_widget.draw(draw_ctx);
     // 0   abc
     // 1     def
     // 2     ghi
@@ -737,13 +718,100 @@ test ScrollView {
     // 6 |   mno
     // We are cursored onto the last item. The entire last item comes into view, effectively
     // advancing the scroll by 2
-    try std.testing.expectEqual(1, scroll_view
-        .scroll.top);
-    try std.testing.expectEqual(0, scroll_view
-        .scroll.offset);
-    try std.testing.expectEqual(3, surface.children.len);
-    try std.testing.expectEqual(3, scroll_view
-        .cursor);
+    try std.testing.expectEqual(1, scroll_view.scroll.top);
+    try std.testing.expectEqual(0, scroll_view.scroll.offset);
+    try std.testing.expectEqual(4, surface.children.len);
+    try std.testing.expectEqual(3, scroll_view.cursor);
+}
+
+// @reykjalin found an issue on mac with ghostty where the scroll up and scroll down were uneven.
+// Ghostty has high precision scrolling and sends a lot of wheel events for each tick
+test "ScrollView: uneven scroll" {
+    // Create child widgets
+    const Text = @import("Text.zig");
+    const zero: Text = .{ .text = "0" };
+    const one: Text = .{ .text = "1" };
+    const two: Text = .{ .text = "2" };
+    const three: Text = .{ .text = "3" };
+    const four: Text = .{ .text = "4" };
+    const five: Text = .{ .text = "5" };
+    const six: Text = .{ .text = "6" };
+    // 0 |
+    // 1 |
+    // 2 |
+    // 3 |
+    // 4
+    // 5
+    // 6
+
+    // Create the list view
+    const scroll_view: ScrollView = .{
+        .wheel_scroll = 1, // Set wheel scroll to one
+        .children = .{ .slice = &.{
+            zero.widget(),
+            one.widget(),
+            two.widget(),
+            three.widget(),
+            four.widget(),
+            five.widget(),
+            six.widget(),
+        } },
+    };
+
+    // Boiler plate draw context
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const ucd = try vaxis.Unicode.init(arena.allocator());
+    vxfw.DrawContext.init(&ucd, .unicode);
+
+    const scroll_widget = scroll_view.widget();
+    const draw_ctx: vxfw.DrawContext = .{
+        .arena = arena.allocator(),
+        .min = .{},
+        .max = .{ .width = 16, .height = 4 },
+    };
+
+    var surface = try scroll_widget.draw(draw_ctx);
+
+    var mouse_event: vaxis.Mouse = .{
+        .col = 0,
+        .row = 0,
+        .button = .wheel_up,
+        .mods = .{},
+        .type = .press,
+    };
+    // Event handlers need a context
+    var ctx: vxfw.EventContext = .{
+        .cmds = std.ArrayList(vxfw.Command).init(std.testing.allocator),
+    };
+    defer ctx.cmds.deinit();
+
+    // Send a wheel down x 3
+    mouse_event.button = .wheel_down;
+    try scroll_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
+    try scroll_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
+    try scroll_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
+    // We have to draw the widget for scrolls to take effect
+    surface = try scroll_widget.draw(draw_ctx);
+    // 0
+    // 1
+    // 2
+    // 3 |
+    // 4 |
+    // 5 |
+    // 6 |
+    try std.testing.expectEqual(3, scroll_view.scroll.top);
+    try std.testing.expectEqual(0, scroll_view.scroll.offset);
+    try std.testing.expectEqual(5, surface.children.len);
+
+    // Now wheel_up two times should move us two lines up
+    mouse_event.button = .wheel_up;
+    try scroll_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
+    try scroll_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
+    surface = try scroll_widget.draw(draw_ctx);
+    try std.testing.expectEqual(1, scroll_view.scroll.top);
+    try std.testing.expectEqual(0, scroll_view.scroll.offset);
+    try std.testing.expectEqual(4, surface.children.len);
 }
 
 test "refAllDecls" {
