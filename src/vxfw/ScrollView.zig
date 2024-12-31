@@ -525,12 +525,12 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
         const scroll_bar_height: u32 = @intFromFloat(scroll_bar_height_f);
 
         const scroll_bar_top_f: f32 = widget_height_f * (scroll_top_f / total_height_f);
-        const scroll_bar_top: u32 = if (self.scroll.has_more)
+        const scroll_bar_top: u32 = if (self.scroll.top == 0)
+            0 // At the top.
+        else if (self.scroll.has_more)
             @intFromFloat(scroll_bar_top_f)
-        else if (self.scroll.top == 0)
-            0
         else
-            max_size.height - scroll_bar_height;
+            max_size.height - scroll_bar_height; // At the bottom.
 
         // We need the scroll bar to be at least 1 row high so it's visible.
         const end_row = scroll_bar_top + @max(scroll_bar_height, 1);
