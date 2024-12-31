@@ -63,7 +63,6 @@ pub fn handleEvent(self: *Spinner, ctx: *vxfw.EventContext, event: vxfw.Event) A
                 }
                 return;
             }
-            self.was_spinning = true;
             // Update frame
             self.frame += 1;
             if (self.frame >= frames.len) self.frame = 0;
