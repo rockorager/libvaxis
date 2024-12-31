@@ -52,6 +52,7 @@ const cursor_indicator: vaxis.Cell = .{ .char = .{ .grapheme = "▐", .width = 1
 
 children: Source,
 cursor: u32 = 0,
+last_height: u8 = 0,
 /// When true, the widget will draw a cursor next to the widget which has the cursor
 draw_cursor: bool = false,
 /// Lines to scroll for a mouse wheel
@@ -105,6 +106,16 @@ pub fn handleEvent(self: *ScrollView, ctx: *vxfw.EventContext, event: vxfw.Event
                 key.matches('p', .{ .ctrl = true }))
             {
                 return self.prevItem(ctx);
+            }
+            if (key.matches('d', .{ .ctrl = true })) {
+                const scroll_lines = @max(self.last_height / 2, 1);
+                if (self.scroll.linesDown(scroll_lines))
+                    ctx.consumeAndRedraw();
+            }
+            if (key.matches('u', .{ .ctrl = true })) {
+                const scroll_lines = @max(self.last_height / 2, 1);
+                if (self.scroll.linesUp(scroll_lines))
+                    ctx.consumeAndRedraw();
             }
             if (key.matches(vaxis.Key.escape, .{})) {
                 self.ensureScroll();
@@ -551,6 +562,12 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
     try children_with_scrollbar.appendSlice(child_list.items[start..end]);
 
     surface.children = children_with_scrollbar.items;
+
+    // Update last known height.
+    // If the bits from total_height don't fit u8 we won't get the right value from @intCast or
+    // @truncate so we check manually.
+    self.last_height = if (total_height > 255) 255 else @intCast(total_height);
+
     return surface;
 }
 
