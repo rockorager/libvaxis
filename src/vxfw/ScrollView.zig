@@ -567,6 +567,39 @@ test ScrollView {
     const def: Text = .{ .text = "def" };
     const ghi: Text = .{ .text = "ghi" };
     const jklmno: Text = .{ .text = "jkl\n mno" };
+
+    // Boiler plate draw context
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const ucd = try vaxis.Unicode.init(arena.allocator());
+    vxfw.DrawContext.init(&ucd, .unicode);
+    const draw_ctx: vxfw.DrawContext = .{
+        .arena = arena.allocator(),
+        .min = .{},
+        .max = .{ .width = 16, .height = 4 },
+    };
+
+    // 0 |*abc
+    // 1 |   def
+    // 2 |   ghi
+    // 3 | def
+
+    const scroll_view_without_bar: ScrollView = .{
+        .children = .{ .slice = &.{
+            abc.widget(),
+            def.widget(),
+        } },
+    };
+    const without_bar_widget = scroll_view_without_bar.widget();
+
+    const surf_without_bar = try without_bar_widget.draw(draw_ctx);
+
+    // ScrollView expands to max height and max width
+    try std.testing.expectEqual(4, surf_without_bar.size.height);
+    try std.testing.expectEqual(16, surf_without_bar.size.width);
+    // The scroll bar should not be drawn so we're only expecting 2 widgets.
+    try std.testing.expectEqual(2, surf_without_bar.children.len);
+
     // 0 |*abc
     // 1 |   def
     // 2 |   ghi
@@ -585,19 +618,7 @@ test ScrollView {
             jklmno.widget(),
         } },
     };
-
-    // Boiler plate draw context
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const ucd = try vaxis.Unicode.init(arena.allocator());
-    vxfw.DrawContext.init(&ucd, .unicode);
-
     const scroll_widget = scroll_view.widget();
-    const draw_ctx: vxfw.DrawContext = .{
-        .arena = arena.allocator(),
-        .min = .{},
-        .max = .{ .width = 16, .height = 4 },
-    };
 
     var surface = try scroll_widget.draw(draw_ctx);
     // ScrollView expands to max height and max width
