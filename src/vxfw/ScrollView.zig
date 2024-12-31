@@ -96,10 +96,14 @@ pub fn handleEvent(self: *ScrollView, ctx: *vxfw.EventContext, event: vxfw.Event
             }
         },
         .key_press => |key| {
-            if (key.matches(vaxis.Key.down, .{})) {
+            if (key.matches(vaxis.Key.down, .{}) or
+                key.matches('n', .{ .ctrl = true }))
+            {
                 return self.nextItem(ctx);
             }
-            if (key.matches(vaxis.Key.up, .{})) {
+            if (key.matches(vaxis.Key.up, .{}) or
+                key.matches('p', .{ .ctrl = true }))
+            {
                 return self.prevItem(ctx);
             }
             if (key.matches(vaxis.Key.escape, .{})) {
@@ -712,7 +716,12 @@ test ScrollView {
     try std.testing.expectEqual(1, scroll_view.cursor);
 
     // Cursor down
-    try scroll_widget.handleEvent(&ctx, .{ .key_press = .{ .codepoint = vaxis.Key.down } });
+    try scroll_widget.handleEvent(&ctx, .{
+        .key_press = .{
+            .codepoint = 'n',
+            .mods = .{ .ctrl = true },
+        },
+    });
     surface = try scroll_widget.draw(draw_ctx);
     // 0   abc
     // 1 |   def
