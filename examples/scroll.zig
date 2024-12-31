@@ -5,6 +5,7 @@ const vxfw = vaxis.vxfw;
 const ModelRow = struct {
     text: []const u8,
     idx: usize,
+    wrap_lines: bool = true,
 
     pub fn widget(self: *ModelRow) vxfw.Widget {
         return .{
@@ -29,7 +30,7 @@ const ModelRow = struct {
             )),
         };
 
-        const text_widget: vxfw.Text = .{ .text = self.text };
+        const text_widget: vxfw.Text = .{ .text = self.text, .softwrap = self.wrap_lines };
         const text_surf: vxfw.SubSurface = .{
             .origin = .{ .row = 0, .col = 6 },
             .surface = try text_widget.draw(ctx.withConstraints(
@@ -75,6 +76,12 @@ const Model = struct {
                 if (key.matches('c', .{ .ctrl = true })) {
                     ctx.quit = true;
                     return;
+                }
+                if (key.matches('w', .{ .ctrl = true })) {
+                    for (self.rows.items) |*row| {
+                        row.wrap_lines = !row.wrap_lines;
+                    }
+                    return ctx.consumeAndRedraw();
                 }
                 if (key.matches(vaxis.Key.tab, .{})) {
                     self.scroll_view.draw_cursor = !self.scroll_view.draw_cursor;
