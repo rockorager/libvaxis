@@ -58,8 +58,8 @@ draw_cursor: bool = false,
 wheel_scroll: u8 = 3,
 /// Set this if the exact item count is known.
 item_count: ?u32 = null,
-/// When true, the widget will draw horizontal and vertical scrollbars on the right and bottom
-/// sides of the contained widget.
+/// When true, the widget will draw a vertical scrollbar on the right side of the contained widget.
+/// Eventually this will be used as an indicator for a horizontal scrollbar as well.
 draw_scrollbars: bool = true,
 
 /// scroll position
