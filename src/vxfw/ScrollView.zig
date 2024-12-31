@@ -53,7 +53,7 @@ const cursor_indicator: vaxis.Cell = .{ .char = .{ .grapheme = "▐", .width = 1
 children: Source,
 cursor: u32 = 0,
 /// When true, the widget will draw a cursor next to the widget which has the cursor
-draw_cursor: bool = true,
+draw_cursor: bool = false,
 /// Lines to scroll for a mouse wheel
 wheel_scroll: u8 = 3,
 /// Set this if the exact item count is known.
