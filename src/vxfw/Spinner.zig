@@ -15,12 +15,13 @@ style: vaxis.Style = .{},
 /// The frame index
 frame: u4 = 0,
 
-/// If the last time we handled a tick we were spinning. This is used to draw one time after we stop
-/// spinning
-was_spinning: bool = false,
+/// Turns true when we start the spinner. Only turns false during a draw if the count == 0. This
+/// ensures we draw one more time past the spinner stopping to clear the state
+was_spinning: std.atomic.Value(bool) = .{ .raw = false },
 
 /// Start, or add one, to the spinner counter. Thread safe.
 pub fn start(self: *Spinner) ?vxfw.Command {
+    self.was_spinning.store(true, .unordered);
     const count = self.count.fetchAdd(1, .monotonic);
     if (count == 0) {
         return vxfw.Tick.in(time_lapse, self.widget());
@@ -28,13 +29,13 @@ pub fn start(self: *Spinner) ?vxfw.Command {
     return null;
 }
 
-pub fn isSpinning(self: *Spinner) bool {
-    return self.count.load(.unordered) > 0;
-}
-
 /// Reduce one from the spinner counter. The spinner will stop when it reaches 0. Thread safe
 pub fn stop(self: *Spinner) void {
     self.count.store(self.count.load(.unordered) -| 1, .unordered);
+}
+
+pub fn wasSpinning(self: *Spinner) bool {
+    return self.was_spinning.load(.unordered);
 }
 
 pub fn widget(self: *Spinner) vxfw.Widget {
@@ -56,9 +57,9 @@ pub fn handleEvent(self: *Spinner, ctx: *vxfw.EventContext, event: vxfw.Event) A
             const count = self.count.load(.unordered);
 
             if (count == 0) {
-                if (self.was_spinning) {
+                if (self.wasSpinning()) {
                     ctx.redraw = true;
-                    self.was_spinning = false;
+                    self.was_spinning.store(false, .unordered);
                 }
                 return;
             }
