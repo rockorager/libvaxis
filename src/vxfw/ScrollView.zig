@@ -497,17 +497,17 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
     var children_with_scrollbar = std.ArrayList(vxfw.SubSurface).init(ctx.arena);
 
     const num_children_rendered: usize = @max(end - start, 1);
-    const average_child_height: usize = max_size.height / num_children_rendered;
 
     const estimated_total_height = height: {
-        if (self.item_count) |count| break :height count * average_child_height;
+        if (self.item_count) |count|
+            break :height (count * total_height) / num_children_rendered;
 
         var child_count: usize = 0;
         while (builder.itemAtIdx(child_count, self.cursor)) |_| {
             child_count += 1;
         }
 
-        break :height child_count * average_child_height;
+        break :height (child_count * total_height) / num_children_rendered;
     };
 
     // We only show the scrollbar if the content height is larger than the widget height and
@@ -675,7 +675,7 @@ test ScrollView {
     try std.testing.expectEqual(3, surface.children.len);
 
     // Cursor down
-    try scroll_widget.handleEvent(&ctx, .{ .key_press = .{ .codepoint = 'j' } });
+    try scroll_widget.handleEvent(&ctx, .{ .key_press = .{ .codepoint = vaxis.Key.down } });
     surface = try scroll_widget.draw(draw_ctx);
     // 0 | abc
     // 1 |   def
@@ -691,7 +691,7 @@ test ScrollView {
     try std.testing.expectEqual(1, scroll_view.cursor);
 
     // Cursor down
-    try scroll_widget.handleEvent(&ctx, .{ .key_press = .{ .codepoint = 'j' } });
+    try scroll_widget.handleEvent(&ctx, .{ .key_press = .{ .codepoint = vaxis.Key.down } });
     surface = try scroll_widget.draw(draw_ctx);
     // 0   abc
     // 1 |   def
@@ -707,7 +707,7 @@ test ScrollView {
     try std.testing.expectEqual(2, scroll_view.cursor);
 
     // Cursor down
-    try scroll_widget.handleEvent(&ctx, .{ .key_press = .{ .codepoint = 'j' } });
+    try scroll_widget.handleEvent(&ctx, .{ .key_press = .{ .codepoint = vaxis.Key.down } });
     surface = try scroll_widget.draw(draw_ctx);
     // 0   abc
     // 1     def
@@ -811,7 +811,7 @@ test "ScrollView: uneven scroll" {
     surface = try scroll_widget.draw(draw_ctx);
     try std.testing.expectEqual(1, scroll_view.scroll.top);
     try std.testing.expectEqual(0, scroll_view.scroll.offset);
-    try std.testing.expectEqual(4, surface.children.len);
+    try std.testing.expectEqual(5, surface.children.len);
 }
 
 test "refAllDecls" {
