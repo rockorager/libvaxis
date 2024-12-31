@@ -15,6 +15,10 @@ style: vaxis.Style = .{},
 /// The frame index
 frame: u4 = 0,
 
+/// If the last time we handled a tick we were spinning. This is used to draw one time after we stop
+/// spinning
+was_spinning: bool = false,
+
 /// Start, or add one, to the spinner counter. Thread safe.
 pub fn start(self: *Spinner) ?vxfw.Command {
     const count = self.count.fetchAdd(1, .monotonic);
@@ -22,6 +26,10 @@ pub fn start(self: *Spinner) ?vxfw.Command {
         return vxfw.Tick.in(time_lapse, self.widget());
     }
     return null;
+}
+
+pub fn isSpinning(self: *Spinner) bool {
+    return self.count.load(.unordered) > 0;
 }
 
 /// Reduce one from the spinner counter. The spinner will stop when it reaches 0. Thread safe
@@ -47,7 +55,14 @@ pub fn handleEvent(self: *Spinner, ctx: *vxfw.EventContext, event: vxfw.Event) A
         .tick => {
             const count = self.count.load(.unordered);
 
-            if (count == 0) return;
+            if (count == 0) {
+                if (self.was_spinning) {
+                    ctx.redraw = true;
+                    self.was_spinning = false;
+                }
+                return;
+            }
+            self.was_spinning = true;
             // Update frame
             self.frame += 1;
             if (self.frame >= frames.len) self.frame = 0;
