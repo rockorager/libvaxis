@@ -2,11 +2,63 @@ const std = @import("std");
 const vaxis = @import("vaxis");
 const vxfw = vaxis.vxfw;
 
+const ModelRow = struct {
+    text: []const u8,
+    idx: usize,
+
+    pub fn widget(self: *ModelRow) vxfw.Widget {
+        return .{
+            .userdata = self,
+            .drawFn = ModelRow.typeErasedDrawFn,
+        };
+    }
+
+    fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) std.mem.Allocator.Error!vxfw.Surface {
+        const self: *ModelRow = @ptrCast(@alignCast(ptr));
+
+        const idx_text = try std.fmt.allocPrint(ctx.arena, "{d: >4}", .{self.idx});
+        const idx_widget: vxfw.Text = .{ .text = idx_text };
+
+        const idx_surf: vxfw.SubSurface = .{
+            .origin = .{ .row = 0, .col = 0 },
+            .surface = try idx_widget.draw(ctx.withConstraints(
+                // We're only interested in constraining the width, and we know the height will
+                // always be 1 row.
+                .{ .width = 1, .height = 1 },
+                .{ .width = 4, .height = 1 },
+            )),
+        };
+
+        const text_widget: vxfw.Text = .{ .text = self.text };
+        const text_surf: vxfw.SubSurface = .{
+            .origin = .{ .row = 0, .col = 6 },
+            .surface = try text_widget.draw(ctx.withConstraints(
+                ctx.min,
+                // We've shifted the origin over 6 columns so we need to take that into account or
+                // we'll draw outside the window.
+                .{ .width = if (ctx.max.width) |w| w - 6 else null, .height = ctx.max.height },
+            )),
+        };
+
+        const children = try ctx.arena.alloc(vxfw.SubSurface, 2);
+        children[0] = idx_surf;
+        children[1] = text_surf;
+
+        return .{
+            .size = .{
+                .width = idx_surf.surface.size.width + text_surf.surface.size.width,
+                .height = @max(idx_surf.surface.size.height, text_surf.surface.size.height),
+            },
+            .widget = self.widget(),
+            .buffer = &.{},
+            .children = children,
+        };
+    }
+};
+
 const Model = struct {
     scroll_view: vxfw.ScrollView,
-    text: std.ArrayList(vxfw.RichText),
-
-    arena: std.heap.ArenaAllocator,
+    rows: std.ArrayList(ModelRow),
 
     pub fn widget(self: *Model) vxfw.Widget {
         return .{
@@ -53,9 +105,9 @@ const Model = struct {
 
     fn widgetBuilder(ptr: *const anyopaque, idx: usize, _: usize) ?vxfw.Widget {
         const self: *const Model = @ptrCast(@alignCast(ptr));
-        if (idx >= self.text.items.len) return null;
+        if (idx >= self.rows.items.len) return null;
 
-        return self.text.items[idx].widget();
+        return self.rows.items[idx].widget();
     }
 };
 
@@ -82,10 +134,9 @@ pub fn main() !void {
                 },
             },
         },
-        .text = std.ArrayList(vxfw.RichText).init(allocator),
-        .arena = arena,
+        .rows = std.ArrayList(ModelRow).init(allocator),
     };
-    defer model.text.deinit();
+    defer model.rows.deinit();
 
     var lipsum = std.ArrayList([]const u8).init(allocator);
     defer lipsum.deinit();
@@ -101,12 +152,10 @@ pub fn main() !void {
     try lipsum.append("    Etiam lacinia ornare mauris, ut lacinia elit sollicitudin non. Morbi cursus dictum enim, et vulputate mi sollicitudin vel. Fusce rutrum augue justo. Phasellus et mauris tincidunt erat lacinia bibendum sed eu orci. Sed nunc lectus, dignissim sit amet ultricies sit amet, efficitur eu urna. Fusce feugiat malesuada ipsum nec congue. Praesent ultrices metus eu pulvinar laoreet. Maecenas pellentesque, metus ac lobortis rhoncus, ligula eros consequat urna, eget dictum lectus sem ut orci. Donec lobortis, lacus sed bibendum auctor, odio turpis suscipit odio, vitae feugiat leo metus ac lectus. Curabitur sed sem arcu.");
     try lipsum.append("    Mauris nisi tortor, auctor venenatis turpis a, finibus condimentum lectus. Donec id velit odio. Curabitur ac varius lorem. Nam cursus quam in velit gravida, in bibendum purus fermentum. Sed non rutrum dui, nec ultrices ligula. Integer lacinia blandit nisl non sollicitudin. Praesent nec malesuada eros, sit amet tincidunt nunc.");
 
-    for (0..10) |_| {
-        for (lipsum.items) |paragraph| {
-            var spans = std.ArrayList(vxfw.RichText.TextSpan).init(arena.allocator());
-            try spans.append(.{ .text = paragraph });
-
-            try model.text.append(.{ .text = spans.items, .softwrap = true });
+    for (0..10) |i| {
+        for (lipsum.items, 0..) |paragraph, j| {
+            const number = i * 10 + j;
+            try model.rows.append(.{ .idx = number, .text = paragraph });
         }
     }
 
