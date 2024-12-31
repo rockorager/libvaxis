@@ -76,6 +76,14 @@ const Model = struct {
                     ctx.quit = true;
                     return;
                 }
+                if (key.matches(vaxis.Key.tab, .{})) {
+                    self.scroll_view.draw_cursor = !self.scroll_view.draw_cursor;
+                    return ctx.consumeAndRedraw();
+                }
+                if (key.matches(vaxis.Key.tab, .{ .shift = true })) {
+                    self.scroll_view.draw_scrollbars = !self.scroll_view.draw_scrollbars;
+                    return ctx.consumeAndRedraw();
+                }
                 return self.scroll_view.handleEvent(ctx, event);
             },
             else => {},
