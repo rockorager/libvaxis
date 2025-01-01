@@ -100,12 +100,20 @@ pub fn handleEvent(self: *ScrollView, ctx: *vxfw.EventContext, event: vxfw.Event
             if (key.matches(vaxis.Key.down, .{}) or
                 key.matches('n', .{ .ctrl = true }))
             {
-                return self.nextItem(ctx);
+                // If we're drawing the cursor, move it to the next item.
+                if (self.draw_cursor) return self.nextItem(ctx);
+
+                // Otherwise scroll the view down.
+                if (self.scroll.linesDown(1)) ctx.consumeAndRedraw();
             }
             if (key.matches(vaxis.Key.up, .{}) or
                 key.matches('p', .{ .ctrl = true }))
             {
-                return self.prevItem(ctx);
+                // If we're drawing the cursor, move it to the previous item.
+                if (self.draw_cursor) return self.prevItem(ctx);
+
+                // Otherwise scroll the view up.
+                if (self.scroll.linesUp(1)) ctx.consumeAndRedraw();
             }
             if (key.matches('d', .{ .ctrl = true })) {
                 const scroll_lines = @max(self.last_height / 2, 1);
