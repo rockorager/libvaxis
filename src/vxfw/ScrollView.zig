@@ -98,6 +98,7 @@ pub fn handleEvent(self: *ScrollView, ctx: *vxfw.EventContext, event: vxfw.Event
         },
         .key_press => |key| {
             if (key.matches(vaxis.Key.down, .{}) or
+                key.matches('j', .{}) or
                 key.matches('n', .{ .ctrl = true }))
             {
                 // If we're drawing the cursor, move it to the next item.
@@ -107,6 +108,7 @@ pub fn handleEvent(self: *ScrollView, ctx: *vxfw.EventContext, event: vxfw.Event
                 if (self.scroll.linesDown(1)) ctx.consumeAndRedraw();
             }
             if (key.matches(vaxis.Key.up, .{}) or
+                key.matches('k', .{}) or
                 key.matches('p', .{ .ctrl = true }))
             {
                 // If we're drawing the cursor, move it to the previous item.
