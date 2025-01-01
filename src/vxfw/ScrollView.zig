@@ -49,6 +49,7 @@ const Scroll = struct {
 };
 
 const cursor_indicator: vaxis.Cell = .{ .char = .{ .grapheme = "▐", .width = 1 } };
+const scrollbar_thumb: vaxis.Cell = .{ .char = .{ .grapheme = "▐", .width = 1 } };
 
 children: Source,
 cursor: u32 = 0,
@@ -560,7 +561,7 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
         // We need the scroll bar to be at least 1 row high so it's visible.
         const end_row = scroll_bar_top + @max(scroll_bar_height, 1);
         for (scroll_bar_top..end_row) |row| {
-            scroll_bar.writeCell(max_size.width - 1, @intCast(row), cursor_indicator);
+            scroll_bar.writeCell(max_size.width - 1, @intCast(row), scrollbar_thumb);
         }
 
         try children_with_scrollbar.append(.{
