@@ -545,7 +545,9 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
 
         const widget_height_f: f32 = @floatFromInt(max_size.height);
         const total_height_f: f32 = @floatFromInt(estimated_total_height);
-        const scroll_top_f: f32 = @floatFromInt(self.scroll.top);
+        const scroll_top_f: f32 = @floatFromInt(
+            (self.scroll.top * total_height) / num_children_rendered,
+        );
 
         const scroll_bar_height_f: f32 = widget_height_f * (widget_height_f / total_height_f);
         const scroll_bar_height: u32 = @intFromFloat(scroll_bar_height_f);
