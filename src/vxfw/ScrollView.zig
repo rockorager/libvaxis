@@ -576,16 +576,20 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
         else
             max_size.height - scroll_bar_height; // At the bottom.
 
-        // We need the scroll bar to be at least 1 row high so it's visible.
-        const scroll_bar_end = scroll_bar_top + scroll_bar_height;
-        for (scroll_bar_top..scroll_bar_end) |row| {
-            scroll_bar.writeCell(max_size.width - 1, @intCast(row), scrollbar_thumb);
-        }
+        // There's no need to draw the scrollbar if we're at the top and drew all the children.
+        // In other words; if we can't scroll, we don't need the scrollbar.
+        if (self.scroll.top != 0 or end != child_count or total_height > max_size.height) {
+            // We need the scroll bar to be at least 1 row high so it's visible.
+            const scroll_bar_end = scroll_bar_top + scroll_bar_height;
+            for (scroll_bar_top..scroll_bar_end) |row| {
+                scroll_bar.writeCell(max_size.width - 1, @intCast(row), scrollbar_thumb);
+            }
 
-        try children_with_scrollbar.append(.{
-            .surface = scroll_bar,
-            .origin = .{ .row = 0, .col = 0 },
-        });
+            try children_with_scrollbar.append(.{
+                .surface = scroll_bar,
+                .origin = .{ .row = 0, .col = 0 },
+            });
+        }
     }
 
     try children_with_scrollbar.appendSlice(child_list.items[start..end]);
@@ -659,7 +663,7 @@ test ScrollView {
     // 6     mno
 
     // Create the list view
-    const scroll_view: ScrollView = .{
+    var scroll_view: ScrollView = .{
         .wheel_scroll = 1, // Set wheel scroll to one
         .children = .{ .slice = &.{
             abc.widget(),
@@ -744,6 +748,9 @@ test ScrollView {
     try std.testing.expectEqual(0, scroll_view.scroll.top);
     try std.testing.expectEqual(0, scroll_view.scroll.offset);
     try std.testing.expectEqual(3, surface.children.len);
+
+    // Turn on the cursor.
+    scroll_view.draw_cursor = true;
 
     // Cursor down
     try scroll_widget.handleEvent(&ctx, .{ .key_press = .{ .codepoint = vaxis.Key.down } });
