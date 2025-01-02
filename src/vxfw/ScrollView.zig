@@ -579,7 +579,6 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
         // There's no need to draw the scrollbar if we're at the top and drew all the children.
         // In other words; if we can't scroll, we don't need the scrollbar.
         if (self.scroll.top != 0 or end != child_count or total_height > max_size.height) {
-            // We need the scroll bar to be at least 1 row high so it's visible.
             const scroll_bar_end = scroll_bar_top + scroll_bar_height;
             for (scroll_bar_top..scroll_bar_end) |row| {
                 scroll_bar.writeCell(max_size.width - 1, @intCast(row), scrollbar_thumb);
