@@ -49,6 +49,12 @@ pub fn init(alloc: std.mem.Allocator, opts: Vaxis.Options) !Vaxis {
 
 /// Resets terminal state on a panic, then calls the default zig panic handler
 pub fn panic_handler(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_addr: ?usize) noreturn {
+    recover();
+    std.builtin.default_panic(msg, error_return_trace, ret_addr);
+}
+
+/// Resets the terminal state using the global tty instance. Use this only to recover during a panic
+pub fn recover() void {
     if (tty.global_tty) |gty| {
         const reset: []const u8 = ctlseqs.csi_u_pop ++
             ctlseqs.mouse_reset ++
@@ -59,8 +65,6 @@ pub fn panic_handler(msg: []const u8, error_return_trace: ?*std.builtin.StackTra
 
         gty.deinit();
     }
-
-    std.builtin.default_panic(msg, error_return_trace, ret_addr);
 }
 
 pub const log_scopes = enum {
