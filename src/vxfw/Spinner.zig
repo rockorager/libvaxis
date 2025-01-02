@@ -7,7 +7,7 @@ const Allocator = std.mem.Allocator;
 
 const Spinner = @This();
 
-const frames: []const []const u8 = &.{ "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" };
+const frames: []const []const u8 = &.{ "⣶", "⣧", "⣏", "⡟", "⠿", "⢻", "⣹", "⣼" };
 const time_lapse: u32 = std.time.ms_per_s / 12; // 12 fps
 
 count: std.atomic.Value(u16) = .{ .raw = 0 },
