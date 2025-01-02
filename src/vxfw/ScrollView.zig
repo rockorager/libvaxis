@@ -63,6 +63,16 @@ item_count: ?u32 = null,
 /// When true, the widget will draw a vertical scrollbar on the right side of the contained widget.
 /// Eventually this will be used as an indicator for a horizontal scrollbar as well.
 draw_scrollbars: bool = true,
+/// The estimated height of all the content in the ScrollView. When provided this height will be
+/// used to calculate the size of the scrollbar's thumb. If this is not provided the widget will
+/// make a best effort estimate of the size of the thumb using the number of elements rendered at
+/// any given time. This will cause inconsistent thumb sizes - and possibly inconsistent
+/// positioning - if different elements in the ScrollView have different heights. For the best user
+/// experience, providing this estimate is strongly recommended.
+///
+/// Note that this doesn't necessarily have to be an accurate estimate and the tolerance for larger
+/// views is quite forgiving, especially if you overshoot the estimate.
+estimated_content_height: ?u32 = null,
 
 /// scroll position
 scroll: Scroll = .{},
@@ -547,7 +557,14 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
         const total_height_f: f32 = @floatFromInt(child_count);
         const scroll_top_f: f32 = @floatFromInt(self.scroll.top);
 
-        const scroll_bar_height_f: f32 = widget_height_f * (num_children_rendered_f / total_height_f);
+        const scroll_bar_height_f: f32 = height: {
+            if (self.estimated_content_height) |h| {
+                const h_f: f32 = @floatFromInt(h);
+                break :height widget_height_f * (widget_height_f / h_f);
+            }
+
+            break :height widget_height_f * (num_children_rendered_f / total_height_f);
+        };
         // We need to ensure the scrollbar is at least 1 row high so it's visible.
         const scroll_bar_height: u32 = @intFromFloat(@max(scroll_bar_height_f, 1));
 

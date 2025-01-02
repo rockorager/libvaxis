@@ -148,6 +148,12 @@ pub fn main() !void {
                     .buildFn = Model.widgetBuilder,
                 },
             },
+            // NOTE: This is not the actual content height, but rather an estimate. In reality
+            //       you would want to do some calculations to keep this up to date and as close to
+            //       the real value as possible, but this suffices for the sake of the example. Try
+            //       playing around with the value to see how it affects the scrollbar. Try removing
+            //       it as well to see what that does.
+            .estimated_content_height = 800,
         },
         .rows = std.ArrayList(ModelRow).init(allocator),
     };
@@ -167,6 +173,8 @@ pub fn main() !void {
     try lipsum.append("    Etiam lacinia ornare mauris, ut lacinia elit sollicitudin non. Morbi cursus dictum enim, et vulputate mi sollicitudin vel. Fusce rutrum augue justo. Phasellus et mauris tincidunt erat lacinia bibendum sed eu orci. Sed nunc lectus, dignissim sit amet ultricies sit amet, efficitur eu urna. Fusce feugiat malesuada ipsum nec congue. Praesent ultrices metus eu pulvinar laoreet. Maecenas pellentesque, metus ac lobortis rhoncus, ligula eros consequat urna, eget dictum lectus sem ut orci. Donec lobortis, lacus sed bibendum auctor, odio turpis suscipit odio, vitae feugiat leo metus ac lectus. Curabitur sed sem arcu.");
     try lipsum.append("    Mauris nisi tortor, auctor venenatis turpis a, finibus condimentum lectus. Donec id velit odio. Curabitur ac varius lorem. Nam cursus quam in velit gravida, in bibendum purus fermentum. Sed non rutrum dui, nec ultrices ligula. Integer lacinia blandit nisl non sollicitudin. Praesent nec malesuada eros, sit amet tincidunt nunc.");
 
+    // Try playing around with the amount of items in the scroll view to see how the scrollbar
+    // reacts.
     for (0..10) |i| {
         for (lipsum.items, 0..) |paragraph, j| {
             const number = i * 10 + j;
