@@ -83,6 +83,14 @@ const Model = struct {
                     }
                     return ctx.consumeAndRedraw();
                 }
+                if (key.matches('e', .{ .ctrl = true })) {
+                    if (self.scroll_view.estimated_content_height == null)
+                        self.scroll_view.estimated_content_height = 800
+                    else
+                        self.scroll_view.estimated_content_height = null;
+
+                    return ctx.consumeAndRedraw();
+                }
                 if (key.matches(vaxis.Key.tab, .{})) {
                     self.scroll_view.draw_cursor = !self.scroll_view.draw_cursor;
                     return ctx.consumeAndRedraw();
