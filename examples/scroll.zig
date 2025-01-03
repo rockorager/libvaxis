@@ -58,7 +58,7 @@ const ModelRow = struct {
 };
 
 const Model = struct {
-    scroll_view: vxfw.ScrollView,
+    scroll_bars: vxfw.ScrollBars,
     rows: std.ArrayList(ModelRow),
 
     pub fn widget(self: *Model) vxfw.Widget {
@@ -81,25 +81,40 @@ const Model = struct {
                     for (self.rows.items) |*row| {
                         row.wrap_lines = !row.wrap_lines;
                     }
+                    self.scroll_bars.estimated_content_height =
+                        if (self.scroll_bars.estimated_content_height == 800)
+                        @intCast(self.rows.items.len)
+                    else
+                        800;
+
                     return ctx.consumeAndRedraw();
                 }
                 if (key.matches('e', .{ .ctrl = true })) {
-                    if (self.scroll_view.estimated_content_height == null)
-                        self.scroll_view.estimated_content_height = 800
+                    if (self.scroll_bars.estimated_content_height == null)
+                        self.scroll_bars.estimated_content_height = 800
                     else
-                        self.scroll_view.estimated_content_height = null;
+                        self.scroll_bars.estimated_content_height = null;
 
                     return ctx.consumeAndRedraw();
                 }
                 if (key.matches(vaxis.Key.tab, .{})) {
-                    self.scroll_view.draw_cursor = !self.scroll_view.draw_cursor;
+                    self.scroll_bars.scroll_view.draw_cursor = !self.scroll_bars.scroll_view.draw_cursor;
+                    return ctx.consumeAndRedraw();
+                }
+                if (key.matches('v', .{ .ctrl = true })) {
+                    self.scroll_bars.draw_vertical_scrollbar = !self.scroll_bars.draw_vertical_scrollbar;
+                    return ctx.consumeAndRedraw();
+                }
+                if (key.matches('h', .{ .ctrl = true })) {
+                    self.scroll_bars.draw_horizontal_scrollbar = !self.scroll_bars.draw_horizontal_scrollbar;
                     return ctx.consumeAndRedraw();
                 }
                 if (key.matches(vaxis.Key.tab, .{ .shift = true })) {
-                    self.scroll_view.draw_scrollbars = !self.scroll_view.draw_scrollbars;
+                    self.scroll_bars.draw_vertical_scrollbar = !self.scroll_bars.draw_vertical_scrollbar;
+                    self.scroll_bars.draw_horizontal_scrollbar = !self.scroll_bars.draw_horizontal_scrollbar;
                     return ctx.consumeAndRedraw();
                 }
-                return self.scroll_view.handleEvent(ctx, event);
+                return self.scroll_bars.scroll_view.handleEvent(ctx, event);
             },
             else => {},
         }
@@ -111,7 +126,7 @@ const Model = struct {
 
         const scroll_view: vxfw.SubSurface = .{
             .origin = .{ .row = 0, .col = 0 },
-            .surface = try self.scroll_view.draw(ctx),
+            .surface = try self.scroll_bars.draw(ctx),
         };
 
         const children = try ctx.arena.alloc(vxfw.SubSurface, 1);
@@ -149,11 +164,13 @@ pub fn main() !void {
     const model = try allocator.create(Model);
     defer allocator.destroy(model);
     model.* = .{
-        .scroll_view = .{
-            .children = .{
-                .builder = .{
-                    .userdata = model,
-                    .buildFn = Model.widgetBuilder,
+        .scroll_bars = .{
+            .scroll_view = .{
+                .children = .{
+                    .builder = .{
+                        .userdata = model,
+                        .buildFn = Model.widgetBuilder,
+                    },
                 },
             },
             // NOTE: This is not the actual content height, but rather an estimate. In reality

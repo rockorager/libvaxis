@@ -13,7 +13,7 @@ pub const Builder = struct {
     userdata: *const anyopaque,
     buildFn: *const fn (*const anyopaque, idx: usize, cursor: usize) ?vxfw.Widget,
 
-    inline fn itemAtIdx(self: Builder, idx: usize, cursor: usize) ?vxfw.Widget {
+    pub inline fn itemAtIdx(self: Builder, idx: usize, cursor: usize) ?vxfw.Widget {
         return self.buildFn(self.userdata, idx, cursor);
     }
 };
@@ -60,19 +60,6 @@ draw_cursor: bool = false,
 wheel_scroll: u8 = 3,
 /// Set this if the exact item count is known.
 item_count: ?u32 = null,
-/// When true, the widget will draw a vertical scrollbar on the right side of the contained widget.
-/// Eventually this will be used as an indicator for a horizontal scrollbar as well.
-draw_scrollbars: bool = true,
-/// The estimated height of all the content in the ScrollView. When provided this height will be
-/// used to calculate the size of the scrollbar's thumb. If this is not provided the widget will
-/// make a best effort estimate of the size of the thumb using the number of elements rendered at
-/// any given time. This will cause inconsistent thumb sizes - and possibly inconsistent
-/// positioning - if different elements in the ScrollView have different heights. For the best user
-/// experience, providing this estimate is strongly recommended.
-///
-/// Note that this doesn't necessarily have to be an accurate estimate and the tolerance for larger
-/// views is quite forgiving, especially if you overshoot the estimate.
-estimated_content_height: ?u32 = null,
 
 /// scroll position
 scroll: Scroll = .{},
@@ -383,8 +370,8 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
 
         // Set up constraints. We let the child be the entire height if it wants
         const child_ctx = ctx.withConstraints(
-            .{ .width = max_size.width - 1 - child_offset, .height = 0 },
-            .{ .width = max_size.width - 1 - child_offset, .height = null },
+            .{ .width = max_size.width - child_offset, .height = 0 },
+            .{ .width = max_size.width - child_offset, .height = null },
         );
 
         // Draw the child
@@ -530,70 +517,7 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
         }
     }
 
-    var children_with_scrollbar = std.ArrayList(vxfw.SubSurface).init(ctx.arena);
-
-    // We only show the scrollbar if the content height is larger than the widget height and
-    // drawing the scrollbars is requested.
-    if (self.draw_scrollbars) {
-        // The scroll bar surface needs to span the entire widget so dragging the scroll bar can work
-        // even if the mouse leaves the scrollbar itself.
-        const scroll_bar = try vxfw.Surface.init(ctx.arena, self.widget(), max_size);
-
-        // For the sake of calculations we ensure we think we've rendered at least 1 child.
-        const num_children_rendered: usize = @max(end - start, 1);
-
-        const child_count: usize = count: {
-            if (self.item_count) |count| break :count count;
-
-            var idx: usize = 0;
-            while (builder.itemAtIdx(idx, self.cursor)) |_| {
-                idx += 1;
-            }
-            break :count idx;
-        };
-
-        const widget_height_f: f32 = @floatFromInt(max_size.height);
-        const num_children_rendered_f: f32 = @floatFromInt(num_children_rendered);
-        const total_height_f: f32 = @floatFromInt(child_count);
-        const scroll_top_f: f32 = @floatFromInt(self.scroll.top);
-
-        const scroll_bar_height_f: f32 = height: {
-            if (self.estimated_content_height) |h| {
-                const h_f: f32 = @floatFromInt(h);
-                break :height widget_height_f * (widget_height_f / h_f);
-            }
-
-            break :height widget_height_f * (num_children_rendered_f / total_height_f);
-        };
-        // We need to ensure the scrollbar is at least 1 row high so it's visible.
-        const scroll_bar_height: u32 = @intFromFloat(@max(scroll_bar_height_f, 1));
-
-        const scroll_bar_top_f: f32 = widget_height_f * (scroll_top_f / total_height_f);
-        const scroll_bar_top: u32 = if (self.scroll.top == 0)
-            0 // At the top.
-        else if (self.scroll.has_more)
-            @intFromFloat(scroll_bar_top_f)
-        else
-            max_size.height - scroll_bar_height; // At the bottom.
-
-        // There's no need to draw the scrollbar if we're at the top and drew all the children.
-        // In other words; if we can't scroll, we don't need the scrollbar.
-        if (self.scroll.top != 0 or end != child_count or total_height > max_size.height) {
-            const scroll_bar_end = scroll_bar_top + scroll_bar_height;
-            for (scroll_bar_top..scroll_bar_end) |row| {
-                scroll_bar.writeCell(max_size.width - 1, @intCast(row), scrollbar_thumb);
-            }
-
-            try children_with_scrollbar.append(.{
-                .surface = scroll_bar,
-                .origin = .{ .row = 0, .col = 0 },
-            });
-        }
-    }
-
-    try children_with_scrollbar.appendSlice(child_list.items[start..end]);
-
-    surface.children = children_with_scrollbar.items;
+    surface.children = child_list.items;
 
     // Update last known height.
     // If the bits from total_height don't fit u8 we won't get the right value from @intCast or
