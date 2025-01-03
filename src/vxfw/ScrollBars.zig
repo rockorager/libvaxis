@@ -90,7 +90,10 @@ pub fn draw(self: *ScrollBars, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfa
 
     // 4. Draw the vertical scroll bar.
 
-    if (self.draw_vertical_scrollbar) {
+    if (self.draw_vertical_scrollbar) vertical: {
+        // If we can't scroll, then there's no need to draw the scroll bar.
+        if (self.scroll_view.scroll.top == 0 and !self.scroll_view.scroll.has_more) break :vertical;
+
         // To draw the vertical scrollbar we need to know how big the scroll bar thumb should be.
         // If we've been provided with an estimated height we use that to figure out how big the
         // thumb should be, otherwise we estimate the size based on how many of the children were
