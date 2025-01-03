@@ -7,6 +7,7 @@ const Allocator = std.mem.Allocator;
 const ScrollBars = @This();
 
 const vertical_scrollbar_thumb: vaxis.Cell = .{ .char = .{ .grapheme = "▐", .width = 1 } };
+const vertical_scrollbar_hover_thumb: vaxis.Cell = .{ .char = .{ .grapheme = "█", .width = 1 } };
 const horizontal_scrollbar_thumb: vaxis.Cell = .{ .char = .{ .grapheme = "▃", .width = 1 } };
 
 /// The ScrollBars widget must contain a ScrollView widget. The scroll bars drawn will be for the
@@ -29,10 +30,31 @@ draw_vertical_scrollbar: bool = true,
 /// views is quite forgiving, especially if you overshoot the estimate.
 estimated_content_height: ?u32 = null,
 
+/// You should not change this variable, treat it as private to the implementation. Used to track
+/// the position of the scroll thumb for mouse interaction.
+vertical_thumb_top_row: u32 = 0,
+/// You should not change this variable, treat it as private to the implementation. Used to track
+/// the position of the scroll thumb for mouse interaction.
+vertical_thumb_bottom_row: u32 = 0,
+/// You should not change this variable, treat it as private to the implementation. Used to track
+/// the position of the mouse relative to the scroll thumb for mouse interaction.
+mouse_offset_into_thumb: u8 = 0,
+/// You should not change this variable, treat it as private to the implementation. Used to track
+/// whether the scroll thumb is hovered or not so we can set the right hover style for the thumb.
+is_hovering_vertical_thumb: bool = false,
+/// You should not change this variable, treat it as private to the implementation. Used to track
+/// whether the thumb is currently being dragged, which is important to allowing the mouse to leave
+/// the scroll thumb while it's being dragged.
+is_dragging_vertical_thumb: bool = false,
+/// You should not change this variable, treat it as private to the implementation. Used to track
+/// the size of the widget can locate scroll bars for mouse interaction.
+last_frame_size: vxfw.Size = .{ .width = 0, .height = 0 },
+
 pub fn widget(self: *const ScrollBars) vxfw.Widget {
     return .{
         .userdata = @constCast(self),
         .eventHandler = typeErasedEventHandler,
+        .captureHandler = typeErasedCaptureHandler,
         .drawFn = typeErasedDrawFn,
     };
 }
@@ -41,13 +63,121 @@ fn typeErasedEventHandler(ptr: *anyopaque, ctx: *vxfw.EventContext, event: vxfw.
     const self: *ScrollBars = @ptrCast(@alignCast(ptr));
     return self.handleEvent(ctx, event);
 }
+fn typeErasedCaptureHandler(ptr: *anyopaque, ctx: *vxfw.EventContext, event: vxfw.Event) anyerror!void {
+    const self: *ScrollBars = @ptrCast(@alignCast(ptr));
+    return self.handleCapture(ctx, event);
+}
 
 fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surface {
     const self: *ScrollBars = @ptrCast(@alignCast(ptr));
     return self.draw(ctx);
 }
 
-pub fn handleEvent(_: *ScrollBars, _: *vxfw.EventContext, _: vxfw.Event) anyerror!void {}
+pub fn handleCapture(self: *ScrollBars, ctx: *vxfw.EventContext, event: vxfw.Event) anyerror!void {
+    switch (event) {
+        .mouse => |mouse| {
+            // Nothing to do in the capture handler if we're not dragging the scrollbar.
+            if (!self.is_dragging_vertical_thumb) return;
+
+            // Stop dragging the thumb when the mouse is released.
+            if (mouse.type == .release and
+                mouse.button == .left and
+                self.is_dragging_vertical_thumb)
+            {
+                self.is_dragging_vertical_thumb = false;
+
+                const is_mouse_over_vertical_thumb =
+                    mouse.col == self.last_frame_size.width -| 1 and
+                    mouse.row >= self.vertical_thumb_top_row and
+                    mouse.row < self.vertical_thumb_bottom_row;
+
+                // If we're not hovering the scroll bar after letting it go, we should trigger a
+                // redraw so it goes back to its narrow, non-active, state immediately.
+                if (!is_mouse_over_vertical_thumb) {
+                    self.is_hovering_vertical_thumb = false;
+                    ctx.redraw = true;
+                }
+
+                // No need to redraw yet, but we must consume the event so ending the drag action
+                // doesn't trigger some other event handler.
+                return ctx.consumeEvent();
+            }
+
+            // Process dragging the vertical thumb.
+            if (mouse.type == .drag) {
+                // Make sure we consume the event if we're currently dragging the mouse so other events
+                // aren't sent in the mean time.
+                ctx.consumeEvent();
+
+                // New scroll thumb position.
+                const new_thumb_top = mouse.row -| self.mouse_offset_into_thumb;
+
+                // If the new thumb position is at the top we know we've scrolled to the top of the
+                // scroll view.
+                if (new_thumb_top == 0) {
+                    self.scroll_view.scroll.top = 0;
+                    return ctx.consumeAndRedraw();
+                }
+
+                const new_thumb_top_f: f32 = @floatFromInt(new_thumb_top);
+                const widget_height_f: f32 = @floatFromInt(self.last_frame_size.height);
+                const total_num_children_f: f32 = count: {
+                    if (self.scroll_view.item_count) |c| break :count @floatFromInt(c);
+
+                    switch (self.scroll_view.children) {
+                        .slice => |slice| break :count @floatFromInt(slice.len),
+                        .builder => |builder| {
+                            var counter: usize = 0;
+                            while (builder.itemAtIdx(counter, self.scroll_view.cursor)) |_|
+                                counter += 1;
+
+                            break :count @floatFromInt(counter);
+                        },
+                    }
+                };
+
+                const new_top_child_idx_f =
+                    new_thumb_top_f *
+                    total_num_children_f / widget_height_f;
+                self.scroll_view.scroll.top = @intFromFloat(new_top_child_idx_f);
+
+                return ctx.consumeAndRedraw();
+            }
+        },
+        else => {},
+    }
+}
+
+pub fn handleEvent(self: *ScrollBars, ctx: *vxfw.EventContext, event: vxfw.Event) anyerror!void {
+    switch (event) {
+        .mouse => |mouse| {
+            const is_mouse_over_vertical_thumb =
+                mouse.col == self.last_frame_size.width -| 1 and
+                mouse.row >= self.vertical_thumb_top_row and
+                mouse.row < self.vertical_thumb_bottom_row;
+
+            if (!self.is_hovering_vertical_thumb and is_mouse_over_vertical_thumb) {
+                self.is_hovering_vertical_thumb = true;
+                ctx.redraw = true;
+            } else if (self.is_hovering_vertical_thumb and !is_mouse_over_vertical_thumb) {
+                self.is_hovering_vertical_thumb = false;
+                ctx.redraw = true;
+            }
+
+            if (is_mouse_over_vertical_thumb and
+                mouse.type == .press and mouse.button == .left)
+            {
+                self.is_dragging_vertical_thumb = true;
+                self.mouse_offset_into_thumb = @intCast(mouse.row -| self.vertical_thumb_top_row);
+
+                // No need to redraw yet, but we must consume the event.
+                return ctx.consumeEvent();
+            }
+        },
+        .mouse_leave => self.is_dragging_vertical_thumb = false,
+        else => {},
+    }
+}
 
 pub fn draw(self: *ScrollBars, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surface {
     var children = std.ArrayList(vxfw.SubSurface).init(ctx.arena);
@@ -71,6 +201,7 @@ pub fn draw(self: *ScrollBars, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfa
     // 2. Otherwise we can draw the scrollbars.
 
     const max = ctx.max.size();
+    self.last_frame_size = max;
 
     // 3. Draw the scroll view itself.
 
@@ -163,9 +294,15 @@ pub fn draw(self: *ScrollBars, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfa
             scroll_bar.writeCell(
                 0,
                 @intCast(row),
-                vertical_scrollbar_thumb,
+                if (self.is_hovering_vertical_thumb)
+                    vertical_scrollbar_hover_thumb
+                else
+                    vertical_scrollbar_thumb,
             );
         }
+
+        self.vertical_thumb_top_row = thumb_top;
+        self.vertical_thumb_bottom_row = thumb_end_row;
 
         try children.append(.{
             .origin = .{ .row = 0, .col = max.width -| 1 },
