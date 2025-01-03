@@ -92,7 +92,7 @@ pub const PosixTty = struct {
         if (!handler_installed) return;
         handler_installed = false;
         var act = posix.Sigaction{
-            .handler = posix.SIG.DFL,
+            .handler = .{ .handler = posix.SIG.DFL },
             .mask = switch (builtin.os.tag) {
                 .macos => 0,
                 .linux => posix.empty_sigset,
