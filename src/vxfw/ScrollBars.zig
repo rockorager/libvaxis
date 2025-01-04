@@ -117,8 +117,8 @@ pub fn handleCapture(self: *ScrollBars, ctx: *vxfw.EventContext, event: vxfw.Eve
                     mouse.button == .left and
                     self.is_dragging_vertical_thumb)
                 {
-                    // If we just let the scroll thumb go after dragging we need to make sure we redraw
-                    // so the right style is immediately applied to the thumb.
+                    // If we just let the scroll thumb go after dragging we need to make sure we
+                    // redraw so the right style is immediately applied to the thumb.
                     if (self.is_dragging_vertical_thumb) {
                         self.is_dragging_vertical_thumb = false;
                         ctx.redraw = true;
@@ -136,22 +136,22 @@ pub fn handleCapture(self: *ScrollBars, ctx: *vxfw.EventContext, event: vxfw.Eve
                         ctx.redraw = true;
                     }
 
-                    // No need to redraw yet, but we must consume the event so ending the drag action
-                    // doesn't trigger some other event handler.
+                    // No need to redraw yet, but we must consume the event so ending the drag
+                    // action doesn't trigger some other event handler.
                     return ctx.consumeEvent();
                 }
 
                 // Process dragging the vertical thumb.
                 if (mouse.type == .drag) {
-                    // Make sure we consume the event if we're currently dragging the mouse so other events
-                    // aren't sent in the mean time.
+                    // Make sure we consume the event if we're currently dragging the mouse so other
+                    // events aren't sent in the mean time.
                     ctx.consumeEvent();
 
                     // New scroll thumb position.
                     const new_thumb_top = mouse.row -| self.mouse_offset_into_thumb;
 
-                    // If the new thumb position is at the top we know we've scrolled to the top of the
-                    // scroll view.
+                    // If the new thumb position is at the top we know we've scrolled to the top of
+                    // the scroll view.
                     if (new_thumb_top == 0) {
                         self.scroll_view.scroll.top = 0;
                         return ctx.consumeAndRedraw();
@@ -189,8 +189,8 @@ pub fn handleCapture(self: *ScrollBars, ctx: *vxfw.EventContext, event: vxfw.Eve
                     mouse.button == .left and
                     self.is_dragging_horizontal_thumb)
                 {
-                    // If we just let the scroll thumb go after dragging we need to make sure we redraw
-                    // so the right style is immediately applied to the thumb.
+                    // If we just let the scroll thumb go after dragging we need to make sure we
+                    // redraw so the right style is immediately applied to the thumb.
                     if (self.is_dragging_horizontal_thumb) {
                         self.is_dragging_horizontal_thumb = false;
                         ctx.redraw = true;
@@ -208,8 +208,8 @@ pub fn handleCapture(self: *ScrollBars, ctx: *vxfw.EventContext, event: vxfw.Eve
                         ctx.redraw = true;
                     }
 
-                    // No need to redraw yet, but we must consume the event so ending the drag action
-                    // doesn't trigger some other event handler.
+                    // No need to redraw yet, but we must consume the event so ending the drag
+                    // action doesn't trigger some other event handler.
                     return ctx.consumeEvent();
                 }
 
@@ -275,7 +275,9 @@ pub fn handleEvent(self: *ScrollBars, ctx: *vxfw.EventContext, event: vxfw.Event
 
             if (did_start_dragging_horizontal_thumb) {
                 self.is_dragging_horizontal_thumb = true;
-                self.mouse_offset_into_thumb = @intCast(mouse.col -| self.horizontal_thumb_start_col);
+                self.mouse_offset_into_thumb = @intCast(
+                    mouse.col -| self.horizontal_thumb_start_col,
+                );
 
                 // No need to redraw yet, but we must consume the event.
                 return ctx.consumeEvent();
