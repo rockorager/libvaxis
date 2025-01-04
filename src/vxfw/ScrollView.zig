@@ -48,14 +48,14 @@ const Scroll = struct {
     }
 };
 
-const cursor_indicator: vaxis.Cell = .{ .char = .{ .grapheme = "▐", .width = 1 } };
-const scrollbar_thumb: vaxis.Cell = .{ .char = .{ .grapheme = "▐", .width = 1 } };
-
 children: Source,
 cursor: u32 = 0,
 last_height: u8 = 0,
 /// When true, the widget will draw a cursor next to the widget which has the cursor
 draw_cursor: bool = false,
+/// The cell that will be drawn to represent the scroll view's cursor. Replace this to customize the
+/// cursor indicator. Must have a 1 column width.
+cursor_indicator: vaxis.Cell = .{ .char = .{ .grapheme = "▐", .width = 1 } },
 /// Lines to scroll for a mouse wheel
 wheel_scroll: u8 = 3,
 /// Set this if the exact item count is known.
@@ -435,7 +435,7 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
             sub,
         );
         for (0..cursor_surf.size.height) |row| {
-            cursor_surf.writeCell(0, @intCast(row), cursor_indicator);
+            cursor_surf.writeCell(0, @intCast(row), self.cursor_indicator);
         }
         child_list.items[cursored_idx] = .{
             .origin = .{ .col = 0, .row = child.origin.row },
