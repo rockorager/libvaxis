@@ -87,11 +87,11 @@ pub fn handleEvent(self: *ScrollView, ctx: *vxfw.EventContext, event: vxfw.Event
         .mouse => |mouse| {
             if (mouse.button == .wheel_up) {
                 if (self.scroll.linesUp(self.wheel_scroll))
-                    ctx.consumeAndRedraw();
+                    return ctx.consumeAndRedraw();
             }
             if (mouse.button == .wheel_down) {
                 if (self.scroll.linesDown(self.wheel_scroll))
-                    ctx.consumeAndRedraw();
+                    return ctx.consumeAndRedraw();
             }
         },
         .key_press => |key| {

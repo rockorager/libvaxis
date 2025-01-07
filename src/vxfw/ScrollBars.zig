@@ -51,7 +51,7 @@ horizontal_scrollbar_drag_thumb: vaxis.Cell = .{
 },
 
 /// You should not change this variable, treat it as private to the implementation. Used to track
-/// the size of the widget can locate scroll bars for mouse interaction.
+/// the size of the widget so we can locate scroll bars for mouse interaction.
 last_frame_size: vxfw.Size = .{ .width = 0, .height = 0 },
 /// You should not change this variable, treat it as private to the implementation. Used to track
 /// the position of the mouse relative to the scroll thumb for mouse interaction.
