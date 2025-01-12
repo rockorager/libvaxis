@@ -393,6 +393,7 @@ pub const WindowsTty = struct {
                     },
                     0x08 => Key.backspace,
                     0x09 => Key.tab,
+                    0x0A => Key.ctrl_j,
                     0x0D => Key.enter,
                     0x13 => Key.pause,
                     0x14 => Key.caps_lock,
@@ -736,6 +737,24 @@ pub const TestTty = struct {
             .pipe_write = w,
             .writer = list,
         };
+    }
+    var handler_installed: bool = false;
+
+    /// Resets the signal handler to it's default
+    pub fn resetSignalHandler() void {
+        if (!handler_installed) return;
+        handler_installed = false;
+        var act = posix.Sigaction{
+            .handler = .{ .handler = posix.SIG.DFL },
+            .mask = switch (builtin.os.tag) {
+                .macos => 0,
+                .linux => posix.empty_sigset,
+                .freebsd => posix.empty_sigset,
+                else => @compileError("os not supported"),
+            },
+            .flags = 0,
+        };
+        posix.sigaction(posix.SIG.WINCH, &act, null) catch {};
     }
 
     pub fn deinit(self: TestTty) void {
