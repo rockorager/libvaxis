@@ -788,4 +788,8 @@ pub const TestTty = struct {
     pub fn nextEvent(_: *Tty, _: *Parser, _: ?std.mem.Allocator) !Event {
         return error.SkipZigTest;
     }
+
+    pub fn resetSignalHandler() void {
+        return;
+    }
 };
