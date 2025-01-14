@@ -214,8 +214,8 @@ pub const WindowsTty = struct {
     stdout: windows.HANDLE,
 
     initial_codepage: c_uint,
-    initial_input_mode: u32,
-    initial_output_mode: u32,
+    initial_input_mode: CONSOLE_MODE_INPUT,
+    initial_output_mode: CONSOLE_MODE_OUTPUT,
 
     // a buffer to write key text into
     buf: [4]u8 = undefined,
@@ -226,58 +226,35 @@ pub const WindowsTty = struct {
 
     const utf8_codepage: c_uint = 65001;
 
-    const InputMode = struct {
-        const enable_window_input: u32 = 0x0008; // resize events
-        const enable_mouse_input: u32 = 0x0010;
-        const enable_extended_flags: u32 = 0x0080; // allows mouse events
-
-        pub fn rawMode() u32 {
-            return enable_window_input | enable_mouse_input | enable_extended_flags;
-        }
+    /// The input mode set by init
+    pub const input_raw_mode: CONSOLE_MODE_INPUT = .{
+        .WINDOW_INPUT = 1, // resize events
+        .MOUSE_INPUT = 1,
+        .EXTENDED_FLAGS = 1, // allow mouse events
     };
 
-    const OutputMode = struct {
-        const enable_processed_output: u32 = 0x0001; // handle control sequences
-        const enable_virtual_terminal_processing: u32 = 0x0004; // handle ANSI sequences
-        const disable_newline_auto_return: u32 = 0x0008; // disable inserting a new line when we write at the last column
-        const enable_lvb_grid_worldwide: u32 = 0x0010; // enables reverse video and underline
-
-        fn rawMode() u32 {
-            return enable_processed_output |
-                enable_virtual_terminal_processing |
-                disable_newline_auto_return |
-                enable_lvb_grid_worldwide;
-        }
+    /// The output mode set by init
+    pub const output_raw_mode: CONSOLE_MODE_OUTPUT = .{
+        .PROCESSED_OUTPUT = 1, // handle control sequences
+        .VIRTUAL_TERMINAL_PROCESSING = 1, // handle ANSI sequences
+        .DISABLE_NEWLINE_AUTO_RETURN = 1, // disable inserting a new line when we write at the last column
+        .ENABLE_LVB_GRID_WORLDWIDE = 1, // enables reverse video and underline
     };
 
     pub fn init() !Tty {
-        const stdin = try windows.GetStdHandle(windows.STD_INPUT_HANDLE);
-        const stdout = try windows.GetStdHandle(windows.STD_OUTPUT_HANDLE);
+        const stdin = std.io.getStdIn().handle;
+        const stdout = std.io.getStdOut().handle;
 
         // get initial modes
-        var initial_input_mode: windows.DWORD = undefined;
-        var initial_output_mode: windows.DWORD = undefined;
         const initial_output_codepage = windows.kernel32.GetConsoleOutputCP();
-        {
-            if (windows.kernel32.GetConsoleMode(stdin, &initial_input_mode) == 0) {
-                return windows.unexpectedError(windows.kernel32.GetLastError());
-            }
-            if (windows.kernel32.GetConsoleMode(stdout, &initial_output_mode) == 0) {
-                return windows.unexpectedError(windows.kernel32.GetLastError());
-            }
-        }
+        const initial_input_mode = try getConsoleMode(CONSOLE_MODE_INPUT, stdin);
+        const initial_output_mode = try getConsoleMode(CONSOLE_MODE_OUTPUT, stdout);
 
         // set new modes
-        {
-            if (windows.kernel32.SetConsoleMode(stdin, InputMode.rawMode()) == 0)
-                return windows.unexpectedError(windows.kernel32.GetLastError());
-
-            if (windows.kernel32.SetConsoleMode(stdout, OutputMode.rawMode()) == 0)
-                return windows.unexpectedError(windows.kernel32.GetLastError());
-
-            if (windows.kernel32.SetConsoleOutputCP(utf8_codepage) == 0)
-                return windows.unexpectedError(windows.kernel32.GetLastError());
-        }
+        try setConsoleMode(stdin, input_raw_mode);
+        try setConsoleMode(stdout, output_raw_mode);
+        if (windows.kernel32.SetConsoleOutputCP(utf8_codepage) == 0)
+            return windows.unexpectedError(windows.kernel32.GetLastError());
 
         const self: Tty = .{
             .stdin = stdin,
@@ -295,10 +272,48 @@ pub const WindowsTty = struct {
 
     pub fn deinit(self: Tty) void {
         _ = windows.kernel32.SetConsoleOutputCP(self.initial_codepage);
-        _ = windows.kernel32.SetConsoleMode(self.stdin, self.initial_input_mode);
-        _ = windows.kernel32.SetConsoleMode(self.stdout, self.initial_output_mode);
+        setConsoleMode(self.stdin, self.initial_input_mode) catch {};
+        setConsoleMode(self.stdout, self.initial_output_mode) catch {};
         windows.CloseHandle(self.stdin);
         windows.CloseHandle(self.stdout);
+    }
+
+    pub const CONSOLE_MODE_INPUT = packed struct(u32) {
+        PROCESSED_INPUT: u1 = 0,
+        LINE_INPUT: u1 = 0,
+        ECHO_INPUT: u1 = 0,
+        WINDOW_INPUT: u1 = 0,
+        MOUSE_INPUT: u1 = 0,
+        INSERT_MODE: u1 = 0,
+        QUICK_EDIT_MODE: u1 = 0,
+        EXTENDED_FLAGS: u1 = 0,
+        AUTO_POSITION: u1 = 0,
+        VIRTUAL_TERMINAL_INPUT: u1 = 0,
+        _: u22 = 0,
+    };
+    pub const CONSOLE_MODE_OUTPUT = packed struct(u32) {
+        PROCESSED_OUTPUT: u1 = 0,
+        WRAP_AT_EOL_OUTPUT: u1 = 0,
+        VIRTUAL_TERMINAL_PROCESSING: u1 = 0,
+        DISABLE_NEWLINE_AUTO_RETURN: u1 = 0,
+        ENABLE_LVB_GRID_WORLDWIDE: u1 = 0,
+        _: u27 = 0,
+    };
+
+    pub fn getConsoleMode(comptime T: type, handle: windows.HANDLE) !T {
+        var mode: u32 = undefined;
+        if (windows.kernel32.GetConsoleMode(handle, &mode) == 0) return switch (windows.kernel32.GetLastError()) {
+            .INVALID_HANDLE => error.InvalidHandle,
+            else => |e| windows.unexpectedError(e),
+        };
+        return @bitCast(mode);
+    }
+
+    pub fn setConsoleMode(handle: windows.HANDLE, mode: anytype) !void {
+        if (windows.kernel32.SetConsoleMode(handle, @bitCast(mode)) == 0) return switch (windows.kernel32.GetLastError()) {
+            .INVALID_HANDLE => error.InvalidHandle,
+            else => |e| windows.unexpectedError(e),
+        };
     }
 
     pub fn opaqueWrite(ptr: *const anyopaque, bytes: []const u8) !usize {
