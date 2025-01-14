@@ -59,9 +59,7 @@ pub const PosixTty = struct {
             .handler = .{ .handler = PosixTty.handleWinch },
             .mask = switch (builtin.os.tag) {
                 .macos => 0,
-                .linux => posix.empty_sigset,
-                .freebsd => posix.empty_sigset,
-                else => @compileError("os not supported"),
+                else => posix.empty_sigset,
             },
             .flags = 0,
         };
@@ -95,9 +93,7 @@ pub const PosixTty = struct {
             .handler = .{ .handler = posix.SIG.DFL },
             .mask = switch (builtin.os.tag) {
                 .macos => 0,
-                .linux => posix.empty_sigset,
-                .freebsd => posix.empty_sigset,
-                else => @compileError("os not supported"),
+                else => posix.empty_sigset,
             },
             .flags = 0,
         };
