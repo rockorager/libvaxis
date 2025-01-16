@@ -393,7 +393,6 @@ pub const WindowsTty = struct {
                     },
                     0x08 => Key.backspace,
                     0x09 => Key.tab,
-                    0x0A => Key.ctrl_j,
                     0x0D => Key.enter,
                     0x13 => Key.pause,
                     0x14 => Key.caps_lock,

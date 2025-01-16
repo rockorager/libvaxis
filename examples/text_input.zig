@@ -99,7 +99,7 @@ pub fn main() !void {
                     try loop.start();
                     try vx.enterAltScreen(tty.anyWriter());
                     vx.queueRefresh();
-                } else if (key.matches(vaxis.Key.enter, .{}) or key.matches(vaxis.Key.ctrl_j, .{})) {
+                } else if (key.matches(vaxis.Key.enter, .{}) or key.matches('j', .{ .ctrl = true })) {
                     text_input.clearAndFree();
                 } else {
                     try text_input.update(.{ .key_press = key });

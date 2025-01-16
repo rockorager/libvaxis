@@ -65,7 +65,6 @@ fn legacy(writer: std.io.AnyWriter, key: vaxis.Key) !void {
     const def = switch (key.codepoint) {
         vaxis.Key.escape => escape,
         vaxis.Key.enter,
-        vaxis.Key.ctrl_j,
         vaxis.Key.kp_enter,
         => enter,
         vaxis.Key.tab => tab,

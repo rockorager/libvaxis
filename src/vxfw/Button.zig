@@ -44,7 +44,7 @@ fn typeErasedEventHandler(ptr: *anyopaque, ctx: *vxfw.EventContext, event: vxfw.
 pub fn handleEvent(self: *Button, ctx: *vxfw.EventContext, event: vxfw.Event) anyerror!void {
     switch (event) {
         .key_press => |key| {
-            if (key.matches(vaxis.Key.enter, .{}) or key.matches(vaxis.Key.ctrl_j, .{})) {
+            if (key.matches(vaxis.Key.enter, .{}) or key.matches('j', .{ .ctrl = true })) {
                 return self.doClick(ctx);
             }
         },
