@@ -737,24 +737,6 @@ pub const TestTty = struct {
             .writer = list,
         };
     }
-    var handler_installed: bool = false;
-
-    /// Resets the signal handler to it's default
-    pub fn resetSignalHandler() void {
-        if (!handler_installed) return;
-        handler_installed = false;
-        var act = posix.Sigaction{
-            .handler = .{ .handler = posix.SIG.DFL },
-            .mask = switch (builtin.os.tag) {
-                .macos => 0,
-                .linux => posix.empty_sigset,
-                .freebsd => posix.empty_sigset,
-                else => @compileError("os not supported"),
-            },
-            .flags = 0,
-        };
-        posix.sigaction(posix.SIG.WINCH, &act, null) catch {};
-    }
 
     pub fn deinit(self: TestTty) void {
         std.posix.close(self.pipe_read);
