@@ -102,7 +102,7 @@ pub fn handleEvent(self: *TextField, ctx: *vxfw.EventContext, event: vxfw.Event)
             } else if (key.matches('d', .{ .alt = true })) {
                 self.deleteWordAfter();
                 return self.checkChanged(ctx);
-            } else if (key.matches(vaxis.Key.enter, .{})) {
+            } else if (key.matches(vaxis.Key.enter, .{}) or key.matches('j', .{ .ctrl = true })) {
                 if (self.onSubmit) |onSubmit| {
                     try onSubmit(self.userdata, ctx, self.previous_val);
                     return ctx.consumeAndRedraw();

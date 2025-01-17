@@ -62,7 +62,7 @@ pub fn main() !void {
                     } else {
                         selected_option.? = selected_option.? -| 1;
                     }
-                } else if (key.matches(vaxis.Key.enter, .{})) {
+                } else if (key.matches(vaxis.Key.enter, .{}) or key.matches('j', .{ .ctrl = true })) {
                     if (selected_option) |i| {
                         log.err("enter", .{});
                         try text_input.insertSliceAtCursor(options[i]);

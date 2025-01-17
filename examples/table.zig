@@ -167,12 +167,12 @@ pub fn main() !void {
                             demo_tbl.sel_rows = try rows_list.toOwnedSlice();
                         }
                         // See Row Content
-                        if (key.matches(vaxis.Key.enter, .{})) see_content = !see_content;
+                        if (key.matches(vaxis.Key.enter, .{}) or key.matches('j', .{ .ctrl = true })) see_content = !see_content;
                     },
                     .btm => {
                         if (key.matchesAny(&.{ vaxis.Key.up, 'k' }, .{}) and moving) active = .mid
                         // Run Command and Clear Command Bar
-                        else if (key.matchExact(vaxis.Key.enter, .{})) {
+                        else if (key.matchExact(vaxis.Key.enter, .{}) or key.matchExact('j', .{ .ctrl = true })) {
                             const cmd = try cmd_input.toOwnedSlice();
                             defer alloc.free(cmd);
                             if (mem.eql(u8, ":q", cmd) or
