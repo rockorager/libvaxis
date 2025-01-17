@@ -29,6 +29,7 @@ pub fn build(b: *std.Build) void {
     // Examples
     const Example = enum {
         cli,
+        counter,
         fuzzy,
         image,
         main,
