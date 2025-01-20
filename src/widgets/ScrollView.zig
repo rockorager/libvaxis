@@ -115,14 +115,14 @@ pub fn bounds(self: *@This(), parent: vaxis.Window) BoundingBox {
 pub fn writeCell(self: *@This(), parent: vaxis.Window, col: usize, row: usize, cell: vaxis.Cell) void {
     const b = self.bounds(parent);
     if (!b.inside(col, row)) return;
-    const win = parent.child(.{ .width = b.x2 - b.x1, .height = b.y2 - b.y1 });
-    win.writeCell(col -| self.scroll.x, row -| self.scroll.y, cell);
+    const win = parent.child(.{ .width = @intCast(b.x2 - b.x1), .height = @intCast(b.y2 - b.y1) });
+    win.writeCell(@intCast(col -| self.scroll.x), @intCast(row -| self.scroll.y), cell);
 }
 
 /// Use this function instead of `Window.readCell` to read the correct cell in scrolling context.
 pub fn readCell(self: *@This(), parent: vaxis.Window, col: usize, row: usize) ?vaxis.Cell {
     const b = self.bounds(parent);
     if (!b.inside(col, row)) return;
-    const win = parent.child(.{ .width = b.width, .height = b.height });
-    return win.readCell(col -| self.scroll.x, row -| self.scroll.y);
+    const win = parent.child(.{ .width = @intCast(b.x2 - b.x1), .height = @intCast(b.y2 - b.y1) });
+    return win.readCell(@intCast(col -| self.scroll.x), @intCast(row -| self.scroll.y));
 }
