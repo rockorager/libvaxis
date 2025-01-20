@@ -35,7 +35,7 @@ pub fn draw(self: @This(), win: vaxis.Window, y_scroll: usize) void {
         const num_digits = numDigits(line);
         for (0..num_digits) |i| {
             const digit = extractDigit(line, i);
-            win.writeCell(win.width -| (i + 2), line -| (y_scroll +| 1), .{
+            win.writeCell(@intCast(win.width -| (i + 2)), @intCast(line -| (y_scroll +| 1)), .{
                 .char = .{
                     .width = 1,
                     .grapheme = digits[digit .. digit + 1],
@@ -45,7 +45,7 @@ pub fn draw(self: @This(), win: vaxis.Window, y_scroll: usize) void {
         }
         if (highlighted) {
             for (num_digits + 1..win.width) |i| {
-                win.writeCell(i, line -| (y_scroll +| 1), .{
+                win.writeCell(@intCast(i), @intCast(line -| (y_scroll +| 1)), .{
                     .style = if (highlighted) self.highlighted_style else self.style,
                 });
             }
