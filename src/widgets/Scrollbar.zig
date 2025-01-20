@@ -29,5 +29,5 @@ pub fn draw(self: Scrollbar, win: vaxis.Window) void {
     const bar_top = self.top * win.height / self.total;
     var i: usize = 0;
     while (i < bar_height) : (i += 1)
-        win.writeCell(0, i + bar_top, .{ .char = self.character, .style = self.style });
+        win.writeCell(0, @intCast(i + bar_top), .{ .char = self.character, .style = self.style });
 }
