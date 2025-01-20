@@ -5,7 +5,8 @@ const tty = @import("tty.zig");
 
 pub const Vaxis = @import("Vaxis.zig");
 
-pub const Loop = @import("Loop.zig").Loop;
+pub const loop = @import("Loop.zig");
+pub const Loop = loop.Loop;
 
 pub const zigimg = @import("zigimg");
 

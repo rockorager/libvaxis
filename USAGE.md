@@ -305,15 +305,11 @@ release and is shown here merely as a proof of concept.
 ```zig
 const builtin = @import("builtin");
 const std = @import("std");
-const vaxis = @import("main.zig");
-const handleEventGeneric = @import("Loop.zig").handleEventGeneric;
+const vaxis = @import("vaxis");
+const handleEventGeneric = vaxis.loop.handleEventGeneric;
 const log = std.log.scoped(.vaxis_aio);
 
 const Yield = enum { no_state, took_event };
-
-pub fn Loop(T: type) type {
-    return LoopWithModules(T, @import("aio"), @import("coro"));
-}
 
 /// zig-aio based event loop
 /// <https://github.com/Cloudef/zig-aio>
