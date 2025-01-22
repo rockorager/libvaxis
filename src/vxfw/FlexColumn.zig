@@ -35,6 +35,7 @@ pub fn draw(self: *const FlexColumn, ctx: vxfw.DrawContext) Allocator.Error!vxfw
         .min = .{ .width = 0, .height = 0 },
         .max = .{ .width = ctx.max.width, .height = null },
         .arena = layout_arena.allocator(),
+        .cell_size = ctx.cell_size,
     };
 
     // Store the inherent size of each widget
@@ -122,6 +123,7 @@ test FlexColumn {
         .arena = arena.allocator(),
         .min = .{},
         .max = .{ .width = 16, .height = 16 },
+        .cell_size = .{ .width = 10, .height = 20 },
     };
 
     const surface = try flex_widget.draw(ctx);

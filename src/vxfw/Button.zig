@@ -194,6 +194,7 @@ test Button {
         .arena = arena.allocator(),
         .min = .{},
         .max = .{ .width = 13, .height = 3 },
+        .cell_size = .{ .width = 10, .height = 20 },
     };
     const surface = try b_widget.draw(draw_ctx);
 

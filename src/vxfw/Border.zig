@@ -85,6 +85,7 @@ test Border {
         .arena = arena.allocator(),
         .min = .{},
         .max = .{ .width = 10, .height = 10 },
+        .cell_size = .{ .width = 10, .height = 20 },
     };
 
     const surface = try border.draw(ctx);

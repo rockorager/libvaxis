@@ -558,6 +558,7 @@ test TextField {
         .arena = arena.allocator(),
         .min = .{},
         .max = .{ .width = 8, .height = 1 },
+        .cell_size = .{ .width = 10, .height = 20 },
     };
     _ = draw_ctx;
 

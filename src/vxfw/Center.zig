@@ -64,6 +64,7 @@ test Center {
             .arena = arena.allocator(),
             .min = .{},
             .max = .{ .width = 10, .height = 10 },
+            .cell_size = .{ .width = 10, .height = 20 },
         };
 
         const surface = try center.draw(ctx);
@@ -88,6 +89,7 @@ test Center {
             .arena = arena.allocator(),
             .min = .{},
             .max = .{ .width = 5, .height = 3 },
+            .cell_size = .{ .width = 10, .height = 20 },
         };
 
         const surface = try center.draw(ctx);

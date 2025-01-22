@@ -133,7 +133,12 @@ test Spinner {
     try std.testing.expectEqual(1, spinner.frame);
 
     // Simulate a draw
-    const surface = try spinner_widget.draw(.{ .arena = arena.allocator(), .min = .{}, .max = .{} });
+    const surface = try spinner_widget.draw(.{
+        .arena = arena.allocator(),
+        .min = .{},
+        .max = .{},
+        .cell_size = .{ .width = 10, .height = 20 },
+    });
 
     // Spinner will try to be 1x1
     try std.testing.expectEqual(1, surface.size.width);

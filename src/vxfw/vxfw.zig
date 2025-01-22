@@ -168,6 +168,7 @@ pub const DrawContext = struct {
             .arena = self.arena,
             .min = min,
             .max = max,
+            .cell_size = self.cell_size,
         };
     }
 };

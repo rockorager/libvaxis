@@ -35,6 +35,7 @@ pub fn draw(self: *const FlexRow, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Su
         .min = .{ .width = 0, .height = 0 },
         .max = .{ .width = null, .height = ctx.max.height },
         .arena = layout_arena.allocator(),
+        .cell_size = ctx.cell_size,
     };
 
     var first_pass_width: u16 = 0;
@@ -120,6 +121,7 @@ test FlexRow {
         .arena = arena.allocator(),
         .min = .{},
         .max = .{ .width = 16, .height = 16 },
+        .cell_size = .{ .width = 10, .height = 20 },
     };
 
     const surface = try flex_widget.draw(ctx);

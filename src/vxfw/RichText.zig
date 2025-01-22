@@ -364,6 +364,7 @@ test RichText {
         .arena = arena.allocator(),
         .min = .{},
         .max = .{ .width = 7, .height = 2 },
+        .cell_size = .{ .width = 10, .height = 20 },
     };
 
     {
@@ -403,6 +404,7 @@ test "long word wrapping" {
         .arena = arena.allocator(),
         .min = .{},
         .max = .{ .width = width, .height = null },
+        .cell_size = .{ .width = 10, .height = 20 },
     };
 
     const surface = try rich_widget.draw(ctx);
