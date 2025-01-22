@@ -30,7 +30,12 @@ pub fn init(allocator: Allocator) !App {
     return .{
         .allocator = allocator,
         .tty = try vaxis.Tty.init(),
-        .vx = try vaxis.init(allocator, .{ .system_clipboard_allocator = allocator }),
+        .vx = try vaxis.init(allocator, .{
+            .system_clipboard_allocator = allocator,
+            .kitty_keyboard_flags = .{
+                .report_events = true,
+            },
+        }),
         .timers = std.ArrayList(vxfw.Tick).init(allocator),
         .wants_focus = null,
     };
