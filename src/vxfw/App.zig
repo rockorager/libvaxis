@@ -166,6 +166,10 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
                 .width = @intCast(vx.screen.width),
                 .height = @intCast(vx.screen.height),
             },
+            .cell_size = .{
+                .width = vx.screen.width_pix / vx.screen.width,
+                .height = vx.screen.height_pix / vx.screen.height,
+            },
         };
         const win = vx.window();
         win.clear();

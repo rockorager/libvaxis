@@ -137,6 +137,9 @@ pub const DrawContext = struct {
     min: Size,
     max: MaxSize,
 
+    // Size of a single cell, in pixels
+    cell_size: Size,
+
     // Unicode stuff
     var unicode: ?*const vaxis.Unicode = null;
     var width_method: vaxis.gwidth.Method = .unicode;
