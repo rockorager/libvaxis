@@ -116,8 +116,14 @@ pub fn readCell(self: *InternalScreen, col: u16, row: u16) ?Cell {
     }
     const i = (row * self.width) + col;
     assert(i < self.buf.len);
+    const cell = self.buf[i];
     return .{
-        .char = .{ .grapheme = self.buf[i].char.items },
-        .style = self.buf[i].style,
+        .char = .{ .grapheme = cell.char.items },
+        .style = cell.style,
+        .link = .{
+            .uri = cell.uri.items,
+            .params = cell.uri_id.items,
+        },
+        .default = cell.default,
     };
 }
