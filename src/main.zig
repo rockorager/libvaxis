@@ -1,7 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-const tty = @import("tty.zig");
+pub const tty = @import("tty.zig");
 
 pub const Vaxis = @import("Vaxis.zig");
 
