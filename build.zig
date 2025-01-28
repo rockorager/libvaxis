@@ -33,6 +33,7 @@ pub fn build(b: *std.Build) void {
         fuzzy,
         image,
         main,
+        scroll,
         table,
         text_input,
         vaxis,
