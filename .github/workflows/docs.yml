@@ -30,7 +30,7 @@ jobs:
           version: 0.13.0
       - run: zig build docs
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v3
         with:
           path: "zig-out/docs"
       - name: Deploy to GitHub Pages
