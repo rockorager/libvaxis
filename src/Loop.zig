@@ -199,7 +199,21 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                 .cap_da1 => {
                     std.Thread.Futex.wake(&vx.query_futex, 10);
                 },
-                .mouse => {}, // Unsupported currently
+                .mouse => |mouse| {
+                    if (@hasField(Event, "mouse")) {
+                        return self.postEvent(.{ .mouse = vx.translateMouse(mouse) });
+                    }
+                },
+                .focus_in => {
+                    if (@hasField(Event, "focus_in")) {
+                        return self.postEvent(.focus_in);
+                    }
+                },
+                .focus_out => {
+                    if (@hasField(Event, "focus_out")) {
+                        return self.postEvent(.focus_out);
+                    }
+                }, // Unsupported currently
                 else => {},
             }
         },
