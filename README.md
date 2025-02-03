@@ -30,6 +30,7 @@ Unix-likes.
 - Color Mode Updates (Mode 2031)
 - [In-Band Resize Reports](https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83) (Mode 2048)
 - Images ([kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/))
+- [Explicit Width](https://github.com/kovidgoyal/kitty/blob/master/docs/text-sizing-protocol.rst) (width modifiers only)
 
 ## Usage
 

@@ -36,6 +36,7 @@ pub const Capabilities = struct {
     unicode: gwidth.Method = .wcwidth,
     sgr_pixels: bool = false,
     color_scheme_updates: bool = false,
+    explicit_width: bool = false,
 };
 
 pub const Options = struct {
@@ -62,6 +63,11 @@ refresh: bool = false,
 /// blocks the main thread until a DA1 query has been received, or the
 /// futex times out
 query_futex: atomic.Value(u32) = atomic.Value(u32).init(0),
+
+/// If Queries were sent, we set this to false. We reset to true when all queries are complete. This
+/// is used because we do explicit cursor position reports in the queries, which interfere with F3
+/// key encoding. This can be used as a flag to determine how we should evaluate this sequence
+queries_done: atomic.Value(bool) = atomic.Value(bool).init(true),
 
 // images
 next_img_id: u32 = 1,
@@ -236,13 +242,15 @@ pub fn queryTerminal(self: *Vaxis, tty: AnyWriter, timeout_ns: u64) !void {
     try self.queryTerminalSend(tty);
     // 1 second timeout
     std.Thread.Futex.timedWait(&self.query_futex, 0, timeout_ns) catch {};
+    self.queries_done.store(true, .unordered);
     try self.enableDetectedFeatures(tty);
 }
 
 /// write queries to the terminal to determine capabilities. This function
 /// is only for use with a custom main loop. Call Vaxis.queryTerminal() if
 /// you are using Loop.run()
-pub fn queryTerminalSend(_: Vaxis, tty: AnyWriter) !void {
+pub fn queryTerminalSend(vx: *Vaxis, tty: AnyWriter) !void {
+    vx.queries_done.store(false, .unordered);
 
     // TODO: re-enable this
     // const colorterm = std.posix.getenv("COLORTERM") orelse "";
@@ -263,6 +271,15 @@ pub fn queryTerminalSend(_: Vaxis, tty: AnyWriter) !void {
         ctlseqs.decrqm_unicode ++
         ctlseqs.decrqm_color_scheme ++
         ctlseqs.in_band_resize_set ++
+
+        // Explicit width query. We send the cursor home, then do an explicit width command, then
+        // query the position. If the parsed value is an F3 with shift, we support explicit width.
+        // The returned response will be something like \x1b[1;2R...which when parsed as a Key is a
+        // shift + F3 (the row is ignored). We only care if the column has moved from 1->2, which is
+        // why we see a Shift modifier
+        ctlseqs.home ++
+        ctlseqs.explicit_width_query ++
+        ctlseqs.cursor_position_request ++
         ctlseqs.xtversion ++
         ctlseqs.csi_u_query ++
         ctlseqs.kitty_graphics_query ++
@@ -302,7 +319,8 @@ pub fn enableDetectedFeatures(self: *Vaxis, tty: AnyWriter) !void {
             if (self.caps.kitty_keyboard) {
                 try self.enableKittyKeyboard(tty, self.opts.kitty_keyboard_flags);
             }
-            if (self.caps.unicode == .unicode) {
+            // Only enable mode 2027 if we don't have explicit width
+            if (self.caps.unicode == .unicode and !self.caps.explicit_width) {
                 try tty.writeAll(ctlseqs.unicode_set);
             }
         },
@@ -611,7 +629,13 @@ pub fn render(self: *Vaxis, tty: AnyWriter) !void {
             }
             try tty.print(ctlseqs.osc8, .{ ps, cell.link.uri });
         }
-        try tty.writeAll(cell.char.grapheme);
+
+        // If we have explicit width and our width is greater than 1, let's use it
+        if (self.caps.explicit_width and w > 1) {
+            try tty.print(ctlseqs.explicit_width, .{ w, cell.char.grapheme });
+        } else {
+            try tty.writeAll(cell.char.grapheme);
+        }
         cursor_pos.col = col + w;
         cursor_pos.row = row;
     }

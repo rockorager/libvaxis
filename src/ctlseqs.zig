@@ -11,6 +11,8 @@ pub const decrqm_color_scheme = "\x1b[?2031$p";
 pub const csi_u_query = "\x1b[?u";
 pub const kitty_graphics_query = "\x1b_Gi=1,a=q\x1b\\";
 pub const sixel_geometry_query = "\x1b[?2;1;0S";
+pub const cursor_position_request = "\x1b[6n";
+pub const explicit_width_query = "\x1b]66;w=1; \x1b\\";
 
 // mouse. We try for button motion and any motion. terminals will enable the
 // last one we tried (any motion). This was added because zellij doesn't
@@ -31,6 +33,7 @@ pub const sync_reset = "\x1b[?2026l";
 // unicode
 pub const unicode_set = "\x1b[?2027h";
 pub const unicode_reset = "\x1b[?2027l";
+pub const explicit_width = "\x1b]66;w={d};{s}\x1b\\";
 
 // bracketed paste
 pub const bp_set = "\x1b[?2004h";
