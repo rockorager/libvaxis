@@ -177,6 +177,18 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                     }
                 },
                 .key_press => |key| {
+                    // Check for a cursor position response for our explicity width query. This will
+                    // always be an F3 key with shift = true, and we must be looking for queries
+                    if (key.codepoint == vaxis.Key.f3 and
+                        key.mods.shift and
+                        !vx.queries_done.load(.unordered))
+                    {
+                        log.info("explicit width capability detected", .{});
+                        vx.caps.explicit_width = true;
+                        vx.caps.unicode = .unicode;
+                        vx.screen.width_method = .unicode;
+                        return;
+                    }
                     if (@hasField(Event, "key_press")) {
                         // HACK: yuck. there has to be a better way
                         var mut_key = key;
@@ -198,6 +210,7 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                 },
                 .cap_da1 => {
                     std.Thread.Futex.wake(&vx.query_futex, 10);
+                    vx.queries_done.store(true, .unordered);
                 },
                 .mouse => |mouse| {
                     if (@hasField(Event, "mouse")) {
@@ -220,6 +233,18 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
         else => {
             switch (event) {
                 .key_press => |key| {
+                    // Check for a cursor position response for our explicity width query. This will
+                    // always be an F3 key with shift = true, and we must be looking for queries
+                    if (key.codepoint == vaxis.Key.f3 and
+                        key.mods.shift and
+                        !vx.queries_done.load(.unordered))
+                    {
+                        log.info("explicit width capability detected", .{});
+                        vx.caps.explicit_width = true;
+                        vx.caps.unicode = .unicode;
+                        vx.screen.width_method = .unicode;
+                        return;
+                    }
                     if (@hasField(Event, "key_press")) {
                         // HACK: yuck. there has to be a better way
                         var mut_key = key;
@@ -311,6 +336,7 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                 },
                 .cap_da1 => {
                     std.Thread.Futex.wake(&vx.query_futex, 10);
+                    vx.queries_done.store(true, .unordered);
                 },
                 .winsize => |winsize| {
                     vx.state.in_band_resize = true;
