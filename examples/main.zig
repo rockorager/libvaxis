@@ -34,6 +34,8 @@ pub fn main() !void {
     var color_idx: u8 = 0;
     const msg = "Hello, world!";
 
+    var scale: u3 = 1;
+
     // The main event loop. Vaxis provides a thread safe, blocking, buffered
     // queue which can serve as the primary event queue for an application
     while (true) {
@@ -50,6 +52,16 @@ pub fn main() !void {
                 };
                 if (key.codepoint == 'c' and key.mods.ctrl) {
                     break;
+                }
+                if (key.matches('j', .{})) {
+                    if (vx.caps.scaled_text and scale > 1) {
+                        scale -= 1;
+                    }
+                }
+                if (key.matches('k', .{})) {
+                    if (vx.caps.scaled_text and scale < 7) {
+                        scale += 1;
+                    }
                 }
             },
             .winsize => |ws| {
@@ -86,8 +98,19 @@ pub fn main() !void {
                 .style = .{
                     .fg = .{ .index = color_idx },
                 },
+                .scale = .{
+                    .scale = scale,
+                },
             };
-            child.writeCell(@intCast(i), 0, cell);
+            const second_cell: Cell = .{
+                .char = .{ .grapheme = msg[i .. i + 1] },
+                .style = .{
+                    .fg = .{ .index = color_idx },
+                },
+            };
+            child.writeCell(@intCast(i * scale), 0, cell);
+            child.writeCell(@intCast(i), scale - 1, second_cell);
+            child.writeCell(@intCast(i), scale, second_cell);
         }
         // Render the screen
         try vx.render(tty.anyWriter());
