@@ -13,6 +13,7 @@ pub const kitty_graphics_query = "\x1b_Gi=1,a=q\x1b\\";
 pub const sixel_geometry_query = "\x1b[?2;1;0S";
 pub const cursor_position_request = "\x1b[6n";
 pub const explicit_width_query = "\x1b]66;w=1; \x1b\\";
+pub const scaled_text_query = "\x1b]66;s=2; \x1b\\";
 
 // mouse. We try for button motion and any motion. terminals will enable the
 // last one we tried (any motion). This was added because zellij doesn't
@@ -34,6 +35,10 @@ pub const sync_reset = "\x1b[?2026l";
 pub const unicode_set = "\x1b[?2027h";
 pub const unicode_reset = "\x1b[?2027l";
 pub const explicit_width = "\x1b]66;w={d};{s}\x1b\\";
+
+// text sizing
+pub const scaled_text = "\x1b]66;s={d}:w={d};{s}\x1b\\";
+pub const scaled_text_with_fractions = "\x1b]66;s={d}:w={d}:n={d}:d={d}:v={d};{s}\x1b\\";
 
 // bracketed paste
 pub const bp_set = "\x1b[?2004h";

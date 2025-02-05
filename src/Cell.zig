@@ -9,6 +9,7 @@ default: bool = false,
 /// Set to true if this cell is the last cell printed in a row before wrap. Vaxis will determine if
 /// it should rely on the terminal's autowrap feature which can help with primary screen resizes
 wrapped: bool = false,
+scale: Scale = .{},
 
 /// Segment is a contiguous run of text that has a constant style
 pub const Segment = struct {
@@ -40,6 +41,25 @@ pub const Hyperlink = struct {
     uri: []const u8 = "",
     /// ie "id=app-1234"
     params: []const u8 = "",
+};
+
+pub const Scale = packed struct {
+    scale: u3 = 1,
+    // The spec allows up to 15, but we limit to 7
+    numerator: u4 = 1,
+    // The spec allows up to 15, but we limit to 7
+    denominator: u4 = 1,
+    vertical_alignment: enum(u2) {
+        top = 0,
+        bottom = 1,
+        center = 2,
+    } = .top,
+
+    pub fn eql(self: Scale, other: Scale) bool {
+        const a_scale: u13 = @bitCast(self);
+        const b_scale: u13 = @bitCast(other);
+        return a_scale == b_scale;
+    }
 };
 
 pub const Style = struct {
