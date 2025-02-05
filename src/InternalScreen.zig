@@ -18,6 +18,12 @@ pub const InternalCell = struct {
     skipped: bool = false,
     default: bool = true,
 
+    // If we should skip rendering *this* round due to being printed over previously (from a scaled
+    // cell, for example)
+    skip: bool = false,
+
+    scale: Cell.Scale = .{},
+
     pub fn eql(self: InternalCell, cell: Cell) bool {
 
         // fastpath when both cells are default
