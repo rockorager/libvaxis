@@ -86,7 +86,7 @@ pub fn draw(self: *const Padding, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Su
         .origin = .{ .row = pad.top, .col = pad.left },
     };
 
-    const size = .{
+    const size: vxfw.Size = .{
         .width = child_surface.size.width + (pad.right + pad.left),
         .height = child_surface.size.height + (pad.top + pad.bottom),
     };
