@@ -151,7 +151,7 @@ fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) Allocator.Error!vxfw
             const rhs_surface = try self.rhs.draw(rhs_ctx);
             self.children[1] = .{
                 .surface = rhs_surface,
-                .origin = .{ .row = 0, .col = lhs_surface.size.width + 2 },
+                .origin = .{ .row = 0, .col = lhs_surface.size.width + 1 },
             };
             var surface = try vxfw.Surface.initWithChildren(ctx.arena, self.widget(), max, &self.children);
             for (0..max.height) |row| {
