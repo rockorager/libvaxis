@@ -212,6 +212,11 @@ fn handleCommand(self: *App, cmds: *vxfw.CommandList) Allocator.Error!void {
                     }
                 };
             },
+            .set_title => |title| {
+                self.vx.setTitle(self.tty.anyWriter(), title) catch |err| {
+                    std.log.err("set_title error: {}", .{err});
+                };
+            },
         }
     }
 }
