@@ -350,8 +350,8 @@ fn drawBuilder(self: *ListView, ctx: vxfw.DrawContext, builder: Builder) Allocat
 
         // Set up constraints. We let the child be the entire height if it wants
         const child_ctx = ctx.withConstraints(
-            .{ .width = max_size.width - child_offset, .height = 0 },
-            .{ .width = max_size.width - child_offset, .height = null },
+            .{ .width = max_size.width -| child_offset, .height = 0 },
+            .{ .width = max_size.width -| child_offset, .height = null },
         );
 
         // Draw the child
