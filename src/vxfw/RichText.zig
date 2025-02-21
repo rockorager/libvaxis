@@ -7,10 +7,7 @@ const Allocator = std.mem.Allocator;
 
 const RichText = @This();
 
-pub const TextSpan = struct {
-    text: []const u8,
-    style: vaxis.Style = .{},
-};
+pub const TextSpan = vaxis.Segment;
 
 text: []const TextSpan,
 text_align: enum { left, center, right } = .left,
@@ -174,6 +171,7 @@ pub const SoftwrapIterator = struct {
                     const cell: vaxis.Cell = .{
                         .char = .{ .grapheme = " ", .width = 1 },
                         .style = span.style,
+                        .link = span.link,
                     };
                     for (0..8) |_| {
                         try list.append(cell);
@@ -184,6 +182,7 @@ pub const SoftwrapIterator = struct {
                 const cell: vaxis.Cell = .{
                     .char = .{ .grapheme = char, .width = @intCast(width) },
                     .style = span.style,
+                    .link = span.link,
                 };
                 try list.append(cell);
             }
