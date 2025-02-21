@@ -214,6 +214,13 @@ pub const MaxSize = struct {
             .height = self.height.?,
         };
     }
+
+    pub fn fromSize(other: Size) MaxSize {
+        return .{
+            .width = other.width,
+            .height = other.height,
+        };
+    }
 };
 
 /// The Widget interface

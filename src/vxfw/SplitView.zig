@@ -21,9 +21,6 @@ width: u16,
 /// Used to calculate mouse events when our constraint is rhs
 last_max_width: ?u16 = null,
 
-/// Statically allocated children
-children: [2]vxfw.SubSurface = undefined,
-
 // State
 pressed: bool = false,
 mouse_set: bool = false,
@@ -111,27 +108,37 @@ fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) Allocator.Error!vxfw
 
     // The constrained side is equal to the width
     const constrained_min: vxfw.Size = .{ .width = self.width, .height = max.height };
-    const constrained_max: vxfw.MaxSize = .{ .width = self.width, .height = max.height };
+    const constrained_max = vxfw.MaxSize.fromSize(constrained_min);
 
     const unconstrained_min: vxfw.Size = .{ .width = max.width -| self.width -| 1, .height = max.height };
-    const unconstrained_max: vxfw.MaxSize = .{ .width = max.width -| self.width -| 1, .height = max.height };
+    const unconstrained_max = vxfw.MaxSize.fromSize(unconstrained_min);
+
+    var children = try std.ArrayList(vxfw.SubSurface).initCapacity(ctx.arena, 2);
 
     switch (self.constrain) {
         .lhs => {
-            const lhs_ctx = ctx.withConstraints(constrained_min, constrained_max);
-            const lhs_surface = try self.lhs.draw(lhs_ctx);
-
-            self.children[0] = .{
-                .surface = lhs_surface,
-                .origin = .{ .row = 0, .col = 0 },
-            };
-            const rhs_ctx = ctx.withConstraints(unconstrained_min, unconstrained_max);
-            const rhs_surface = try self.rhs.draw(rhs_ctx);
-            self.children[1] = .{
-                .surface = rhs_surface,
-                .origin = .{ .row = 0, .col = self.width + 1 },
-            };
-            var surface = try vxfw.Surface.initWithChildren(ctx.arena, self.widget(), max, &self.children);
+            if (constrained_max.width.? > 0 and constrained_max.height.? > 0) {
+                const lhs_ctx = ctx.withConstraints(constrained_min, constrained_max);
+                const lhs_surface = try self.lhs.draw(lhs_ctx);
+                children.appendAssumeCapacity(.{
+                    .surface = lhs_surface,
+                    .origin = .{ .row = 0, .col = 0 },
+                });
+            }
+            if (unconstrained_max.width.? > 0 and unconstrained_max.height.? > 0) {
+                const rhs_ctx = ctx.withConstraints(unconstrained_min, unconstrained_max);
+                const rhs_surface = try self.rhs.draw(rhs_ctx);
+                children.appendAssumeCapacity(.{
+                    .surface = rhs_surface,
+                    .origin = .{ .row = 0, .col = self.width + 1 },
+                });
+            }
+            var surface = try vxfw.Surface.initWithChildren(
+                ctx.arena,
+                self.widget(),
+                max,
+                children.items,
+            );
             for (0..max.height) |row| {
                 surface.writeCell(self.width, @intCast(row), .{
                     .char = .{ .grapheme = "│", .width = 1 },
@@ -141,19 +148,28 @@ fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) Allocator.Error!vxfw
             return surface;
         },
         .rhs => {
-            const lhs_ctx = ctx.withConstraints(unconstrained_min, unconstrained_max);
-            const lhs_surface = try self.lhs.draw(lhs_ctx);
-            self.children[0] = .{
-                .surface = lhs_surface,
-                .origin = .{ .row = 0, .col = 0 },
-            };
-            const rhs_ctx = ctx.withConstraints(constrained_min, constrained_max);
-            const rhs_surface = try self.rhs.draw(rhs_ctx);
-            self.children[1] = .{
-                .surface = rhs_surface,
-                .origin = .{ .row = 0, .col = lhs_surface.size.width + 1 },
-            };
-            var surface = try vxfw.Surface.initWithChildren(ctx.arena, self.widget(), max, &self.children);
+            if (unconstrained_max.width.? > 0 and unconstrained_max.height.? > 0) {
+                const lhs_ctx = ctx.withConstraints(unconstrained_min, unconstrained_max);
+                const lhs_surface = try self.lhs.draw(lhs_ctx);
+                children.appendAssumeCapacity(.{
+                    .surface = lhs_surface,
+                    .origin = .{ .row = 0, .col = 0 },
+                });
+            }
+            if (constrained_max.width.? > 0 and constrained_max.height.? > 0) {
+                const rhs_ctx = ctx.withConstraints(constrained_min, constrained_max);
+                const rhs_surface = try self.rhs.draw(rhs_ctx);
+                children.appendAssumeCapacity(.{
+                    .surface = rhs_surface,
+                    .origin = .{ .row = 0, .col = unconstrained_max.width.? + 1 },
+                });
+            }
+            var surface = try vxfw.Surface.initWithChildren(
+                ctx.arena,
+                self.widget(),
+                max,
+                children.items,
+            );
             for (0..max.height) |row| {
                 surface.writeCell(max.width -| self.width -| 1, @intCast(row), .{
                     .char = .{ .grapheme = "│", .width = 1 },
