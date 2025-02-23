@@ -83,8 +83,6 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     var arena = std.heap.ArenaAllocator.init(self.allocator);
     defer arena.deinit();
 
-    var buffered = tty.bufferedWriter();
-
     var mouse_handler = MouseHandler.init(widget);
     defer mouse_handler.deinit(self.allocator);
     var focus_handler = FocusHandler.init(self.allocator, widget);
@@ -132,8 +130,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
                 .focus_out => try mouse_handler.mouseExit(self, &ctx),
                 .mouse => |mouse| try mouse_handler.handleMouse(self, &ctx, mouse),
                 .winsize => |ws| {
-                    try vx.resize(self.allocator, buffered.writer().any(), ws);
-                    try buffered.flush();
+                    try vx.resize(self.allocator, tty.anyWriter(), ws);
                     ctx.redraw = true;
                 },
                 else => {
@@ -143,9 +140,11 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
             }
         }
 
+        // If we have a focus change, handle that event before we layout
         if (self.wants_focus) |wants_focus| {
             try focus_handler.focusWidget(&ctx, wants_focus);
             try self.handleCommand(&ctx.cmds);
+            self.wants_focus = null;
         }
 
         // Check if we should quit
@@ -154,42 +153,82 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
         // Check if we need a redraw
         if (!ctx.redraw) continue;
         ctx.redraw = false;
+        // Clear the arena.
+        _ = arena.reset(.free_all);
         // Assert that we have handled all commands
         assert(ctx.cmds.items.len == 0);
 
-        _ = arena.reset(.retain_capacity);
+        const surface: vxfw.Surface = blk: {
+            // Draw the root widget
+            const surface = try self.doLayout(widget, &arena);
 
-        const draw_context: vxfw.DrawContext = .{
-            .arena = arena.allocator(),
-            .min = .{ .width = 0, .height = 0 },
-            .max = .{
-                .width = @intCast(vx.screen.width),
-                .height = @intCast(vx.screen.height),
-            },
-            .cell_size = .{
-                .width = vx.screen.width_pix / vx.screen.width,
-                .height = vx.screen.height_pix / vx.screen.height,
-            },
+            // Check if any hover or mouse effects changed
+            try mouse_handler.updateMouse(self, surface, &ctx);
+            // Our focus may have changed. Handle that here
+            if (self.wants_focus) |wants_focus| {
+                try focus_handler.focusWidget(&ctx, wants_focus);
+                try self.handleCommand(&ctx.cmds);
+                self.wants_focus = null;
+            }
+
+            assert(ctx.cmds.items.len == 0);
+            if (!ctx.redraw) break :blk surface;
+            // If updating the mouse required a redraw, we do the layout again
+            break :blk try self.doLayout(widget, &arena);
         };
-        const win = vx.window();
-        win.clear();
-        win.hideCursor();
-        win.setCursorShape(.default);
-        const surface = try widget.draw(draw_context);
-
-        const root_win = win.child(.{
-            .width = surface.size.width,
-            .height = surface.size.height,
-        });
-        surface.render(root_win, focus_handler.focused_widget);
-        try vx.render(buffered.writer().any());
-        try buffered.flush();
 
         // Store the last frame
         mouse_handler.last_frame = surface;
+        // Update the focus handler list
         try focus_handler.update(surface);
-        self.wants_focus = null;
+        try self.render(surface, focus_handler.focused_widget);
     }
+}
+
+fn doLayout(
+    self: *App,
+    widget: vxfw.Widget,
+    arena: *std.heap.ArenaAllocator,
+) !vxfw.Surface {
+    const vx = &self.vx;
+
+    const draw_context: vxfw.DrawContext = .{
+        .arena = arena.allocator(),
+        .min = .{ .width = 0, .height = 0 },
+        .max = .{
+            .width = @intCast(vx.screen.width),
+            .height = @intCast(vx.screen.height),
+        },
+        .cell_size = .{
+            .width = vx.screen.width_pix / vx.screen.width,
+            .height = vx.screen.height_pix / vx.screen.height,
+        },
+    };
+    return widget.draw(draw_context);
+}
+
+fn render(
+    self: *App,
+    surface: vxfw.Surface,
+    focused_widget: vxfw.Widget,
+) !void {
+    const vx = &self.vx;
+    const tty = &self.tty;
+
+    const win = vx.window();
+    win.clear();
+    win.hideCursor();
+    win.setCursorShape(.default);
+
+    const root_win = win.child(.{
+        .width = surface.size.width,
+        .height = surface.size.height,
+    });
+    surface.render(root_win, focused_widget);
+
+    var buffered = tty.bufferedWriter();
+    try vx.render(buffered.writer().any());
+    try buffered.flush();
 }
 
 fn addTick(self: *App, tick: vxfw.Tick) Allocator.Error!void {
@@ -239,6 +278,7 @@ fn checkTimers(self: *App, ctx: *vxfw.EventContext) anyerror!void {
 const MouseHandler = struct {
     last_frame: vxfw.Surface,
     last_hit_list: []vxfw.HitResult,
+    mouse: ?vaxis.Mouse,
 
     fn init(root: Widget) MouseHandler {
         return .{
@@ -249,6 +289,7 @@ const MouseHandler = struct {
                 .children = &.{},
             },
             .last_hit_list = &.{},
+            .mouse = null,
         };
     }
 
@@ -256,9 +297,74 @@ const MouseHandler = struct {
         gpa.free(self.last_hit_list);
     }
 
+    fn updateMouse(
+        self: *MouseHandler,
+        app: *App,
+        surface: vxfw.Surface,
+        ctx: *vxfw.EventContext,
+    ) anyerror!void {
+        const mouse = self.mouse orelse return;
+        // For mouse events we store the last frame and use that for hit testing
+        const last_frame = surface;
+
+        var hits = std.ArrayList(vxfw.HitResult).init(app.allocator);
+        defer hits.deinit();
+        const sub: vxfw.SubSurface = .{
+            .origin = .{ .row = 0, .col = 0 },
+            .surface = last_frame,
+            .z_index = 0,
+        };
+        const mouse_point: vxfw.Point = .{
+            .row = @intCast(mouse.row),
+            .col = @intCast(mouse.col),
+        };
+        if (sub.containsPoint(mouse_point)) {
+            try last_frame.hitTest(&hits, mouse_point);
+        }
+
+        // We store the hit list from the last mouse event to determine mouse_enter and mouse_leave
+        // events. If list a is the previous hit list, and list b is the current hit list:
+        // - Widgets in a but not in b get a mouse_leave event
+        // - Widgets in b but not in a get a mouse_enter event
+        // - Widgets in both receive nothing
+        const a = self.last_hit_list;
+        const b = hits.items;
+
+        // Find widgets in a but not b
+        for (a) |a_item| {
+            const a_widget = a_item.widget;
+            for (b) |b_item| {
+                const b_widget = b_item.widget;
+                if (a_widget.eql(b_widget)) break;
+            } else {
+                // a_item is not in b
+                try a_widget.handleEvent(ctx, .mouse_leave);
+                try app.handleCommand(&ctx.cmds);
+            }
+        }
+
+        // Widgets in b but not in a
+        for (b) |b_item| {
+            const b_widget = b_item.widget;
+            for (a) |a_item| {
+                const a_widget = a_item.widget;
+                if (b_widget.eql(a_widget)) break;
+            } else {
+                // b_item is not in a.
+                try b_widget.handleEvent(ctx, .mouse_enter);
+                try app.handleCommand(&ctx.cmds);
+            }
+        }
+
+        // Store a copy of this hit list for next frame
+        app.allocator.free(self.last_hit_list);
+        self.last_hit_list = try app.allocator.dupe(vxfw.HitResult, hits.items);
+    }
+
     fn handleMouse(self: *MouseHandler, app: *App, ctx: *vxfw.EventContext, mouse: vaxis.Mouse) anyerror!void {
         // For mouse events we store the last frame and use that for hit testing
         const last_frame = self.last_frame;
+        self.mouse = mouse;
 
         var hits = std.ArrayList(vxfw.HitResult).init(app.allocator);
         defer hits.deinit();
@@ -502,7 +608,7 @@ const FocusHandler = struct {
 
     /// Update the focus list
     fn update(self: *FocusHandler, root: vxfw.Surface) Allocator.Error!void {
-        _ = self.arena.reset(.retain_capacity);
+        _ = self.arena.reset(.free_all);
 
         var list = std.ArrayList(*Node).init(self.arena.allocator());
         for (root.children) |child| {
