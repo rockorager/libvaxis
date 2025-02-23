@@ -506,8 +506,8 @@ test "Window size set too big" {
     };
 
     const ch = parent.initChild(0, 0, 21, 21);
-    try std.testing.expectEqual(21, ch.width);
-    try std.testing.expectEqual(21, ch.height);
+    try std.testing.expectEqual(20, ch.width);
+    try std.testing.expectEqual(20, ch.height);
 }
 
 test "Window size set too big with offset" {
@@ -522,8 +522,8 @@ test "Window size set too big with offset" {
     };
 
     const ch = parent.initChild(10, 10, 21, 21);
-    try std.testing.expectEqual(21, ch.width);
-    try std.testing.expectEqual(21, ch.height);
+    try std.testing.expectEqual(10, ch.width);
+    try std.testing.expectEqual(10, ch.height);
 }
 
 test "Window size nested offsets" {
