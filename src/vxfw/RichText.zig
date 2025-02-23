@@ -7,10 +7,7 @@ const Allocator = std.mem.Allocator;
 
 const RichText = @This();
 
-pub const TextSpan = struct {
-    text: []const u8,
-    style: vaxis.Style = .{},
-};
+pub const TextSpan = vaxis.Segment;
 
 text: []const TextSpan,
 text_align: enum { left, center, right } = .left,
@@ -32,6 +29,14 @@ fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) Allocator.Error!vxfw
 }
 
 pub fn draw(self: *const RichText, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surface {
+    if (ctx.max.width != null and ctx.max.width.? == 0) {
+        return .{
+            .size = ctx.min,
+            .widget = self.widget(),
+            .buffer = &.{},
+            .children = &.{},
+        };
+    }
     var iter = try SoftwrapIterator.init(self.text, ctx);
     const container_size = self.findContainerSize(&iter);
 
@@ -166,6 +171,7 @@ pub const SoftwrapIterator = struct {
                     const cell: vaxis.Cell = .{
                         .char = .{ .grapheme = " ", .width = 1 },
                         .style = span.style,
+                        .link = span.link,
                     };
                     for (0..8) |_| {
                         try list.append(cell);
@@ -176,6 +182,7 @@ pub const SoftwrapIterator = struct {
                 const cell: vaxis.Cell = .{
                     .char = .{ .grapheme = char, .width = @intCast(width) },
                     .style = span.style,
+                    .link = span.link,
                 };
                 try list.append(cell);
             }

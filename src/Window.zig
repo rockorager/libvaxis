@@ -36,16 +36,18 @@ fn initChild(
     maybe_width: ?u16,
     maybe_height: ?u16,
 ) Window {
-    const width: u16 = maybe_width orelse @max(self.width - x_off, 0);
-    const height: u16 = maybe_height orelse @max(self.height - y_off, 0);
+    const max_height = @max(self.height - y_off, 0);
+    const max_width = @max(self.width - x_off, 0);
+    const width: u16 = maybe_width orelse max_width;
+    const height: u16 = maybe_height orelse max_height;
 
     return Window{
         .x_off = x_off + self.x_off,
         .y_off = y_off + self.y_off,
         .parent_x_off = @min(self.parent_x_off + x_off, 0),
         .parent_y_off = @min(self.parent_y_off + y_off, 0),
-        .width = width,
-        .height = height,
+        .width = @min(width, max_width),
+        .height = @min(height, max_height),
         .screen = self.screen,
     };
 }
@@ -504,8 +506,8 @@ test "Window size set too big" {
     };
 
     const ch = parent.initChild(0, 0, 21, 21);
-    try std.testing.expectEqual(21, ch.width);
-    try std.testing.expectEqual(21, ch.height);
+    try std.testing.expectEqual(20, ch.width);
+    try std.testing.expectEqual(20, ch.height);
 }
 
 test "Window size set too big with offset" {
@@ -520,8 +522,8 @@ test "Window size set too big with offset" {
     };
 
     const ch = parent.initChild(10, 10, 21, 21);
-    try std.testing.expectEqual(21, ch.width);
-    try std.testing.expectEqual(21, ch.height);
+    try std.testing.expectEqual(10, ch.width);
+    try std.testing.expectEqual(10, ch.height);
 }
 
 test "Window size nested offsets" {

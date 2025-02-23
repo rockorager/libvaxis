@@ -27,6 +27,14 @@ fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) Allocator.Error!vxfw
 }
 
 pub fn draw(self: *const Text, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surface {
+    if (ctx.max.width != null and ctx.max.width.? == 0) {
+        return .{
+            .size = ctx.min,
+            .widget = self.widget(),
+            .buffer = &.{},
+            .children = &.{},
+        };
+    }
     const container_size = self.findContainerSize(ctx);
 
     // Create a surface of target width and max height. We'll trim the result after drawing

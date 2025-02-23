@@ -283,6 +283,11 @@ pub const name_map = blk: {
         .{ "comma", ',' },
 
         // special keys
+        .{ "tab", tab },
+        .{ "enter", enter },
+        .{ "escape", escape },
+        .{ "space", space },
+        .{ "backspace", backspace },
         .{ "insert", insert },
         .{ "delete", delete },
         .{ "left", left },
