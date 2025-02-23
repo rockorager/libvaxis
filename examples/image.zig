@@ -42,8 +42,8 @@ pub fn main() !void {
         // try vx.loadImage(alloc, tty.anyWriter(), .{ .path = "examples/zig.png" }),
         try vx.loadImage(alloc, tty.anyWriter(), .{ .path = "examples/vaxis.png" }),
     };
-    defer vx.freeImage(tty.anyWriter(), imgs[0].id);
-    defer vx.freeImage(tty.anyWriter(), imgs[1].id);
+    defer vx.clearImage(tty.anyWriter(), imgs[0].id);
+    defer vx.clearImage(tty.anyWriter(), imgs[1].id);
 
     var n: usize = 0;
 
