@@ -398,10 +398,11 @@ fn drawBuilder(self: *ListView, ctx: vxfw.DrawContext, builder: Builder) Allocat
             .surface = child.surface,
             .z_index = 0,
         };
+        const size = child.surface.size;
         const cursor_surf = try vxfw.Surface.initWithChildren(
             ctx.arena,
             self.widget(),
-            .{ .width = child_offset, .height = child.surface.size.height },
+            .{ .width = child_offset + size.width, .height = size.height },
             sub,
         );
         for (0..cursor_surf.size.height) |row| {
