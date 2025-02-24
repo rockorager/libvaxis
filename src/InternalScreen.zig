@@ -18,6 +18,12 @@ pub const InternalCell = struct {
     skipped: bool = false,
     default: bool = true,
 
+    // If we should skip rendering *this* round due to being printed over previously (from a scaled
+    // cell, for example)
+    skip: bool = false,
+
+    scale: Cell.Scale = .{},
+
     pub fn eql(self: InternalCell, cell: Cell) bool {
         // fastpath when both cells are default
         if (self.default and cell.default) return true;
@@ -28,6 +34,7 @@ pub const InternalCell = struct {
         if (!Style.eql(self.style, cell.style)) return false;
         if (!std.mem.eql(u8, self.uri.items, cell.link.uri)) return false;
         if (!std.mem.eql(u8, self.uri_id.items, cell.link.params)) return false;
+        if (!self.scale.eql(cell.scale)) return false;
         return true;
     }
 };
@@ -89,20 +96,21 @@ pub fn writeCell(
     }
     const i = (@as(usize, @intCast(row)) * self.width) + col;
     assert(i < self.buf.len);
-    self.buf[i].char.clearRetainingCapacity();
-    self.buf[i].char.appendSlice(cell.char.grapheme) catch {
+    const last_cell = &self.buf[i];
+    last_cell.char.clearRetainingCapacity();
+    last_cell.char.appendSlice(cell.char.grapheme) catch {
         log.warn("couldn't write grapheme", .{});
     };
-    self.buf[i].uri.clearRetainingCapacity();
-    self.buf[i].uri.appendSlice(cell.link.uri) catch {
+    last_cell.uri.clearRetainingCapacity();
+    last_cell.uri.appendSlice(cell.link.uri) catch {
         log.warn("couldn't write uri", .{});
     };
-    self.buf[i].uri_id.clearRetainingCapacity();
-    self.buf[i].uri_id.appendSlice(cell.link.params) catch {
+    last_cell.uri_id.clearRetainingCapacity();
+    last_cell.uri_id.appendSlice(cell.link.params) catch {
         log.warn("couldn't write uri_id", .{});
     };
-    self.buf[i].style = cell.style;
-    self.buf[i].default = cell.default;
+    last_cell.style = cell.style;
+    last_cell.default = cell.default;
 }
 
 pub fn readCell(self: *InternalScreen, col: u16, row: u16) ?Cell {
