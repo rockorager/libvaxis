@@ -256,6 +256,7 @@ fn handleCommand(self: *App, cmds: *vxfw.CommandList) Allocator.Error!void {
                     std.log.err("set_title error: {}", .{err});
                 };
             },
+            .queue_refresh => self.vx.queueRefresh(),
         }
     }
 }

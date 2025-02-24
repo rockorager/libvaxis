@@ -84,6 +84,9 @@ pub const Command = union(enum) {
 
     /// Set the title of the terminal
     set_title: []const u8,
+
+    /// Queue a refresh of the entire screen. Implicitly sets redraw
+    queue_refresh,
 };
 
 pub const EventContext = struct {
@@ -135,6 +138,11 @@ pub const EventContext = struct {
 
     pub fn setTitle(self: *EventContext, title: []const u8) Allocator.Error!void {
         try self.addCmd(.{ .set_title = title });
+    }
+
+    pub fn queueRefresh(self: *EventContext) Allocator.Error!void {
+        try self.addCmd(.queue_refresh);
+        self.redraw = true;
     }
 };
 
