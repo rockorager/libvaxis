@@ -104,8 +104,10 @@ pub fn handleEvent(self: *TextField, ctx: *vxfw.EventContext, event: vxfw.Event)
                 return self.checkChanged(ctx);
             } else if (key.matches(vaxis.Key.enter, .{}) or key.matches('j', .{ .ctrl = true })) {
                 if (self.onSubmit) |onSubmit| {
-                    const value = try self.buf.dupe();
-                    defer self.buf.allocator.free(value);
+                    const value = try self.toOwnedSlice();
+                    // Get a ref to the allocator in case onSubmit deinits the TextField
+                    const allocator = self.buf.allocator;
+                    defer allocator.free(value);
                     try onSubmit(self.userdata, ctx, value);
                     return ctx.consumeAndRedraw();
                 }
