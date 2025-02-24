@@ -717,25 +717,24 @@ const FocusHandler = struct {
 
     fn handleEvent(self: *FocusHandler, ctx: *vxfw.EventContext, event: vxfw.Event) anyerror!void {
         const path = self.path_to_focused.items;
-        if (path.len == 0) return;
+        assert(path.len > 0);
 
-        const target_idx = path.len - 1;
-
-        // Capturing phase
+        // Capturing phase. We send capture events from the root to the target (inclusive of target)
         ctx.phase = .capturing;
-        for (path[0..target_idx]) |widget| {
+        for (path) |widget| {
             try widget.captureEvent(ctx, event);
             if (ctx.consume_event) return;
         }
 
-        // Target phase
+        // Target phase. This is only sent to the target
         ctx.phase = .at_target;
-        const target = path[target_idx];
+        const target = self.path_to_focused.getLast();
         try target.handleEvent(ctx, event);
         if (ctx.consume_event) return;
 
-        // Bubbling phase
+        // Bubbling phase. Bubbling phase moves from target (exclusive) to the root
         ctx.phase = .bubbling;
+        const target_idx = path.len - 1;
         var iter = std.mem.reverseIterator(path[0..target_idx]);
         while (iter.next()) |widget| {
             try widget.handleEvent(ctx, event);
