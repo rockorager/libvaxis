@@ -87,6 +87,12 @@ pub const Command = union(enum) {
 
     /// Queue a refresh of the entire screen. Implicitly sets redraw
     queue_refresh,
+
+    /// Send a system notification
+    notify: struct {
+        title: ?[]const u8,
+        body: []const u8,
+    },
 };
 
 pub const EventContext = struct {
@@ -143,6 +149,26 @@ pub const EventContext = struct {
     pub fn queueRefresh(self: *EventContext) Allocator.Error!void {
         try self.addCmd(.queue_refresh);
         self.redraw = true;
+    }
+
+    /// Send a system notification. This function dupes title and body using it's own allocator.
+    /// They will be freed once the notification has been sent
+    pub fn sendNotification(
+        self: *EventContext,
+        maybe_title: ?[]const u8,
+        body: []const u8,
+    ) Allocator.Error!void {
+        const alloc = self.cmds.allocator;
+        if (maybe_title) |title| {
+            return self.addCmd(.{ .notify = .{
+                .title = try alloc.dupe(u8, title),
+                .body = try alloc.dupe(u8, body),
+            } });
+        }
+        return self.addCmd(.{ .notify = .{
+            .title = null,
+            .body = try alloc.dupe(u8, body),
+        } });
     }
 };
 
