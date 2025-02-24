@@ -257,6 +257,16 @@ fn handleCommand(self: *App, cmds: *vxfw.CommandList) Allocator.Error!void {
                 };
             },
             .queue_refresh => self.vx.queueRefresh(),
+            .notify => |notification| {
+                self.vx.notify(self.tty.anyWriter(), notification.title, notification.body) catch |err| {
+                    std.log.err("notify error: {}", .{err});
+                };
+                const alloc = cmds.allocator;
+                if (notification.title) |title| {
+                    alloc.free(title);
+                }
+                alloc.free(notification.body);
+            },
         }
     }
 }
