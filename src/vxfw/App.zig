@@ -86,7 +86,6 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     var mouse_handler = MouseHandler.init(widget);
     defer mouse_handler.deinit(self.allocator);
     var focus_handler = FocusHandler.init(self.allocator, widget);
-    focus_handler.intrusiveInit();
     try focus_handler.path_to_focused.append(widget);
     defer focus_handler.deinit();
 
@@ -484,159 +483,39 @@ const MouseHandler = struct {
 /// Maintains a tree of focusable nodes. Delivers events to the currently focused node, walking up
 /// the tree until the event is handled
 const FocusHandler = struct {
-    arena: std.heap.ArenaAllocator,
-
-    root: Node,
-    focused: *Node,
+    root: Widget,
     focused_widget: vxfw.Widget,
     path_to_focused: std.ArrayList(Widget),
 
-    const Node = struct {
-        widget: Widget,
-        parent: ?*Node,
-        children: []*Node,
-
-        fn nextSibling(self: Node) ?*Node {
-            const parent = self.parent orelse return null;
-            const idx = for (0..parent.children.len) |i| {
-                const node = parent.children[i];
-                if (self.widget.eql(node.widget))
-                    break i;
-            } else unreachable;
-
-            // Return null if last child
-            if (idx == parent.children.len - 1)
-                return null
-            else
-                return parent.children[idx + 1];
-        }
-
-        fn prevSibling(self: Node) ?*Node {
-            const parent = self.parent orelse return null;
-            const idx = for (0..parent.children.len) |i| {
-                const node = parent.children[i];
-                if (self.widget.eql(node.widget))
-                    break i;
-            } else unreachable;
-
-            // Return null if first child
-            if (idx == 0)
-                return null
-            else
-                return parent.children[idx - 1];
-        }
-
-        fn lastChild(self: Node) ?*Node {
-            if (self.children.len > 0)
-                return self.children[self.children.len - 1]
-            else
-                return null;
-        }
-
-        fn firstChild(self: Node) ?*Node {
-            if (self.children.len > 0)
-                return self.children[0]
-            else
-                return null;
-        }
-
-        /// returns the next logical node in the tree
-        fn nextNode(self: *Node) *Node {
-            // If we have a sibling, we return it's first descendant line
-            if (self.nextSibling()) |sibling| {
-                var node = sibling;
-                while (node.firstChild()) |child| {
-                    node = child;
-                }
-                return node;
-            }
-
-            // If we don't have a sibling, we return our parent
-            if (self.parent) |parent| return parent;
-
-            // If we don't have a parent, we are the root and we return or first descendant
-            var node = self;
-            while (node.firstChild()) |child| {
-                node = child;
-            }
-            return node;
-        }
-
-        fn prevNode(self: *Node) *Node {
-            // If we have children, we return the last child descendant
-            if (self.children.len > 0) {
-                var node = self;
-                while (node.lastChild()) |child| {
-                    node = child;
-                }
-                return node;
-            }
-
-            // If we have siblings, we return the last descendant line of the sibling
-            if (self.prevSibling()) |sibling| {
-                var node = sibling;
-                while (node.lastChild()) |child| {
-                    node = child;
-                }
-                return node;
-            }
-
-            // If we don't have a sibling, we return our parent
-            if (self.parent) |parent| return parent;
-
-            // If we don't have a parent, we are the root and we return our last descendant
-            var node = self;
-            while (node.lastChild()) |child| {
-                node = child;
-            }
-            return node;
-        }
-    };
-
     fn init(allocator: Allocator, root: Widget) FocusHandler {
-        const node: Node = .{
-            .widget = root,
-            .parent = null,
-            .children = &.{},
-        };
         return .{
-            .root = node,
-            .focused = undefined,
+            .root = root,
             .focused_widget = root,
-            .arena = std.heap.ArenaAllocator.init(allocator),
             .path_to_focused = std.ArrayList(Widget).init(allocator),
         };
     }
 
-    fn intrusiveInit(self: *FocusHandler) void {
-        self.focused = &self.root;
-    }
-
     fn deinit(self: *FocusHandler) void {
         self.path_to_focused.deinit();
-        self.arena.deinit();
     }
 
     /// Update the focus list
-    fn update(self: *FocusHandler, root: vxfw.Surface) Allocator.Error!void {
-        _ = self.arena.reset(.free_all);
-
-        var list = std.ArrayList(*Node).init(self.arena.allocator());
-        for (root.children) |child| {
-            try self.findFocusableChildren(&self.root, &list, child.surface);
-        }
-
-        // Update children
-        self.root.children = list.items;
-
-        // Update path
+    fn update(self: *FocusHandler, surface: vxfw.Surface) Allocator.Error!void {
+        // clear path
         self.path_to_focused.clearAndFree();
-        if (!self.root.widget.eql(root.widget)) {
-            // Always make sure the root widget (the one we started with) is the first item, even if
-            // it isn't focusable or in the path
-            try self.path_to_focused.append(self.root.widget);
+
+        // Find the path to the focused widget. This builds a list that has the first element as the
+        // focused widget, and walks backward to the root. It's possible our focused widget is *not*
+        // in this tree. If this is the case, we refocus to the root widget
+        const has_focus = try self.childHasFocus(surface);
+
+        // We assert that the focused widget *must* be in the widget tree. There is certianly a
+        // logic bug in the code somewhere if this is not the case
+        assert(has_focus);
+        if (!self.root.eql(surface.widget)) {
+            // If the root of surface is not the initial widget, we append the initial widget
+            try self.path_to_focused.append(self.root);
         }
-        _ = try childHasFocus(root, &self.path_to_focused, self.focused.widget);
 
         // reverse path_to_focused so that it is root first
         std.mem.reverse(Widget, self.path_to_focused.items);
@@ -644,86 +523,33 @@ const FocusHandler = struct {
 
     /// Returns true if a child of surface is the focused widget
     fn childHasFocus(
+        self: *FocusHandler,
         surface: vxfw.Surface,
-        list: *std.ArrayList(Widget),
-        focused: Widget,
     ) Allocator.Error!bool {
         // Check if we are the focused widget
-        if (focused.eql(surface.widget)) {
-            try list.append(surface.widget);
+        if (self.focused_widget.eql(surface.widget)) {
+            try self.path_to_focused.append(surface.widget);
             return true;
         }
         for (surface.children) |child| {
             // Add child to list if it is the focused widget or one of it's own children is
-            if (try childHasFocus(child.surface, list, focused)) {
-                try list.append(surface.widget);
+            if (try self.childHasFocus(child.surface)) {
+                try self.path_to_focused.append(surface.widget);
                 return true;
             }
         }
         return false;
     }
 
-    /// Walks the surface tree, adding all focusable nodes to list
-    fn findFocusableChildren(
-        self: *FocusHandler,
-        parent: *Node,
-        list: *std.ArrayList(*Node),
-        surface: vxfw.Surface,
-    ) Allocator.Error!void {
-        if (self.root.widget.eql(surface.widget)) {
-            // Never add the root_widget. We will always have this as the root
-            for (surface.children) |child| {
-                try self.findFocusableChildren(parent, list, child.surface);
-            }
-        } else if (surface.focusable) {
-            // We are a focusable child of parent. Create a new node, and find our own focusable
-            // children
-            const node = try self.arena.allocator().create(Node);
-            var child_list = std.ArrayList(*Node).init(self.arena.allocator());
-            for (surface.children) |child| {
-                try self.findFocusableChildren(node, &child_list, child.surface);
-            }
-            node.* = .{
-                .widget = surface.widget,
-                .parent = parent,
-                .children = child_list.items,
-            };
-            if (self.focused_widget.eql(surface.widget)) {
-                self.focused = node;
-            }
-            try list.append(node);
-        } else {
-            for (surface.children) |child| {
-                try self.findFocusableChildren(parent, list, child.surface);
-            }
-        }
-    }
-
     fn focusWidget(self: *FocusHandler, ctx: *vxfw.EventContext, widget: vxfw.Widget) anyerror!void {
+        // Focusing a widget requires it to have an event handler
+        assert(widget.eventHandler != null);
         if (self.focused_widget.eql(widget)) return;
 
         ctx.phase = .at_target;
         try self.focused_widget.handleEvent(ctx, .focus_out);
         self.focused_widget = widget;
         try self.focused_widget.handleEvent(ctx, .focus_in);
-    }
-
-    fn focusNode(self: *FocusHandler, ctx: *vxfw.EventContext, node: *Node) anyerror!void {
-        if (self.focused.widget.eql(node.widget)) return;
-
-        try self.focused.widget.handleEvent(ctx, .focus_out);
-        self.focused = node;
-        try self.focused.widget.handleEvent(ctx, .focus_in);
-    }
-
-    /// Focuses the next focusable widget
-    fn focusNext(self: *FocusHandler, ctx: *vxfw.EventContext) anyerror!void {
-        return self.focusNode(ctx, self.focused.nextNode());
-    }
-
-    /// Focuses the previous focusable widget
-    fn focusPrev(self: *FocusHandler, ctx: *vxfw.EventContext) anyerror!void {
-        return self.focusNode(ctx, self.focused.prevNode());
     }
 
     fn handleEvent(self: *FocusHandler, ctx: *vxfw.EventContext, event: vxfw.Event) anyerror!void {
