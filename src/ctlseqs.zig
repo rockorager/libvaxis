@@ -95,6 +95,7 @@ pub const ul_indexed_legacy = "\x1b[58;5;{d}m";
 pub const fg_rgb_legacy = "\x1b[38;2;{d};{d};{d}m";
 pub const bg_rgb_legacy = "\x1b[48;2;{d};{d};{d}m";
 pub const ul_rgb_legacy = "\x1b[58;2;{d};{d};{d}m";
+pub const ul_rgb_conpty = "\x1b[58:2::{d}:{d}:{d}m";
 
 // Underlines
 pub const ul_off = "\x1b[24m"; // NOTE: this could be \x1b[4:0m but is not as widely supported
