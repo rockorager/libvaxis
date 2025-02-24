@@ -511,7 +511,7 @@ const FocusHandler = struct {
 
         // We assert that the focused widget *must* be in the widget tree. There is certianly a
         // logic bug in the code somewhere if this is not the case
-        assert(has_focus);
+        assert(has_focus); // Focused widget not found in Surface tree
         if (!self.root.eql(surface.widget)) {
             // If the root of surface is not the initial widget, we append the initial widget
             try self.path_to_focused.append(self.root);
