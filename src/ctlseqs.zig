@@ -89,6 +89,7 @@ pub const ul_indexed = "\x1b[58:5:{d}m";
 pub const fg_rgb = "\x1b[38:2:{d}:{d}:{d}m";
 pub const bg_rgb = "\x1b[48:2:{d}:{d}:{d}m";
 pub const ul_rgb = "\x1b[58:2:{d}:{d}:{d}m";
+pub const ul_rgb_conpty = "\x1b[58:2::{d}:{d}:{d}m";
 pub const fg_indexed_legacy = "\x1b[38;5;{d}m";
 pub const bg_indexed_legacy = "\x1b[48;5;{d}m";
 pub const ul_indexed_legacy = "\x1b[58;5;{d}m";
