@@ -80,6 +80,10 @@ sgr: enum {
     legacy,
 } = .standard,
 
+/// Enable workarounds for escape sequence handling issues/bugs in terminals
+/// So far this just enables a UL escape sequence workaround for conpty
+enable_workarounds: bool = true,
+
 state: struct {
     /// if we are in the alt screen
     alt_screen: bool = false,
@@ -574,7 +578,9 @@ pub fn render(self: *Vaxis, tty: AnyWriter) !void {
                     }
                 },
                 .rgb => |rgb| {
-                    switch (self.sgr) {
+                    if (self.enable_workarounds)
+                        try tty.print(ctlseqs.ul_rgb_conpty, .{ rgb[0], rgb[1], rgb[2] })
+                    else switch (self.sgr) {
                         .standard => try tty.print(ctlseqs.ul_rgb, .{ rgb[0], rgb[1], rgb[2] }),
                         .legacy => try tty.print(ctlseqs.ul_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
                     }
@@ -1237,9 +1243,13 @@ pub fn prettyPrint(self: *Vaxis, tty: AnyWriter) !void {
                     }
                 },
                 .rgb => |rgb| {
-                    switch (self.sgr) {
+                    if (self.enable_workarounds)
+                        try tty.print(ctlseqs.ul_rgb_conpty, .{ rgb[0], rgb[1], rgb[2] })
+                    else switch (self.sgr) {
                         .standard => try tty.print(ctlseqs.ul_rgb, .{ rgb[0], rgb[1], rgb[2] }),
-                        .legacy => try tty.print(ctlseqs.ul_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
+                        .legacy => {
+                            try tty.print(ctlseqs.ul_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] });
+                        },
                     }
                 },
             }
