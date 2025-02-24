@@ -329,9 +329,6 @@ pub const Surface = struct {
     /// The widget this surface belongs to
     widget: Widget,
 
-    /// If this widget / Surface is focusable
-    focusable: bool = false,
-
     /// Cursor state
     cursor: ?CursorState = null,
 
@@ -393,7 +390,6 @@ pub const Surface = struct {
             .widget = self.widget,
             .buffer = self.buffer[0 .. self.size.width * height],
             .children = self.children,
-            .focusable = self.focusable,
         };
     }
 

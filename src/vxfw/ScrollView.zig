@@ -348,7 +348,6 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
 
     // Set state
     {
-        surface.focusable = true;
         // Assume we have more. We only know we don't after drawing
         self.scroll.has_more_vertical = true;
     }
@@ -411,9 +410,7 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
         );
 
         // Draw the child
-        var surf = try child.draw(child_ctx);
-        // We set the child to non-focusable so that we can manage where the keyevents go
-        surf.focusable = false;
+        const surf = try child.draw(child_ctx);
 
         // Add the child surface to our list. It's offset from parent is the accumulated height
         try child_list.append(.{

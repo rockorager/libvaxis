@@ -93,7 +93,6 @@ const Model = struct {
             // A Surface must have a size. Our root widget is the size of the screen
             .size = max_size,
             .widget = self.widget(),
-            .focusable = false,
             // We didn't actually need to draw anything for the root. In this case, we can set
             // buffer to a zero length slice. If this slice is *not zero length*, the runtime will
             // assert that it's length is equal to the size.width * size.height.

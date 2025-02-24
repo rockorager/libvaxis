@@ -54,14 +54,13 @@ const Model = struct {
         const self: *Model = @ptrCast(@alignCast(ptr));
         const max = ctx.max.size();
 
-        var list_view: vxfw.SubSurface = .{
+        const list_view: vxfw.SubSurface = .{
             .origin = .{ .row = 2, .col = 0 },
             .surface = try self.list_view.draw(ctx.withConstraints(
                 ctx.min,
                 .{ .width = max.width, .height = max.height - 3 },
             )),
         };
-        list_view.surface.focusable = false;
 
         const text_field: vxfw.SubSurface = .{
             .origin = .{ .row = 0, .col = 2 },
@@ -86,7 +85,6 @@ const Model = struct {
         return .{
             .size = max,
             .widget = self.widget(),
-            .focusable = true,
             .buffer = &.{},
             .children = children,
         };

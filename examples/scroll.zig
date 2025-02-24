@@ -138,7 +138,6 @@ const Model = struct {
         return .{
             .size = max,
             .widget = self.widget(),
-            .focusable = true,
             .buffer = &.{},
             .children = children,
         };

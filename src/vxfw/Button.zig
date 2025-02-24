@@ -107,9 +107,8 @@ pub fn draw(self: *Button, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surface {
     const center: Center = .{ .child = text.widget() };
     const surf = try center.draw(ctx);
 
-    var button_surf = try vxfw.Surface.initWithChildren(ctx.arena, self.widget(), surf.size, surf.children);
+    const button_surf = try vxfw.Surface.initWithChildren(ctx.arena, self.widget(), surf.size, surf.children);
     @memset(button_surf.buffer, .{ .style = style });
-    button_surf.focusable = true;
     return button_surf;
 }
 
