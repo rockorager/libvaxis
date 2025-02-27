@@ -60,6 +60,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
 
     try vx.enterAltScreen(tty.anyWriter());
     try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
+    try vx.setBracketedPaste(tty.anyWriter(), true);
 
     {
         // This part deserves a comment. loop.init installs a signal handler for the tty. We wait to
