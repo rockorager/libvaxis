@@ -4,12 +4,12 @@
     .minimum_zig_version = "0.13.0",
     .dependencies = .{
         .zigimg = .{
-            .url = "git+https://github.com/zigimg/zigimg#3a667bdb3d7f0955a5a51c8468eac83210c1439e",
-            .hash = "1220dd654ef941fc76fd96f9ec6adadf83f69b9887a0d3f4ee5ac0a1a3e11be35cf5",
+            .url = "git+https://github.com/zigimg/zigimg#1496bdd39bc35a795e8514c493114e2ab82f8cf3",
+            .hash = "1220a5e36ab5e2be076f8765d165f3368a4c9f326dc77ac61c1e90bbce312fc37a39",
         },
         .zg = .{
-            .url = "https://codeberg.org/atman/zg/archive/v0.13.2.tar.gz",
-            .hash = "122055beff332830a391e9895c044d33b15ea21063779557024b46169fb1984c6e40",
+            .url = "git+https://codeberg.org/utkarshmalik/zg#7ca90b6f8796cd6615ddc61e12cd292ea26662ce",
+            .hash = "1220f3e29bc40856bfc06e0ee133f814b0011c76de987d8a6a458c2f34d82708899a",
         },
     },
     .paths = .{
