@@ -57,6 +57,8 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
 
     // Send the init event
     loop.postEvent(.init);
+    // Also always initialize the app with a focus event
+    loop.postEvent(.focus_in);
 
     try vx.enterAltScreen(tty.anyWriter());
     try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
@@ -127,7 +129,13 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
                     try focus_handler.handleEvent(&ctx, event);
                     try self.handleCommand(&ctx.cmds);
                 },
-                .focus_out => try mouse_handler.mouseExit(self, &ctx),
+                .focus_out => {
+                    try mouse_handler.mouseExit(self, &ctx);
+                    try focus_handler.handleEvent(&ctx, .focus_out);
+                },
+                .focus_in => {
+                    try focus_handler.handleEvent(&ctx, .focus_in);
+                },
                 .mouse => |mouse| try mouse_handler.handleMouse(self, &ctx, mouse),
                 .winsize => |ws| {
                     try vx.resize(self.allocator, tty.anyWriter(), ws);
