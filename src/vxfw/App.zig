@@ -275,6 +275,11 @@ fn handleCommand(self: *App, cmds: *vxfw.CommandList) Allocator.Error!void {
                 }
                 alloc.free(notification.body);
             },
+            .query_color => |kind| {
+                self.vx.queryColor(self.tty.anyWriter(), kind) catch |err| {
+                    std.log.err("queryColor error: {}", .{err});
+                };
+            },
         }
     }
 }

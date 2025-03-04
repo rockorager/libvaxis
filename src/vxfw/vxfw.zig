@@ -93,6 +93,8 @@ pub const Command = union(enum) {
         title: ?[]const u8,
         body: []const u8,
     },
+
+    query_color: vaxis.Cell.Color.Kind,
 };
 
 pub const EventContext = struct {
@@ -169,6 +171,10 @@ pub const EventContext = struct {
             .title = null,
             .body = try alloc.dupe(u8, body),
         } });
+    }
+
+    pub fn queryColor(self: *EventContext, kind: vaxis.Cell.Color.Kind) Allocator.Error!void {
+        try self.addCmd(.{ .query_color = kind });
     }
 };
 
