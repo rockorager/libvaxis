@@ -18,6 +18,9 @@ const ellipsis: Cell.Character = .{ .grapheme = "…", .width = 1 };
 // Index of our cursor
 buf: Buffer,
 
+/// Style to draw the TextField with
+style: vaxis.Style = .{},
+
 /// the number of graphemes to skip when drawing. Used for horizontal scrolling
 draw_offset: u16 = 0,
 /// the column we placed the cursor the last time we drew
@@ -211,7 +214,7 @@ pub fn draw(self: *TextField, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfac
         .{ .width = max_width, .height = @max(ctx.min.height, 1) },
     );
 
-    const base: vaxis.Cell = .{ .style = .{} };
+    const base: vaxis.Cell = .{ .style = self.style };
     @memset(surface.buffer, base);
     const style: vaxis.Style = .{};
     const cursor_idx = self.graphemesBeforeCursor();
