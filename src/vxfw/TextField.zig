@@ -216,7 +216,7 @@ pub fn draw(self: *TextField, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfac
 
     const base: vaxis.Cell = .{ .style = self.style };
     @memset(surface.buffer, base);
-    const style: vaxis.Style = .{};
+    const style = self.style;
     const cursor_idx = self.graphemesBeforeCursor();
     if (cursor_idx < self.draw_offset) self.draw_offset = cursor_idx;
     if (max_width == 0) return surface;
