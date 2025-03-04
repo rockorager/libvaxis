@@ -592,6 +592,28 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
                 key.text = text_buf[0..total];
             }
 
+            {
+                // We check if we have *only* shift, no text, and a printable character. This can
+                // happen when we have disambiguate on and a key is pressed and encoded as CSI u,
+                // for example shift + space can produce CSI 32 ; 2 u
+                const mod_test: Key.Modifiers = .{
+                    .shift = true,
+                    .caps_lock = key.mods.caps_lock,
+                    .num_lock = key.mods.num_lock,
+                };
+                if (key.text == null and
+                    key.mods.eql(mod_test) and
+                    key.codepoint <= std.math.maxInt(u8) and
+                    std.ascii.isPrint(@intCast(key.codepoint)))
+                {
+                    // Encode the codepoint as upper
+                    const upper = std.ascii.toUpper(@intCast(key.codepoint));
+                    const n = std.unicode.utf8Encode(upper, text_buf) catch unreachable;
+                    key.text = text_buf[0..n];
+                    key.shifted_codepoint = upper;
+                }
+            }
+
             const event: Event = if (is_release)
                 .{ .key_release = key }
             else
@@ -907,11 +929,12 @@ test "parse: kitty: shift+a without text reporting" {
         .codepoint = 'a',
         .shifted_codepoint = 'A',
         .mods = .{ .shift = true },
+        .text = "A",
     };
     const expected_event: Event = .{ .key_press = expected_key };
 
     try testing.expectEqual(10, result.n);
-    try testing.expectEqual(expected_event, result.event);
+    try testing.expectEqualDeep(expected_event, result.event);
 }
 
 test "parse: kitty: alt+shift+a without text reporting" {
@@ -1126,4 +1149,23 @@ test "parse(csi): mouse" {
 
     try testing.expectEqual(expected.n, result.n);
     try testing.expectEqual(expected.event, result.event);
+}
+
+test "parse: disambiguate shift + space" {
+    const alloc = testing.allocator_instance.allocator();
+    const grapheme_data = try grapheme.GraphemeData.init(alloc);
+    defer grapheme_data.deinit();
+    const input = "\x1b[32;2u";
+    var parser: Parser = .{ .grapheme_data = &grapheme_data };
+    const result = try parser.parse(input, alloc);
+    const expected_key: Key = .{
+        .codepoint = ' ',
+        .shifted_codepoint = ' ',
+        .mods = .{ .shift = true },
+        .text = " ",
+    };
+    const expected_event: Event = .{ .key_press = expected_key };
+
+    try testing.expectEqual(7, result.n);
+    try testing.expectEqualDeep(expected_event, result.event);
 }

@@ -13,6 +13,12 @@ pub const Modifiers = packed struct(u8) {
     meta: bool = false,
     caps_lock: bool = false,
     num_lock: bool = false,
+
+    pub fn eql(self: Modifiers, other: Modifiers) bool {
+        const a: u8 = @bitCast(self);
+        const b: u8 = @bitCast(other);
+        return a == b;
+    }
 };
 
 /// Flags for the Kitty Protocol.
