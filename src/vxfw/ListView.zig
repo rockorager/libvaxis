@@ -289,6 +289,11 @@ fn drawBuilder(self: *ListView, ctx: vxfw.DrawContext, builder: Builder) Allocat
         .buffer = &.{},
         .children = &.{},
     };
+    if (self.draw_cursor) {
+        // If we are drawing the cursor, we need to allocate a buffer so that we obscure anything
+        // underneath us
+        surface.buffer = try vxfw.Surface.createBuffer(ctx.arena, max_size);
+    }
 
     // Set state
     {
