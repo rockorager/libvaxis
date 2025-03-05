@@ -121,7 +121,7 @@ pub fn draw(self: Image, win: Window, opts: DrawOptions) !void {
                     .rows = win.height,
                 }
 
-                // Does the image require horizontal scaling?
+                    // Does the image require horizontal scaling?
             else if (!fit_x and fit_y)
                 p_opts.size = .{
                     .cols = win.width,
