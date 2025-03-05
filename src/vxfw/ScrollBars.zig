@@ -489,12 +489,12 @@ pub fn draw(self: *ScrollBars, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfa
         };
         const max_content_width_f: f32 =
             if (self.scroll_view.scroll.left + max.width > max_content_width)
-            // If we've managed to overscroll horizontally for whatever reason - for example if the
-            // content changes - we make sure the scroll thumb doesn't disappear by increasing the
-            // max content width to match the current overscrolled position.
-            @floatFromInt(self.scroll_view.scroll.left + max.width)
-        else
-            @floatFromInt(max_content_width);
+                // If we've managed to overscroll horizontally for whatever reason - for example if the
+                // content changes - we make sure the scroll thumb doesn't disappear by increasing the
+                // max content width to match the current overscrolled position.
+                @floatFromInt(self.scroll_view.scroll.left + max.width)
+            else
+                @floatFromInt(max_content_width);
 
         self.last_frame_max_content_width = max_content_width;
 

@@ -86,9 +86,9 @@ const Model = struct {
                     }
                     self.scroll_bars.estimated_content_height =
                         if (self.scroll_bars.estimated_content_height == 800)
-                        @intCast(self.rows.items.len)
-                    else
-                        800;
+                            @intCast(self.rows.items.len)
+                        else
+                            800;
 
                     return ctx.consumeAndRedraw();
                 }

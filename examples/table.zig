@@ -171,7 +171,7 @@ pub fn main() !void {
                     },
                     .btm => {
                         if (key.matchesAny(&.{ vaxis.Key.up, 'k' }, .{}) and moving) active = .mid
-                        // Run Command and Clear Command Bar
+                            // Run Command and Clear Command Bar
                         else if (key.matchExact(vaxis.Key.enter, .{}) or key.matchExact('j', .{ .ctrl = true })) {
                             const cmd = try cmd_input.toOwnedSlice();
                             defer alloc.free(cmd);
