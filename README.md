@@ -9,7 +9,7 @@ It begins with them, but ends with me. Their son, Vaxis
 Libvaxis _does not use terminfo_. Support for vt features is detected through
 terminal queries.
 
-Vaxis uses zig `0.13.0`.
+Vaxis uses zig `0.14.0`.
 
 ## Features
 
