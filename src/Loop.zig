@@ -177,7 +177,7 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                     }
                 },
                 .key_press => |key| {
-                    // Check for a cursor position response for our explicity width query. This will
+                    // Check for a cursor position response for our explicit width query. This will
                     // always be an F3 key with shift = true, and we must be looking for queries
                     if (key.codepoint == vaxis.Key.f3 and
                         key.mods.shift and
@@ -187,6 +187,16 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                         vx.caps.explicit_width = true;
                         vx.caps.unicode = .unicode;
                         vx.screen.width_method = .unicode;
+                        return;
+                    }
+                    // Check for a cursor position response for our scaled text query. This will
+                    // always be an F3 key with alt = true, and we must be looking for queries
+                    if (key.codepoint == vaxis.Key.f3 and
+                        key.mods.alt and
+                        !vx.queries_done.load(.unordered))
+                    {
+                        log.info("scaled text capability detected", .{});
+                        vx.caps.scaled_text = true;
                         return;
                     }
                     if (@hasField(Event, "key_press")) {
@@ -243,6 +253,16 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                         vx.caps.explicit_width = true;
                         vx.caps.unicode = .unicode;
                         vx.screen.width_method = .unicode;
+                        return;
+                    }
+                    // Check for a cursor position response for our scaled text query. This will
+                    // always be an F3 key with alt = true, and we must be looking for queries
+                    if (key.codepoint == vaxis.Key.f3 and
+                        key.mods.alt and
+                        !vx.queries_done.load(.unordered))
+                    {
+                        log.info("scaled text capability detected", .{});
+                        vx.caps.scaled_text = true;
                         return;
                     }
                     if (@hasField(Event, "key_press")) {
