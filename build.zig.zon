@@ -1,11 +1,12 @@
 .{
-    .name = "vaxis",
+    .name = .vaxis,
+    .fingerprint = 0x14fbbb94fc556305,
     .version = "0.1.0",
-    .minimum_zig_version = "0.13.0",
+    .minimum_zig_version = "0.14.0",
     .dependencies = .{
         .zigimg = .{
-            .url = "git+https://github.com/zigimg/zigimg#1496bdd39bc35a795e8514c493114e2ab82f8cf3",
-            .hash = "1220a5e36ab5e2be076f8765d165f3368a4c9f326dc77ac61c1e90bbce312fc37a39",
+            .url = "git+https://github.com/TUSF/zigimg#5102e09be233d372e9e05f4cb2ffbefba30bc1c0",
+            .hash = "zigimg-0.1.0-lly-O-NTEABwkjg9_WM4uLQr_TtL-7jp375PsZJyugGN",
         },
         .zg = .{
             .url = "git+https://codeberg.org/utkarshmalik/zg#7ca90b6f8796cd6615ddc61e12cd292ea26662ce",
