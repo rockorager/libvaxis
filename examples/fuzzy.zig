@@ -207,12 +207,12 @@ pub fn main() !void {
     var fd = std.process.Child.init(&.{"fd"}, allocator);
     fd.stdout_behavior = .Pipe;
     fd.stderr_behavior = .Pipe;
-    var stdout = std.ArrayList(u8).init(allocator);
-    var stderr = std.ArrayList(u8).init(allocator);
-    defer stdout.deinit();
-    defer stderr.deinit();
+    var stdout: std.ArrayListUnmanaged(u8) = .empty;
+    var stderr: std.ArrayListUnmanaged(u8) = .empty;
+    defer stdout.deinit(allocator);
+    defer stderr.deinit(allocator);
     try fd.spawn();
-    try fd.collectOutput(&stdout, &stderr, 10_000_000);
+    try fd.collectOutput(allocator, &stdout, &stderr, 10_000_000);
     _ = try fd.wait();
 
     var iter = std.mem.splitScalar(u8, stdout.items, '\n');

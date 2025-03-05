@@ -288,7 +288,7 @@ fn checkTimers(self: *App, ctx: *vxfw.EventContext) anyerror!void {
     const now_ms = std.time.milliTimestamp();
 
     // timers are always sorted descending
-    while (self.timers.popOrNull()) |tick| {
+    while (self.timers.pop()) |tick| {
         if (now_ms < tick.deadline_ms) {
             // re-add the timer
             try self.timers.append(tick);
@@ -446,7 +446,7 @@ const MouseHandler = struct {
             self.last_hit_list = try app.allocator.dupe(vxfw.HitResult, hits.items);
         }
 
-        const target = hits.popOrNull() orelse return;
+        const target = hits.pop() orelse return;
 
         // capturing phase
         ctx.phase = .capturing;
@@ -474,7 +474,7 @@ const MouseHandler = struct {
 
         // Bubbling phase
         ctx.phase = .bubbling;
-        while (hits.popOrNull()) |item| {
+        while (hits.pop()) |item| {
             var m_local = mouse;
             m_local.col = item.local.col;
             m_local.row = item.local.row;
