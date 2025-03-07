@@ -50,6 +50,8 @@ pub fn init(alloc: std.mem.Allocator, unicode: *const Unicode) TextField {
 pub fn deinit(self: *TextField) void {
     self.buf.allocator.free(self.previous_val);
     self.buf.deinit();
+    self.buf.allocator.free(self.previous_val);
+    self.previous_val = "";
 }
 
 pub fn widget(self: *TextField) vxfw.Widget {
