@@ -124,17 +124,15 @@ pub fn handleEvent(self: *TextField, ctx: *vxfw.EventContext, event: vxfw.Event)
 }
 
 fn checkChanged(self: *TextField, ctx: *vxfw.EventContext) anyerror!void {
-    const new = try self.buf.dupe();
-    if (std.mem.eql(u8, new, self.previous_val)) {
-        self.buf.allocator.free(new);
-        return ctx.consumeAndRedraw();
-    }
-    self.buf.allocator.free(self.previous_val);
-    self.previous_val = new;
-    if (self.onChange) |onChange| {
-        try onChange(self.userdata, ctx, new);
-    }
     ctx.consumeAndRedraw();
+    const onChange = self.onChange orelse return;
+    const new = try self.buf.dupe();
+    defer {
+        self.buf.allocator.free(self.previous_val);
+        self.previous_val = new;
+    }
+    if (std.mem.eql(u8, new, self.previous_val)) return;
+    try onChange(self.userdata, ctx, new);
 }
 
 /// insert text at the cursor position
