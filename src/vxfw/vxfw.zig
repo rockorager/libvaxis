@@ -343,6 +343,15 @@ pub const Surface = struct {
 
     children: []SubSurface,
 
+    pub fn empty(widget: Widget) Surface {
+        return .{
+            .size = .{},
+            .widget = widget,
+            .buffer = &.{},
+            .children = &.{},
+        };
+    }
+
     /// Creates a slice of vaxis.Cell's equal to size.width * size.height
     pub fn createBuffer(allocator: Allocator, size: Size) Allocator.Error![]vaxis.Cell {
         const buffer = try allocator.alloc(vaxis.Cell, size.width * size.height);
