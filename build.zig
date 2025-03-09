@@ -34,6 +34,7 @@ pub fn build(b: *std.Build) void {
         image,
         main,
         scroll,
+        split_view,
         table,
         text_input,
         vaxis,
