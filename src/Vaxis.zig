@@ -37,6 +37,7 @@ pub const Capabilities = struct {
     sgr_pixels: bool = false,
     color_scheme_updates: bool = false,
     explicit_width: bool = false,
+    scaled_text: bool = false,
 };
 
 pub const Options = struct {
@@ -280,6 +281,14 @@ pub fn queryTerminalSend(vx: *Vaxis, tty: AnyWriter) !void {
         ctlseqs.home ++
         ctlseqs.explicit_width_query ++
         ctlseqs.cursor_position_request ++
+        // Explicit width query. We send the cursor home, then do an scaled text command, then
+        // query the position. If the parsed value is an F3 with al, we support scaled text.
+        // The returned response will be something like \x1b[1;3R...which when parsed as a Key is a
+        // alt + F3 (the row is ignored). We only care if the column has moved from 1->3, which is
+        // why we see a Shift modifier
+        ctlseqs.home ++
+        ctlseqs.scaled_text_query ++
+        ctlseqs.cursor_position_request ++
         ctlseqs.xtversion ++
         ctlseqs.csi_u_query ++
         ctlseqs.kitty_graphics_query ++
@@ -373,6 +382,11 @@ pub fn render(self: *Vaxis, tty: AnyWriter) !void {
     if (self.caps.kitty_graphics)
         try tty.writeAll(ctlseqs.kitty_graphics_clear);
 
+    // Reset skip flag on all last_screen cells
+    for (self.screen_last.buf) |*last_cell| {
+        last_cell.skip = false;
+    }
+
     var i: usize = 0;
     while (i < self.screen.buf.len) {
         const cell = self.screen.buf[i];
@@ -404,7 +418,12 @@ pub fn render(self: *Vaxis, tty: AnyWriter) !void {
         // If cell is the same as our last frame, we don't need to do
         // anything
         const last = self.screen_last.buf[i];
-        if (!self.refresh and last.eql(cell) and !last.skipped and cell.image == null) {
+        if ((!self.refresh and
+            last.eql(cell) and
+            !last.skipped and
+            cell.image == null) or
+            last.skip)
+        {
             reposition = true;
             // Close any osc8 sequence we might be in before
             // repositioning
@@ -420,6 +439,24 @@ pub fn render(self: *Vaxis, tty: AnyWriter) !void {
         }
         // Set this cell in the last frame
         self.screen_last.writeCell(col, row, cell);
+
+        // If we support scaled text, we set the flags now
+        if (self.caps.scaled_text and cell.scale.scale > 1) {
+            // The cell is scaled. Set appropriate skips. We only need to do this if the scale factor is
+            // > 1
+            assert(cell.char.width > 0);
+            const cols = cell.scale.scale * cell.char.width;
+            const rows = cell.scale.scale;
+            for (0..rows) |skipped_row| {
+                for (0..cols) |skipped_col| {
+                    if (skipped_row == 0 and skipped_col == 0) {
+                        continue;
+                    }
+                    const skipped_i = (@as(usize, @intCast(skipped_row + row)) * self.screen_last.width) + (skipped_col + col);
+                    self.screen_last.buf[skipped_i].skip = true;
+                }
+            }
+        }
 
         // reposition the cursor, if needed
         if (reposition) {
@@ -628,6 +665,41 @@ pub fn render(self: *Vaxis, tty: AnyWriter) !void {
                 ps = "";
             }
             try tty.print(ctlseqs.osc8, .{ ps, cell.link.uri });
+        }
+
+        // scale
+        if (self.caps.scaled_text and !cell.scale.eql(.{})) {
+            const scale = cell.scale;
+            // We have a scaled cell.
+            switch (cell.scale.denominator) {
+                // Denominator cannot be 0
+                0 => unreachable,
+                1 => {
+                    // no fractional scaling, just a straight scale factor
+                    try tty.print(
+                        ctlseqs.scaled_text,
+                        .{ scale.scale, w, cell.char.grapheme },
+                    );
+                },
+                else => {
+                    // fractional scaling
+                    // no fractional scaling, just a straight scale factor
+                    try tty.print(
+                        ctlseqs.scaled_text_with_fractions,
+                        .{
+                            scale.scale,
+                            w,
+                            scale.numerator,
+                            scale.denominator,
+                            @intFromEnum(scale.vertical_alignment),
+                            cell.char.grapheme,
+                        },
+                    );
+                },
+            }
+            cursor_pos.col = col + (w * scale.scale);
+            cursor_pos.row = row;
+            continue;
         }
 
         // If we have explicit width and our width is greater than 1, let's use it
