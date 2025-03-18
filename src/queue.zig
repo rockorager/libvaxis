@@ -49,14 +49,16 @@ pub fn Queue(
             while (self.isFullLH()) {
                 self.not_full.wait(&self.mutex);
             }
-            if (self.isEmptyLH()) {
-                // If we were empty, wake up a pop if it was waiting.
-                self.not_empty.signal();
-            }
             std.debug.assert(!self.isFullLH());
+            const was_empty = self.isEmptyLH();
 
             self.buf[self.mask(self.write_index)] = item;
             self.write_index = self.mask2(self.write_index + 1);
+
+            // If we were empty, wake up a pop if it was waiting.
+            if (was_empty) {
+                self.not_empty.signal();
+            }
         }
 
         /// Push an item into the queue. Returns true when the item
