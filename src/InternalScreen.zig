@@ -19,16 +19,14 @@ pub const InternalCell = struct {
     default: bool = true,
 
     pub fn eql(self: InternalCell, cell: Cell) bool {
+
         // fastpath when both cells are default
         if (self.default and cell.default) return true;
-        // this is actually faster than std.meta.eql on the individual items.
-        // Our strings are always small, usually less than 4 bytes so the simd
-        // usage in std.mem.eql has too much overhead vs looping the bytes
-        if (!std.mem.eql(u8, self.char.items, cell.char.grapheme)) return false;
-        if (!Style.eql(self.style, cell.style)) return false;
-        if (!std.mem.eql(u8, self.uri.items, cell.link.uri)) return false;
-        if (!std.mem.eql(u8, self.uri_id.items, cell.link.params)) return false;
-        return true;
+
+        return std.mem.eql(u8, self.char.items, cell.char.grapheme) and
+            Style.eql(self.style, cell.style) and
+            std.mem.eql(u8, self.uri.items, cell.link.uri) and
+            std.mem.eql(u8, self.uri_id.items, cell.link.params);
     }
 };
 

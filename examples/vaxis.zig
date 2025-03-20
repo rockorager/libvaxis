@@ -79,6 +79,9 @@ pub fn main() !void {
         };
         const center = vaxis.widgets.alignment.center(win, 28, 4);
         _ = center.printSegment(segment, .{ .wrap = .grapheme });
+        // var bw = tty.bufferedWriter();
+        // try vx.render(bw.writer().any());
+        // try bw.flush();
         try vx.render(tty.anyWriter());
         std.time.sleep(16 * std.time.ns_per_ms);
         switch (dir) {
