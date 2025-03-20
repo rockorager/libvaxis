@@ -51,7 +51,7 @@ pub const Options = struct {
 screen: Screen,
 /// The last screen we drew. We keep this so we can efficiently update on
 /// the next render
-screen_last: InternalScreen = undefined,
+screen_last: InternalScreen,
 
 caps: Capabilities = .{},
 
@@ -103,7 +103,7 @@ pub fn init(alloc: std.mem.Allocator, opts: Options) !Vaxis {
     return .{
         .opts = opts,
         .screen = .{},
-        .screen_last = .{},
+        .screen_last = try .init(alloc, 80, 24),
         .unicode = try Unicode.init(alloc),
     };
 }

@@ -44,6 +44,7 @@ pub fn init(alloc: std.mem.Allocator, winsize: Winsize, unicode: *const Unicode)
     @memset(self.buf, base_cell);
     return self;
 }
+
 pub fn deinit(self: *Screen, alloc: std.mem.Allocator) void {
     alloc.free(self.buf);
 }
