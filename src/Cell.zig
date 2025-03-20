@@ -93,9 +93,7 @@ pub const Style = struct {
             .invisible = b.invisible,
             .strikethrough = b.strikethrough,
         };
-        const a_cast: u7 = @bitCast(a_sgr);
-        const b_cast: u7 = @bitCast(b_sgr);
-        return a_cast == b_cast and
+        return a_sgr == b_sgr and
             Color.eql(a.fg, b.fg) and
             Color.eql(a.bg, b.bg) and
             Color.eql(a.ul, b.ul) and
