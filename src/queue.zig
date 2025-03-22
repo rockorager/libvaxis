@@ -36,9 +36,7 @@ pub fn Queue(
                 self.not_full.signal();
             }
 
-            const result = self.buf[self.mask(self.read_index)];
-            self.read_index = self.mask2(self.read_index + 1);
-            return result;
+            return self.popLH();
         }
 
         /// Push an item into the queue. Blocks until an item has been
@@ -97,6 +95,20 @@ pub fn Queue(
             std.debug.assert(!self.isEmptyLH());
         }
 
+        pub fn lock(self: *Self) void {
+            self.mutex.lock();
+        }
+
+        pub fn unlock(self: *Self) void {
+            self.mutex.unlock();
+        }
+
+        /// Used to efficiently drain the queue while the lock is externally held
+        pub fn drain(self: *Self) ?T {
+            if (self.isEmptyLH()) return null;
+            return self.popLH();
+        }
+
         fn isEmptyLH(self: Self) bool {
             return self.write_index == self.read_index;
         }
@@ -136,6 +148,12 @@ pub fn Queue(
         /// Returns `index` modulo twice the length of the backing slice.
         fn mask2(self: Self, index: usize) usize {
             return index % (2 * self.buf.len);
+        }
+
+        fn popLH(self: *Self) T {
+            const result = self.buf[self.mask(self.read_index)];
+            self.read_index = self.mask2(self.read_index + 1);
+            return result;
         }
     };
 }

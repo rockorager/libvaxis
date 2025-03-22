@@ -119,33 +119,39 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
 
         try self.checkTimers(&ctx);
 
-        while (loop.tryEvent()) |event| {
-            defer {
-                // Reset our context
-                ctx.consume_event = false;
-                ctx.phase = .capturing;
-            }
-            switch (event) {
-                .key_press => {
-                    try focus_handler.handleEvent(&ctx, event);
-                    try self.handleCommand(&ctx.cmds);
-                },
-                .focus_out => {
-                    try mouse_handler.mouseExit(self, &ctx);
-                    try focus_handler.handleEvent(&ctx, .focus_out);
-                },
-                .focus_in => {
-                    try focus_handler.handleEvent(&ctx, .focus_in);
-                },
-                .mouse => |mouse| try mouse_handler.handleMouse(self, &ctx, mouse),
-                .winsize => |ws| {
-                    try vx.resize(self.allocator, tty.anyWriter(), ws);
-                    ctx.redraw = true;
-                },
-                else => {
-                    try focus_handler.handleEvent(&ctx, event);
-                    try self.handleCommand(&ctx.cmds);
-                },
+        {
+            loop.queue.lock();
+            defer loop.queue.unlock();
+            while (loop.queue.drain()) |event| {
+                defer {
+                    // Reset our context
+                    ctx.consume_event = false;
+                    ctx.phase = .capturing;
+                }
+                switch (event) {
+                    .key_press => {
+                        try focus_handler.handleEvent(&ctx, event);
+                        try self.handleCommand(&ctx.cmds);
+                    },
+                    .focus_out => {
+                        try mouse_handler.mouseExit(self, &ctx);
+                        try focus_handler.handleEvent(&ctx, .focus_out);
+                        try self.handleCommand(&ctx.cmds);
+                    },
+                    .focus_in => {
+                        try focus_handler.handleEvent(&ctx, .focus_in);
+                        try self.handleCommand(&ctx.cmds);
+                    },
+                    .mouse => |mouse| try mouse_handler.handleMouse(self, &ctx, mouse),
+                    .winsize => |ws| {
+                        try vx.resize(self.allocator, tty.anyWriter(), ws);
+                        ctx.redraw = true;
+                    },
+                    else => {
+                        try focus_handler.handleEvent(&ctx, event);
+                        try self.handleCommand(&ctx.cmds);
+                    },
+                }
             }
         }
 
