@@ -467,7 +467,7 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
 
         'I' => return .{ .event = .focus_in, .n = sequence.len },
         'O' => return .{ .event = .focus_out, .n = sequence.len },
-        'M', 'm' => return parseMouse(sequence),
+        'M', 'm' => return parseMouse(sequence, input),
         'c' => {
             // Primary DA (CSI ? Pm c)
             std.debug.assert(sequence.len >= 4); // ESC [ ? c == 4 bytes
@@ -656,17 +656,28 @@ inline fn parseParam(comptime T: type, buf: []const u8, default: ?T) ?T {
 }
 
 /// Parse a mouse event
-inline fn parseMouse(input: []const u8) Result {
-    std.debug.assert(input.len >= 4); // ESC [ < [Mm]
+inline fn parseMouse(input: []const u8, full_input: []const u8) Result {
     const null_event: Result = .{ .event = null, .n = input.len };
 
-    if (input[2] != '<') return null_event;
-
-    const delim1 = std.mem.indexOfScalarPos(u8, input, 3, ';') orelse return null_event;
-    const button_mask = parseParam(u16, input[3..delim1], null) orelse return null_event;
-    const delim2 = std.mem.indexOfScalarPos(u8, input, delim1 + 1, ';') orelse return null_event;
-    const px = parseParam(u16, input[delim1 + 1 .. delim2], 1) orelse return null_event;
-    const py = parseParam(u16, input[delim2 + 1 .. input.len - 1], 1) orelse return null_event;
+    var button_mask: u16 = undefined;
+    var px: u16 = undefined;
+    var py: u16 = undefined;
+    var xterm: bool = undefined;
+    if (input.len == 3 and (input[2] == 'M') and full_input.len >= 6) {
+        xterm = true;
+        button_mask = full_input[3] - 32;
+        px = full_input[4] - 32;
+        py = full_input[5] - 32;
+    } else if (input.len >= 4 and input[2] == '<') {
+        xterm = false;
+        const delim1 = std.mem.indexOfScalarPos(u8, input, 3, ';') orelse return null_event;
+        button_mask = parseParam(u16, input[3..delim1], null) orelse return null_event;
+        const delim2 = std.mem.indexOfScalarPos(u8, input, delim1 + 1, ';') orelse return null_event;
+        px = parseParam(u16, input[delim1 + 1 .. delim2], 1) orelse return null_event;
+        py = parseParam(u16, input[delim2 + 1 .. input.len - 1], 1) orelse return null_event;
+    } else {
+        return null_event;
+    }
 
     const button: Mouse.Button = @enumFromInt(button_mask & mouse_bits.buttons);
     const motion = button_mask & mouse_bits.motion > 0;
@@ -690,11 +701,17 @@ inline fn parseMouse(input: []const u8) Result {
             if (motion and button == Mouse.Button.none) {
                 break :blk .motion;
             }
+            if (xterm) {
+                if (button == Mouse.Button.none) {
+                    break :blk .release;
+                }
+                break :blk .press;
+            }
             if (input[input.len - 1] == 'm') break :blk .release;
             break :blk .press;
         },
     };
-    return .{ .event = .{ .mouse = mouse }, .n = input.len };
+    return .{ .event = .{ .mouse = mouse }, .n = if (xterm) 6 else input.len };
 }
 
 test "parse: single xterm keypress" {
@@ -1142,6 +1159,25 @@ test "parse(csi): mouse" {
             .row = 0,
             .button = .none,
             .type = .motion,
+            .mods = .{},
+        } },
+        .n = input.len,
+    };
+
+    try testing.expectEqual(expected.n, result.n);
+    try testing.expectEqual(expected.event, result.event);
+}
+
+test "parse(csi): xterm mouse" {
+    var buf: [1]u8 = undefined;
+    const input = "\x1b[M\x20\x21\x21";
+    const result = parseCsi(input, &buf);
+    const expected: Result = .{
+        .event = .{ .mouse = .{
+            .col = 0,
+            .row = 0,
+            .button = .left,
+            .type = .press,
             .mods = .{},
         } },
         .n = input.len,
