@@ -47,6 +47,22 @@ event loop, focus management, mouse handling, and more. Several widgets are
 provided, and custom widgets are easy to build. This API is most likely what you
 want to use for typical TUI applications.
 
+### Add libvaxis to your project
+
+```console
+zig fetch --save git+https://github.com/rockorager/libvaxis.git
+```
+Add this to your build.zig
+
+```zig
+    const vaxis = b.dependency("vaxis", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    exe.root_module.addImport("vaxis", vaxis.module("vaxis"));
+```
+
 ### vxfw (Vaxis framework)
 
 Let's build a simple button counter application. This example can be run using
