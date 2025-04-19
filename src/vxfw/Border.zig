@@ -49,21 +49,21 @@ pub fn draw(self: *const Border, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Sur
     // Draw the border
     const right_edge = size.width -| 1;
     const bottom_edge = size.height -| 1;
-    surf.writeCell(0, 0, .{ .char = .{ .grapheme = "╭", .width = 1 } });
-    surf.writeCell(right_edge, 0, .{ .char = .{ .grapheme = "╮", .width = 1 } });
-    surf.writeCell(right_edge, bottom_edge, .{ .char = .{ .grapheme = "╯", .width = 1 } });
-    surf.writeCell(0, bottom_edge, .{ .char = .{ .grapheme = "╰", .width = 1 } });
+    surf.writeCell(0, 0, .{ .char = .{ .grapheme = "╭", .width = 1 }, .style = self.style });
+    surf.writeCell(right_edge, 0, .{ .char = .{ .grapheme = "╮", .width = 1 }, .style = self.style });
+    surf.writeCell(right_edge, bottom_edge, .{ .char = .{ .grapheme = "╯", .width = 1 }, .style = self.style });
+    surf.writeCell(0, bottom_edge, .{ .char = .{ .grapheme = "╰", .width = 1 }, .style = self.style });
 
     var col: u16 = 1;
     while (col < right_edge) : (col += 1) {
-        surf.writeCell(col, 0, .{ .char = .{ .grapheme = "─", .width = 1 } });
-        surf.writeCell(col, bottom_edge, .{ .char = .{ .grapheme = "─", .width = 1 } });
+        surf.writeCell(col, 0, .{ .char = .{ .grapheme = "─", .width = 1 }, .style = self.style });
+        surf.writeCell(col, bottom_edge, .{ .char = .{ .grapheme = "─", .width = 1 }, .style = self.style });
     }
 
     var row: u16 = 1;
     while (row < bottom_edge) : (row += 1) {
-        surf.writeCell(0, row, .{ .char = .{ .grapheme = "│", .width = 1 } });
-        surf.writeCell(right_edge, row, .{ .char = .{ .grapheme = "│", .width = 1 } });
+        surf.writeCell(0, row, .{ .char = .{ .grapheme = "│", .width = 1 }, .style = self.style });
+        surf.writeCell(right_edge, row, .{ .char = .{ .grapheme = "│", .width = 1 }, .style = self.style });
     }
     return surf;
 }
