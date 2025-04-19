@@ -81,7 +81,7 @@ pub fn draw(self: *const FlexColumn, ctx: vxfw.DrawContext) Allocator.Error!vxfw
             .z_index = 0,
         });
         max_width = @max(max_width, surf.size.width);
-        second_pass_height += surf.size.height;
+        second_pass_height += child_height;
     }
 
     const size: vxfw.Size = .{ .width = max_width, .height = second_pass_height };

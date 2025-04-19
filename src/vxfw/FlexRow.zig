@@ -80,7 +80,7 @@ pub fn draw(self: *const FlexRow, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Su
             .z_index = 0,
         });
         max_height = @max(max_height, surf.size.height);
-        second_pass_width += surf.size.width;
+        second_pass_width += child_width;
     }
     const size: vxfw.Size = .{ .width = second_pass_width, .height = max_height };
     return .{
