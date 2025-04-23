@@ -20,12 +20,12 @@ pub fn widget(self: *const SizedBox) vxfw.Widget {
 fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surface {
     const self: *const SizedBox = @ptrCast(@alignCast(ptr));
     const max: vxfw.MaxSize = .{
-        .width = if (ctx.max.width) |max_w| @min(max_w, self.size.width) else self.size.width,
-        .height = if (ctx.max.height) |max_h| @min(max_h, self.size.height) else self.size.height,
+        .width = if (ctx.max.width) |max_w| max_w else self.size.width,
+        .height = if (ctx.max.height) |max_h| max_h else self.size.height,
     };
     const min: vxfw.Size = .{
-        .width = @max(ctx.min.width, max.width.?),
-        .height = @max(ctx.min.height, max.height.?),
+        .width = @min(@max(ctx.min.width, self.size.width), max.width.?),
+        .height = @min(@max(ctx.min.height, self.size.height), max.height.?),
     };
     return self.child.draw(ctx.withConstraints(min, max));
 }
@@ -79,17 +79,18 @@ test SizedBox {
     };
 
     const box_widget = sized_box.widget();
-    _ = try box_widget.draw(draw_ctx);
+    {
+        const result = try box_widget.draw(draw_ctx);
+        // The sized box is smaller than the constraints, so we should be the desired size
+        try std.testing.expectEqual(sized_box.size, result.size);
+    }
 
-    // The sized box is smaller than the constraints, so we should be the desired size
-    try std.testing.expectEqual(sized_box.size, test_widget.min);
-    try std.testing.expectEqual(sized_box.size, test_widget.max.size());
-
-    draw_ctx.max.height = 8;
-    _ = try box_widget.draw(draw_ctx);
-    // The sized box is smaller than the constraints, so we should be that size
-    try std.testing.expectEqual(@as(vxfw.Size, .{ .width = 10, .height = 8 }), test_widget.min);
-    try std.testing.expectEqual(@as(vxfw.Size, .{ .width = 10, .height = 8 }), test_widget.max.size());
+    {
+        draw_ctx.max.height = 8;
+        const result = try box_widget.draw(draw_ctx);
+        // The sized box is smaller than the constraints, so we should be that size
+        try std.testing.expectEqual(@as(vxfw.Size, .{ .width = 10, .height = 8 }), result.size);
+    }
 
     draw_ctx.max.width = 8;
     _ = try box_widget.draw(draw_ctx);
