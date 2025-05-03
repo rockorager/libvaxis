@@ -1,0 +1,29 @@
+name: Mirror to tangled
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H tangled.sh >> ~/.ssh/known_hosts
+        shell: bash
+
+      - name: Mirror
+        run: |
+          git remote add tangled git@tangled.sh:rockorager.dev/libvaxis
+          git push --mirror tangled
