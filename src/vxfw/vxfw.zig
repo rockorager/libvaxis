@@ -461,10 +461,10 @@ pub const Surface = struct {
 
     /// Returns true if the surface satisfies a set of constraints
     pub fn satisfiesConstraints(self: Surface, min: Size, max: Size) bool {
-        return self.size.width < min.width and
-            self.size.width > max.width and
-            self.size.height < min.height and
-            self.size.height > max.height;
+        return self.size.width < max.width and
+            self.size.width > min.width and
+            self.size.height < max.height and
+            self.size.height > min.height;
     }
 };
 
@@ -517,6 +517,19 @@ test "SubSurface: containsPoint" {
 
 test "refAllDecls" {
     std.testing.refAllDecls(@This());
+}
+
+test "Surface: satisfiesConstraints" {
+    const surf: Surface = .{
+        .size = .{ .width = 10, .height = 10 },
+        .widget = undefined,
+        .children = &.{},
+        .buffer = &.{},
+    };
+
+    try testing.expect(surf.satisfiesConstraints(.{ .width = 1, .height = 1 }, .{ .width = 20, .height = 20 }));
+    try testing.expect(!surf.satisfiesConstraints(.{ .width = 10, .height = 10 }, .{ .width = 20, .height = 20 }));
+    try testing.expect(!surf.satisfiesConstraints(.{ .width = 1, .height = 1 }, .{ .width = 10, .height = 10 }));
 }
 
 test "All widgets have a doctest and refAllDecls test" {
