@@ -130,7 +130,7 @@ pub fn draw(self: *ListView, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surface
 pub fn nextItem(self: *ListView, ctx: *vxfw.EventContext) void {
     // If we have a count, we can handle this directly
     if (self.item_count) |count| {
-        if (self.cursor >= count - 1) {
+        if (self.cursor >= count -| 1) {
             return ctx.consumeEvent();
         }
         self.cursor += 1;
