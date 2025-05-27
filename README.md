@@ -137,11 +137,11 @@ const Model = struct {
         const count_text = try std.fmt.allocPrint(ctx.arena, "{d}", .{self.count});
         const text: vxfw.Text = .{ .text = count_text };
 
-        // Each widget returns a Surface from it's draw function. A Surface contains the rectangular
+        // Each widget returns a Surface from its draw function. A Surface contains the rectangular
         // area of the widget, as well as some information about the surface or widget: can we focus
         // it? does it handle the mouse?
         //
-        // It DOES NOT contain the location it should be within it's parent. Only the parent can set
+        // It DOES NOT contain the location it should be within its parent. Only the parent can set
         // this via a SubSurface. Here, we will return a Surface for the root widget (Model), which
         // has two SubSurfaces: one for the text and one for the button. A SubSurface is a Surface
         // with an offset and a z-index - the offset can be negative. This lets a parent draw a
@@ -156,7 +156,7 @@ const Model = struct {
             .surface = try self.button.draw(ctx.withConstraints(
                 ctx.min,
                 // Here we explicitly set a new maximum size constraint for the Button. A Button will
-                // expand to fill it's area and must have some hard limit in the maximum constraint
+                // expand to fill its area and must have some hard limit in the maximum constraint
                 .{ .width = 16, .height = 3 },
             )),
         };
@@ -173,7 +173,7 @@ const Model = struct {
             .widget = self.widget(),
             // We didn't actually need to draw anything for the root. In this case, we can set
             // buffer to a zero length slice. If this slice is *not zero length*, the runtime will
-            // assert that it's length is equal to the size.width * size.height.
+            // assert that its length is equal to the size.width * size.height.
             .buffer = &.{},
             .children = children,
         };
@@ -230,7 +230,7 @@ multi-threaded event loop implementation. Users of the library are encouraged to
 use the event loop of their choice. The event loop is responsible for reading
 the TTY, passing the read bytes to the vaxis parser, and handling events.
 
-A core feature of Vaxis is it's ability to detect features via terminal queries
+A core feature of Vaxis is its ability to detect features via terminal queries
 instead of relying on a terminfo database. This requires that the event loop
 also handle these query responses and update the Vaxis.caps struct accordingly.
 See the `Loop` implementation to see how this is done if writing your own event
