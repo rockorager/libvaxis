@@ -12,7 +12,7 @@ An event loop implementation is responsible for three primary tasks:
 Everything after this can be left up to user code, or brought into an event loop
 to be a more abstract application layer. One important part of handling the
 events is to update the Vaxis struct with discovered terminal capabilities. This
-let's Vaxis know what features it can use. For example, the Kitty Keyboard
+lets Vaxis know what features it can use. For example, the Kitty Keyboard
 protocol, in-band-resize reports, and Unicode width measurements are just a few
 examples.
 
