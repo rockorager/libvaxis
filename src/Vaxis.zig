@@ -121,8 +121,8 @@ pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator, tty: AnyWriter) void {
     if (alloc) |a| {
         self.screen.deinit(a);
         self.screen_last.deinit(a);
+        self.unicode.deinit(a);
     }
-    self.unicode.deinit();
 }
 
 /// resets enabled features, sends cursor to home and clears below cursor
@@ -396,7 +396,7 @@ pub fn render(self: *Vaxis, tty: AnyWriter) !void {
             if (cell.char.width != 0) break :blk cell.char.width;
 
             const method: gwidth.Method = self.caps.unicode;
-            const width: u16 = @intCast(gwidth.gwidth(cell.char.grapheme, method, &self.unicode.width_data));
+            const width: u16 = @intCast(gwidth.gwidth(cell.char.grapheme, method, &self.unicode.display_width));
             break :blk @max(1, width);
         };
         defer {
