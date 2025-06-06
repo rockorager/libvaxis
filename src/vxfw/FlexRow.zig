@@ -41,10 +41,12 @@ pub fn draw(self: *const FlexRow, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Su
     var first_pass_width: u16 = 0;
     var total_flex: u16 = 0;
     for (self.children, 0..) |child, i| {
-        const surf = try child.widget.draw(layout_ctx);
-        first_pass_width += surf.size.width;
+        if (child.flex == 0) {
+            const surf = try child.widget.draw(layout_ctx);
+            first_pass_width += surf.size.width;
+            size_list[i] = surf.size.width;
+        }
         total_flex += child.flex;
-        size_list[i] = surf.size.width;
     }
 
     // We are done with the layout arena
@@ -57,15 +59,14 @@ pub fn draw(self: *const FlexRow, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Su
     var second_pass_width: u16 = 0;
     var max_height: u16 = 0;
     const remaining_space = ctx.max.width.? - first_pass_width;
-    for (self.children, 1..) |child, i| {
-        const inherent_width = size_list[i - 1];
+    for (self.children, 0..) |child, i| {
         const child_width = if (child.flex == 0)
-            inherent_width
-        else if (i == self.children.len)
+            size_list[i]
+        else if (i == self.children.len - 1)
             // If we are the last one, we just get the remainder
-            ctx.max.width.? - second_pass_width
+            ctx.max.width.? -| second_pass_width
         else
-            inherent_width + (remaining_space * child.flex) / total_flex;
+            (remaining_space * child.flex) / total_flex;
 
         // Create a context for the child
         const child_ctx = ctx.withConstraints(
