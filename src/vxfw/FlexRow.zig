@@ -58,7 +58,7 @@ pub fn draw(self: *const FlexRow, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Su
     // Draw again, but with distributed widths
     var second_pass_width: u16 = 0;
     var max_height: u16 = 0;
-    const remaining_space = ctx.max.width.? - first_pass_width;
+    const remaining_space = ctx.max.width.? -| first_pass_width;
     for (self.children, 0..) |child, i| {
         const child_width = if (child.flex == 0)
             size_list[i]
