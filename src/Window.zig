@@ -205,7 +205,7 @@ pub fn clear(self: Window) void {
 
 /// returns the width of the grapheme. This depends on the terminal capabilities
 pub fn gwidth(self: Window, str: []const u8) u16 {
-    return gw.gwidth(str, self.screen.width_method, &self.screen.unicode.width_data);
+    return gw.gwidth(str, self.screen.width_method, &self.screen.unicode.display_width);
 }
 
 /// fills the window with the provided cell
@@ -564,7 +564,7 @@ test "Window offsets" {
 test "print: grapheme" {
     const alloc = std.testing.allocator_instance.allocator();
     const unicode = try Unicode.init(alloc);
-    defer unicode.deinit();
+    defer unicode.deinit(alloc);
     var screen: Screen = .{ .width_method = .unicode, .unicode = &unicode };
     const win: Window = .{
         .x_off = 0,
@@ -630,7 +630,7 @@ test "print: grapheme" {
 test "print: word" {
     const alloc = std.testing.allocator_instance.allocator();
     const unicode = try Unicode.init(alloc);
-    defer unicode.deinit();
+    defer unicode.deinit(alloc);
     var screen: Screen = .{
         .width_method = .unicode,
         .unicode = &unicode,

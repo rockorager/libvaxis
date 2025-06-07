@@ -80,6 +80,8 @@ sgr: enum {
     legacy,
 } = .standard,
 
+conpty_hacks: bool = false,
+
 state: struct {
     /// if we are in the alt screen
     alt_screen: bool = false,
@@ -119,8 +121,8 @@ pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator, tty: AnyWriter) void {
     if (alloc) |a| {
         self.screen.deinit(a);
         self.screen_last.deinit(a);
+        self.unicode.deinit(a);
     }
-    self.unicode.deinit();
 }
 
 /// resets enabled features, sends cursor to home and clears below cursor
@@ -394,7 +396,7 @@ pub fn render(self: *Vaxis, tty: AnyWriter) !void {
             if (cell.char.width != 0) break :blk cell.char.width;
 
             const method: gwidth.Method = self.caps.unicode;
-            const width: u16 = @intCast(gwidth.gwidth(cell.char.grapheme, method, &self.unicode.width_data));
+            const width: u16 = @intCast(gwidth.gwidth(cell.char.grapheme, method, &self.unicode.display_width));
             break :blk @max(1, width);
         };
         defer {
@@ -574,7 +576,9 @@ pub fn render(self: *Vaxis, tty: AnyWriter) !void {
                     }
                 },
                 .rgb => |rgb| {
-                    switch (self.sgr) {
+                    if (self.conpty_hacks)
+                        try tty.print(ctlseqs.ul_rgb_conpty, .{ rgb[0], rgb[1], rgb[2] })
+                    else switch (self.sgr) {
                         .standard => try tty.print(ctlseqs.ul_rgb, .{ rgb[0], rgb[1], rgb[2] }),
                         .legacy => try tty.print(ctlseqs.ul_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
                     }
@@ -1237,9 +1241,13 @@ pub fn prettyPrint(self: *Vaxis, tty: AnyWriter) !void {
                     }
                 },
                 .rgb => |rgb| {
-                    switch (self.sgr) {
+                    if (self.conpty_hacks)
+                        try tty.print(ctlseqs.ul_rgb_conpty, .{ rgb[0], rgb[1], rgb[2] })
+                    else switch (self.sgr) {
                         .standard => try tty.print(ctlseqs.ul_rgb, .{ rgb[0], rgb[1], rgb[2] }),
-                        .legacy => try tty.print(ctlseqs.ul_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
+                        .legacy => {
+                            try tty.print(ctlseqs.ul_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] });
+                        },
                     }
                 },
             }

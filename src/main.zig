@@ -27,7 +27,7 @@ pub const widgets = @import("widgets.zig");
 pub const gwidth = @import("gwidth.zig");
 pub const ctlseqs = @import("ctlseqs.zig");
 pub const GraphemeCache = @import("GraphemeCache.zig");
-pub const grapheme = @import("grapheme");
+pub const Graphemes = @import("Graphemes");
 pub const Event = @import("event.zig").Event;
 pub const Unicode = @import("Unicode.zig");
 

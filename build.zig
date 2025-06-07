@@ -22,7 +22,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     vaxis_mod.addImport("code_point", zg_dep.module("code_point"));
-    vaxis_mod.addImport("grapheme", zg_dep.module("grapheme"));
+    vaxis_mod.addImport("Graphemes", zg_dep.module("Graphemes"));
     vaxis_mod.addImport("DisplayWidth", zg_dep.module("DisplayWidth"));
     vaxis_mod.addImport("zigimg", zigimg_dep.module("zigimg"));
 
@@ -66,7 +66,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     tests.root_module.addImport("code_point", zg_dep.module("code_point"));
-    tests.root_module.addImport("grapheme", zg_dep.module("grapheme"));
+    tests.root_module.addImport("Graphemes", zg_dep.module("Graphemes"));
     tests.root_module.addImport("DisplayWidth", zg_dep.module("DisplayWidth"));
     tests.root_module.addImport("zigimg", zigimg_dep.module("zigimg"));
 

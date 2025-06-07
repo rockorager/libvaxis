@@ -11,7 +11,7 @@ pub const BufferWriter = struct {
     allocator: std.mem.Allocator,
     buffer: *Buffer,
     gd: *const grapheme.GraphemeData,
-    wd: *const DisplayWidth.DisplayWidthData,
+    wd: *const DisplayWidth,
 
     pub fn write(self: @This(), bytes: []const u8) Error!usize {
         try self.buffer.append(self.allocator, .{
@@ -34,7 +34,7 @@ pub const Buffer = struct {
     pub const Content = struct {
         bytes: []const u8,
         gd: *const grapheme.GraphemeData,
-        wd: *const DisplayWidth.DisplayWidthData,
+        wd: *const DisplayWidth,
     };
 
     pub const Style = struct {
@@ -125,7 +125,7 @@ pub const Buffer = struct {
         self: *@This(),
         allocator: std.mem.Allocator,
         gd: *const grapheme.GraphemeData,
-        wd: *const DisplayWidth.DisplayWidthData,
+        wd: *const DisplayWidth,
     ) BufferWriter.Writer {
         return .{
             .context = .{
