@@ -63,6 +63,31 @@ Add this to your build.zig
     exe.root_module.addImport("vaxis", vaxis.module("vaxis"));
 ```
 
+or for ZLS support
+
+```zig
+    // create module
+    const exe_mod = b.createModule(.{
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    
+    // add vaxis dependency to module
+    const vaxis = b.dependency("vaxis", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    exe_mod.addImport("vaxis", vaxis.module("vaxis"));
+    
+    //create executable
+    const exe = b.addExecutable(.{
+        .name = "project_foo",
+        .root_module = exe_mod,
+    });
+    // install exe below
+```
+
 ### vxfw (Vaxis framework)
 
 Let's build a simple button counter application. This example can be run using
