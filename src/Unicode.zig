@@ -1,25 +1,28 @@
 const std = @import("std");
-const grapheme = @import("grapheme");
+const Graphemes = @import("Graphemes");
 const DisplayWidth = @import("DisplayWidth");
 
 /// A thin wrapper around zg data
 const Unicode = @This();
 
-width_data: DisplayWidth.DisplayWidthData,
+graphemes: Graphemes,
+display_width: DisplayWidth,
 
 /// initialize all unicode data vaxis may possibly need
 pub fn init(alloc: std.mem.Allocator) !Unicode {
+    const graphemes = try Graphemes.init(alloc);
     return .{
-        .width_data = try DisplayWidth.DisplayWidthData.init(alloc),
+        .graphemes = graphemes,
+        .display_width = try DisplayWidth.initWithGraphemes(alloc, graphemes),
     };
 }
 
 /// free all data
-pub fn deinit(self: *const Unicode) void {
-    self.width_data.deinit();
+pub fn deinit(self: *const Unicode, alloc: std.mem.Allocator) void {
+    self.display_width.deinit(alloc);
 }
 
 /// creates a grapheme iterator based on str
-pub fn graphemeIterator(self: *const Unicode, str: []const u8) grapheme.Iterator {
-    return grapheme.Iterator.init(str, &self.width_data.g_data);
+pub fn graphemeIterator(self: *const Unicode, str: []const u8) Graphemes.Iterator {
+    return Graphemes.Iterator.init(str, &self.graphemes);
 }
