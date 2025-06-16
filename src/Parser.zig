@@ -5,7 +5,7 @@ const Event = @import("event.zig").Event;
 const Key = @import("Key.zig");
 const Mouse = @import("Mouse.zig");
 const code_point = @import("code_point");
-const grapheme = @import("grapheme");
+const Graphemes = @import("Graphemes");
 const Winsize = @import("main.zig").Winsize;
 
 const log = std.log.scoped(.vaxis_parser);
@@ -45,7 +45,7 @@ const State = enum {
 // text-as-codepoints
 buf: [128]u8 = undefined,
 
-grapheme_data: *const grapheme.GraphemeData,
+grapheme_data: *const Graphemes,
 
 /// Parse the first event from the input buffer. If a completion event is not
 /// present, Result.event will be null and Result.n will be 0
@@ -81,7 +81,7 @@ pub fn parse(self: *Parser, input: []const u8, paste_allocator: ?std.mem.Allocat
 }
 
 /// Parse ground state
-inline fn parseGround(input: []const u8, data: *const grapheme.GraphemeData) !Result {
+inline fn parseGround(input: []const u8, data: *const Graphemes) !Result {
     std.debug.assert(input.len > 0);
 
     const b = input[0];
@@ -116,10 +116,10 @@ inline fn parseGround(input: []const u8, data: *const grapheme.GraphemeData) !Re
 
             // Check if we have a multi-codepoint grapheme
             var code = cp.code;
-            var g_state: grapheme.State = .{};
+            var g_state: Graphemes.State = .{};
             var prev_cp = code;
             while (iter.next()) |next_cp| {
-                if (grapheme.graphemeBreak(prev_cp, next_cp.code, data, &g_state)) {
+                if (Graphemes.graphemeBreak(prev_cp, next_cp.code, data, &g_state)) {
                     break;
                 }
                 prev_cp = next_cp.code;
@@ -716,8 +716,8 @@ inline fn parseMouse(input: []const u8, full_input: []const u8) Result {
 
 test "parse: single xterm keypress" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "a";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -733,8 +733,8 @@ test "parse: single xterm keypress" {
 
 test "parse: single xterm keypress backspace" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "\x08";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -749,8 +749,8 @@ test "parse: single xterm keypress backspace" {
 
 test "parse: single xterm keypress with more buffer" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "ab";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -767,8 +767,8 @@ test "parse: single xterm keypress with more buffer" {
 
 test "parse: xterm escape keypress" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "\x1b";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -781,8 +781,8 @@ test "parse: xterm escape keypress" {
 
 test "parse: xterm ctrl+a" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "\x01";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -795,8 +795,8 @@ test "parse: xterm ctrl+a" {
 
 test "parse: xterm alt+a" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "\x1ba";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -809,8 +809,8 @@ test "parse: xterm alt+a" {
 
 test "parse: xterm key up" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     {
         // normal version
         const input = "\x1b[A";
@@ -838,8 +838,8 @@ test "parse: xterm key up" {
 
 test "parse: xterm shift+up" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "\x1b[1;2A";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -852,8 +852,8 @@ test "parse: xterm shift+up" {
 
 test "parse: xterm insert" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "\x1b[2~";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -866,8 +866,8 @@ test "parse: xterm insert" {
 
 test "parse: paste_start" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "\x1b[200~";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -879,8 +879,8 @@ test "parse: paste_start" {
 
 test "parse: paste_end" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "\x1b[201~";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -892,8 +892,8 @@ test "parse: paste_end" {
 
 test "parse: osc52 paste" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "\x1b]52;c;b3NjNTIgcGFzdGU=\x1b\\";
     const expected_text = "osc52 paste";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
@@ -911,8 +911,8 @@ test "parse: osc52 paste" {
 
 test "parse: focus_in" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "\x1b[I";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -924,8 +924,8 @@ test "parse: focus_in" {
 
 test "parse: focus_out" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "\x1b[O";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -937,8 +937,8 @@ test "parse: focus_out" {
 
 test "parse: kitty: shift+a without text reporting" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "\x1b[97:65;2u";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -956,8 +956,8 @@ test "parse: kitty: shift+a without text reporting" {
 
 test "parse: kitty: alt+shift+a without text reporting" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "\x1b[97:65;4u";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -974,8 +974,8 @@ test "parse: kitty: alt+shift+a without text reporting" {
 
 test "parse: kitty: a without text reporting" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "\x1b[97u";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -990,8 +990,8 @@ test "parse: kitty: a without text reporting" {
 
 test "parse: kitty: release event" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "\x1b[97;1:3u";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -1006,8 +1006,8 @@ test "parse: kitty: release event" {
 
 test "parse: single codepoint" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "🙂";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -1023,8 +1023,8 @@ test "parse: single codepoint" {
 
 test "parse: single codepoint with more in buffer" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "🙂a";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -1040,8 +1040,8 @@ test "parse: single codepoint with more in buffer" {
 
 test "parse: multiple codepoint grapheme" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "👩‍🚀";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -1057,8 +1057,8 @@ test "parse: multiple codepoint grapheme" {
 
 test "parse: multiple codepoint grapheme with more after" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "👩‍🚀abc";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);
@@ -1189,8 +1189,8 @@ test "parse(csi): xterm mouse" {
 
 test "parse: disambiguate shift + space" {
     const alloc = testing.allocator_instance.allocator();
-    const grapheme_data = try grapheme.GraphemeData.init(alloc);
-    defer grapheme_data.deinit();
+    const grapheme_data = try Graphemes.init(alloc);
+    defer grapheme_data.deinit(alloc);
     const input = "\x1b[32;2u";
     var parser: Parser = .{ .grapheme_data = &grapheme_data };
     const result = try parser.parse(input, alloc);

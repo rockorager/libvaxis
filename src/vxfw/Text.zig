@@ -294,7 +294,7 @@ pub const SoftwrapIterator = struct {
 
 test "SoftwrapIterator: LF breaks" {
     const unicode = try vaxis.Unicode.init(std.testing.allocator);
-    defer unicode.deinit();
+    defer unicode.deinit(std.testing.allocator);
     vxfw.DrawContext.init(&unicode, .unicode);
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
@@ -322,7 +322,7 @@ test "SoftwrapIterator: LF breaks" {
 
 test "SoftwrapIterator: soft breaks that fit" {
     const unicode = try vaxis.Unicode.init(std.testing.allocator);
-    defer unicode.deinit();
+    defer unicode.deinit(std.testing.allocator);
     vxfw.DrawContext.init(&unicode, .unicode);
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
@@ -350,7 +350,7 @@ test "SoftwrapIterator: soft breaks that fit" {
 
 test "SoftwrapIterator: soft breaks that are longer than width" {
     const unicode = try vaxis.Unicode.init(std.testing.allocator);
-    defer unicode.deinit();
+    defer unicode.deinit(std.testing.allocator);
     vxfw.DrawContext.init(&unicode, .unicode);
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
@@ -388,7 +388,7 @@ test "SoftwrapIterator: soft breaks that are longer than width" {
 
 test "SoftwrapIterator: soft breaks with leading spaces" {
     const unicode = try vaxis.Unicode.init(std.testing.allocator);
-    defer unicode.deinit();
+    defer unicode.deinit(std.testing.allocator);
     vxfw.DrawContext.init(&unicode, .unicode);
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();

@@ -386,7 +386,7 @@ pub fn deleteWordAfter(self: *TextField) void {
 test "sliceToCursor" {
     const alloc = std.testing.allocator_instance.allocator();
     const unicode = try Unicode.init(alloc);
-    defer unicode.deinit();
+    defer unicode.deinit(alloc);
     var input = init(alloc, &unicode);
     defer input.deinit();
     try input.insertSliceAtCursor("hello, world");

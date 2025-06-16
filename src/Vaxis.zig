@@ -119,8 +119,8 @@ pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator, tty: AnyWriter) void {
     if (alloc) |a| {
         self.screen.deinit(a);
         self.screen_last.deinit(a);
+        self.unicode.deinit(a);
     }
-    self.unicode.deinit();
 }
 
 /// resets enabled features, sends cursor to home and clears below cursor

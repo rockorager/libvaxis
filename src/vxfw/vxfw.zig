@@ -1,7 +1,7 @@
 const std = @import("std");
 const vaxis = @import("../main.zig");
 
-const grapheme = vaxis.grapheme;
+const Graphemes = vaxis.Graphemes;
 const testing = std.testing;
 
 const assert = std.debug.assert;
@@ -207,7 +207,7 @@ pub const DrawContext = struct {
         );
     }
 
-    pub fn graphemeIterator(_: DrawContext, str: []const u8) grapheme.Iterator {
+    pub fn graphemeIterator(_: DrawContext, str: []const u8) Graphemes.Iterator {
         assert(DrawContext.unicode != null); // DrawContext not initialized
         return DrawContext.unicode.?.graphemeIterator(str);
     }

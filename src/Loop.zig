@@ -1,7 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-const grapheme = @import("grapheme");
+const Graphemes = @import("Graphemes");
 
 const GraphemeCache = @import("GraphemeCache.zig");
 const Parser = @import("Parser.zig");
@@ -47,7 +47,7 @@ pub fn Loop(comptime T: type) type {
             if (self.thread) |_| return;
             self.thread = try std.Thread.spawn(.{}, Self.ttyRun, .{
                 self,
-                &self.vaxis.unicode.width_data.g_data,
+                &self.vaxis.unicode.width_data.graphemes,
                 self.vaxis.opts.system_clipboard_allocator,
             });
         }
@@ -107,7 +107,7 @@ pub fn Loop(comptime T: type) type {
         /// read input from the tty. This is run in a separate thread
         fn ttyRun(
             self: *Self,
-            grapheme_data: *const grapheme.GraphemeData,
+            grapheme_data: *const Graphemes,
             paste_allocator: ?std.mem.Allocator,
         ) !void {
             // initialize a grapheme cache

@@ -12,11 +12,10 @@ pub const Method = enum {
 };
 
 /// returns the width of the provided string, as measured by the method chosen
-pub fn gwidth(str: []const u8, method: Method, data: *const DisplayWidth.DisplayWidthData) u16 {
+pub fn gwidth(str: []const u8, method: Method, data: *const DisplayWidth) u16 {
     switch (method) {
         .unicode => {
-            const dw: DisplayWidth = .{ .data = data };
-            return @intCast(dw.strWidth(str));
+            return @intCast(data.strWidth(str));
         },
         .wcwidth => {
             var total: u16 = 0;
@@ -45,8 +44,8 @@ pub fn gwidth(str: []const u8, method: Method, data: *const DisplayWidth.Display
 
 test "gwidth: a" {
     const alloc = testing.allocator_instance.allocator();
-    const data = try DisplayWidth.DisplayWidthData.init(alloc);
-    defer data.deinit();
+    const data = try DisplayWidth.init(alloc);
+    defer data.deinit(alloc);
     try testing.expectEqual(1, gwidth("a", .unicode, &data));
     try testing.expectEqual(1, gwidth("a", .wcwidth, &data));
     try testing.expectEqual(1, gwidth("a", .no_zwj, &data));
@@ -54,8 +53,8 @@ test "gwidth: a" {
 
 test "gwidth: emoji with ZWJ" {
     const alloc = testing.allocator_instance.allocator();
-    const data = try DisplayWidth.DisplayWidthData.init(alloc);
-    defer data.deinit();
+    const data = try DisplayWidth.init(alloc);
+    defer data.deinit(alloc);
     try testing.expectEqual(2, gwidth("👩‍🚀", .unicode, &data));
     try testing.expectEqual(4, gwidth("👩‍🚀", .wcwidth, &data));
     try testing.expectEqual(4, gwidth("👩‍🚀", .no_zwj, &data));
@@ -63,8 +62,8 @@ test "gwidth: emoji with ZWJ" {
 
 test "gwidth: emoji with VS16 selector" {
     const alloc = testing.allocator_instance.allocator();
-    const data = try DisplayWidth.DisplayWidthData.init(alloc);
-    defer data.deinit();
+    const data = try DisplayWidth.init(alloc);
+    defer data.deinit(alloc);
     try testing.expectEqual(2, gwidth("\xE2\x9D\xA4\xEF\xB8\x8F", .unicode, &data));
     try testing.expectEqual(1, gwidth("\xE2\x9D\xA4\xEF\xB8\x8F", .wcwidth, &data));
     try testing.expectEqual(2, gwidth("\xE2\x9D\xA4\xEF\xB8\x8F", .no_zwj, &data));
@@ -72,8 +71,8 @@ test "gwidth: emoji with VS16 selector" {
 
 test "gwidth: emoji with skin tone selector" {
     const alloc = testing.allocator_instance.allocator();
-    const data = try DisplayWidth.DisplayWidthData.init(alloc);
-    defer data.deinit();
+    const data = try DisplayWidth.init(alloc);
+    defer data.deinit(alloc);
     try testing.expectEqual(2, gwidth("👋🏿", .unicode, &data));
     try testing.expectEqual(4, gwidth("👋🏿", .wcwidth, &data));
     try testing.expectEqual(2, gwidth("👋🏿", .no_zwj, &data));
