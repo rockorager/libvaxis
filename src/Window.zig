@@ -564,7 +564,7 @@ test "Window offsets" {
 test "print: grapheme" {
     const alloc = std.testing.allocator_instance.allocator();
     const unicode = try Unicode.init(alloc);
-    defer unicode.deinit();
+    defer unicode.deinit(alloc);
     var screen: Screen = .{ .width_method = .unicode, .unicode = &unicode };
     const win: Window = .{
         .x_off = 0,
@@ -630,7 +630,7 @@ test "print: grapheme" {
 test "print: word" {
     const alloc = std.testing.allocator_instance.allocator();
     const unicode = try Unicode.init(alloc);
-    defer unicode.deinit();
+    defer unicode.deinit(alloc);
     var screen: Screen = .{
         .width_method = .unicode,
         .unicode = &unicode,
