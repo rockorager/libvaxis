@@ -59,7 +59,7 @@ pub const PosixTty = struct {
             .handler = .{ .handler = PosixTty.handleWinch },
             .mask = switch (builtin.os.tag) {
                 .macos => 0,
-                else => posix.empty_sigset,
+                else => posix.sigemptyset(),
             },
             .flags = 0,
         };
@@ -93,7 +93,7 @@ pub const PosixTty = struct {
             .handler = .{ .handler = posix.SIG.DFL },
             .mask = switch (builtin.os.tag) {
                 .macos => 0,
-                else => posix.empty_sigset,
+                else => posix.sigemptyset(),
             },
             .flags = 0,
         };
