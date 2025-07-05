@@ -11,7 +11,7 @@ pub const BufferWriter = struct {
     allocator: std.mem.Allocator,
     buffer: *Buffer,
     gd: *const Graphemes,
-    wd: *const DisplayWidth.DisplayWidthData,
+    wd: *const DisplayWidth,
 
     pub fn write(self: @This(), bytes: []const u8) Error!usize {
         try self.buffer.append(self.allocator, .{
@@ -34,7 +34,7 @@ pub const Buffer = struct {
     pub const Content = struct {
         bytes: []const u8,
         gd: *const Graphemes,
-        wd: *const DisplayWidth.DisplayWidthData,
+        wd: *const DisplayWidth,
     };
 
     pub const Style = struct {
@@ -79,7 +79,6 @@ pub const Buffer = struct {
     pub fn append(self: *@This(), allocator: std.mem.Allocator, content: Content) Error!void {
         var cols: usize = self.last_cols;
         var iter = Graphemes.Iterator.init(content.bytes, content.gd);
-        const dw: DisplayWidth = .{ .data = content.wd };
         while (iter.next()) |g| {
             try self.grapheme.append(allocator, .{
                 .len = g.len,
@@ -91,7 +90,7 @@ pub const Buffer = struct {
                 cols = 0;
                 continue;
             }
-            cols +|= dw.strWidth(cluster);
+            cols +|= content.wd.strWidth(cluster);
         }
         try self.content.appendSlice(allocator, content.bytes);
         self.last_cols = cols;
@@ -125,7 +124,7 @@ pub const Buffer = struct {
         self: *@This(),
         allocator: std.mem.Allocator,
         gd: *const Graphemes,
-        wd: *const DisplayWidth.DisplayWidthData,
+        wd: *const DisplayWidth,
     ) BufferWriter.Writer {
         return .{
             .context = .{
