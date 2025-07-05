@@ -1,6 +1,6 @@
 const std = @import("std");
 const vaxis = @import("../main.zig");
-const grapheme = @import("grapheme");
+const Graphemes = @import("Graphemes");
 const DisplayWidth = @import("DisplayWidth");
 const ScrollView = vaxis.widgets.ScrollView;
 
@@ -10,7 +10,7 @@ pub const BufferWriter = struct {
 
     allocator: std.mem.Allocator,
     buffer: *Buffer,
-    gd: *const grapheme.GraphemeData,
+    gd: *const Graphemes,
     wd: *const DisplayWidth.DisplayWidthData,
 
     pub fn write(self: @This(), bytes: []const u8) Error!usize {
@@ -33,7 +33,7 @@ pub const Buffer = struct {
 
     pub const Content = struct {
         bytes: []const u8,
-        gd: *const grapheme.GraphemeData,
+        gd: *const Graphemes,
         wd: *const DisplayWidth.DisplayWidthData,
     };
 
@@ -45,7 +45,7 @@ pub const Buffer = struct {
 
     pub const Error = error{OutOfMemory};
 
-    grapheme: std.MultiArrayList(grapheme.Grapheme) = .{},
+    grapheme: std.MultiArrayList(Graphemes.Grapheme) = .{},
     content: std.ArrayListUnmanaged(u8) = .{},
     style_list: StyleList = .{},
     style_map: StyleMap = .{},
@@ -78,7 +78,7 @@ pub const Buffer = struct {
     /// Appends content to the buffer.
     pub fn append(self: *@This(), allocator: std.mem.Allocator, content: Content) Error!void {
         var cols: usize = self.last_cols;
-        var iter = grapheme.Iterator.init(content.bytes, content.gd);
+        var iter = Graphemes.Iterator.init(content.bytes, content.gd);
         const dw: DisplayWidth = .{ .data = content.wd };
         while (iter.next()) |g| {
             try self.grapheme.append(allocator, .{
@@ -124,7 +124,7 @@ pub const Buffer = struct {
     pub fn writer(
         self: *@This(),
         allocator: std.mem.Allocator,
-        gd: *const grapheme.GraphemeData,
+        gd: *const Graphemes,
         wd: *const DisplayWidth.DisplayWidthData,
     ) BufferWriter.Writer {
         return .{
