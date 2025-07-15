@@ -6,12 +6,12 @@ const Allocator = std.mem.Allocator;
 const vxfw = @import("vxfw.zig");
 
 pub const BorderLabel = struct { text: []const u8, alignment: enum {
-    TopLeft,
-    TopCenter,
-    TopRight,
-    BottomLeft,
-    BottomCenter,
-    BottomRight,
+    top_left,
+    top_center,
+    top_right,
+    bottom_left,
+    bottom_center,
+    bottom_right,
 } };
 
 const Border = @This();
@@ -76,27 +76,30 @@ pub fn draw(self: *const Border, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Sur
         surf.writeCell(right_edge, row, .{ .char = .{ .grapheme = "│", .width = 1 }, .style = self.style });
     }
 
+    // Add border labels
     for (self.labels) |label| {
-        const text_len: u16 = @intCast(label.text.len);
+        const text_len: u16 = @intCast(ctx.stringWidth(label.text));
+        if (text_len == 0) continue;
+
         const text_row: u16 = switch (label.alignment) {
-            .TopLeft, .TopCenter, .TopRight => 0,
-            .BottomLeft, .BottomCenter, .BottomRight => bottom_edge,
+            .top_left, .top_center, .top_right => 0,
+            .bottom_left, .bottom_center, .bottom_right => bottom_edge,
         };
 
         const text_col: u16 = switch (label.alignment) {
-            .TopLeft, .BottomLeft => 1,
-            .TopCenter, .BottomCenter => @max((size.width - text_len) / 2, 1),
-            .TopRight, .BottomRight => @max(size.width - 1 - text_len, 1),
+            .top_left, .bottom_left => 1,
+            .top_center, .bottom_center => @max((size.width - text_len) / 2, 1),
+            .top_right, .bottom_right => @max(size.width - 1 - text_len, 1),
         };
 
+        var iter = ctx.graphemeIterator(label.text);
         var i: usize = 0;
-        while (i < label.text.len and text_col + i < size.width - 1) : (i += 1) {
+        while(iter.next()) |char| : (i += 1) {
+            const grapheme = char.bytes(label.text);
             const iConv: u16 = @intCast(i);
+            if (i >= text_len or text_col + i >= size.width - 1) break;
             surf.writeCell(text_col + iConv, text_row, .{
-                .char = .{
-                    .grapheme = label.text[i .. i + 1],
-                    .width = 1,
-                },
+                .char = .{ .grapheme = grapheme, .width = 1 },
                 .style = self.style,
             });
         }
