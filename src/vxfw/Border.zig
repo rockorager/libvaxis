@@ -86,22 +86,21 @@ pub fn draw(self: *const Border, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Sur
             .bottom_left, .bottom_center, .bottom_right => bottom_edge,
         };
 
-        const text_col: u16 = switch (label.alignment) {
+        var text_col: u16 = switch (label.alignment) {
             .top_left, .bottom_left => 1,
             .top_center, .bottom_center => @max((size.width - text_len) / 2, 1),
             .top_right, .bottom_right => @max(size.width - 1 - text_len, 1),
         };
 
         var iter = ctx.graphemeIterator(label.text);
-        var i: usize = 0;
-        while(iter.next()) |char| : (i += 1) {
-            const grapheme = char.bytes(label.text);
-            const iConv: u16 = @intCast(i);
-            if (i >= text_len or text_col + i >= size.width - 1) break;
-            surf.writeCell(text_col + iConv, text_row, .{
-                .char = .{ .grapheme = grapheme, .width = 1 },
+        while(iter.next()) |grapheme| {
+            const text = grapheme.bytes(label.text);
+            const width: u16 = @intCast(ctx.stringWidth(text));
+            surf.writeCell(text_col , text_row, .{
+                .char = .{ .grapheme = text, .width = 1 },
                 .style = self.style,
             });
+            text_col += width;
         }
     }
 
