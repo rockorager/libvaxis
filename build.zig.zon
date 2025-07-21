@@ -5,12 +5,14 @@
     .minimum_zig_version = "0.14.0",
     .dependencies = .{
         .zigimg = .{
-            .url = "git+https://github.com/zigimg/zigimg#74caab5edd7c5f1d2f7d87e5717435ce0f0affa1",
-            .hash = "zigimg-0.1.0-8_eo2nWlEgCddu8EGLOM_RkYshx3sC8tWv-yYA4-htS6",
+            // TODO .url = "git+https://github.com/zigimg/zigimg",
+            .url = "git+https://github.com/ivanstepanovftw/zigimg#aa4c31db872612c39edbb79f753b3cd9a79fe726",
+            .hash = "zigimg-0.1.0-8_eo2mWmEgBoqdr0sH9O5GTqDHthkoEPM5_tipcBRreL",
         },
         .zg = .{
-            .url = "git+https://codeberg.org/atman/zg#0b05141b033043c5f7bcd72048a48eef6531ea6c",
-            .hash = "zg-0.14.0-oGqU3KEFswIffnDu8eAE2XlhzwcfgjwtM6akIc5L7cEV",
+            // TODO .url = "git+https://codeberg.org/atman/zg",
+            .url = "git+https://codeberg.org/ivanstepanovftw/zg#4fe689e56ce2ed5a8f59308b471bccd7da89fac9",
+            .hash = "zg-0.14.1-oGqU3J4_tAKBfyes3AWleKDjo-IcYvnEwaB8qxOqFMwM",
         },
     },
     .paths = .{

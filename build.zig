@@ -45,14 +45,17 @@ pub fn build(b: *std.Build) void {
     const example_step = b.step("example", "Run example");
     const example = b.addExecutable(.{
         .name = "example",
-        // future versions should use b.path, see zig PR #19597
-        .root_source_file = b.path(
-            b.fmt("examples/{s}.zig", .{@tagName(example_option)}),
-        ),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path(
+                b.fmt("examples/{s}.zig", .{@tagName(example_option)}),
+            ),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "vaxis", .module = vaxis_mod },
+            },
+        }),
     });
-    example.root_module.addImport("vaxis", vaxis_mod);
 
     const example_run = b.addRunArtifact(example);
     example_step.dependOn(&example_run.step);
@@ -61,14 +64,18 @@ pub fn build(b: *std.Build) void {
     const tests_step = b.step("test", "Run tests");
 
     const tests = b.addTest(.{
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "code_point", .module = zg_dep.module("code_point") },
+                .{ .name = "Graphemes", .module = zg_dep.module("Graphemes") },
+                .{ .name = "DisplayWidth", .module = zg_dep.module("DisplayWidth") },
+                .{ .name = "zigimg", .module = zigimg_dep.module("zigimg") },
+            },
+        }),
     });
-    tests.root_module.addImport("code_point", zg_dep.module("code_point"));
-    tests.root_module.addImport("Graphemes", zg_dep.module("Graphemes"));
-    tests.root_module.addImport("DisplayWidth", zg_dep.module("DisplayWidth"));
-    tests.root_module.addImport("zigimg", zigimg_dep.module("zigimg"));
 
     const tests_run = b.addRunArtifact(tests);
     b.installArtifact(tests);
@@ -78,9 +85,11 @@ pub fn build(b: *std.Build) void {
     const docs_step = b.step("docs", "Build the vaxis library docs");
     const docs_obj = b.addObject(.{
         .name = "vaxis",
-        .root_source_file = root_source_file,
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = root_source_file,
+            .target = target,
+            .optimize = optimize,
+        }),
     });
     const docs = docs_obj.getEmittedDocs();
     docs_step.dependOn(&b.addInstallDirectory(.{

@@ -550,7 +550,7 @@ test "All widgets have a doctest and refAllDecls test" {
             file.name[0..idx]
         else
             continue;
-        const data = try cwd.readFileAllocOptions(std.testing.allocator, file.name, 10_000_000, null, @alignOf(u8), 0x00);
+        const data = try cwd.readFileAllocOptions(std.testing.allocator, file.name, 10_000_000, null, .of(u8), 0x00);
         defer std.testing.allocator.free(data);
         var ast = try std.zig.Ast.parse(std.testing.allocator, data, .zig);
         defer ast.deinit(std.testing.allocator);
@@ -558,10 +558,10 @@ test "All widgets have a doctest and refAllDecls test" {
         var has_doctest: bool = false;
         var has_refAllDecls: bool = false;
         for (ast.rootDecls()) |root_decl| {
-            const decl = ast.nodes.get(root_decl);
+            const decl = ast.nodes.get(@intFromEnum(root_decl));
             switch (decl.tag) {
                 .test_decl => {
-                    const test_name = ast.tokenSlice(decl.data.lhs);
+                    const test_name = ast.tokenSlice(decl.main_token + 1);
                     if (std.mem.eql(u8, "\"refAllDecls\"", test_name))
                         has_refAllDecls = true
                     else if (std.mem.eql(u8, container_name, test_name))
