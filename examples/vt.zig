@@ -61,7 +61,7 @@ pub fn main() !void {
 
     var redraw: bool = false;
     while (true) {
-        std.time.sleep(8 * std.time.ns_per_ms);
+        std.Thread.sleep(8 * std.time.ns_per_ms);
         // try vt events first
         while (vt.tryEvent()) |event| {
             redraw = true;

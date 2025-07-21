@@ -83,7 +83,7 @@ pub fn main() !void {
         // try vx.render(bw.writer().any());
         // try bw.flush();
         try vx.render(tty.anyWriter());
-        std.time.sleep(16 * std.time.ns_per_ms);
+        std.Thread.sleep(16 * std.time.ns_per_ms);
         switch (dir) {
             .up => {
                 pct += 1;

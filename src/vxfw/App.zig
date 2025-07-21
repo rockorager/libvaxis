@@ -113,7 +113,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
             next_frame_ms = now_ms + tick_ms;
         } else {
             // Sleep until the deadline
-            std.time.sleep((next_frame_ms - now_ms) * std.time.ns_per_ms);
+            std.Thread.sleep((next_frame_ms - now_ms) * std.time.ns_per_ms);
             next_frame_ms += tick_ms;
         }
 
