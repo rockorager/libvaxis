@@ -100,7 +100,7 @@ pub fn draw(self: *const Border, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Sur
             const text = grapheme.bytes(label.text);
             const width: u16 = @intCast(ctx.stringWidth(text));
             surf.writeCell(text_col , text_row, .{
-                .char = .{ .grapheme = text, .width = width },
+                .char = .{ .grapheme = text, .width = @intCast(width) },
                 .style = self.style,
             });
             text_col += width;
