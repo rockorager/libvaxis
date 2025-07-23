@@ -5,8 +5,8 @@ const Allocator = std.mem.Allocator;
 
 const vxfw = @import("vxfw.zig");
 
-pub const BorderLabel = struct { 
-    text: []const u8, 
+pub const BorderLabel = struct {
+    text: []const u8,
     alignment: enum {
         top_left,
         top_center,
@@ -14,7 +14,7 @@ pub const BorderLabel = struct {
         bottom_left,
         bottom_center,
         bottom_right,
-    }, 
+    },
 };
 
 const Border = @This();
@@ -96,10 +96,10 @@ pub fn draw(self: *const Border, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Sur
         };
 
         var iter = ctx.graphemeIterator(label.text);
-        while(iter.next()) |grapheme| {
+        while (iter.next()) |grapheme| {
             const text = grapheme.bytes(label.text);
             const width: u16 = @intCast(ctx.stringWidth(text));
-            surf.writeCell(text_col , text_row, .{
+            surf.writeCell(text_col, text_row, .{
                 .char = .{ .grapheme = text, .width = @intCast(width) },
                 .style = self.style,
             });
