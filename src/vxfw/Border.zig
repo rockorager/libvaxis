@@ -5,10 +5,23 @@ const Allocator = std.mem.Allocator;
 
 const vxfw = @import("vxfw.zig");
 
+pub const BorderLabel = struct {
+    text: []const u8,
+    alignment: enum {
+        top_left,
+        top_center,
+        top_right,
+        bottom_left,
+        bottom_center,
+        bottom_right,
+    },
+};
+
 const Border = @This();
 
 child: vxfw.Widget,
 style: vaxis.Style = .{},
+labels: []const BorderLabel = &[_]BorderLabel{},
 
 pub fn widget(self: *const Border) vxfw.Widget {
     return .{
@@ -65,6 +78,35 @@ pub fn draw(self: *const Border, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Sur
         surf.writeCell(0, row, .{ .char = .{ .grapheme = "│", .width = 1 }, .style = self.style });
         surf.writeCell(right_edge, row, .{ .char = .{ .grapheme = "│", .width = 1 }, .style = self.style });
     }
+
+    // Add border labels
+    for (self.labels) |label| {
+        const text_len: u16 = @intCast(ctx.stringWidth(label.text));
+        if (text_len == 0) continue;
+
+        const text_row: u16 = switch (label.alignment) {
+            .top_left, .top_center, .top_right => 0,
+            .bottom_left, .bottom_center, .bottom_right => bottom_edge,
+        };
+
+        var text_col: u16 = switch (label.alignment) {
+            .top_left, .bottom_left => 1,
+            .top_center, .bottom_center => @max((size.width - text_len) / 2, 1),
+            .top_right, .bottom_right => @max(size.width - 1 - text_len, 1),
+        };
+
+        var iter = ctx.graphemeIterator(label.text);
+        while (iter.next()) |grapheme| {
+            const text = grapheme.bytes(label.text);
+            const width: u16 = @intCast(ctx.stringWidth(text));
+            surf.writeCell(text_col, text_row, .{
+                .char = .{ .grapheme = text, .width = @intCast(width) },
+                .style = self.style,
+            });
+            text_col += width;
+        }
+    }
+
     return surf;
 }
 

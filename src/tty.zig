@@ -242,8 +242,8 @@ pub const WindowsTty = struct {
     };
 
     pub fn init() !Tty {
-        const stdin = std.io.getStdIn().handle;
-        const stdout = std.io.getStdOut().handle;
+        const stdin = std.fs.File.stdin().handle;
+        const stdout = std.fs.File.stdout().handle;
 
         // get initial modes
         const initial_output_codepage = windows.kernel32.GetConsoleOutputCP();
@@ -714,7 +714,7 @@ pub const WindowsTty = struct {
     };
     pub const PINPUT_RECORD = *INPUT_RECORD;
 
-    pub extern "kernel32" fn ReadConsoleInputW(hConsoleInput: windows.HANDLE, lpBuffer: PINPUT_RECORD, nLength: windows.DWORD, lpNumberOfEventsRead: *windows.DWORD) callconv(windows.WINAPI) windows.BOOL;
+    pub extern "kernel32" fn ReadConsoleInputW(hConsoleInput: windows.HANDLE, lpBuffer: PINPUT_RECORD, nLength: windows.DWORD, lpNumberOfEventsRead: *windows.DWORD) callconv(.winapi) windows.BOOL;
 };
 
 pub const TestTty = struct {
