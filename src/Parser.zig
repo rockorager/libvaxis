@@ -116,7 +116,7 @@ inline fn parseGround(input: []const u8, data: *const Graphemes) !Result {
 
             // Check if we have a multi-codepoint grapheme
             var code = cp.code;
-            var g_state: Graphemes.State = .{};
+            var g_state: Graphemes.IterState = .{};
             var prev_cp = code;
             while (iter.next()) |next_cp| {
                 if (Graphemes.graphemeBreak(prev_cp, next_cp.code, data, &g_state)) {

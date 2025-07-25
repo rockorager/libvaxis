@@ -9,8 +9,8 @@
             .hash = "zigimg-0.1.0-8_eo2nWlEgCddu8EGLOM_RkYshx3sC8tWv-yYA4-htS6",
         },
         .zg = .{
-            .url = "git+https://codeberg.org/atman/zg#0b05141b033043c5f7bcd72048a48eef6531ea6c",
-            .hash = "zg-0.14.0-oGqU3KEFswIffnDu8eAE2XlhzwcfgjwtM6akIc5L7cEV",
+            .url = "https://codeberg.org/atman/zg/archive/v0.14.1.tar.gz",
+            .hash = "zg-0.14.1-oGqU3IQ_tALZIiBN026_NTaPJqU-Upm8P_C7QED2Rzm8",
         },
     },
     .paths = .{
