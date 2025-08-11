@@ -136,26 +136,13 @@ pub fn Loop(comptime T: type) type {
 
                     // initialize the read buffer
                     var buf: [1024]u8 = undefined;
-                    var read_start: usize = 0;
-                    // read loop
                     read_loop: while (!self.should_quit) {
-                        const n = try self.tty.read(buf[read_start..]);
-                        var seq_start: usize = 0;
-                        while (seq_start < n) {
-                            const result = try parser.parse(buf[seq_start..n], paste_allocator);
-                            if (result.n == 0) {
-                                // copy the read to the beginning. We don't use memcpy because
-                                // this could be overlapping, and it's also rare
-                                const initial_start = seq_start;
-                                while (seq_start < n) : (seq_start += 1) {
-                                    buf[seq_start - initial_start] = buf[seq_start];
-                                }
-                                read_start = seq_start - initial_start + 1;
+                        var input = buf[0..try self.tty.read(&buf)];
+                        while (input.len > 0) {
+                            const result = try parser.parse(input, paste_allocator);
+                            if (result.n == 0)
                                 continue :read_loop;
-                            }
-                            read_start = 0;
-                            seq_start += result.n;
-
+                            input = input[result.n..];
                             const event = result.event orelse continue;
                             try handleEventGeneric(self, self.vaxis, &cache, Event, event, paste_allocator);
                         }
