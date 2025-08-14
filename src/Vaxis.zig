@@ -108,7 +108,7 @@ pub fn init(alloc: std.mem.Allocator, opts: Options) !Vaxis {
     return .{
         .opts = opts,
         .screen = .{},
-        .screen_last = try .init(alloc, 80, 24),
+        .screen_last = try .init(alloc, 0, 0),
         .unicode = try Unicode.init(alloc),
     };
 }
