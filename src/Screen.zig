@@ -5,7 +5,6 @@ const Cell = @import("Cell.zig");
 const Shape = @import("Mouse.zig").Shape;
 const Image = @import("Image.zig");
 const Winsize = @import("main.zig").Winsize;
-const Unicode = @import("Unicode.zig");
 const Method = @import("gwidth.zig").Method;
 
 const Screen = @This();
@@ -22,14 +21,12 @@ cursor_row: u16 = 0,
 cursor_col: u16 = 0,
 cursor_vis: bool = false,
 
-unicode: *const Unicode = undefined,
-
 width_method: Method = .wcwidth,
 
 mouse_shape: Shape = .default,
 cursor_shape: Cell.CursorShape = .default,
 
-pub fn init(alloc: std.mem.Allocator, winsize: Winsize, unicode: *const Unicode) std.mem.Allocator.Error!Screen {
+pub fn init(alloc: std.mem.Allocator, winsize: Winsize) std.mem.Allocator.Error!Screen {
     const w = winsize.cols;
     const h = winsize.rows;
     const self = Screen{
@@ -38,7 +35,6 @@ pub fn init(alloc: std.mem.Allocator, winsize: Winsize, unicode: *const Unicode)
         .height = h,
         .width_pix = winsize.x_pixel,
         .height_pix = winsize.y_pixel,
-        .unicode = unicode,
     };
     const base_cell: Cell = .{};
     @memset(self.buf, base_cell);
