@@ -195,7 +195,7 @@ pub fn resize(
 ) !void {
     log.debug("resizing screen: width={d} height={d}", .{ winsize.cols, winsize.rows });
     self.screen.deinit(alloc);
-    self.screen = try Screen.init(alloc, winsize, &self.unicode);
+    self.screen = try Screen.init(alloc, winsize);
     self.screen.width_method = self.caps.unicode;
     // try self.screen.int(alloc, winsize.cols, winsize.rows);
     // we only init our current screen. This has the effect of redrawing
@@ -226,6 +226,7 @@ pub fn window(self: *Vaxis) Window {
         .width = self.screen.width,
         .height = self.screen.height,
         .screen = &self.screen,
+        .unicode = &self.unicode,
     };
 }
 

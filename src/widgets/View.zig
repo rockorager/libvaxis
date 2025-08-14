@@ -18,6 +18,8 @@ alloc: mem.Allocator,
 /// Underlying Screen
 screen: Screen,
 
+unicode: *const Unicode,
+
 /// View Initialization Config
 pub const Config = struct {
     width: u16,
@@ -26,19 +28,15 @@ pub const Config = struct {
 
 /// Initialize a new View
 pub fn init(alloc: mem.Allocator, unicode: *const Unicode, config: Config) mem.Allocator.Error!View {
-    const screen = try Screen.init(
-        alloc,
-        .{
+    return .{
+        .alloc = alloc,
+        .screen = try Screen.init(alloc, .{
             .cols = config.width,
             .rows = config.height,
             .x_pixel = 0,
             .y_pixel = 0,
-        },
-        unicode,
-    );
-    return .{
-        .alloc = alloc,
-        .screen = screen,
+        }),
+        .unicode = unicode,
     };
 }
 
@@ -51,6 +49,7 @@ pub fn window(self: *View) Window {
         .width = self.screen.width,
         .height = self.screen.height,
         .screen = &self.screen,
+        .unicode = self.unicode,
     };
 }
 
@@ -142,7 +141,7 @@ pub fn clear(self: View) void {
 
 /// Returns the width of the grapheme. This depends on the terminal capabilities
 pub fn gwidth(self: View, str: []const u8) u16 {
-    return gw.gwidth(str, self.screen.width_method, &self.screen.unicode.width_data);
+    return gw.gwidth(str, self.screen.width_method, &self.unicode.width_data);
 }
 
 /// Fills the View with the provided cell
