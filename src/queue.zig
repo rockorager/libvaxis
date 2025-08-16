@@ -14,7 +14,7 @@ pub fn Queue(
         read_index: usize = 0,
         write_index: usize = 0,
 
-        mutex: std.Thread.Mutex = .{},
+        reentrantMutex: std.Thread.Mutex.Recursive = undefined,
         // blocks when the buffer is full
         not_full: Condition = .{},
         // ...or empty
@@ -24,10 +24,10 @@ pub fn Queue(
 
         /// Pop an item from the queue. Blocks until an item is available.
         pub fn pop(self: *Self) T {
-            self.mutex.lock();
-            defer self.mutex.unlock();
+            self.reentrantMutex.lock();
+            defer self.reentrantMutex.unlock();
             while (self.isEmptyLH()) {
-                self.not_empty.wait(&self.mutex);
+                self.not_empty.wait(&self.reentrantMutex.mutex);
             }
             std.debug.assert(!self.isEmptyLH());
             if (self.isFullLH()) {
@@ -42,10 +42,10 @@ pub fn Queue(
         /// Push an item into the queue. Blocks until an item has been
         /// put in the queue.
         pub fn push(self: *Self, item: T) void {
-            self.mutex.lock();
-            defer self.mutex.unlock();
+            self.reentrantMutex.lock();
+            defer self.reentrantMutex.unlock();
             while (self.isFullLH()) {
-                self.not_full.wait(&self.mutex);
+                self.not_full.wait(&self.reentrantMutex.mutex);
             }
             std.debug.assert(!self.isFullLH());
             const was_empty = self.isEmptyLH();
@@ -63,12 +63,12 @@ pub fn Queue(
         /// was successfully placed in the queue, false if the queue
         /// was full.
         pub fn tryPush(self: *Self, item: T) bool {
-            self.mutex.lock();
+            self.reentrantMutex.lock();
             if (self.isFullLH()) {
-                self.mutex.unlock();
+                self.reentrantMutex.unlock();
                 return false;
             }
-            self.mutex.unlock();
+            self.reentrantMutex.unlock();
             self.push(item);
             return true;
         }
@@ -76,31 +76,31 @@ pub fn Queue(
         /// Pop an item from the queue. Returns null when no item is
         /// available.
         pub fn tryPop(self: *Self) ?T {
-            self.mutex.lock();
+            self.reentrantMutex.lock();
             if (self.isEmptyLH()) {
-                self.mutex.unlock();
+                self.reentrantMutex.unlock();
                 return null;
             }
-            self.mutex.unlock();
+            self.reentrantMutex.unlock();
             return self.pop();
         }
 
         /// Poll the queue. This call blocks until events are in the queue
         pub fn poll(self: *Self) void {
-            self.mutex.lock();
-            defer self.mutex.unlock();
+            self.reentrantMutex.lock();
+            defer self.reentrantMutex.unlock();
             while (self.isEmptyLH()) {
-                self.not_empty.wait(&self.mutex);
+                self.not_empty.wait(&self.reentrantMutex);
             }
             std.debug.assert(!self.isEmptyLH());
         }
 
         pub fn lock(self: *Self) void {
-            self.mutex.lock();
+            self.reentrantMutex.lock();
         }
 
         pub fn unlock(self: *Self) void {
-            self.mutex.unlock();
+            self.reentrantMutex.unlock();
         }
 
         /// Used to efficiently drain the queue while the lock is externally held
@@ -120,15 +120,15 @@ pub fn Queue(
 
         /// Returns `true` if the queue is empty and `false` otherwise.
         pub fn isEmpty(self: *Self) bool {
-            self.mutex.lock();
-            defer self.mutex.unlock();
+            self.reentrantMutex.lock();
+            defer self.reentrantMutex.unlock();
             return self.isEmptyLH();
         }
 
         /// Returns `true` if the queue is full and `false` otherwise.
         pub fn isFull(self: *Self) bool {
-            self.mutex.lock();
-            defer self.mutex.unlock();
+            self.reentrantMutex.lock();
+            defer self.reentrantMutex.unlock();
             return self.isFullLH();
         }
 
