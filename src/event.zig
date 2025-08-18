@@ -8,6 +8,7 @@ pub const Event = union(enum) {
     key_press: Key,
     key_release: Key,
     mouse: Mouse,
+    mouse_leave,
     focus_in,
     focus_out,
     paste_start, // bracketed paste start
