@@ -292,6 +292,11 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                         return self.postEvent(.{ .mouse = vx.translateMouse(mouse) });
                     }
                 },
+                .mouse_leave => {
+                    if (@hasField(Event, "mouse_leave")) {
+                        return self.postEvent(.mouse_leave);
+                    }
+                },
                 .focus_in => {
                     if (@hasField(Event, "focus_in")) {
                         return self.postEvent(.focus_in);
