@@ -14,6 +14,7 @@ pub const sixel_geometry_query = "\x1b[?2;1;0S";
 pub const cursor_position_request = "\x1b[6n";
 pub const explicit_width_query = "\x1b]66;w=1; \x1b\\";
 pub const scaled_text_query = "\x1b]66;s=2; \x1b\\";
+pub const multi_cursor_query = "\x1b[> q";
 
 // mouse. We try for button motion and any motion. terminals will enable the
 // last one we tried (any motion). This was added because zellij doesn't
