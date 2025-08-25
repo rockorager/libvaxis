@@ -38,6 +38,7 @@ pub const Capabilities = struct {
     color_scheme_updates: bool = false,
     explicit_width: bool = false,
     scaled_text: bool = false,
+    multi_cursor: bool = false,
 };
 
 pub const Options = struct {
@@ -300,6 +301,7 @@ pub fn queryTerminalSend(vx: *Vaxis, tty: *IoWriter) !void {
         // why we see a Shift modifier
         ctlseqs.home ++
         ctlseqs.scaled_text_query ++
+        ctlseqs.multi_cursor_query ++
         ctlseqs.cursor_position_request ++
         ctlseqs.xtversion ++
         ctlseqs.csi_u_query ++
