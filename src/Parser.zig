@@ -646,6 +646,17 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
                 else => return null_event,
             }
         },
+        'q' => {
+            // kitty multi cursor cap (CSI > 1;2;3;29;30;40;100;101 TRAILER) (TRAILER is " q")
+            const second_final = sequence[sequence.len - 2];
+            if (second_final != ' ') return null_event;
+            // check for any digits. we're not too picky about checking the supported cursor types here
+            for (sequence[0 .. sequence.len - 2]) |c| switch (c) {
+                '0'...'9' => return .{ .event = .cap_multi_cursor, .n = sequence.len },
+                else => continue,
+            };
+            return null_event;
+        },
         else => return null_event,
     }
 }
@@ -1075,6 +1086,32 @@ test "parse: multiple codepoint grapheme with more after" {
     const actual = result.event.?.key_press;
     try testing.expectEqualStrings(expected_key.text.?, actual.text.?);
     try testing.expectEqual(expected_key.codepoint, actual.codepoint);
+}
+
+test "parse(csi): kitty multi cursor" {
+    var buf: [1]u8 = undefined;
+    {
+        const input = "\x1b[>1;2;3;29;30;40;100;101 q";
+        const result = parseCsi(input, &buf);
+        const expected: Result = .{
+            .event = .cap_multi_cursor,
+            .n = input.len,
+        };
+
+        try testing.expectEqual(expected.n, result.n);
+        try testing.expectEqual(expected.event, result.event);
+    }
+    {
+        const input = "\x1b[> q";
+        const result = parseCsi(input, &buf);
+        const expected: Result = .{
+            .event = null,
+            .n = input.len,
+        };
+
+        try testing.expectEqual(expected.n, result.n);
+        try testing.expectEqual(expected.event, result.event);
+    }
 }
 
 test "parse(csi): decrpm" {

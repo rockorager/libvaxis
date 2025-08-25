@@ -362,6 +362,10 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                     log.info("color_scheme_updates capability detected", .{});
                     vx.caps.color_scheme_updates = true;
                 },
+                .cap_multi_cursor => {
+                    log.info("multi cursor capability detected", .{});
+                    vx.caps.multi_cursor = true;
+                },
                 .cap_da1 => {
                     std.Thread.Futex.wake(&vx.query_futex, 10);
                     vx.queries_done.store(true, .unordered);

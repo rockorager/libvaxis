@@ -26,4 +26,5 @@ pub const Event = union(enum) {
     cap_unicode,
     cap_da1,
     cap_color_scheme_updates,
+    cap_multi_cursor,
 };
