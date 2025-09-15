@@ -146,6 +146,8 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
                     .winsize => |ws| {
                         try vx.resize(self.allocator, tty.anyWriter(), ws);
                         ctx.redraw = true;
+                        try focus_handler.handleEvent(&ctx, event);
+                        try self.handleCommand(&ctx.cmds);
                     },
                     else => {
                         try focus_handler.handleEvent(&ctx, event);
