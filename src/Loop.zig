@@ -24,6 +24,7 @@ pub fn Loop(comptime T: type) type {
         queue: Queue(T, 512) = .{},
         thread: ?std.Thread = null,
         should_quit: bool = false,
+        winch_eventfd: std.posix.fd_t = -1,
 
         /// Initialize the event loop. This is an intrusive init so that we have
         /// a stable pointer to register signal callbacks with posix TTYs
@@ -32,6 +33,9 @@ pub fn Loop(comptime T: type) type {
                 .windows => {},
                 else => {
                     if (!builtin.is_test) {
+                        if (self.winch_eventfd < 0) {
+                            self.winch_eventfd = try std.posix.eventfd(0, 0);
+                        }
                         const handler: Tty.SignalHandler = .{
                             .context = self,
                             .callback = Self.winsizeCallback,
@@ -98,10 +102,9 @@ pub fn Loop(comptime T: type) type {
             // We will be receiving winsize updates in-band
             if (self.vaxis.state.in_band_resize) return;
 
-            const winsize = Tty.getWinsize(self.tty.fd) catch return;
-            if (@hasField(Event, "winsize")) {
-                self.postEvent(.{ .winsize = winsize });
-            }
+            if (self.winch_eventfd < 0) return;
+            // notify the event loop that a winsize signal was received
+            _ = std.posix.write(self.winch_eventfd, &[8]u8{ 0, 0, 0, 0, 0, 0, 0, 1 }) catch {};
         }
 
         /// read input from the tty. This is run in a separate thread
@@ -124,21 +127,53 @@ pub fn Loop(comptime T: type) type {
                     }
                 },
                 else => {
-                    // get our initial winsize
-                    const winsize = try Tty.getWinsize(self.tty.fd);
-                    if (@hasField(Event, "winsize")) {
-                        self.postEvent(.{ .winsize = winsize });
+                    {
+                        // get our initial winsize
+                        const winsize = try Tty.getWinsize(self.tty.fd);
+                        if (@hasField(Event, "winsize")) {
+                            self.postEvent(.{ .winsize = winsize });
+                        }
                     }
 
                     var parser: Parser = .{
                         .grapheme_data = grapheme_data,
                     };
 
+                    // initialize poll fds
+                    var fds: [2]std.posix.pollfd = .{
+                        .{
+                            .fd = self.tty.fd,
+                            .events = std.posix.POLL.IN,
+                            .revents = 0,
+                        },
+                        .{
+                            .fd = self.winch_eventfd,
+                            .events = std.posix.POLL.IN,
+                            .revents = 0,
+                        },
+                    };
                     // initialize the read buffer
                     var buf: [1024]u8 = undefined;
                     var read_start: usize = 0;
                     // read loop
                     read_loop: while (!self.should_quit) {
+                        if (@hasField(Event, "winsize")) {
+                            // self.init might be called after start, so we need to check
+                            fds[1].fd = self.winch_eventfd;
+                            _ = try std.posix.poll(&fds, -1);
+                            if (fds[1].revents & std.posix.POLL.IN != 0) {
+                                fds[1].revents = 0;
+                                var tmp: [8]u8 = undefined;
+                                _ = try std.posix.read(self.winch_eventfd, &tmp);
+
+                                const winsize = try Tty.getWinsize(self.tty.fd);
+                                self.postEvent(.{ .winsize = winsize });
+                            }
+
+                            if (fds[0].revents & std.posix.POLL.IN == 0) continue :read_loop;
+                            fds[0].revents = 0;
+                        }
+
                         const n = try self.tty.read(buf[read_start..]);
                         var seq_start: usize = 0;
                         while (seq_start < n) {
