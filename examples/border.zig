@@ -30,20 +30,46 @@ const Model = struct {
     fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) std.mem.Allocator.Error!vxfw.Surface {
         const self: *Model = @ptrCast(@alignCast(ptr));
         const max_size = ctx.max.size();
+        const BorderStyles = vxfw.Border.BorderStyles;
+        const Style = BorderStyles.BorderCharacters;
 
-        const text = vxfw.Text{ .text = "Content" };
-        const border = vxfw.Border{ .child = text.widget() };
-
-        const border_child: vxfw.SubSurface = .{
-            .origin = .{ .row = 0, .col = 0 },
-            .surface = try border.draw(ctx.withConstraints(
-                ctx.min,
-                .{ .width = 16, .height = 5 },
-            )),
+        const borderStyles = &[_]struct { []const u8, Style }{
+            .{ "bold", BorderStyles.bold },
+            .{ "classic", BorderStyles.classic },
+            .{ "double", BorderStyles.double },
+            .{ "doubleSingle", BorderStyles.doubleSingle },
+            .{ "round", BorderStyles.round },
+            .{ "single", BorderStyles.single },
+            .{ "singleDouble", BorderStyles.singleDouble },
         };
 
-        const children = try ctx.arena.alloc(vxfw.SubSurface, 1);
-        children[0] = border_child;
+        var borders = std.ArrayList(vxfw.SubSurface).init(ctx.arena);
+        defer borders.deinit();
+        const children = try ctx.arena.alloc(vxfw.SubSurface, borderStyles.len);
+        var row: i17 = -3;
+
+        for (borderStyles, 0..) |style, i| {
+            const text = vxfw.Text{ .text = style[0] };
+
+            const padding = vxfw.Padding{
+                .child = text.widget(),
+                .padding = .{ .left = 1, .right = 1 },
+            };
+
+            const border = vxfw.Border{ .child = padding.widget(), .borderStyle = style[1] };
+            row += 3;
+
+            const border_child: vxfw.SubSurface = .{
+                .origin = .{ .row = row, .col = 0 },
+                .surface = try border.draw(ctx.withConstraints(
+                    .{ .width = 30, .height = ctx.min.height },
+                    .{ .width = 30, .height = 3 },
+                )),
+            };
+
+            try borders.append(border_child);
+            children[i] = border_child;
+        }
 
         return .{
             .size = max_size,
