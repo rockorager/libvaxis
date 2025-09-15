@@ -18,7 +18,7 @@ const Model = struct {
 
         switch (event) {
             .key_press => |key| {
-                if (key.matches('c', .{ .ctrl = true })) {
+                if (key.matches('c', .{ .ctrl = true }) or (key.codepoint == 'q')) {
                     ctx.quit = true;
                     return;
                 }
