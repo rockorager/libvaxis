@@ -23,6 +23,8 @@ const Border = @This();
 
 child: vxfw.Widget,
 style: vaxis.Style = .{},
+
+/// A record of graphemes used for drawing the border.
 graphemes: Graphemes.Record = Graphemes.round,
 labels: []const BorderLabel = &[_]BorderLabel{},
 
