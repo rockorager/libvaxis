@@ -1,15 +1,28 @@
 const std = @import("std");
 const vaxis = @import("vaxis");
 const vxfw = vaxis.vxfw;
+const BorderLabel = vxfw.Border.BorderLabel;
+const Graphemes = vxfw.Border.Graphemes;
+
+const BorderData = struct {
+    []const u8,
+    Graphemes.Record,
+    []const BorderLabel,
+    vaxis.Style,
+};
+
+const Position = struct { i17, i17 };
 
 /// Our main application state
 const Model = struct {
+    const Self = @This();
+
     /// Helper function to return a vxfw.Widget struct
-    pub fn widget(self: *Model) vxfw.Widget {
+    pub fn widget(self: *Self) vxfw.Widget {
         return .{
             .userdata = self,
-            .eventHandler = Model.typeErasedEventHandler,
-            .drawFn = Model.typeErasedDrawFn,
+            .eventHandler = Self.typeErasedEventHandler,
+            .drawFn = Self.typeErasedDrawFn,
         };
     }
 
@@ -30,44 +43,79 @@ const Model = struct {
     fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) std.mem.Allocator.Error!vxfw.Surface {
         const self: *Model = @ptrCast(@alignCast(ptr));
         const max_size = ctx.max.size();
-        const Graphemes = vxfw.Border.Graphemes;
+        const empty_lebels = &[_]vxfw.Border.BorderLabel{};
 
-        const graphemes = &[_]struct { []const u8, Graphemes.Record }{
-            .{ "Bold", Graphemes.bold },
-            .{ "Classic", Graphemes.classic },
-            .{ "Double", Graphemes.double },
-            .{ "Double Single", Graphemes.double_single },
-            .{ "Round", Graphemes.round },
-            .{ "Single", Graphemes.single },
-            .{ "Single Double", Graphemes.single_double },
+        const graphemes = &[_]BorderData{
+            .{ "Bold", Graphemes.bold, empty_lebels, .{} },
+            .{ "Classic", Graphemes.classic, empty_lebels, .{} },
+            .{ "Double", Graphemes.double, empty_lebels, .{} },
+            .{ "Double Single", Graphemes.double_single, empty_lebels, .{} },
+            .{ "Round", Graphemes.round, empty_lebels, .{} },
+            .{ "Single", Graphemes.single, empty_lebels, .{} },
+            .{ "Single Double", Graphemes.single_double, empty_lebels, .{} },
         };
 
-        var borders = std.ArrayList(vxfw.SubSurface).init(ctx.arena);
-        defer borders.deinit();
-        const children = try ctx.arena.alloc(vxfw.SubSurface, graphemes.len);
-        var row: i17 = -3;
+        const titled = &[_]BorderData{
+            .{
+                "Titled",
+                Graphemes.round,
+                &[_]BorderLabel{.{ .text = "Top Left", .alignment = .top_left }},
+                .{},
+            },
+            .{
+                "Titled",
+                Graphemes.round,
+                &[_]BorderLabel{.{ .text = "Top Center", .alignment = .top_center }},
+                .{},
+            },
+            .{
+                "Titled",
+                Graphemes.round,
+                &[_]BorderLabel{.{ .text = "Top Right", .alignment = .top_right }},
+                .{},
+            },
+            .{
+                "Titled",
+                Graphemes.round,
+                &[_]BorderLabel{.{ .text = "Bottom Left", .alignment = .bottom_left }},
+                .{},
+            },
+            .{
+                "Titled",
+                Graphemes.round,
+                &[_]BorderLabel{.{ .text = "Bottom Center", .alignment = .bottom_center }},
+                .{},
+            },
+            .{
+                "Titled",
+                Graphemes.round,
+                &[_]BorderLabel{.{ .text = "Bottom Right", .alignment = .bottom_right }},
+                .{},
+            },
+            .{
+                "Titled",
+                Graphemes.round,
+                &[_]BorderLabel{
+                    .{ .text = "Top Left", .alignment = .top_left },
+                    .{ .text = "Bottom Right", .alignment = .bottom_right },
+                },
+                .{},
+            },
+        };
 
-        for (graphemes, 0..) |grapheme, i| {
-            const text = vxfw.Text{ .text = grapheme[0] };
+        const children = try ctx.arena.alloc(vxfw.SubSurface, graphemes.len + titled.len);
+        var row: i17 = 1;
 
-            const padding = vxfw.Padding{
-                .child = text.widget(),
-                .padding = .{ .left = 1, .right = 1 },
-            };
-
-            const border = vxfw.Border{ .child = padding.widget(), .graphemes = grapheme[1] };
+        for (graphemes, 0..) |data, i| {
+            children[i] = try self.createBorder(ctx, data, .{ row, 1 });
             row += 3;
+        }
 
-            const border_child: vxfw.SubSurface = .{
-                .origin = .{ .row = row, .col = 0 },
-                .surface = try border.draw(ctx.withConstraints(
-                    .{ .width = 30, .height = ctx.min.height },
-                    .{ .width = 30, .height = 3 },
-                )),
-            };
+        row = 1;
 
-            try borders.append(border_child);
-            children[i] = border_child;
+        for (titled, 0..) |data, i| {
+            children[i + graphemes.len] = try self.createBorder(ctx, data, .{ row, 32 });
+            row += 3;
         }
 
         return .{
@@ -75,6 +123,29 @@ const Model = struct {
             .widget = self.widget(),
             .buffer = &.{},
             .children = children,
+        };
+    }
+
+    fn createBorder(_: Self, ctx: vxfw.DrawContext, data: BorderData, position: Position) !vxfw.SubSurface {
+        const text = vxfw.Text{ .text = data[0] };
+
+        const padding = vxfw.Padding{
+            .child = text.widget(),
+            .padding = .{ .left = 1, .right = 1 },
+        };
+
+        const border = vxfw.Border{
+            .child = padding.widget(),
+            .graphemes = data[1],
+            .labels = data[2],
+        };
+
+        return .{
+            .origin = .{ .row = position[0], .col = position[1] },
+            .surface = try border.draw(ctx.withConstraints(
+                .{ .width = 30, .height = ctx.min.height },
+                .{ .width = 30, .height = 3 },
+            )),
         };
     }
 };
