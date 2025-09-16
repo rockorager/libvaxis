@@ -30,33 +30,32 @@ const Model = struct {
     fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) std.mem.Allocator.Error!vxfw.Surface {
         const self: *Model = @ptrCast(@alignCast(ptr));
         const max_size = ctx.max.size();
-        const BorderStyles = vxfw.Border.BorderStyles;
-        const Style = BorderStyles.BorderCharacters;
+        const Graphemes = vxfw.Border.Graphemes;
 
-        const borderStyles = &[_]struct { []const u8, Style }{
-            .{ "bold", BorderStyles.bold },
-            .{ "classic", BorderStyles.classic },
-            .{ "double", BorderStyles.double },
-            .{ "doubleSingle", BorderStyles.doubleSingle },
-            .{ "round", BorderStyles.round },
-            .{ "single", BorderStyles.single },
-            .{ "singleDouble", BorderStyles.singleDouble },
+        const graphemes = &[_]struct { []const u8, Graphemes.Record }{
+            .{ "Bold", Graphemes.bold },
+            .{ "Classic", Graphemes.classic },
+            .{ "Double", Graphemes.double },
+            .{ "Double Single", Graphemes.double_single },
+            .{ "Round", Graphemes.round },
+            .{ "Single", Graphemes.single },
+            .{ "Single Double", Graphemes.single_double },
         };
 
         var borders = std.ArrayList(vxfw.SubSurface).init(ctx.arena);
         defer borders.deinit();
-        const children = try ctx.arena.alloc(vxfw.SubSurface, borderStyles.len);
+        const children = try ctx.arena.alloc(vxfw.SubSurface, graphemes.len);
         var row: i17 = -3;
 
-        for (borderStyles, 0..) |style, i| {
-            const text = vxfw.Text{ .text = style[0] };
+        for (graphemes, 0..) |grapheme, i| {
+            const text = vxfw.Text{ .text = grapheme[0] };
 
             const padding = vxfw.Padding{
                 .child = text.widget(),
                 .padding = .{ .left = 1, .right = 1 },
             };
 
-            const border = vxfw.Border{ .child = padding.widget(), .borderStyle = style[1] };
+            const border = vxfw.Border{ .child = padding.widget(), .graphemes = grapheme[1] };
             row += 3;
 
             const border_child: vxfw.SubSurface = .{
