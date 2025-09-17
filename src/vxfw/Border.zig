@@ -1,6 +1,8 @@
 const std = @import("std");
 const vaxis = @import("../main.zig");
 
+pub const Graphemes = @import("./Border/Graphemes.zig");
+
 const Allocator = std.mem.Allocator;
 
 const vxfw = @import("vxfw.zig");
@@ -21,6 +23,9 @@ const Border = @This();
 
 child: vxfw.Widget,
 style: vaxis.Style = .{},
+
+/// A record of graphemes used for drawing the border.
+graphemes: Graphemes.Record = Graphemes.round,
 labels: []const BorderLabel = &[_]BorderLabel{},
 
 pub fn widget(self: *const Border) vxfw.Widget {
@@ -55,28 +60,37 @@ pub fn draw(self: *const Border, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Sur
         .surface = child,
     };
 
-    const size: vxfw.Size = .{ .width = child.size.width + 2, .height = child.size.height + 2 };
+    const size: vxfw.Size = .{
+        .width = child.size.width + 2,
+        .height = child.size.height + 2,
+    };
 
-    var surf = try vxfw.Surface.initWithChildren(ctx.arena, self.widget(), size, children);
+    var surf = try vxfw.Surface.initWithChildren(
+        ctx.arena,
+        self.widget(),
+        size,
+        children,
+    );
 
     // Draw the border
     const right_edge = size.width -| 1;
     const bottom_edge = size.height -| 1;
-    surf.writeCell(0, 0, .{ .char = .{ .grapheme = "╭", .width = 1 }, .style = self.style });
-    surf.writeCell(right_edge, 0, .{ .char = .{ .grapheme = "╮", .width = 1 }, .style = self.style });
-    surf.writeCell(right_edge, bottom_edge, .{ .char = .{ .grapheme = "╯", .width = 1 }, .style = self.style });
-    surf.writeCell(0, bottom_edge, .{ .char = .{ .grapheme = "╰", .width = 1 }, .style = self.style });
+
+    self.writeGrapheme(&surf, 0, 0, self.graphemes.top_left);
+    self.writeGrapheme(&surf, right_edge, 0, self.graphemes.top_right);
+    self.writeGrapheme(&surf, right_edge, bottom_edge, self.graphemes.bottom_right);
+    self.writeGrapheme(&surf, 0, bottom_edge, self.graphemes.bottom_left);
 
     var col: u16 = 1;
     while (col < right_edge) : (col += 1) {
-        surf.writeCell(col, 0, .{ .char = .{ .grapheme = "─", .width = 1 }, .style = self.style });
-        surf.writeCell(col, bottom_edge, .{ .char = .{ .grapheme = "─", .width = 1 }, .style = self.style });
+        self.writeGrapheme(&surf, col, 0, self.graphemes.top_edge);
+        self.writeGrapheme(&surf, col, bottom_edge, self.graphemes.bottom_edge);
     }
 
     var row: u16 = 1;
     while (row < bottom_edge) : (row += 1) {
-        surf.writeCell(0, row, .{ .char = .{ .grapheme = "│", .width = 1 }, .style = self.style });
-        surf.writeCell(right_edge, row, .{ .char = .{ .grapheme = "│", .width = 1 }, .style = self.style });
+        self.writeGrapheme(&surf, 0, row, self.graphemes.left_edge);
+        self.writeGrapheme(&surf, right_edge, row, self.graphemes.right_edge);
     }
 
     // Add border labels
@@ -108,6 +122,14 @@ pub fn draw(self: *const Border, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Sur
     }
 
     return surf;
+}
+
+fn writeGrapheme(self: *const Border, surf: *vxfw.Surface, col: u16, row: u16, grapheme: []const u8) void {
+    surf.writeCell(
+        col,
+        row,
+        .{ .char = .{ .grapheme = grapheme, .width = 1 }, .style = self.style },
+    );
 }
 
 test Border {
