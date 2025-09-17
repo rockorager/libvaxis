@@ -17,7 +17,7 @@ const Position = struct { i17, i17 };
 const Model = struct {
     const Self = @This();
 
-    /// Helper function to return a vxfw.Widget struct
+    /// Creates a `vxfw.Widget`.
     pub fn widget(self: *Self) vxfw.Widget {
         return .{
             .userdata = self,
@@ -26,6 +26,7 @@ const Model = struct {
         };
     }
 
+    /// Used by `vxfw` to handle events for the `Modal`.
     fn typeErasedEventHandler(ptr: *anyopaque, ctx: *vxfw.EventContext, event: vxfw.Event) anyerror!void {
         _ = ptr;
 
@@ -40,6 +41,7 @@ const Model = struct {
         }
     }
 
+    /// Used by `vxfw` to draw a `vxfw.Surface`.
     fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) std.mem.Allocator.Error!vxfw.Surface {
         const self: *Model = @ptrCast(@alignCast(ptr));
         const max_size = ctx.max.size();
@@ -57,49 +59,49 @@ const Model = struct {
 
         const titled = &[_]BorderData{
             .{
-                "Titled",
+                "Dim title",
                 Graphemes.round,
                 &[_]BorderLabel{.{ .text = "Top Left", .alignment = .top_left }},
-                .{},
+                .{ .dim = true },
             },
             .{
-                "Titled",
+                " ",
                 Graphemes.round,
                 &[_]BorderLabel{.{ .text = "Top Center", .alignment = .top_center }},
                 .{},
             },
             .{
-                "Titled",
+                "Bold title",
                 Graphemes.round,
                 &[_]BorderLabel{.{ .text = "Top Right", .alignment = .top_right }},
-                .{},
+                .{ .bold = true },
             },
             .{
-                "Titled",
+                " ",
                 Graphemes.round,
                 &[_]BorderLabel{.{ .text = "Bottom Left", .alignment = .bottom_left }},
                 .{},
             },
             .{
-                "Titled",
+                "Italic title",
                 Graphemes.round,
                 &[_]BorderLabel{.{ .text = "Bottom Center", .alignment = .bottom_center }},
-                .{},
+                .{ .italic = true },
             },
             .{
-                "Titled",
+                " ",
                 Graphemes.round,
                 &[_]BorderLabel{.{ .text = "Bottom Right", .alignment = .bottom_right }},
                 .{},
             },
             .{
-                "Titled",
+                "With color",
                 Graphemes.round,
                 &[_]BorderLabel{
                     .{ .text = "Top Left", .alignment = .top_left },
                     .{ .text = "Bottom Right", .alignment = .bottom_right },
                 },
-                .{},
+                .{ .fg = .{ .index = 220 } },
             },
         };
 
@@ -107,14 +109,14 @@ const Model = struct {
         var row: i17 = 1;
 
         for (graphemes, 0..) |data, i| {
-            children[i] = try self.createBorder(ctx, data, .{ row, 1 });
+            children[i] = try Self.createBorder(ctx, data, .{ row, 2 });
             row += 3;
         }
 
         row = 1;
 
         for (titled, 0..) |data, i| {
-            children[i + graphemes.len] = try self.createBorder(ctx, data, .{ row, 32 });
+            children[i + graphemes.len] = try Self.createBorder(ctx, data, .{ row, 33 });
             row += 3;
         }
 
@@ -126,7 +128,9 @@ const Model = struct {
         };
     }
 
-    fn createBorder(_: Self, ctx: vxfw.DrawContext, data: BorderData, position: Position) !vxfw.SubSurface {
+    /// Creates a `vxfw.SubSurface` for a `vxfw.Border` that contains text and
+    /// optionally a title and styles.
+    fn createBorder(ctx: vxfw.DrawContext, data: BorderData, position: Position) !vxfw.SubSurface {
         const text = vxfw.Text{ .text = data[0] };
 
         const padding = vxfw.Padding{
@@ -138,6 +142,7 @@ const Model = struct {
             .child = padding.widget(),
             .graphemes = data[1],
             .labels = data[2],
+            .style = data[3],
         };
 
         return .{
