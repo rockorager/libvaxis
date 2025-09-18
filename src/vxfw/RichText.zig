@@ -161,7 +161,8 @@ pub const SoftwrapIterator = struct {
             len += span.text.len;
         }
         var arena = std.heap.ArenaAllocator.init(ctx.arena);
-        var list = try std.ArrayList(vaxis.Cell).initCapacity(arena.allocator(), len);
+        const alloc = arena.allocator();
+        var list: std.ArrayList(vaxis.Cell) = try .initCapacity(alloc, len);
 
         for (spans) |span| {
             var iter = ctx.graphemeIterator(span.text);
@@ -174,7 +175,7 @@ pub const SoftwrapIterator = struct {
                         .link = span.link,
                     };
                     for (0..8) |_| {
-                        try list.append(cell);
+                        try list.append(alloc, cell);
                     }
                     continue;
                 }
@@ -184,7 +185,7 @@ pub const SoftwrapIterator = struct {
                     .style = span.style,
                     .link = span.link,
                 };
-                try list.append(cell);
+                try list.append(alloc, cell);
             }
         }
         return .{

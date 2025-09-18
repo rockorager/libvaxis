@@ -52,7 +52,7 @@ pub fn draw(self: *const FlexColumn, ctx: vxfw.DrawContext) Allocator.Error!vxfw
     layout_arena.deinit();
 
     // make our children list
-    var children = std.ArrayList(vxfw.SubSurface).init(ctx.arena);
+    var children: std.ArrayList(vxfw.SubSurface) = .empty;
 
     // Draw again, but with distributed heights
     var second_pass_height: u16 = 0;
@@ -75,7 +75,7 @@ pub fn draw(self: *const FlexColumn, ctx: vxfw.DrawContext) Allocator.Error!vxfw
         );
         const surf = try child.widget.draw(child_ctx);
 
-        try children.append(.{
+        try children.append(ctx.arena, .{
             .origin = .{ .col = 0, .row = second_pass_height },
             .surface = surf,
             .z_index = 0,

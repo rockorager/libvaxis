@@ -299,7 +299,7 @@ fn insertChildren(
 
         // Insert the child to the beginning of the list
         const col_offset: i17 = if (self.draw_cursor) 2 else 0;
-        try child_list.insert(0, .{
+        try child_list.insert(ctx.arena, 0, .{
             .origin = .{ .col = col_offset - @as(i17, @intCast(self.scroll.left)), .row = upheight },
             .surface = surf,
             .z_index = 0,
@@ -352,7 +352,7 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
         self.scroll.has_more_vertical = true;
     }
 
-    var child_list = std.ArrayList(vxfw.SubSurface).init(ctx.arena);
+    var child_list: std.ArrayList(vxfw.SubSurface) = .empty;
 
     // Accumulated height tracks how much height we have drawn. It's initial state is
     // -(scroll.vertical_offset + scroll.pending_lines) lines _above_ the surface top edge.
@@ -413,7 +413,7 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
         const surf = try child.draw(child_ctx);
 
         // Add the child surface to our list. It's offset from parent is the accumulated height
-        try child_list.append(.{
+        try child_list.append(ctx.arena, .{
             .origin = .{ .col = child_offset - @as(i17, @intCast(self.scroll.left)), .row = accumulated_height },
             .surface = surf,
             .z_index = 0,
@@ -501,8 +501,8 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
             // unbounded drawing in scrollable areas
             self.scroll.top = self.cursor;
             self.scroll.vertical_offset = 0;
-            child_list.deinit();
-            try child_list.append(.{
+            child_list.deinit(ctx.arena);
+            try child_list.append(ctx.arena, .{
                 .origin = .{ .col = 0 - @as(i17, @intCast(self.scroll.left)), .row = 0 },
                 .surface = sub.surface,
                 .z_index = 0,
@@ -645,9 +645,10 @@ test ScrollView {
     };
     // Event handlers need a context
     var ctx: vxfw.EventContext = .{
-        .cmds = std.ArrayList(vxfw.Command).init(std.testing.allocator),
+        .alloc = std.testing.allocator,
+        .cmds = .empty,
     };
-    defer ctx.cmds.deinit();
+    defer ctx.cmds.deinit(ctx.alloc);
 
     try scroll_widget.handleEvent(&ctx, .{ .mouse = mouse_event });
     // Wheel up doesn't adjust the scroll
@@ -1043,9 +1044,10 @@ test "ScrollView: uneven scroll" {
     };
     // Event handlers need a context
     var ctx: vxfw.EventContext = .{
-        .cmds = std.ArrayList(vxfw.Command).init(std.testing.allocator),
+        .alloc = std.testing.allocator,
+        .cmds = .empty,
     };
-    defer ctx.cmds.deinit();
+    defer ctx.cmds.deinit(ctx.alloc);
 
     // Send a wheel down x 3
     mouse_event.button = .wheel_down;

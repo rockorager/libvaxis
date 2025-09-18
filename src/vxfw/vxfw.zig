@@ -99,6 +99,7 @@ pub const Command = union(enum) {
 
 pub const EventContext = struct {
     phase: Phase = .at_target,
+    alloc: Allocator,
     cmds: CommandList,
 
     /// The event was handled, do not pass it on
@@ -115,7 +116,7 @@ pub const EventContext = struct {
     };
 
     pub fn addCmd(self: *EventContext, cmd: Command) Allocator.Error!void {
-        try self.cmds.append(cmd);
+        try self.cmds.append(self.alloc, cmd);
     }
 
     pub fn tick(self: *EventContext, ms: u32, widget: Widget) Allocator.Error!void {

@@ -123,7 +123,10 @@ test Spinner {
 
     // We are about to deliver the tick to the widget. We need an EventContext (the engine will
     // provide this)
-    var ctx: vxfw.EventContext = .{ .cmds = vxfw.CommandList.init(arena.allocator()) };
+    var ctx: vxfw.EventContext = .{
+        .alloc = arena.allocator(),
+        .cmds = .empty,
+    };
 
     // The event loop handles the tick event and calls us back with a .tick event. If we should keep
     // running, we will add a new tick event
