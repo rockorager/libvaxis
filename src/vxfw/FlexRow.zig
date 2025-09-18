@@ -53,7 +53,7 @@ pub fn draw(self: *const FlexRow, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Su
     layout_arena.deinit();
 
     // make our children list
-    var children = std.ArrayList(vxfw.SubSurface).init(ctx.arena);
+    var children: std.ArrayList(vxfw.SubSurface) = .empty;
 
     // Draw again, but with distributed widths
     var second_pass_width: u16 = 0;
@@ -75,7 +75,7 @@ pub fn draw(self: *const FlexRow, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Su
         );
         const surf = try child.widget.draw(child_ctx);
 
-        try children.append(.{
+        try children.append(ctx.arena, .{
             .origin = .{ .col = second_pass_width, .row = 0 },
             .surface = surf,
             .z_index = 0,

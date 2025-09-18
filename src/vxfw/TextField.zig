@@ -567,7 +567,8 @@ test TextField {
     _ = draw_ctx;
 
     var ctx: vxfw.EventContext = .{
-        .cmds = vxfw.CommandList.init(arena.allocator()),
+        .alloc = arena.allocator(),
+        .cmds = .empty,
     };
 
     // Enough boiler plate...Create the text field

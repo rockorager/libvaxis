@@ -10,9 +10,9 @@
             .hash = "zigimg-0.1.0-8_eo2mWmEgBoqdr0sH9O5GTqDHthkoEPM5_tipcBRreL",
         },
         .zg = .{
-            // TODO .url = "git+https://codeberg.org/atman/zg",
-            .url = "git+https://codeberg.org/ivanstepanovftw/zg#4fe689e56ce2ed5a8f59308b471bccd7da89fac9",
-            .hash = "zg-0.14.1-oGqU3J4_tAKBfyes3AWleKDjo-IcYvnEwaB8qxOqFMwM",
+            // Upstream PR: https://codeberg.org/atman/zg/pulls/90/
+            .url = "https://codeberg.org/chaten/zg/archive/749197a3f9d25e211615960c02380a3d659b20f9.tar.gz",
+            .hash = "zg-0.15.1-oGqU3M0-tALZCy7boQS86znlBloyKx6--JriGlY0Paa9",
         },
     },
     .paths = .{

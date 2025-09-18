@@ -329,12 +329,12 @@ pub fn handleEvent(self: *ScrollBars, ctx: *vxfw.EventContext, event: vxfw.Event
 }
 
 pub fn draw(self: *ScrollBars, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surface {
-    var children = std.ArrayList(vxfw.SubSurface).init(ctx.arena);
+    var children: std.ArrayList(vxfw.SubSurface) = .empty;
 
     // 1. If we're not drawing the scrollbars we can just draw the ScrollView directly.
 
     if (!self.draw_vertical_scrollbar and !self.draw_horizontal_scrollbar) {
-        try children.append(.{
+        try children.append(ctx.arena, .{
             .origin = .{ .row = 0, .col = 0 },
             .surface = try self.scroll_view.draw(ctx),
         });
@@ -363,7 +363,7 @@ pub fn draw(self: *ScrollBars, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfa
         },
     ));
 
-    try children.append(.{
+    try children.append(ctx.arena, .{
         .origin = .{ .row = 0, .col = 0 },
         .surface = scroll_view_surface,
     });
@@ -456,7 +456,7 @@ pub fn draw(self: *ScrollBars, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfa
         self.vertical_thumb_top_row = thumb_top;
         self.vertical_thumb_bottom_row = thumb_end_row;
 
-        try children.append(.{
+        try children.append(ctx.arena, .{
             .origin = .{ .row = 0, .col = max.width -| 1 },
             .surface = scroll_bar,
         });
@@ -520,7 +520,7 @@ pub fn draw(self: *ScrollBars, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfa
         }
         self.horizontal_thumb_start_col = thumb_start;
         self.horizontal_thumb_end_col = thumb_end;
-        try children.append(.{
+        try children.append(ctx.arena, .{
             .origin = .{ .row = max.height -| 1, .col = 0 },
             .surface = scroll_bar,
         });

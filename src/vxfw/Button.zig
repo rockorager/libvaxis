@@ -138,9 +138,10 @@ test Button {
 
     // Event handlers need a context
     var ctx: vxfw.EventContext = .{
-        .cmds = std.ArrayList(vxfw.Command).init(std.testing.allocator),
+        .alloc = std.testing.allocator,
+        .cmds = .empty,
     };
-    defer ctx.cmds.deinit();
+    defer ctx.cmds.deinit(ctx.alloc);
 
     // Get the widget interface
     const b_widget = button.widget();
