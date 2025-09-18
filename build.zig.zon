@@ -6,7 +6,7 @@
     .dependencies = .{
         .zigimg = .{
             // TODO .url = "git+https://github.com/zigimg/zigimg",
-            .url = "git+https://github.com/ivanstepanovftw/zigimg#aa4c31db872612c39edbb79f753b3cd9a79fe726",
+            .url = "https://github.com/ivanstepanovftw/zigimg/archive/aa4c31db872612c39edbb79f753b3cd9a79fe726.tar.gz",
             .hash = "zigimg-0.1.0-8_eo2mWmEgBoqdr0sH9O5GTqDHthkoEPM5_tipcBRreL",
         },
         .zg = .{
