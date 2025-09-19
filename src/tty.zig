@@ -41,8 +41,6 @@ pub const PosixTty = struct {
         callback: *const fn (context: *anyopaque) void,
     };
 
-
-
     /// global signal handlers
     var handlers: [8]SignalHandler = undefined;
     var handler_mutex: std.Thread.Mutex = .{};
@@ -72,7 +70,7 @@ pub const PosixTty = struct {
         handler_installed = true;
 
         const file = std.fs.File{ .handle = fd };
-        
+
         const self: PosixTty = .{
             .fd = fd,
             .termios = termios,
@@ -233,8 +231,6 @@ pub const WindowsTty = struct {
     /// mouse event so we can detect which button was released
     last_mouse_button_press: u16 = 0,
 
-
-
     const utf8_codepage: c_uint = 65001;
 
     /// The input mode set by init
@@ -268,7 +264,7 @@ pub const WindowsTty = struct {
             return windows.unexpectedError(windows.kernel32.GetLastError());
 
         const file = std.fs.File{ .handle = stdout };
-        
+
         const self: Tty = .{
             .stdin = stdin,
             .stdout = stdout,
