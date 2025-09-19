@@ -34,7 +34,7 @@ pub const PosixTty = struct {
     fd: posix.fd_t,
 
     /// Write buffer
-    buffer: [4096]u8,
+    buffer: []u8,
 
     /// Embedded writer
     writer: std.io.Writer,
@@ -85,7 +85,7 @@ pub const PosixTty = struct {
     /// initializes a Tty instance by opening /dev/tty and "making it raw". A
     /// signal handler is installed for SIGWINCH. No callbacks are installed, be
     /// sure to register a callback when initializing the event loop
-    pub fn init() !PosixTty {
+    pub fn init(buffer: []u8) !PosixTty {
         // Open our tty
         const fd = try posix.open("/dev/tty", .{ .ACCMODE = .RDWR }, 0);
 
@@ -106,14 +106,14 @@ pub const PosixTty = struct {
         var self: PosixTty = .{
             .fd = fd,
             .termios = termios,
-            .buffer = undefined,
+            .buffer = buffer,
             .writer = undefined, // Will be set after self is created
         };
 
         // Initialize the writer to use our embedded buffer
         self.writer = .{
             .vtable = &vtable,
-            .buffer = &self.buffer,
+            .buffer = self.buffer,
             .end = 0,
         };
 
@@ -268,7 +268,7 @@ pub const WindowsTty = struct {
     buf: [4]u8 = undefined,
 
     /// Write buffer
-    buffer: [4096]u8,
+    buffer: []u8,
 
     /// Embedded writer
     writer: std.io.Writer,
@@ -325,7 +325,7 @@ pub const WindowsTty = struct {
         .ENABLE_LVB_GRID_WORLDWIDE = 1, // enables reverse video and underline
     };
 
-    pub fn init() !Tty {
+    pub fn init(buffer: []u8) !Tty {
         const stdin = std.io.getStdIn().handle;
         const stdout = std.io.getStdOut().handle;
 
@@ -346,14 +346,14 @@ pub const WindowsTty = struct {
             .initial_codepage = initial_output_codepage,
             .initial_input_mode = initial_input_mode,
             .initial_output_mode = initial_output_mode,
-            .buffer = undefined,
+            .buffer = buffer,
             .writer = undefined, // Will be set after self is created
         };
 
         // Initialize the writer to use our embedded buffer
         self.writer = .{
             .vtable = &vtable,
-            .buffer = &self.buffer,
+            .buffer = self.buffer,
             .end = 0,
         };
 
