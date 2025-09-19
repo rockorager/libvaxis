@@ -267,9 +267,46 @@ pub const WindowsTty = struct {
     // a buffer to write key text into
     buf: [4]u8 = undefined,
 
+    /// Write buffer
+    buffer: [4096]u8,
+
+    /// Embedded writer
+    writer: std.io.Writer,
+
     /// The last mouse button that was pressed. We store the previous state of button presses on each
     /// mouse event so we can detect which button was released
     last_mouse_button_press: u16 = 0,
+
+    /// VTable for embedded writer
+    const vtable = std.io.Writer.VTable{
+        .drain = drainVTable,
+    };
+
+    fn drainVTable(w: *std.io.Writer, data: []const []const u8, splat: usize) std.io.Writer.Error!usize {
+        const self: *WindowsTty = @fieldParentPtr("writer", w);
+        
+        // First write any buffered data
+        if (w.end > 0) {
+            _ = windows.WriteFile(self.stdout, w.buffer[0..w.end], null) catch return error.WriteFailed;
+            w.end = 0;
+        }
+        
+        // Write each slice in data
+        var total: usize = 0;
+        for (data[0..data.len-1]) |slice| {
+            const n = windows.WriteFile(self.stdout, slice, null) catch return error.WriteFailed;
+            total += n;
+        }
+        
+        // Write the last slice `splat` times
+        const pattern = data[data.len - 1];
+        for (0..splat) |_| {
+            const n = windows.WriteFile(self.stdout, pattern, null) catch return error.WriteFailed;
+            total += n;
+        }
+        
+        return total;
+    }
 
     const utf8_codepage: c_uint = 65001;
 
@@ -303,12 +340,21 @@ pub const WindowsTty = struct {
         if (windows.kernel32.SetConsoleOutputCP(utf8_codepage) == 0)
             return windows.unexpectedError(windows.kernel32.GetLastError());
 
-        const self: Tty = .{
+        var self: Tty = .{
             .stdin = stdin,
             .stdout = stdout,
             .initial_codepage = initial_output_codepage,
             .initial_input_mode = initial_input_mode,
             .initial_output_mode = initial_output_mode,
+            .buffer = undefined,
+            .writer = undefined, // Will be set after self is created
+        };
+
+        // Initialize the writer to use our embedded buffer
+        self.writer = .{
+            .vtable = &vtable,
+            .buffer = &self.buffer,
+            .end = 0,
         };
 
         // save a copy of this tty as the global_tty for panic handling
@@ -363,20 +409,26 @@ pub const WindowsTty = struct {
         };
     }
 
-    pub fn opaqueWrite(ptr: *const anyopaque, bytes: []const u8) !usize {
-        const self: *const Tty = @ptrCast(@alignCast(ptr));
-        return windows.WriteFile(self.stdout, bytes, null);
+    /// Write bytes to the tty
+    pub fn write(self: *Tty, bytes: []const u8) !usize {
+        return self.writer.write(bytes);
     }
 
-    pub fn anyWriter(self: *const Tty) std.io.AnyWriter {
+    pub fn opaqueWrite(ptr: *const anyopaque, bytes: []const u8) !usize {
+        const self: *Tty = @ptrCast(@alignCast(ptr));
+        return self.writer.write(bytes);
+    }
+
+    pub fn anyWriter(self: *Tty) std.io.AnyWriter {
         return .{
             .context = self,
             .writeFn = Tty.opaqueWrite,
         };
     }
 
-    pub fn bufferedWriter(self: *const Tty) std.io.BufferedWriter(4096, std.io.AnyWriter) {
-        return std.io.bufferedWriter(self.anyWriter());
+    pub fn bufferedWriter(self: *Tty) *std.io.Writer {
+        // The embedded writer is already buffered with a 4096-byte buffer
+        return &self.writer;
     }
 
     pub fn nextEvent(self: *Tty, parser: *Parser, paste_allocator: ?std.mem.Allocator) !Event {
