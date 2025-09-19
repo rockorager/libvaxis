@@ -33,10 +33,47 @@ pub const PosixTty = struct {
     /// The file descriptor of the tty
     fd: posix.fd_t,
 
+    /// Write buffer
+    buffer: [4096]u8,
+
+    /// Embedded writer
+    writer: std.io.Writer,
+
     pub const SignalHandler = struct {
         context: *anyopaque,
         callback: *const fn (context: *anyopaque) void,
     };
+
+    /// VTable for embedded writer
+    const vtable = std.io.Writer.VTable{
+        .drain = drainVTable,
+    };
+
+    fn drainVTable(w: *std.io.Writer, data: []const []const u8, splat: usize) std.io.Writer.Error!usize {
+        const self: *PosixTty = @fieldParentPtr("writer", w);
+        
+        // First write any buffered data
+        if (w.end > 0) {
+            _ = posix.write(self.fd, w.buffer[0..w.end]) catch return error.WriteFailed;
+            w.end = 0;
+        }
+        
+        // Write each slice in data
+        var total: usize = 0;
+        for (data[0..data.len-1]) |slice| {
+            const n = posix.write(self.fd, slice) catch return error.WriteFailed;
+            total += n;
+        }
+        
+        // Write the last slice `splat` times
+        const pattern = data[data.len - 1];
+        for (0..splat) |_| {
+            const n = posix.write(self.fd, pattern) catch return error.WriteFailed;
+            total += n;
+        }
+        
+        return total;
+    }
 
     /// global signal handlers
     var handlers: [8]SignalHandler = undefined;
@@ -66,9 +103,18 @@ pub const PosixTty = struct {
         posix.sigaction(posix.SIG.WINCH, &act, null);
         handler_installed = true;
 
-        const self: PosixTty = .{
+        var self: PosixTty = .{
             .fd = fd,
             .termios = termios,
+            .buffer = undefined,
+            .writer = undefined, // Will be set after self is created
+        };
+
+        // Initialize the writer to use our embedded buffer
+        self.writer = .{
+            .vtable = &vtable,
+            .buffer = &self.buffer,
+            .end = 0,
         };
 
         global_tty = self;
@@ -101,16 +147,16 @@ pub const PosixTty = struct {
     }
 
     /// Write bytes to the tty
-    pub fn write(self: *const PosixTty, bytes: []const u8) !usize {
-        return posix.write(self.fd, bytes);
+    pub fn write(self: *PosixTty, bytes: []const u8) !usize {
+        return self.writer.write(bytes);
     }
 
     pub fn opaqueWrite(ptr: *const anyopaque, bytes: []const u8) !usize {
-        const self: *const PosixTty = @ptrCast(@alignCast(ptr));
-        return posix.write(self.fd, bytes);
+        const self: *PosixTty = @ptrCast(@alignCast(ptr));
+        return self.writer.write(bytes);
     }
 
-    pub fn anyWriter(self: *const PosixTty) std.io.AnyWriter {
+    pub fn anyWriter(self: *PosixTty) std.io.AnyWriter {
         return .{
             .context = self,
             .writeFn = PosixTty.opaqueWrite,
@@ -204,8 +250,9 @@ pub const PosixTty = struct {
         return error.IoctlError;
     }
 
-    pub fn bufferedWriter(self: *const PosixTty) std.io.BufferedWriter(4096, std.io.AnyWriter) {
-        return std.io.bufferedWriter(self.anyWriter());
+    pub fn bufferedWriter(self: *PosixTty) *std.io.Writer {
+        // The embedded writer is already buffered with a 4096-byte buffer
+        return &self.writer;
     }
 };
 
