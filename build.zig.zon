@@ -6,8 +6,8 @@
     .dependencies = .{
         .zigimg = .{
             // TODO .url = "git+https://github.com/zigimg/zigimg",
-            .url = "https://github.com/ivanstepanovftw/zigimg/archive/aa4c31db872612c39edbb79f753b3cd9a79fe726.tar.gz",
-            .hash = "zigimg-0.1.0-8_eo2mWmEgBoqdr0sH9O5GTqDHthkoEPM5_tipcBRreL",
+            .url = "https://github.com/ivanstepanovftw/zigimg/archive/d7b7ab0ba0899643831ef042bd73289510b39906.tar.gz",
+            .hash = "zigimg-0.1.0-8_eo2vHnEwCIVW34Q14Ec-xUlzIoVg86-7FU2ypPtxms",
         },
         .zg = .{
             // Upstream PR: https://codeberg.org/atman/zg/pulls/90/

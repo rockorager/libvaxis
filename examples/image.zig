@@ -34,7 +34,8 @@ pub fn main() !void {
     try vx.enterAltScreen(tty.anyWriter());
     try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
 
-    var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, "examples/zig.png");
+    var read_buffer: [1024 * 1024]u8 = undefined; // 1MB buffer
+    var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, "examples/zig.png", &read_buffer);
     defer img1.deinit();
 
     const imgs = [_]vaxis.Image{
