@@ -213,7 +213,7 @@ pub fn main() !void {
             demo_tbl.active_ctx = &row_ctx;
             demo_tbl.active_content_fn = struct {
                 fn see(win: *vaxis.Window, ctx_raw: *const anyopaque) !u16 {
-                    const ctx: *const RowContext = @alignCast(@ptrCast(ctx_raw));
+                    const ctx: *const RowContext = @ptrCast(@alignCast(ctx_raw));
                     win.height = 5;
                     const see_win = win.child(.{
                         .x_off = 0,
