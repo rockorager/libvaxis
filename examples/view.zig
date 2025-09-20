@@ -44,11 +44,11 @@ pub fn main() !void {
         x,         y,
     });
 
-    var tty = try vaxis.Tty.init();
+    var buffer: [1024]u8 = undefined;
+    var tty = try vaxis.Tty.init(&buffer);
     defer tty.deinit();
 
-    var buffered_writer = tty.bufferedWriter();
-    const writer = buffered_writer.writer().any();
+    const writer = tty.anyWriter();
 
     // Initialize Vaxis
     var vx = try vaxis.init(alloc, .{
@@ -63,7 +63,7 @@ pub fn main() !void {
     try loop.start();
     defer loop.stop();
     try vx.enterAltScreen(writer);
-    try buffered_writer.flush();
+    try writer.flush();
     try vx.queryTerminal(tty.anyWriter(), 20 * std.time.ns_per_s);
 
     // Initialize Views
@@ -181,7 +181,7 @@ pub fn main() !void {
 
         // Render the screen
         try vx.render(writer);
-        try buffered_writer.flush();
+        try writer.flush();
     }
 }
 
