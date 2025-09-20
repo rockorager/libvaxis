@@ -30,13 +30,13 @@ pub fn main() !void {
     const alloc = gpa.allocator();
 
     // Initalize a tty
-    var tty = try vaxis.Tty.init();
+    var buffer: [1024]u8 = undefined;
+    var tty = try vaxis.Tty.init(&buffer);
     defer tty.deinit();
 
     // Use a buffered writer for better performance. There are a lot of writes
     // in the render loop and this can have a significant savings
-    var buffered_writer = tty.bufferedWriter();
-    const writer = buffered_writer.writer().any();
+    const writer = tty.anyWriter();
 
     // Initialize Vaxis
     var vx = try vaxis.init(alloc, .{
@@ -68,7 +68,7 @@ pub fn main() !void {
 
     try vx.setMouseMode(writer, true);
 
-    try buffered_writer.flush();
+    try writer.flush();
     // Sends queries to terminal to detect certain features. This should
     // _always_ be called, but is left to the application to decide when
     try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
@@ -152,6 +152,6 @@ pub fn main() !void {
 
         // Render the screen
         try vx.render(writer);
-        try buffered_writer.flush();
+        try writer.flush();
     }
 }

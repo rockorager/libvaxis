@@ -411,18 +411,18 @@ pub const Surface = struct {
 
     /// Walks the Surface tree to produce a list of all widgets that intersect Point. Point will
     /// always be translated to local Surface coordinates. Asserts that this Surface does contain Point
-    pub fn hitTest(self: Surface, list: *std.ArrayList(HitResult), point: Point) Allocator.Error!void {
+    pub fn hitTest(self: Surface, allocator: Allocator, list: *std.ArrayList(HitResult), point: Point) Allocator.Error!void {
         assert(point.col < self.size.width and point.row < self.size.height);
         // Add this widget to the hit list if it has an event or capture handler
         if (self.widget.eventHandler != null or self.widget.captureHandler != null)
-            try list.append(.{ .local = point, .widget = self.widget });
+            try list.append(allocator, .{ .local = point, .widget = self.widget });
         for (self.children) |child| {
             if (!child.containsPoint(point)) continue;
             const child_point: Point = .{
                 .row = @intCast(point.row - child.origin.row),
                 .col = @intCast(point.col - child.origin.col),
             };
-            try child.surface.hitTest(list, child_point);
+            try child.surface.hitTest(allocator, list, child_point);
         }
     }
 

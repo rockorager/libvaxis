@@ -21,17 +21,16 @@ pub fn main() !void {
 
     // Users set up below the main function
     const users_buf = try alloc.dupe(User, users[0..]);
-    const user_list = std.ArrayList(User).fromOwnedSlice(alloc, users_buf);
-    defer user_list.deinit();
+    var user_list = std.ArrayList(User).fromOwnedSlice(users_buf);
+    defer user_list.deinit(alloc);
     var user_mal = std.MultiArrayList(User){};
     for (users_buf[0..]) |user| try user_mal.append(alloc, user);
     defer user_mal.deinit(alloc);
 
-    var tty = try vaxis.Tty.init();
+    var buffer: [1024]u8 = undefined;
+    var tty = try vaxis.Tty.init(&buffer);
     defer tty.deinit();
-    var tty_buf_writer = tty.bufferedWriter();
-    defer tty_buf_writer.flush() catch {};
-    const tty_writer = tty_buf_writer.writer().any();
+    const tty_writer = tty.anyWriter();
     var vx = try vaxis.init(alloc, .{
         .kitty_keyboard_flags = .{ .report_events = true },
     });
@@ -106,7 +105,7 @@ pub fn main() !void {
     defer event_arena.deinit();
     while (true) {
         defer _ = event_arena.reset(.retain_capacity);
-        defer tty_buf_writer.flush() catch {};
+        defer tty_writer.flush() catch {};
         const event_alloc = event_arena.allocator();
         const event = loop.nextEvent();
 
@@ -158,13 +157,13 @@ pub fn main() !void {
                                 demo_tbl.sel_rows = try alloc.alloc(u16, 1);
                                 break :createRows demo_tbl.sel_rows.?;
                             };
-                            var rows_list = std.ArrayList(u16).fromOwnedSlice(alloc, rows);
+                            var rows_list = std.ArrayList(u16).fromOwnedSlice(rows);
                             for (rows_list.items, 0..) |row, idx| {
                                 if (row != demo_tbl.row) continue;
                                 _ = rows_list.orderedRemove(idx);
                                 break;
-                            } else try rows_list.append(demo_tbl.row);
-                            demo_tbl.sel_rows = try rows_list.toOwnedSlice();
+                            } else try rows_list.append(alloc, demo_tbl.row);
+                            demo_tbl.sel_rows = try rows_list.toOwnedSlice(alloc);
                         }
                         // See Row Content
                         if (key.matches(vaxis.Key.enter, .{}) or key.matches('j', .{ .ctrl = true })) see_content = !see_content;

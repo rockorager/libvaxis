@@ -170,9 +170,9 @@ pub fn drawTable(
                         const fn_info = @typeInfo(@TypeOf(@field(@TypeOf(mal_slice), "get")));
                         break :dataType fn_info.@"fn".return_type orelse @panic("No Child Type");
                     };
-                    var data_out_list = std.ArrayList(DataT).init(_alloc);
-                    for (0..mal_slice.len) |idx| try data_out_list.append(mal_slice.get(idx));
-                    break :getData try data_out_list.toOwnedSlice();
+                    var data_out_list = std.ArrayList(DataT){};
+                    for (0..mal_slice.len) |idx| try data_out_list.append(_alloc, mal_slice.get(idx));
+                    break :getData try data_out_list.toOwnedSlice(_alloc);
                 }
                 return error.UnsupportedTableDataType;
             },
