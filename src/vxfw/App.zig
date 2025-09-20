@@ -109,7 +109,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
         .redraw = false,
         .quit = false,
     };
-    defer ctx.cmds.deinit();
+    defer ctx.cmds.deinit(self.allocator);
 
     while (true) {
         const now_ms: u64 = @intCast(std.time.milliTimestamp());
@@ -200,7 +200,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
         // Store the last frame
         mouse_handler.last_frame = surface;
         // Update the focus handler list
-        try focus_handler.update(surface);
+        try focus_handler.update(self.allocator, surface);
         try self.render(surface, focus_handler.focused_widget);
     }
 }
@@ -246,13 +246,11 @@ fn render(
     });
     surface.render(root_win, focused_widget);
 
-    var buffered = tty.bufferedWriter();
-    try vx.render(buffered.writer().any());
-    try buffered.flush();
+    try vx.render(tty.anyWriter());
 }
 
 fn addTick(self: *App, tick: vxfw.Tick) Allocator.Error!void {
-    try self.timers.append(tick);
+    try self.timers.append(self.allocator, tick);
     std.sort.insertion(vxfw.Tick, self.timers.items, {}, vxfw.Tick.lessThan);
 }
 
@@ -281,7 +279,7 @@ fn handleCommand(self: *App, cmds: *vxfw.CommandList) Allocator.Error!void {
                 self.vx.notify(self.tty.anyWriter(), notification.title, notification.body) catch |err| {
                     std.log.err("notify error: {}", .{err});
                 };
-                const alloc = cmds.allocator;
+                const alloc = self.allocator;
                 if (notification.title) |title| {
                     alloc.free(title);
                 }
@@ -303,7 +301,7 @@ fn checkTimers(self: *App, ctx: *vxfw.EventContext) anyerror!void {
     while (self.timers.pop()) |tick| {
         if (now_ms < tick.deadline_ms) {
             // re-add the timer
-            try self.timers.append(tick);
+            try self.timers.append(self.allocator, tick);
             break;
         }
         try tick.widget.handleEvent(ctx, .tick);
@@ -343,8 +341,8 @@ const MouseHandler = struct {
         // For mouse events we store the last frame and use that for hit testing
         const last_frame = surface;
 
-        var hits = std.ArrayList(vxfw.HitResult).init(app.allocator);
-        defer hits.deinit();
+        var hits = std.ArrayList(vxfw.HitResult){};
+        defer hits.deinit(app.allocator);
         const sub: vxfw.SubSurface = .{
             .origin = .{ .row = 0, .col = 0 },
             .surface = last_frame,
@@ -355,7 +353,7 @@ const MouseHandler = struct {
             .col = @intCast(mouse.col),
         };
         if (sub.containsPoint(mouse_point)) {
-            try last_frame.hitTest(&hits, mouse_point);
+            try last_frame.hitTest(app.allocator, &hits, mouse_point);
         }
 
         // We store the hit list from the last mouse event to determine mouse_enter and mouse_leave
@@ -402,8 +400,8 @@ const MouseHandler = struct {
         const last_frame = self.last_frame;
         self.mouse = mouse;
 
-        var hits = std.ArrayList(vxfw.HitResult).init(app.allocator);
-        defer hits.deinit();
+        var hits = std.ArrayList(vxfw.HitResult){};
+        defer hits.deinit(app.allocator);
         const sub: vxfw.SubSurface = .{
             .origin = .{ .row = 0, .col = 0 },
             .surface = last_frame,
@@ -414,7 +412,7 @@ const MouseHandler = struct {
             .col = @intCast(mouse.col),
         };
         if (sub.containsPoint(mouse_point)) {
-            try last_frame.hitTest(&hits, mouse_point);
+            try last_frame.hitTest(app.allocator, &hits, mouse_point);
         }
 
         // Handle mouse_enter and mouse_leave events
@@ -526,21 +524,21 @@ const FocusHandler = struct {
     }
 
     /// Update the focus list
-    fn update(self: *FocusHandler, surface: vxfw.Surface) Allocator.Error!void {
+    fn update(self: *FocusHandler, allocator: Allocator, surface: vxfw.Surface) Allocator.Error!void {
         // clear path
-        self.path_to_focused.clearAndFree();
+        self.path_to_focused.clearAndFree(allocator);
 
         // Find the path to the focused widget. This builds a list that has the first element as the
         // focused widget, and walks backward to the root. It's possible our focused widget is *not*
         // in this tree. If this is the case, we refocus to the root widget
-        const has_focus = try self.childHasFocus(surface);
+        const has_focus = try self.childHasFocus(allocator, surface);
 
         // We assert that the focused widget *must* be in the widget tree. There is certianly a
         // logic bug in the code somewhere if this is not the case
         assert(has_focus); // Focused widget not found in Surface tree
         if (!self.root.eql(surface.widget)) {
             // If the root of surface is not the initial widget, we append the initial widget
-            try self.path_to_focused.append(self.root);
+            try self.path_to_focused.append(allocator, self.root);
         }
 
         // reverse path_to_focused so that it is root first
@@ -550,17 +548,18 @@ const FocusHandler = struct {
     /// Returns true if a child of surface is the focused widget
     fn childHasFocus(
         self: *FocusHandler,
+        allocator: Allocator,
         surface: vxfw.Surface,
     ) Allocator.Error!bool {
         // Check if we are the focused widget
         if (self.focused_widget.eql(surface.widget)) {
-            try self.path_to_focused.append(surface.widget);
+            try self.path_to_focused.append(allocator, surface.widget);
             return true;
         }
         for (surface.children) |child| {
             // Add child to list if it is the focused widget or one of it's own children is
-            if (try self.childHasFocus(child.surface)) {
-                try self.path_to_focused.append(surface.widget);
+            if (try self.childHasFocus(allocator, child.surface)) {
+                try self.path_to_focused.append(allocator, surface.widget);
                 return true;
             }
         }
