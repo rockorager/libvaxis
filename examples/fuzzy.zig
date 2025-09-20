@@ -28,10 +28,10 @@ const Model = struct {
                 // Initialize the filtered list
                 const allocator = self.arena.allocator();
                 for (self.list.items) |line| {
-                    var spans = std.ArrayList(vxfw.RichText.TextSpan).init(allocator);
+                    var spans = std.ArrayList(vxfw.RichText.TextSpan){};
                     const span: vxfw.RichText.TextSpan = .{ .text = line.text };
-                    try spans.append(span);
-                    try self.filtered.append(.{ .text = spans.items });
+                    try spans.append(allocator, span);
+                    try self.filtered.append(allocator, .{ .text = spans.items });
                 }
 
                 return ctx.requestFocus(self.text_field.widget());
@@ -100,9 +100,9 @@ const Model = struct {
     fn onChange(maybe_ptr: ?*anyopaque, _: *vxfw.EventContext, str: []const u8) anyerror!void {
         const ptr = maybe_ptr orelse return;
         const self: *Model = @ptrCast(@alignCast(ptr));
-        self.filtered.clearAndFree();
-        _ = self.arena.reset(.free_all);
         const allocator = self.arena.allocator();
+        self.filtered.clearAndFree(allocator);
+        _ = self.arena.reset(.free_all);
 
         const hasUpper = for (str) |b| {
             if (std.ascii.isUpper(b)) break true;
@@ -117,7 +117,7 @@ const Model = struct {
             else
                 try toLower(allocator, item.text);
 
-            var spans = std.ArrayList(vxfw.RichText.TextSpan).init(allocator);
+            var spans = std.ArrayList(vxfw.RichText.TextSpan){};
             var i: usize = 0;
             var iter = self.unicode_data.graphemeIterator(str);
             while (iter.next()) |g| {
@@ -127,14 +127,14 @@ const Model = struct {
                         .text = item.text[idx .. idx + g.len],
                         .style = .{ .fg = .{ .index = 4 }, .reverse = true },
                     };
-                    try spans.append(up_to_here);
-                    try spans.append(match);
+                    try spans.append(allocator, up_to_here);
+                    try spans.append(allocator, match);
                     i = idx + g.len;
                 } else continue :outer;
             }
             const up_to_here: vxfw.RichText.TextSpan = .{ .text = item.text[i..] };
-            try spans.append(up_to_here);
-            try self.filtered.append(.{ .text = spans.items });
+            try spans.append(allocator, up_to_here);
+            try self.filtered.append(allocator, .{ .text = spans.items });
         }
         self.list_view.scroll.top = 0;
         self.list_view.scroll.offset = 0;
@@ -147,7 +147,7 @@ const Model = struct {
         if (self.list_view.cursor < self.filtered.items.len) {
             const selected = self.filtered.items[self.list_view.cursor];
             const allocator = self.arena.allocator();
-            var result: std.ArrayListUnmanaged(u8) = .{};
+            var result = std.ArrayList(u8){};
             for (selected.text) |span| {
                 try result.appendSlice(allocator, span.text);
             }
@@ -177,8 +177,8 @@ pub fn main() !void {
     const model = try allocator.create(Model);
     defer allocator.destroy(model);
     model.* = .{
-        .list = std.ArrayList(vxfw.Text).init(allocator),
-        .filtered = std.ArrayList(vxfw.RichText).init(allocator),
+        .list = std.ArrayList(vxfw.Text){},
+        .filtered = std.ArrayList(vxfw.RichText){},
         .list_view = .{
             .children = .{
                 .builder = .{
@@ -199,16 +199,16 @@ pub fn main() !void {
         .unicode_data = &app.vx.unicode,
     };
     defer model.text_field.deinit();
-    defer model.list.deinit();
-    defer model.filtered.deinit();
+    defer model.list.deinit(allocator);
+    defer model.filtered.deinit(allocator);
     defer model.arena.deinit();
 
     // Run the command
     var fd = std.process.Child.init(&.{"fd"}, allocator);
     fd.stdout_behavior = .Pipe;
     fd.stderr_behavior = .Pipe;
-    var stdout: std.ArrayListUnmanaged(u8) = .empty;
-    var stderr: std.ArrayListUnmanaged(u8) = .empty;
+    var stdout = std.ArrayList(u8){};
+    var stderr = std.ArrayList(u8){};
     defer stdout.deinit(allocator);
     defer stderr.deinit(allocator);
     try fd.spawn();
@@ -218,15 +218,15 @@ pub fn main() !void {
     var iter = std.mem.splitScalar(u8, stdout.items, '\n');
     while (iter.next()) |line| {
         if (line.len == 0) continue;
-        try model.list.append(.{ .text = line });
+        try model.list.append(allocator, .{ .text = line });
     }
 
     try app.run(model.widget(), .{});
     app.deinit();
 
     if (model.result.len > 0) {
-        const writer = std.io.getStdOut().writer();
-        try writer.print("{s}\n", .{model.result});
+        _ = try std.posix.write(std.posix.STDOUT_FILENO, model.result);
+        _ = try std.posix.write(std.posix.STDOUT_FILENO, "\n");
     } else {
         std.process.exit(130);
     }
