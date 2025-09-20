@@ -16,6 +16,7 @@ tty: vaxis.Tty,
 vx: vaxis.Vaxis,
 timers: std.ArrayList(vxfw.Tick),
 wants_focus: ?vxfw.Widget,
+buffer: [1024]u8,
 
 /// Runtime options
 pub const Options = struct {
@@ -27,22 +28,25 @@ pub const Options = struct {
 /// object on the heap. Call destroy when the app is complete to reset terminal state and release
 /// resources
 pub fn init(allocator: Allocator) !App {
-    return .{
+    var app: App = .{
         .allocator = allocator,
-        .tty = try vaxis.Tty.init(),
+        .tty = undefined,
         .vx = try vaxis.init(allocator, .{
             .system_clipboard_allocator = allocator,
             .kitty_keyboard_flags = .{
                 .report_events = true,
             },
         }),
-        .timers = std.ArrayList(vxfw.Tick).init(allocator),
+        .timers = std.ArrayList(vxfw.Tick){},
         .wants_focus = null,
+        .buffer = undefined,
     };
+    app.tty = try vaxis.Tty.init(&app.buffer);
+    return app;
 }
 
 pub fn deinit(self: *App) void {
-    self.timers.deinit();
+    self.timers.deinit(self.allocator);
     self.vx.deinit(self.allocator, self.tty.anyWriter());
     self.tty.deinit();
 }
@@ -90,16 +94,17 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     var mouse_handler = MouseHandler.init(widget);
     defer mouse_handler.deinit(self.allocator);
     var focus_handler = FocusHandler.init(self.allocator, widget);
-    try focus_handler.path_to_focused.append(widget);
-    defer focus_handler.deinit();
+    try focus_handler.path_to_focused.append(self.allocator, widget);
+    defer focus_handler.deinit(self.allocator);
 
     // Timestamp of our next frame
     var next_frame_ms: u64 = @intCast(std.time.milliTimestamp());
 
     // Create our event context
     var ctx: vxfw.EventContext = .{
+        .alloc = self.allocator,
         .phase = .capturing,
-        .cmds = vxfw.CommandList.init(self.allocator),
+        .cmds = vxfw.CommandList{},
         .consume_event = false,
         .redraw = false,
         .quit = false,
@@ -508,16 +513,16 @@ const FocusHandler = struct {
     focused_widget: vxfw.Widget,
     path_to_focused: std.ArrayList(Widget),
 
-    fn init(allocator: Allocator, root: Widget) FocusHandler {
+    fn init(_: Allocator, root: Widget) FocusHandler {
         return .{
             .root = root,
             .focused_widget = root,
-            .path_to_focused = std.ArrayList(Widget).init(allocator),
+            .path_to_focused = std.ArrayList(Widget){},
         };
     }
 
-    fn deinit(self: *FocusHandler) void {
-        self.path_to_focused.deinit();
+    fn deinit(self: *FocusHandler, allocator: Allocator) void {
+        self.path_to_focused.deinit(allocator);
     }
 
     /// Update the focus list

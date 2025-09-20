@@ -116,8 +116,8 @@ pub const PosixTty = struct {
         return self.writer.interface.write(bytes);
     }
 
-    pub fn anyWriter(self: *PosixTty) *std.io.Writer {
-        return &self.writer.interface;
+    pub fn anyWriter(self: *const PosixTty) *std.io.Writer {
+        return @constCast(&self.writer.interface);
     }
 
     pub fn read(self: *const PosixTty, buf: []u8) !usize {
@@ -207,9 +207,9 @@ pub const PosixTty = struct {
         return error.IoctlError;
     }
 
-    pub fn bufferedWriter(self: *PosixTty) *std.io.Writer {
+    pub fn bufferedWriter(self: *const PosixTty) *std.io.Writer {
         // The embedded writer is already buffered with a 4096-byte buffer
-        return &self.writer;
+        return self.anyWriter();
     }
 };
 
@@ -336,8 +336,8 @@ pub const WindowsTty = struct {
         return self.writer.interface.write(bytes);
     }
 
-    pub fn anyWriter(self: *Tty) *std.io.Writer {
-        return &self.writer.interface;
+    pub fn anyWriter(self: *const Tty) *std.io.Writer {
+        return @constCast(&self.writer.interface);
     }
 
     pub fn nextEvent(self: *Tty, parser: *Parser, paste_allocator: ?std.mem.Allocator) !Event {
