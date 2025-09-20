@@ -116,8 +116,8 @@ pub const PosixTty = struct {
         return self.writer.interface.write(bytes);
     }
 
-    pub fn anyWriter(self: *PosixTty) std.io.AnyWriter {
-        return self.writer.interface.any();
+    pub fn anyWriter(self: *PosixTty) *std.io.Writer {
+        return &self.writer.interface;
     }
 
     pub fn read(self: *const PosixTty, buf: []u8) !usize {
@@ -336,13 +336,8 @@ pub const WindowsTty = struct {
         return self.writer.interface.write(bytes);
     }
 
-    pub fn anyWriter(self: *Tty) std.io.AnyWriter {
-        return self.writer.interface.any();
-    }
-
-    pub fn bufferedWriter(self: *Tty) std.io.AnyWriter {
-        // File.Writer is already buffered
-        return self.writer.interface.any();
+    pub fn anyWriter(self: *Tty) *std.io.Writer {
+        return &self.writer.interface;
     }
 
     pub fn nextEvent(self: *Tty, parser: *Parser, paste_allocator: ?std.mem.Allocator) !Event {
@@ -758,24 +753,8 @@ pub const TestTty = struct {
         std.testing.allocator.destroy(self.writer);
     }
 
-    /// Write bytes to the tty
-    pub fn write(self: *const TestTty, bytes: []const u8) !usize {
-        if (std.mem.eql(u8, bytes, ctlseqs.device_status_report)) {
-            _ = posix.write(self.pipe_write, "\x1b") catch {};
-        }
-        return self.writer.writer.write(bytes);
-    }
-
-    pub fn opaqueWrite(ptr: *const anyopaque, bytes: []const u8) !usize {
-        const self: *const TestTty = @ptrCast(@alignCast(ptr));
-        return self.write(bytes);
-    }
-
-    pub fn anyWriter(self: *const TestTty) std.io.AnyWriter {
-        return .{
-            .context = self,
-            .writeFn = TestTty.opaqueWrite,
-        };
+    pub fn anyWriter(self: *const TestTty) *std.io.Writer {
+        return &self.writer.writer;
     }
 
     pub fn read(self: *const TestTty, buf: []u8) !usize {
@@ -802,10 +781,6 @@ pub const TestTty = struct {
             .x_pixel = 40 * 8,
             .y_pixel = 40 * 8 * 2,
         };
-    }
-
-    pub fn bufferedWriter(self: *const TestTty) std.io.BufferedWriter(4096, std.io.AnyWriter) {
-        return std.io.bufferedWriter(self.anyWriter());
     }
 
     /// Implemented for the Windows API
