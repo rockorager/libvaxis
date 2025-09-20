@@ -1018,8 +1018,9 @@ pub fn loadImage(
 ) !Image {
     if (!self.caps.kitty_graphics) return error.NoGraphicsCapability;
 
+    var read_buffer: [1024 * 1024]u8 = undefined; // 1MB buffer
     var img = switch (src) {
-        .path => |path| try zigimg.Image.fromFilePath(alloc, path),
+        .path => |path| try zigimg.Image.fromFilePath(alloc, path, &read_buffer),
         .mem => |bytes| try zigimg.Image.fromMemory(alloc, bytes),
     };
     defer img.deinit();
