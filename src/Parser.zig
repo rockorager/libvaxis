@@ -25,6 +25,7 @@ const mouse_bits = struct {
     const shift: u8 = 0b00000100;
     const alt: u8 = 0b00001000;
     const ctrl: u8 = 0b00010000;
+    const leave: u16 = 0b100000000;
 };
 
 // the state of the parser
@@ -678,6 +679,9 @@ inline fn parseMouse(input: []const u8, full_input: []const u8) Result {
     } else {
         return null_event;
     }
+
+    if (button_mask & mouse_bits.leave > 0)
+        return .{ .event = .mouse_leave, .n = if (xterm) 6 else input.len };
 
     const button: Mouse.Button = @enumFromInt(button_mask & mouse_bits.buttons);
     const motion = button_mask & mouse_bits.motion > 0;

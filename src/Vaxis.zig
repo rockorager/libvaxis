@@ -80,6 +80,10 @@ sgr: enum {
     legacy,
 } = .standard,
 
+/// Enable workarounds for escape sequence handling issues/bugs in terminals
+/// So far this just enables a UL escape sequence workaround for conpty
+enable_workarounds: bool = true,
+
 state: struct {
     /// if we are in the alt screen
     alt_screen: bool = false,
@@ -104,7 +108,7 @@ pub fn init(alloc: std.mem.Allocator, opts: Options) !Vaxis {
     return .{
         .opts = opts,
         .screen = .{},
-        .screen_last = try .init(alloc, 80, 24),
+        .screen_last = try .init(alloc, 0, 0),
         .unicode = try Unicode.init(alloc),
     };
 }
@@ -191,7 +195,7 @@ pub fn resize(
 ) !void {
     log.debug("resizing screen: width={d} height={d}", .{ winsize.cols, winsize.rows });
     self.screen.deinit(alloc);
-    self.screen = try Screen.init(alloc, winsize, &self.unicode);
+    self.screen = try Screen.init(alloc, winsize);
     self.screen.width_method = self.caps.unicode;
     // try self.screen.int(alloc, winsize.cols, winsize.rows);
     // we only init our current screen. This has the effect of redrawing
@@ -222,6 +226,7 @@ pub fn window(self: *Vaxis) Window {
         .width = self.screen.width,
         .height = self.screen.height,
         .screen = &self.screen,
+        .unicode = &self.unicode,
     };
 }
 
@@ -589,7 +594,9 @@ pub fn render(self: *Vaxis, tty: *IoWriter) !void {
                     }
                 },
                 .rgb => |rgb| {
-                    switch (self.sgr) {
+                    if (self.enable_workarounds)
+                        try tty.print(ctlseqs.ul_rgb_conpty, .{ rgb[0], rgb[1], rgb[2] })
+                    else switch (self.sgr) {
                         .standard => try tty.print(ctlseqs.ul_rgb, .{ rgb[0], rgb[1], rgb[2] }),
                         .legacy => try tty.print(ctlseqs.ul_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
                     }
@@ -1284,9 +1291,13 @@ pub fn prettyPrint(self: *Vaxis, tty: *IoWriter) !void {
                     }
                 },
                 .rgb => |rgb| {
-                    switch (self.sgr) {
+                    if (self.enable_workarounds)
+                        try tty.print(ctlseqs.ul_rgb_conpty, .{ rgb[0], rgb[1], rgb[2] })
+                    else switch (self.sgr) {
                         .standard => try tty.print(ctlseqs.ul_rgb, .{ rgb[0], rgb[1], rgb[2] }),
-                        .legacy => try tty.print(ctlseqs.ul_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] }),
+                        .legacy => {
+                            try tty.print(ctlseqs.ul_rgb_legacy, .{ rgb[0], rgb[1], rgb[2] });
+                        },
                     }
                 },
             }

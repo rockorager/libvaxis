@@ -25,6 +25,7 @@ width: u16,
 height: u16,
 
 screen: *Screen,
+unicode: *const Unicode,
 
 /// Creates a new window with offset relative to parent and size clamped to the
 /// parent's size. Windows do not retain a reference to their parent and are
@@ -49,6 +50,7 @@ fn initChild(
         .width = @min(width, max_width),
         .height = @min(height, max_height),
         .screen = self.screen,
+        .unicode = self.unicode,
     };
 }
 
@@ -205,7 +207,7 @@ pub fn clear(self: Window) void {
 
 /// returns the width of the grapheme. This depends on the terminal capabilities
 pub fn gwidth(self: Window, str: []const u8) u16 {
-    return gw.gwidth(str, self.screen.width_method, &self.screen.unicode.width_data);
+    return gw.gwidth(str, self.screen.width_method, &self.unicode.width_data);
 }
 
 /// fills the window with the provided cell
@@ -293,7 +295,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
         .grapheme => {
             var col: u16 = opts.col_offset;
             const overflow: bool = blk: for (segments) |segment| {
-                var iter = self.screen.unicode.graphemeIterator(segment.text);
+                var iter = self.unicode.graphemeIterator(segment.text);
                 while (iter.next()) |grapheme| {
                     if (col >= self.width) {
                         row += 1;
@@ -376,7 +378,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
                                     col = 0;
                                 }
 
-                                var grapheme_iterator = self.screen.unicode.graphemeIterator(word);
+                                var grapheme_iterator = self.unicode.graphemeIterator(word);
                                 while (grapheme_iterator.next()) |grapheme| {
                                     soft_wrapped = false;
                                     if (row >= self.height) {
@@ -415,7 +417,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
         .none => {
             var col: u16 = opts.col_offset;
             const overflow: bool = blk: for (segments) |segment| {
-                var iter = self.screen.unicode.graphemeIterator(segment.text);
+                var iter = self.unicode.graphemeIterator(segment.text);
                 while (iter.next()) |grapheme| {
                     if (col >= self.width) break :blk true;
                     const s = grapheme.bytes(segment.text);
@@ -487,6 +489,7 @@ test "Window size set" {
         .width = 20,
         .height = 20,
         .screen = undefined,
+        .unicode = undefined,
     };
 
     const ch = parent.initChild(1, 1, null, null);
@@ -503,6 +506,7 @@ test "Window size set too big" {
         .width = 20,
         .height = 20,
         .screen = undefined,
+        .unicode = undefined,
     };
 
     const ch = parent.initChild(0, 0, 21, 21);
@@ -519,6 +523,7 @@ test "Window size set too big with offset" {
         .width = 20,
         .height = 20,
         .screen = undefined,
+        .unicode = undefined,
     };
 
     const ch = parent.initChild(10, 10, 21, 21);
@@ -535,6 +540,7 @@ test "Window size nested offsets" {
         .width = 20,
         .height = 20,
         .screen = undefined,
+        .unicode = undefined,
     };
 
     const ch = parent.initChild(10, 10, 21, 21);
@@ -551,6 +557,7 @@ test "Window offsets" {
         .width = 20,
         .height = 20,
         .screen = undefined,
+        .unicode = undefined,
     };
 
     const ch = parent.initChild(10, 10, 21, 21);
@@ -565,7 +572,7 @@ test "print: grapheme" {
     const alloc = std.testing.allocator_instance.allocator();
     const unicode = try Unicode.init(alloc);
     defer unicode.deinit(alloc);
-    var screen: Screen = .{ .width_method = .unicode, .unicode = &unicode };
+    var screen: Screen = .{ .width_method = .unicode };
     const win: Window = .{
         .x_off = 0,
         .y_off = 0,
@@ -574,6 +581,7 @@ test "print: grapheme" {
         .width = 4,
         .height = 2,
         .screen = &screen,
+        .unicode = &unicode,
     };
     const opts: PrintOptions = .{
         .commit = false,
@@ -633,7 +641,6 @@ test "print: word" {
     defer unicode.deinit(alloc);
     var screen: Screen = .{
         .width_method = .unicode,
-        .unicode = &unicode,
     };
     const win: Window = .{
         .x_off = 0,
@@ -643,6 +650,7 @@ test "print: word" {
         .width = 4,
         .height = 2,
         .screen = &screen,
+        .unicode = &unicode,
     };
     const opts: PrintOptions = .{
         .commit = false,

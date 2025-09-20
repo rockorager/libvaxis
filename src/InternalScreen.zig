@@ -36,11 +36,11 @@ pub const InternalCell = struct {
     }
 };
 
-arena: *std.heap.ArenaAllocator = undefined,
+arena: *std.heap.ArenaAllocator,
 width: u16 = 0,
 height: u16 = 0,
 
-buf: []InternalCell = undefined,
+buf: []InternalCell,
 
 cursor_row: u16 = 0,
 cursor_col: u16 = 0,
