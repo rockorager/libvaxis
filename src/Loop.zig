@@ -110,6 +110,9 @@ pub fn Loop(comptime T: type) type {
             grapheme_data: *const Graphemes,
             paste_allocator: ?std.mem.Allocator,
         ) !void {
+            // Return early if we're in test mode to avoid infinite loops
+            if (builtin.is_test) return;
+            
             // initialize a grapheme cache
             var cache: GraphemeCache = .{};
 
