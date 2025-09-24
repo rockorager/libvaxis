@@ -33,6 +33,8 @@ pub const PosixTty = struct {
     /// The file descriptor of the tty
     fd: posix.fd_t,
 
+    reader: std.fs.File.Reader,
+
     /// File.Writer for efficient buffered writing
     writer: std.fs.File.Writer,
 
@@ -74,7 +76,7 @@ pub const PosixTty = struct {
         const self: PosixTty = .{
             .fd = fd,
             .termios = termios,
-            .writer = std.fs.File.Writer.initStreaming(file, buffer),
+            .writer = .initStreaming(file, buffer),
         };
 
         global_tty = self;
@@ -106,34 +108,12 @@ pub const PosixTty = struct {
         posix.sigaction(posix.SIG.WINCH, &act, null);
     }
 
-    /// Write bytes to the tty
-    pub fn write(self: *PosixTty, bytes: []const u8) !usize {
-        return self.writer.interface.write(bytes);
-    }
-
-    pub fn opaqueWrite(ptr: *const anyopaque, bytes: []const u8) !usize {
-        const self: *PosixTty = @ptrCast(@alignCast(ptr));
-        return self.writer.interface.write(bytes);
-    }
-
-    pub fn anyWriter(self: *const PosixTty) *std.io.Writer {
-        return @constCast(&self.writer.interface);
+    pub fn anyWriter(self: *PosixTty) *std.Io.Writer {
+        return &self.writer.interface;
     }
 
     pub fn read(self: *const PosixTty, buf: []u8) !usize {
         return posix.read(self.fd, buf);
-    }
-
-    pub fn opaqueRead(ptr: *const anyopaque, buf: []u8) !usize {
-        const self: *const PosixTty = @ptrCast(@alignCast(ptr));
-        return posix.read(self.fd, buf);
-    }
-
-    pub fn anyReader(self: *const PosixTty) std.io.AnyReader {
-        return .{
-            .context = self,
-            .readFn = PosixTty.opaqueRead,
-        };
     }
 
     /// Install a signal handler for winsize. A maximum of 8 handlers may be
@@ -206,11 +186,6 @@ pub const PosixTty = struct {
             };
         return error.IoctlError;
     }
-
-    pub fn bufferedWriter(self: *const PosixTty) *std.io.Writer {
-        // The embedded writer is already buffered with a 4096-byte buffer
-        return self.anyWriter();
-    }
 };
 
 pub const WindowsTty = struct {
@@ -225,6 +200,7 @@ pub const WindowsTty = struct {
     buf: [4]u8 = undefined,
 
     /// File.Writer for efficient buffered writing
+    reader: std.fs.File.Writer,
     writer: std.fs.File.Writer,
 
     /// The last mouse button that was pressed. We store the previous state of button presses on each
@@ -249,29 +225,27 @@ pub const WindowsTty = struct {
     };
 
     pub fn init(buffer: []u8) !Tty {
-        const stdin = std.io.getStdIn().handle;
-        const stdout = std.io.getStdOut().handle;
+        const stdin: std.fs.File = .stdout();
+        const stdout: std.fs.File = .stdout();
 
         // get initial modes
         const initial_output_codepage = windows.kernel32.GetConsoleOutputCP();
-        const initial_input_mode = try getConsoleMode(CONSOLE_MODE_INPUT, stdin);
-        const initial_output_mode = try getConsoleMode(CONSOLE_MODE_OUTPUT, stdout);
+        const initial_input_mode = try getConsoleMode(CONSOLE_MODE_INPUT, stdin.handle);
+        const initial_output_mode = try getConsoleMode(CONSOLE_MODE_OUTPUT, stdout.handle);
 
         // set new modes
-        try setConsoleMode(stdin, input_raw_mode);
-        try setConsoleMode(stdout, output_raw_mode);
+        try setConsoleMode(stdin.handle, input_raw_mode);
+        try setConsoleMode(stdout.handle, output_raw_mode);
         if (windows.kernel32.SetConsoleOutputCP(utf8_codepage) == 0)
             return windows.unexpectedError(windows.kernel32.GetLastError());
 
-        const file = std.fs.File{ .handle = stdout };
-
         const self: Tty = .{
-            .stdin = stdin,
-            .stdout = stdout,
+            .stdin = stdin.handle,
+            .stdout = stdout.handle,
             .initial_codepage = initial_output_codepage,
             .initial_input_mode = initial_input_mode,
             .initial_output_mode = initial_output_mode,
-            .writer = std.fs.File.Writer.initStreaming(file, buffer),
+            .writer = .initStreaming(stdout, buffer),
         };
 
         // save a copy of this tty as the global_tty for panic handling
@@ -326,18 +300,12 @@ pub const WindowsTty = struct {
         };
     }
 
-    /// Write bytes to the tty
-    pub fn write(self: *Tty, bytes: []const u8) !usize {
-        return self.writer.interface.write(bytes);
+    pub fn anyWriter(self: *Tty) *std.Io.Writer {
+        return &self.writer.interface;
     }
 
-    pub fn opaqueWrite(ptr: *const anyopaque, bytes: []const u8) !usize {
-        const self: *Tty = @ptrCast(@alignCast(ptr));
-        return self.writer.interface.write(bytes);
-    }
-
-    pub fn anyWriter(self: *const Tty) *std.io.Writer {
-        return @constCast(&self.writer.interface);
+    pub fn read(self: *const Tty, buf: []u8) !usize {
+        return posix.read(self.fd, buf);
     }
 
     pub fn nextEvent(self: *Tty, parser: *Parser, paste_allocator: ?std.mem.Allocator) !Event {
@@ -730,12 +698,14 @@ pub const TestTty = struct {
     fd: posix.fd_t,
     pipe_read: posix.fd_t,
     pipe_write: posix.fd_t,
-    writer: *std.io.Writer.Allocating,
+    writer: *std.Io.Writer.Allocating,
 
     /// Initializes a TestTty.
     pub fn init(buffer: []u8) !TestTty {
+        _ = buffer;
+
         if (builtin.os.tag == .windows) return error.SkipZigTest;
-        const list = try std.testing.allocator.create(std.io.Writer.Allocating);
+        const list = try std.testing.allocator.create(std.Io.Writer.Allocating);
         list.* = .init(std.testing.allocator);
         const r, const w = try posix.pipe();
         return .{
@@ -753,24 +723,12 @@ pub const TestTty = struct {
         std.testing.allocator.destroy(self.writer);
     }
 
-    pub fn anyWriter(self: *const TestTty) *std.io.Writer {
+    pub fn anyWriter(self: *TestTty) *std.Io.Writer {
         return &self.writer.writer;
     }
 
     pub fn read(self: *const TestTty, buf: []u8) !usize {
         return posix.read(self.fd, buf);
-    }
-
-    pub fn opaqueRead(ptr: *const anyopaque, buf: []u8) !usize {
-        const self: *const TestTty = @ptrCast(@alignCast(ptr));
-        return posix.read(self.fd, buf);
-    }
-
-    pub fn anyReader(self: *const TestTty) std.io.AnyReader {
-        return .{
-            .context = self,
-            .readFn = TestTty.opaqueRead,
-        };
     }
 
     /// Get the window size from the kernel

@@ -390,7 +390,7 @@ test Loop {
         foo: u8,
     };
 
-    var tty = try vaxis.Tty.init();
+    var tty = try vaxis.Tty.init(&.{});
     defer tty.deinit();
 
     var vx = try vaxis.init(std.testing.allocator, .{});
