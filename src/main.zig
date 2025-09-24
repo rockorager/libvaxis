@@ -67,7 +67,7 @@ pub fn panic_handler(msg: []const u8, _: ?*std.builtin.StackTrace, ret_addr: ?us
 
 /// Resets the terminal state using the global tty instance. Use this only to recover during a panic
 pub fn recover() void {
-    if (tty.global_tty) |gty| {
+    if (tty.global_tty) |*gty| {
         const reset: []const u8 = ctlseqs.csi_u_pop ++
             ctlseqs.mouse_reset ++
             ctlseqs.bp_reset ++
