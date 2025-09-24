@@ -733,7 +733,7 @@ pub const TestTty = struct {
     writer: *std.io.Writer.Allocating,
 
     /// Initializes a TestTty.
-    pub fn init() !TestTty {
+    pub fn init(buffer: []u8) !TestTty {
         if (builtin.os.tag == .windows) return error.SkipZigTest;
         const list = try std.testing.allocator.create(std.io.Writer.Allocating);
         list.* = .init(std.testing.allocator);
