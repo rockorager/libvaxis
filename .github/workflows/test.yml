@@ -13,15 +13,15 @@ jobs:
     runs-on: ${{matrix.os}}
     steps:
       - uses: actions/checkout@v3
-      - uses: mlugg/setup-zig@v1
+      - uses: mlugg/setup-zig@v2
         with:
-          version: 0.14.0
+          version: 0.15.1
       - run: zig build test
   check-fmt:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: mlugg/setup-zig@v1
+      - uses: mlugg/setup-zig@v2
         with:
-          version: 0.14.0
+          version: 0.15.1
       - run: zig fmt --check .
