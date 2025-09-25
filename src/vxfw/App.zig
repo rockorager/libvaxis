@@ -47,7 +47,7 @@ pub fn init(allocator: Allocator) !App {
 
 pub fn deinit(self: *App) void {
     self.timers.deinit(self.allocator);
-    self.vx.deinit(self.allocator, self.tty.anyWriter());
+    self.vx.deinit(self.allocator, self.tty.writer());
     self.tty.deinit();
 }
 
@@ -64,10 +64,10 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     // Also always initialize the app with a focus event
     loop.postEvent(.focus_in);
 
-    try vx.enterAltScreen(tty.anyWriter());
-    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
-    try vx.setBracketedPaste(tty.anyWriter(), true);
-    try vx.subscribeToColorSchemeUpdates(tty.anyWriter());
+    try vx.enterAltScreen(tty.writer());
+    try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
+    try vx.setBracketedPaste(tty.writer(), true);
+    try vx.subscribeToColorSchemeUpdates(tty.writer());
 
     {
         // This part deserves a comment. loop.init installs a signal handler for the tty. We wait to
@@ -78,7 +78,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
 
     // NOTE: We don't use pixel mouse anywhere
     vx.caps.sgr_pixels = false;
-    try vx.setMouseMode(tty.anyWriter(), true);
+    try vx.setMouseMode(tty.writer(), true);
 
     // Give DrawContext the unicode data
     vxfw.DrawContext.init(&vx.unicode, vx.screen.width_method);
@@ -149,7 +149,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
                     },
                     .mouse => |mouse| try mouse_handler.handleMouse(self, &ctx, mouse),
                     .winsize => |ws| {
-                        try vx.resize(self.allocator, tty.anyWriter(), ws);
+                        try vx.resize(self.allocator, tty.writer(), ws);
                         ctx.redraw = true;
                     },
                     else => {
@@ -246,7 +246,7 @@ fn render(
     });
     surface.render(root_win, focused_widget);
 
-    try vx.render(tty.anyWriter());
+    try vx.render(tty.writer());
 }
 
 fn addTick(self: *App, tick: vxfw.Tick) Allocator.Error!void {
@@ -262,7 +262,7 @@ fn handleCommand(self: *App, cmds: *vxfw.CommandList) Allocator.Error!void {
             .set_mouse_shape => |shape| self.vx.setMouseShape(shape),
             .request_focus => |widget| self.wants_focus = widget,
             .copy_to_clipboard => |content| {
-                self.vx.copyToSystemClipboard(self.tty.anyWriter(), content, self.allocator) catch |err| {
+                self.vx.copyToSystemClipboard(self.tty.writer(), content, self.allocator) catch |err| {
                     switch (err) {
                         error.OutOfMemory => return Allocator.Error.OutOfMemory,
                         else => std.log.err("copy error: {}", .{err}),
@@ -270,13 +270,13 @@ fn handleCommand(self: *App, cmds: *vxfw.CommandList) Allocator.Error!void {
                 };
             },
             .set_title => |title| {
-                self.vx.setTitle(self.tty.anyWriter(), title) catch |err| {
+                self.vx.setTitle(self.tty.writer(), title) catch |err| {
                     std.log.err("set_title error: {}", .{err});
                 };
             },
             .queue_refresh => self.vx.queueRefresh(),
             .notify => |notification| {
-                self.vx.notify(self.tty.anyWriter(), notification.title, notification.body) catch |err| {
+                self.vx.notify(self.tty.writer(), notification.title, notification.body) catch |err| {
                     std.log.err("notify error: {}", .{err});
                 };
                 const alloc = self.allocator;
@@ -286,7 +286,7 @@ fn handleCommand(self: *App, cmds: *vxfw.CommandList) Allocator.Error!void {
                 alloc.free(notification.body);
             },
             .query_color => |kind| {
-                self.vx.queryColor(self.tty.anyWriter(), kind) catch |err| {
+                self.vx.queryColor(self.tty.writer(), kind) catch |err| {
                     std.log.err("queryColor error: {}", .{err});
                 };
             },

@@ -25,7 +25,7 @@ pub fn main() !void {
     defer tty.deinit();
 
     var vx = try vaxis.init(alloc, .{});
-    defer vx.deinit(alloc, tty.anyWriter());
+    defer vx.deinit(alloc, tty.writer());
 
     var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
     try loop.init();
@@ -33,11 +33,11 @@ pub fn main() !void {
     try loop.start();
     defer loop.stop();
 
-    try vx.enterAltScreen(tty.anyWriter());
-    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
+    try vx.enterAltScreen(tty.writer());
+    try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
 
-    try vx.queryColor(tty.anyWriter(), .fg);
-    try vx.queryColor(tty.anyWriter(), .bg);
+    try vx.queryColor(tty.writer(), .fg);
+    try vx.queryColor(tty.writer(), .bg);
     var pct: u8 = 0;
     var dir: enum {
         up,
@@ -53,7 +53,7 @@ pub fn main() !void {
         switch (event) {
             .key_press => |key| if (key.matches('c', .{ .ctrl = true })) return,
             .winsize => |ws| {
-                try vx.resize(alloc, tty.anyWriter(), ws);
+                try vx.resize(alloc, tty.writer(), ws);
                 break;
             },
         }
@@ -63,7 +63,7 @@ pub fn main() !void {
         while (loop.tryEvent()) |event| {
             switch (event) {
                 .key_press => |key| if (key.matches('c', .{ .ctrl = true })) return,
-                .winsize => |ws| try vx.resize(alloc, tty.anyWriter(), ws),
+                .winsize => |ws| try vx.resize(alloc, tty.writer(), ws),
             }
         }
 
@@ -83,7 +83,7 @@ pub fn main() !void {
         // var bw = tty.bufferedWriter();
         // try vx.render(bw.writer().any());
         // try bw.flush();
-        try vx.render(tty.anyWriter());
+        try vx.render(tty.writer());
         std.Thread.sleep(16 * std.time.ns_per_ms);
         switch (dir) {
             .up => {

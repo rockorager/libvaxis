@@ -19,7 +19,7 @@ pub fn main() !void {
     defer tty.deinit();
 
     var vx = try vaxis.init(alloc, .{});
-    defer vx.deinit(alloc, tty.anyWriter());
+    defer vx.deinit(alloc, tty.writer());
 
     var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
     try loop.init();
@@ -27,7 +27,7 @@ pub fn main() !void {
     try loop.start();
     defer loop.stop();
 
-    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
+    try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
 
     var text_input = TextInput.init(alloc, &vx.unicode);
     defer text_input.deinit();
@@ -75,7 +75,7 @@ pub fn main() !void {
                 }
             },
             .winsize => |ws| {
-                try vx.resize(alloc, tty.anyWriter(), ws);
+                try vx.resize(alloc, tty.writer(), ws);
             },
             else => {},
         }
@@ -96,7 +96,7 @@ pub fn main() !void {
                 _ = win.print(&seg, .{ .row_offset = @intCast(j + 1) });
             }
         }
-        try vx.render(tty.anyWriter());
+        try vx.render(tty.writer());
     }
 }
 

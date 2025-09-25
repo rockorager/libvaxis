@@ -58,7 +58,7 @@ pub fn Loop(comptime T: type) type {
             if (self.thread == null) return;
             self.should_quit = true;
             // trigger a read
-            self.vaxis.deviceStatusReport(self.tty.anyWriter()) catch {};
+            self.vaxis.deviceStatusReport(self.tty.writer()) catch {};
 
             if (self.thread) |thread| {
                 thread.join();
@@ -398,7 +398,7 @@ test Loop {
     defer tty.deinit();
 
     var vx = try vaxis.init(std.testing.allocator, .{});
-    defer vx.deinit(std.testing.allocator, tty.anyWriter());
+    defer vx.deinit(std.testing.allocator, tty.writer());
 
     var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
     try loop.init();
@@ -407,6 +407,6 @@ test Loop {
     defer loop.stop();
 
     // Optionally enter the alternate screen
-    try vx.enterAltScreen(tty.anyWriter());
-    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_ms);
+    try vx.enterAltScreen(tty.writer());
+    try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_ms);
 }

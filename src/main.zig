@@ -73,7 +73,7 @@ pub fn recover() void {
             ctlseqs.bp_reset ++
             ctlseqs.rmcup;
 
-        gty.anyWriter().writeAll(reset) catch {};
+        gty.writer().writeAll(reset) catch {};
 
         gty.deinit();
     }
