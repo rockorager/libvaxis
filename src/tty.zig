@@ -33,8 +33,6 @@ pub const PosixTty = struct {
     /// The file descriptor of the tty
     fd: posix.fd_t,
 
-    reader: std.fs.File.Reader,
-
     /// File.Writer for efficient buffered writing
     tty_writer: std.fs.File.Writer,
 
@@ -76,7 +74,6 @@ pub const PosixTty = struct {
         const self: PosixTty = .{
             .fd = fd,
             .termios = termios,
-            .reader = file.reader(buffer),
             .tty_writer = .initStreaming(file, buffer),
         };
 
