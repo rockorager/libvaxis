@@ -31,8 +31,6 @@ pub fn main() !void {
     try loop.start();
     defer loop.stop();
 
-    var buffered = tty.bufferedWriter();
-
     try vx.enterAltScreen(tty.writer());
     try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
     var env = try std.process.getEnvMap(alloc);
@@ -50,12 +48,14 @@ pub fn main() !void {
     };
     const shell = env.get("SHELL") orelse "bash";
     const argv = [_][]const u8{shell};
+    var write_buf: [4096]u8 = undefined;
     var vt = try vaxis.widgets.Terminal.init(
         alloc,
         &argv,
         &env,
         &vx.unicode,
         vt_opts,
+        &write_buf,
     );
     defer vt.deinit();
     try vt.spawn();
@@ -108,9 +108,9 @@ pub fn main() !void {
             .x_pixel = 0,
             .y_pixel = 0,
         });
-        try vt.draw(child);
+        try vt.draw(alloc, child);
 
-        try vx.render(buffered.writer().any());
-        try buffered.flush();
+        try vx.render(tty.writer());
+        try tty.writer().flush();
     }
 }
