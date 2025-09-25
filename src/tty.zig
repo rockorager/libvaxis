@@ -76,7 +76,7 @@ pub const PosixTty = struct {
         const self: PosixTty = .{
             .fd = fd,
             .termios = termios,
-            .reader = file.reader(),
+            .reader = file.reader(buffer),
             .writer = .initStreaming(file, buffer),
         };
 
