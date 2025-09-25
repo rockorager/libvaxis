@@ -297,7 +297,7 @@ pub fn main() !void {
     var vx = try vaxis.init(alloc, .{});
     // deinit takes an optional allocator. If your program is exiting, you can
     // choose to pass a null allocator to save some exit time.
-    defer vx.deinit(alloc, tty.anyWriter());
+    defer vx.deinit(alloc, tty.writer());
 
 
     // The event loop requires an intrusive init. We create an instance with
@@ -317,7 +317,7 @@ pub fn main() !void {
     defer loop.stop();
 
     // Optionally enter the alternate screen
-    try vx.enterAltScreen(tty.anyWriter());
+    try vx.enterAltScreen(tty.writer());
 
     // We'll adjust the color index every keypress for the border
     var color_idx: u8 = 0;
@@ -329,7 +329,7 @@ pub fn main() !void {
 
     // Sends queries to terminal to detect certain features. This should always
     // be called after entering the alt screen, if you are using the alt screen
-    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
+    try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
 
     while (true) {
         // nextEvent blocks until an event is in the queue
@@ -365,7 +365,7 @@ pub fn main() !void {
             // more than one byte will incur an allocation on the first render
             // after it is drawn. Thereafter, it will not allocate unless the
             // screen is resized
-            .winsize => |ws| try vx.resize(alloc, tty.anyWriter(), ws),
+            .winsize => |ws| try vx.resize(alloc, tty.writer(), ws),
             else => {},
         }
 
@@ -401,7 +401,7 @@ pub fn main() !void {
 
         // Render the screen. Using a buffered writer will offer much better
 	// performance, but is not required
-        try vx.render(tty.anyWriter());
+        try vx.render(tty.writer());
     }
 }
 ```

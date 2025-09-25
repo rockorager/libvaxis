@@ -48,13 +48,13 @@ pub fn main() !void {
     var tty = try vaxis.Tty.init(&buffer);
     defer tty.deinit();
 
-    const writer = tty.anyWriter();
+    const writer = tty.writer();
 
     // Initialize Vaxis
     var vx = try vaxis.init(alloc, .{
         .kitty_keyboard_flags = .{ .report_events = true },
     });
-    defer vx.deinit(alloc, tty.anyWriter());
+    defer vx.deinit(alloc, tty.writer());
     var loop: vaxis.Loop(Event) = .{
         .vaxis = &vx,
         .tty = &tty,
@@ -64,7 +64,7 @@ pub fn main() !void {
     defer loop.stop();
     try vx.enterAltScreen(writer);
     try writer.flush();
-    try vx.queryTerminal(tty.anyWriter(), 20 * std.time.ns_per_s);
+    try vx.queryTerminal(tty.writer(), 20 * std.time.ns_per_s);
 
     // Initialize Views
     // - Large Map
@@ -128,7 +128,7 @@ pub fn main() !void {
                 // Mini View (Forced Width & Height Limits)
                 if (key.matches('m', .{})) use_mini_view = !use_mini_view;
             },
-            .winsize => |ws| try vx.resize(alloc, tty.anyWriter(), ws),
+            .winsize => |ws| try vx.resize(alloc, tty.writer(), ws),
         }
 
         const win = vx.window();

@@ -36,7 +36,7 @@ pub const PosixTty = struct {
     reader: std.fs.File.Reader,
 
     /// File.Writer for efficient buffered writing
-    writer: std.fs.File.Writer,
+    tty_writer: std.fs.File.Writer,
 
     pub const SignalHandler = struct {
         context: *anyopaque,
@@ -77,7 +77,7 @@ pub const PosixTty = struct {
             .fd = fd,
             .termios = termios,
             .reader = file.reader(buffer),
-            .writer = .initStreaming(file, buffer),
+            .tty_writer = .initStreaming(file, buffer),
         };
 
         global_tty = self;
@@ -109,8 +109,8 @@ pub const PosixTty = struct {
         posix.sigaction(posix.SIG.WINCH, &act, null);
     }
 
-    pub fn anyWriter(self: *PosixTty) *std.Io.Writer {
-        return &self.writer.interface;
+    pub fn writer(self: *PosixTty) *std.Io.Writer {
+        return &self.tty_writer.interface;
     }
 
     pub fn read(self: *const PosixTty, buf: []u8) !usize {
@@ -202,7 +202,7 @@ pub const WindowsTty = struct {
 
     /// File.Writer for efficient buffered writing
     reader: std.fs.File.Writer,
-    writer: std.fs.File.Writer,
+    tty_writer: std.fs.File.Writer,
 
     /// The last mouse button that was pressed. We store the previous state of button presses on each
     /// mouse event so we can detect which button was released
@@ -301,8 +301,8 @@ pub const WindowsTty = struct {
         };
     }
 
-    pub fn anyWriter(self: *Tty) *std.Io.Writer {
-        return &self.writer.interface;
+    pub fn writer(self: *Tty) *std.Io.Writer {
+        return &self.tty_writer.interface;
     }
 
     pub fn read(self: *const Tty, buf: []u8) !usize {
@@ -699,7 +699,7 @@ pub const TestTty = struct {
     fd: posix.fd_t,
     pipe_read: posix.fd_t,
     pipe_write: posix.fd_t,
-    writer: *std.Io.Writer.Allocating,
+    tty_writer: *std.Io.Writer.Allocating,
 
     /// Initializes a TestTty.
     pub fn init(buffer: []u8) !TestTty {
@@ -713,19 +713,19 @@ pub const TestTty = struct {
             .fd = r,
             .pipe_read = r,
             .pipe_write = w,
-            .writer = list,
+            .tty_writer = list,
         };
     }
 
     pub fn deinit(self: TestTty) void {
         std.posix.close(self.pipe_read);
         std.posix.close(self.pipe_write);
-        self.writer.deinit();
-        std.testing.allocator.destroy(self.writer);
+        self.tty_writer.deinit();
+        std.testing.allocator.destroy(self.tty_writer);
     }
 
-    pub fn anyWriter(self: *TestTty) *std.Io.Writer {
-        return &self.writer.writer;
+    pub fn writer(self: *TestTty) *std.Io.Writer {
+        return &self.tty_writer.writer;
     }
 
     pub fn read(self: *const TestTty, buf: []u8) !usize {

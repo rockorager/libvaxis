@@ -23,7 +23,7 @@ pub fn main() !void {
     defer tty.deinit();
 
     var vx = try vaxis.init(alloc, .{});
-    defer vx.deinit(alloc, tty.anyWriter());
+    defer vx.deinit(alloc, tty.writer());
 
     var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
     try loop.init();
@@ -31,21 +31,21 @@ pub fn main() !void {
     try loop.start();
     defer loop.stop();
 
-    try vx.enterAltScreen(tty.anyWriter());
-    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
+    try vx.enterAltScreen(tty.writer());
+    try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
 
     var read_buffer: [1024 * 1024]u8 = undefined; // 1MB buffer
     var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, "examples/zig.png", &read_buffer);
     defer img1.deinit();
 
     const imgs = [_]vaxis.Image{
-        try vx.transmitImage(alloc, tty.anyWriter(), &img1, .rgba),
+        try vx.transmitImage(alloc, tty.writer(), &img1, .rgba),
         // var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, "examples/zig.png");
-        // try vx.loadImage(alloc, tty.anyWriter(), .{ .path = "examples/zig.png" }),
-        try vx.loadImage(alloc, tty.anyWriter(), .{ .path = "examples/vaxis.png" }),
+        // try vx.loadImage(alloc, tty.writer(), .{ .path = "examples/zig.png" }),
+        try vx.loadImage(alloc, tty.writer(), .{ .path = "examples/vaxis.png" }),
     };
-    defer vx.freeImage(tty.anyWriter(), imgs[0].id);
-    defer vx.freeImage(tty.anyWriter(), imgs[1].id);
+    defer vx.freeImage(tty.writer(), imgs[0].id);
+    defer vx.freeImage(tty.writer(), imgs[1].id);
 
     var n: usize = 0;
 
@@ -64,7 +64,7 @@ pub fn main() !void {
                 else if (key.matches('k', .{}))
                     clip_y -|= 1;
             },
-            .winsize => |ws| try vx.resize(alloc, tty.anyWriter(), ws),
+            .winsize => |ws| try vx.resize(alloc, tty.writer(), ws),
         }
 
         n = (n + 1) % imgs.len;
@@ -78,6 +78,6 @@ pub fn main() !void {
             .y = clip_y,
         } });
 
-        try vx.render(tty.anyWriter());
+        try vx.render(tty.writer());
     }
 }

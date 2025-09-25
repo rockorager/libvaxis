@@ -36,13 +36,13 @@ pub fn main() !void {
 
     // Use a buffered writer for better performance. There are a lot of writes
     // in the render loop and this can have a significant savings
-    const writer = tty.anyWriter();
+    const writer = tty.writer();
 
     // Initialize Vaxis
     var vx = try vaxis.init(alloc, .{
         .kitty_keyboard_flags = .{ .report_events = true },
     });
-    defer vx.deinit(alloc, tty.anyWriter());
+    defer vx.deinit(alloc, tty.writer());
 
     var loop: vaxis.Loop(Event) = .{
         .vaxis = &vx,
@@ -71,7 +71,7 @@ pub fn main() !void {
     try writer.flush();
     // Sends queries to terminal to detect certain features. This should
     // _always_ be called, but is left to the application to decide when
-    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
+    try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
 
     // The main event loop. Vaxis provides a thread safe, blocking, buffered
     // queue which can serve as the primary event queue for an application
@@ -92,12 +92,12 @@ pub fn main() !void {
                 } else if (key.matches('l', .{ .ctrl = true })) {
                     vx.queueRefresh();
                 } else if (key.matches('n', .{ .ctrl = true })) {
-                    try vx.notify(tty.anyWriter(), "vaxis", "hello from vaxis");
+                    try vx.notify(tty.writer(), "vaxis", "hello from vaxis");
                     loop.stop();
                     var child = std.process.Child.init(&.{"nvim"}, alloc);
                     _ = try child.spawnAndWait();
                     try loop.start();
-                    try vx.enterAltScreen(tty.anyWriter());
+                    try vx.enterAltScreen(tty.writer());
                     vx.queueRefresh();
                 } else if (key.matches(vaxis.Key.enter, .{}) or key.matches('j', .{ .ctrl = true })) {
                     text_input.clearAndFree();
@@ -121,7 +121,7 @@ pub fn main() !void {
             // more than one byte will incur an allocation on the first render
             // after it is drawn. Thereafter, it will not allocate unless the
             // screen is resized
-            .winsize => |ws| try vx.resize(alloc, tty.anyWriter(), ws),
+            .winsize => |ws| try vx.resize(alloc, tty.writer(), ws),
             else => {},
         }
 

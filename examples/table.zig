@@ -30,11 +30,11 @@ pub fn main() !void {
     var buffer: [1024]u8 = undefined;
     var tty = try vaxis.Tty.init(&buffer);
     defer tty.deinit();
-    const tty_writer = tty.anyWriter();
+    const tty_writer = tty.writer();
     var vx = try vaxis.init(alloc, .{
         .kitty_keyboard_flags = .{ .report_events = true },
     });
-    defer vx.deinit(alloc, tty.anyWriter());
+    defer vx.deinit(alloc, tty.writer());
 
     var loop: vaxis.Loop(union(enum) {
         key_press: vaxis.Key,
@@ -44,8 +44,8 @@ pub fn main() !void {
     try loop.init();
     try loop.start();
     defer loop.stop();
-    try vx.enterAltScreen(tty.anyWriter());
-    try vx.queryTerminal(tty.anyWriter(), 250 * std.time.ns_per_ms);
+    try vx.enterAltScreen(tty.writer());
+    try vx.queryTerminal(tty.writer(), 250 * std.time.ns_per_ms);
 
     const logo =
         \\░█░█░█▀█░█░█░▀█▀░█▀▀░░░▀█▀░█▀█░█▀▄░█░░░█▀▀░
@@ -191,7 +191,7 @@ pub fn main() !void {
                 }
                 moving = false;
             },
-            .winsize => |ws| try vx.resize(alloc, tty.anyWriter(), ws),
+            .winsize => |ws| try vx.resize(alloc, tty.writer(), ws),
             else => {},
         }
 

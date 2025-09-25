@@ -247,7 +247,7 @@ pub fn TtyWatcher(comptime Userdata: type) type {
                         self.vx.caps.color_scheme_updates = true;
                     },
                     .cap_da1 => {
-                        self.vx.enableDetectedFeatures(self.tty.anyWriter()) catch |err| {
+                        self.vx.enableDetectedFeatures(self.tty.writer()) catch |err| {
                             log.err("couldn't enable features: {}", .{err});
                         };
                     },
@@ -328,7 +328,7 @@ pub fn LoopWithModules(T: type, aio: type, coro: type) type {
         }
 
         pub fn deinit(self: *@This(), vx: *vaxis.Vaxis, tty: *vaxis.Tty) void {
-            vx.deviceStatusReport(tty.anyWriter()) catch {};
+            vx.deviceStatusReport(tty.writer()) catch {};
             if (self.winsize_task) |task| task.cancel();
             if (self.reader_task) |task| task.cancel();
             self.source.deinit();

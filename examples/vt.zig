@@ -23,7 +23,7 @@ pub fn main() !void {
     var buffer: [1024]u8 = undefined;
     var tty = try vaxis.Tty.init(&buffer);
     var vx = try vaxis.init(alloc, .{});
-    defer vx.deinit(alloc, tty.anyWriter());
+    defer vx.deinit(alloc, tty.writer());
 
     var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
     try loop.init();
@@ -33,8 +33,8 @@ pub fn main() !void {
 
     var buffered = tty.bufferedWriter();
 
-    try vx.enterAltScreen(tty.anyWriter());
-    try vx.queryTerminal(tty.anyWriter(), 1 * std.time.ns_per_s);
+    try vx.enterAltScreen(tty.writer());
+    try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
     var env = try std.process.getEnvMap(alloc);
     defer env.deinit();
 
@@ -82,7 +82,7 @@ pub fn main() !void {
                     try vt.update(.{ .key_press = key });
                 },
                 .winsize => |ws| {
-                    try vx.resize(alloc, tty.anyWriter(), ws);
+                    try vx.resize(alloc, tty.writer(), ws);
                 },
             }
         }
