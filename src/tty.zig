@@ -198,7 +198,6 @@ pub const WindowsTty = struct {
     buf: [4]u8 = undefined,
 
     /// File.Writer for efficient buffered writing
-    reader: std.fs.File.Writer,
     tty_writer: std.fs.File.Writer,
 
     /// The last mouse button that was pressed. We store the previous state of button presses on each
@@ -223,7 +222,7 @@ pub const WindowsTty = struct {
     };
 
     pub fn init(buffer: []u8) !Tty {
-        const stdin: std.fs.File = .stdout();
+        const stdin: std.fs.File = .stdin();
         const stdout: std.fs.File = .stdout();
 
         // get initial modes
@@ -243,7 +242,7 @@ pub const WindowsTty = struct {
             .initial_codepage = initial_output_codepage,
             .initial_input_mode = initial_input_mode,
             .initial_output_mode = initial_output_mode,
-            .writer = .initStreaming(stdout, buffer),
+            .tty_writer = .initStreaming(stdout, buffer),
         };
 
         // save a copy of this tty as the global_tty for panic handling
@@ -688,7 +687,7 @@ pub const WindowsTty = struct {
     };
     pub const PINPUT_RECORD = *INPUT_RECORD;
 
-    pub extern "kernel32" fn ReadConsoleInputW(hConsoleInput: windows.HANDLE, lpBuffer: PINPUT_RECORD, nLength: windows.DWORD, lpNumberOfEventsRead: *windows.DWORD) callconv(windows.WINAPI) windows.BOOL;
+    pub extern "kernel32" fn ReadConsoleInputW(hConsoleInput: windows.HANDLE, lpBuffer: PINPUT_RECORD, nLength: windows.DWORD, lpNumberOfEventsRead: *windows.DWORD) callconv(.winapi) windows.BOOL;
 };
 
 pub const TestTty = struct {
