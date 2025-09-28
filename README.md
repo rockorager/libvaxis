@@ -290,7 +290,8 @@ pub fn main() !void {
     const alloc = gpa.allocator();
 
     // Initialize a tty
-    var tty = try vaxis.Tty.init();
+    var buffer: [1024]u8 = undefined;
+    var tty = try vaxis.Tty.init(&buffer);
     defer tty.deinit();
 
     // Initialize Vaxis
@@ -299,15 +300,14 @@ pub fn main() !void {
     // choose to pass a null allocator to save some exit time.
     defer vx.deinit(alloc, tty.writer());
 
-
     // The event loop requires an intrusive init. We create an instance with
     // stable pointers to Vaxis and our TTY, then init the instance. Doing so
     // installs a signal handler for SIGWINCH on posix TTYs
     //
     // This event loop is thread safe. It reads the tty in a separate thread
     var loop: vaxis.Loop(Event) = .{
-      .tty = &tty,
-      .vaxis = &vx,
+        .tty = &tty,
+        .vaxis = &vx,
     };
     try loop.init();
 
@@ -388,8 +388,8 @@ pub fn main() !void {
         const child = win.child(.{
             .x_off = win.width / 2 - 20,
             .y_off = win.height / 2 - 3,
-            .width = 40 ,
-            .height = 3 ,
+            .width = 40,
+            .height = 3,
             .border = .{
                 .where = .all,
                 .style = style,
@@ -400,7 +400,7 @@ pub fn main() !void {
         text_input.draw(child);
 
         // Render the screen. Using a buffered writer will offer much better
-	// performance, but is not required
+        // performance, but is not required
         try vx.render(tty.writer());
     }
 }
