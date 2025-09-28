@@ -53,39 +53,32 @@ want to use for typical TUI applications.
 zig fetch --save git+https://github.com/rockorager/libvaxis.git
 ```
 Add this to your build.zig
-
 ```zig
-    const vaxis = b.dependency("vaxis", .{
-        .target = target,
-        .optimize = optimize,
-    });
+const std = @import("std");
 
-    exe.root_module.addImport("vaxis", vaxis.module("vaxis"));
-```
-
-or for ZLS support
-
-```zig
-    // create module
-    const exe_mod = b.createModule(.{
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    
-    // add vaxis dependency to module
-    const vaxis = b.dependency("vaxis", .{
-        .target = target,
-        .optimize = optimize,
-    });
-    exe_mod.addImport("vaxis", vaxis.module("vaxis"));
-    
-    //create executable
-    const exe = b.addExecutable(.{
-        .name = "project_foo",
-        .root_module = exe_mod,
-    });
-    // install exe below
+pub fn build(b: *std.Build) void {
+	const target = b.standardTargetOptions(.{});
+	const optimize = b.standardOptimizeOption(.{});
+	// Add vaxis dependency
+	const vaxis = b.dependency("vaxis", .{
+		.target = target,
+		.optimize = optimize,
+	});
+	
+	const exe = b.addExecutable(.{
+		.name = "example",
+		.root_module = b.createModule(.{
+			.root_source_file = b.path("src/main.zig"),
+			.target = target,
+			.optimize = optimize,
+			.imports = &.{
+				// Import vaxis module
+				.{ .name = "vaxis", .module = vaxis.module("vaxis") },
+			},
+		}),
+	});
+	b.installArtifact(exe);
+}
 ```
 
 ### vxfw (Vaxis framework)
