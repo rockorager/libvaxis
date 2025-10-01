@@ -161,7 +161,7 @@ pub const EventContext = struct {
         maybe_title: ?[]const u8,
         body: []const u8,
     ) Allocator.Error!void {
-        const alloc = self.cmds.allocator;
+        const alloc = self.alloc;
         if (maybe_title) |title| {
             return self.addCmd(.{ .notify = .{
                 .title = try alloc.dupe(u8, title),
