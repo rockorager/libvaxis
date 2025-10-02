@@ -291,7 +291,7 @@ pub fn main() !void {
 
     // Initialize a tty
     var buffer: [1024]u8 = undefined;
-    var tty = try vaxis.Tty.init(buffer);
+    var tty = try vaxis.Tty.init(&buffer);
     defer tty.deinit();
 
     // Initialize Vaxis
