@@ -290,7 +290,8 @@ pub fn main() !void {
     const alloc = gpa.allocator();
 
     // Initialize a tty
-    var tty = try vaxis.Tty.init();
+    var buffer: [1024]u8 = undefined;
+    var tty = try vaxis.Tty.init(buffer);
     defer tty.deinit();
 
     // Initialize Vaxis
