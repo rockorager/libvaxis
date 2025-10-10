@@ -130,11 +130,14 @@ pub fn Loop(comptime T: type) type {
                     var parser: Parser = .{};
 
                     // initialize the read buffer
-                    var buf: [1024]u8 = undefined;
+                    const buf_size = 1024;
+                    var buf: [buf_size]u8 = undefined;
                     var read_start: usize = 0;
                     // read loop
                     read_loop: while (!self.should_quit) {
-                        const n = try self.tty.read(buf[read_start..]);
+                        if (read_start == buf_size)
+                            return error.EscapeSequenceTooLong;
+                        const n = read_start + try self.tty.read(buf[read_start..]);
                         var seq_start: usize = 0;
                         while (seq_start < n) {
                             const result = try parser.parse(buf[seq_start..n], paste_allocator);
@@ -145,7 +148,7 @@ pub fn Loop(comptime T: type) type {
                                 while (seq_start < n) : (seq_start += 1) {
                                     buf[seq_start - initial_start] = buf[seq_start];
                                 }
-                                read_start = seq_start - initial_start + 1;
+                                read_start = seq_start - initial_start;
                                 continue :read_loop;
                             }
                             read_start = 0;
