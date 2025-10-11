@@ -207,7 +207,7 @@ pub fn clear(self: Window) void {
 
 /// returns the width of the grapheme. This depends on the terminal capabilities
 pub fn gwidth(self: Window, str: []const u8) u16 {
-    return gw.gwidth(str, self.screen.width_method, &self.unicode.width_data);
+    return gw.gwidth(str, self.screen.width_method);
 }
 
 /// fills the window with the provided cell

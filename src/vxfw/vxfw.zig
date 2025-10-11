@@ -1,7 +1,7 @@
 const std = @import("std");
 const vaxis = @import("../main.zig");
+const uucode = @import("uucode");
 
-const Graphemes = vaxis.Graphemes;
 const testing = std.testing;
 
 const assert = std.debug.assert;
@@ -200,15 +200,13 @@ pub const DrawContext = struct {
     }
 
     pub fn stringWidth(_: DrawContext, str: []const u8) usize {
-        assert(DrawContext.unicode != null); // DrawContext not initialized
         return vaxis.gwidth.gwidth(
             str,
             DrawContext.width_method,
-            &DrawContext.unicode.?.width_data,
         );
     }
 
-    pub fn graphemeIterator(_: DrawContext, str: []const u8) Graphemes.Iterator {
+    pub fn graphemeIterator(_: DrawContext, str: []const u8) vaxis.Unicode.GraphemeIterator {
         assert(DrawContext.unicode != null); // DrawContext not initialized
         return DrawContext.unicode.?.graphemeIterator(str);
     }

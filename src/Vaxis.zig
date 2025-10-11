@@ -414,7 +414,7 @@ pub fn render(self: *Vaxis, tty: *IoWriter) !void {
             if (cell.char.width != 0) break :blk cell.char.width;
 
             const method: gwidth.Method = self.caps.unicode;
-            const width: u16 = @intCast(gwidth.gwidth(cell.char.grapheme, method, &self.unicode.width_data));
+            const width: u16 = @intCast(gwidth.gwidth(cell.char.grapheme, method));
             break :blk @max(1, width);
         };
         defer {
@@ -1149,7 +1149,7 @@ pub fn prettyPrint(self: *Vaxis, tty: *IoWriter) !void {
             if (cell.char.width != 0) break :blk cell.char.width;
 
             const method: gwidth.Method = self.caps.unicode;
-            const width = gwidth.gwidth(cell.char.grapheme, method, &self.unicode.width_data);
+            const width = gwidth.gwidth(cell.char.grapheme, method);
             break :blk @max(1, width);
         };
         defer {

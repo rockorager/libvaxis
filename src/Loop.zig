@@ -1,8 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-const Graphemes = @import("Graphemes");
-
 const GraphemeCache = @import("GraphemeCache.zig");
 const Parser = @import("Parser.zig");
 const Queue = @import("queue.zig").Queue;
@@ -47,7 +45,6 @@ pub fn Loop(comptime T: type) type {
             if (self.thread) |_| return;
             self.thread = try std.Thread.spawn(.{}, Self.ttyRun, .{
                 self,
-                &self.vaxis.unicode.width_data.graphemes,
                 self.vaxis.opts.system_clipboard_allocator,
             });
         }
@@ -107,7 +104,6 @@ pub fn Loop(comptime T: type) type {
         /// read input from the tty. This is run in a separate thread
         fn ttyRun(
             self: *Self,
-            grapheme_data: *const Graphemes,
             paste_allocator: ?std.mem.Allocator,
         ) !void {
             // Return early if we're in test mode to avoid infinite loops
@@ -118,9 +114,7 @@ pub fn Loop(comptime T: type) type {
 
             switch (builtin.os.tag) {
                 .windows => {
-                    var parser: Parser = .{
-                        .grapheme_data = grapheme_data,
-                    };
+                    var parser: Parser = .{};
                     while (!self.should_quit) {
                         const event = try self.tty.nextEvent(&parser, paste_allocator);
                         try handleEventGeneric(self, self.vaxis, &cache, Event, event, null);
@@ -133,9 +127,7 @@ pub fn Loop(comptime T: type) type {
                         self.postEvent(.{ .winsize = winsize });
                     }
 
-                    var parser: Parser = .{
-                        .grapheme_data = grapheme_data,
-                    };
+                    var parser: Parser = .{};
 
                     // initialize the read buffer
                     var buf: [1024]u8 = undefined;

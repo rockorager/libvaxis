@@ -26,9 +26,7 @@ pub const Window = @import("Window.zig");
 pub const widgets = @import("widgets.zig");
 pub const gwidth = @import("gwidth.zig");
 pub const ctlseqs = @import("ctlseqs.zig");
-pub const DisplayWidth = @import("DisplayWidth");
 pub const GraphemeCache = @import("GraphemeCache.zig");
-pub const Graphemes = @import("Graphemes");
 pub const Event = @import("event.zig").Event;
 pub const Unicode = @import("Unicode.zig");
 

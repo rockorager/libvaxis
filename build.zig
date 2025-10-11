@@ -6,13 +6,19 @@ pub fn build(b: *std.Build) void {
     const root_source_file = b.path("src/main.zig");
 
     // Dependencies
-    const zg_dep = b.dependency("zg", .{
-        .optimize = optimize,
-        .target = target,
-    });
     const zigimg_dep = b.dependency("zigimg", .{
         .optimize = optimize,
         .target = target,
+    });
+    const uucode_dep = b.dependency("uucode", .{
+        .target = target,
+        .optimize = optimize,
+        .fields = @as([]const []const u8, &.{
+            "east_asian_width",
+            "grapheme_break",
+            "general_category",
+            "is_emoji_presentation",
+        }),
     });
 
     // Module
@@ -21,10 +27,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    vaxis_mod.addImport("code_point", zg_dep.module("code_point"));
-    vaxis_mod.addImport("Graphemes", zg_dep.module("Graphemes"));
-    vaxis_mod.addImport("DisplayWidth", zg_dep.module("DisplayWidth"));
     vaxis_mod.addImport("zigimg", zigimg_dep.module("zigimg"));
+    vaxis_mod.addImport("uucode", uucode_dep.module("uucode"));
 
     // Examples
     const Example = enum {
@@ -69,10 +73,8 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "code_point", .module = zg_dep.module("code_point") },
-                .{ .name = "Graphemes", .module = zg_dep.module("Graphemes") },
-                .{ .name = "DisplayWidth", .module = zg_dep.module("DisplayWidth") },
                 .{ .name = "zigimg", .module = zigimg_dep.module("zigimg") },
+                .{ .name = "uucode", .module = uucode_dep.module("uucode") },
             },
         }),
     });

@@ -1,8 +1,13 @@
 const std = @import("std");
 const vaxis = @import("../main.zig");
-const Graphemes = @import("Graphemes");
-const DisplayWidth = @import("DisplayWidth");
+const uucode = @import("uucode");
 const ScrollView = vaxis.widgets.ScrollView;
+
+/// Simple grapheme representation to replace Graphemes.Grapheme
+const Grapheme = struct {
+    len: u16,
+    offset: u32,
+};
 
 pub const BufferWriter = struct {
     pub const Error = error{OutOfMemory};
@@ -10,14 +15,10 @@ pub const BufferWriter = struct {
 
     allocator: std.mem.Allocator,
     buffer: *Buffer,
-    gd: *const Graphemes,
-    wd: *const DisplayWidth,
 
     pub fn write(self: @This(), bytes: []const u8) Error!usize {
         try self.buffer.append(self.allocator, .{
             .bytes = bytes,
-            .gd = self.gd,
-            .wd = self.wd,
         });
         return bytes.len;
     }
@@ -33,8 +34,6 @@ pub const Buffer = struct {
 
     pub const Content = struct {
         bytes: []const u8,
-        gd: *const Graphemes,
-        wd: *const DisplayWidth,
     };
 
     pub const Style = struct {
@@ -45,7 +44,7 @@ pub const Buffer = struct {
 
     pub const Error = error{OutOfMemory};
 
-    grapheme: std.MultiArrayList(Graphemes.Grapheme) = .{},
+    grapheme: std.MultiArrayList(Grapheme) = .{},
     content: std.ArrayListUnmanaged(u8) = .{},
     style_list: StyleList = .{},
     style_map: StyleMap = .{},
@@ -78,20 +77,58 @@ pub const Buffer = struct {
     /// Appends content to the buffer.
     pub fn append(self: *@This(), allocator: std.mem.Allocator, content: Content) Error!void {
         var cols: usize = self.last_cols;
-        var iter = Graphemes.Iterator.init(content.bytes, content.gd);
-        while (iter.next()) |g| {
-            try self.grapheme.append(allocator, .{
-                .len = g.len,
-                .offset = @as(u32, @intCast(self.content.items.len)) + g.offset,
-            });
-            const cluster = g.bytes(content.bytes);
-            if (std.mem.eql(u8, cluster, "\n")) {
-                self.cols = @max(self.cols, cols);
-                cols = 0;
-                continue;
+        var iter = uucode.grapheme.Iterator(uucode.utf8.Iterator).init(.init(content.bytes));
+
+        var grapheme_start: usize = 0;
+        var prev_break: bool = true;
+
+        while (iter.next()) |result| {
+            if (prev_break and !result.is_break) {
+                // Start of a new grapheme
+                grapheme_start = iter.i - std.unicode.utf8CodepointSequenceLength(result.cp) catch 1;
             }
-            cols +|= content.wd.strWidth(cluster);
+
+            if (result.is_break) {
+                // End of a grapheme
+                const grapheme_end = iter.i;
+                const grapheme_len = grapheme_end - grapheme_start;
+
+                try self.grapheme.append(allocator, .{
+                    .len = @intCast(grapheme_len),
+                    .offset = @intCast(self.content.items.len + grapheme_start),
+                });
+
+                const cluster = content.bytes[grapheme_start..grapheme_end];
+                if (std.mem.eql(u8, cluster, "\n")) {
+                    self.cols = @max(self.cols, cols);
+                    cols = 0;
+                } else {
+                    // Calculate width using gwidth
+                    const w = vaxis.gwidth.gwidth(cluster, .unicode);
+                    cols +|= w;
+                }
+
+                grapheme_start = grapheme_end;
+            }
+            prev_break = result.is_break;
         }
+
+        // Flush the last grapheme if we ended mid-cluster
+        if (!prev_break and grapheme_start < content.bytes.len) {
+            const grapheme_len = content.bytes.len - grapheme_start;
+
+            try self.grapheme.append(allocator, .{
+                .len = @intCast(grapheme_len),
+                .offset = @intCast(self.content.items.len + grapheme_start),
+            });
+
+            const cluster = content.bytes[grapheme_start..];
+            if (!std.mem.eql(u8, cluster, "\n")) {
+                const w = vaxis.gwidth.gwidth(cluster, .unicode);
+                cols +|= w;
+            }
+        }
+
         try self.content.appendSlice(allocator, content.bytes);
         self.last_cols = cols;
         self.cols = @max(self.cols, cols);
@@ -123,15 +160,11 @@ pub const Buffer = struct {
     pub fn writer(
         self: *@This(),
         allocator: std.mem.Allocator,
-        gd: *const Graphemes,
-        wd: *const DisplayWidth,
     ) BufferWriter.Writer {
         return .{
             .context = .{
                 .allocator = allocator,
                 .buffer = self,
-                .gd = gd,
-                .wd = wd,
             },
         };
     }
