@@ -187,8 +187,7 @@ test Button {
     // Now we draw the button. Set up our context with some unicode data
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-    const ucd = try vaxis.Unicode.init(arena.allocator());
-    vxfw.DrawContext.init(&ucd, .unicode);
+    vxfw.DrawContext.init(.unicode);
 
     const draw_ctx: vxfw.DrawContext = .{
         .arena = arena.allocator(),

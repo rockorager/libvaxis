@@ -293,9 +293,7 @@ pub const SoftwrapIterator = struct {
 };
 
 test "SoftwrapIterator: LF breaks" {
-    const unicode = try vaxis.Unicode.init(std.testing.allocator);
-    defer unicode.deinit(std.testing.allocator);
-    vxfw.DrawContext.init(&unicode, .unicode);
+    vxfw.DrawContext.init(.unicode);
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
@@ -321,9 +319,7 @@ test "SoftwrapIterator: LF breaks" {
 }
 
 test "SoftwrapIterator: soft breaks that fit" {
-    const unicode = try vaxis.Unicode.init(std.testing.allocator);
-    defer unicode.deinit(std.testing.allocator);
-    vxfw.DrawContext.init(&unicode, .unicode);
+    vxfw.DrawContext.init(.unicode);
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
@@ -349,9 +345,7 @@ test "SoftwrapIterator: soft breaks that fit" {
 }
 
 test "SoftwrapIterator: soft breaks that are longer than width" {
-    const unicode = try vaxis.Unicode.init(std.testing.allocator);
-    defer unicode.deinit(std.testing.allocator);
-    vxfw.DrawContext.init(&unicode, .unicode);
+    vxfw.DrawContext.init(.unicode);
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
@@ -387,9 +381,7 @@ test "SoftwrapIterator: soft breaks that are longer than width" {
 }
 
 test "SoftwrapIterator: soft breaks with leading spaces" {
-    const unicode = try vaxis.Unicode.init(std.testing.allocator);
-    defer unicode.deinit(std.testing.allocator);
-    vxfw.DrawContext.init(&unicode, .unicode);
+    vxfw.DrawContext.init(.unicode);
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
@@ -484,8 +476,7 @@ test Text {
 
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-    const ucd = try vaxis.Unicode.init(arena.allocator());
-    vxfw.DrawContext.init(&ucd, .unicode);
+    vxfw.DrawContext.init(.unicode);
 
     // Center expands to the max size. It must therefore have non-null max width and max height.
     // These values are asserted in draw

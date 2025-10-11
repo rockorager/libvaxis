@@ -59,8 +59,7 @@ test SizedBox {
     // Boiler plate draw context
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-    const ucd = try vaxis.Unicode.init(arena.allocator());
-    vxfw.DrawContext.init(&ucd, .unicode);
+    vxfw.DrawContext.init(.unicode);
 
     var draw_ctx: vxfw.DrawContext = .{
         .arena = arena.allocator(),

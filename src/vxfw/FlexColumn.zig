@@ -115,8 +115,7 @@ test FlexColumn {
     // Boiler plate draw context
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-    const ucd = try vaxis.Unicode.init(arena.allocator());
-    vxfw.DrawContext.init(&ucd, .unicode);
+    vxfw.DrawContext.init(.unicode);
 
     const flex_widget = flex_column.widget();
     const ctx: vxfw.DrawContext = .{

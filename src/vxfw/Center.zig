@@ -54,8 +54,7 @@ test Center {
 
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-    const ucd = try vaxis.Unicode.init(arena.allocator());
-    vxfw.DrawContext.init(&ucd, .unicode);
+    vxfw.DrawContext.init(.unicode);
 
     {
         // Center expands to the max size. It must therefore have non-null max width and max height.

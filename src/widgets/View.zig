@@ -9,7 +9,7 @@ const gw = @import("../gwidth.zig");
 
 const Screen = @import("../Screen.zig");
 const Window = @import("../Window.zig");
-const Unicode = @import("../Unicode.zig");
+const unicode = @import("../unicode.zig");
 const Cell = @import("../Cell.zig");
 
 /// View Allocator
@@ -18,8 +18,6 @@ alloc: mem.Allocator,
 /// Underlying Screen
 screen: Screen,
 
-unicode: *const Unicode,
-
 /// View Initialization Config
 pub const Config = struct {
     width: u16,
@@ -27,7 +25,7 @@ pub const Config = struct {
 };
 
 /// Initialize a new View
-pub fn init(alloc: mem.Allocator, unicode: *const Unicode, config: Config) mem.Allocator.Error!View {
+pub fn init(alloc: mem.Allocator, config: Config) mem.Allocator.Error!View {
     return .{
         .alloc = alloc,
         .screen = try Screen.init(alloc, .{
@@ -36,7 +34,6 @@ pub fn init(alloc: mem.Allocator, unicode: *const Unicode, config: Config) mem.A
             .x_pixel = 0,
             .y_pixel = 0,
         }),
-        .unicode = unicode,
     };
 }
 
@@ -49,7 +46,6 @@ pub fn window(self: *View) Window {
         .width = self.screen.width,
         .height = self.screen.height,
         .screen = &self.screen,
-        .unicode = self.unicode,
     };
 }
 

@@ -3,7 +3,7 @@ const assert = std.debug.assert;
 const Key = @import("../Key.zig");
 const Cell = @import("../Cell.zig");
 const Window = @import("../Window.zig");
-const Unicode = @import("../Unicode.zig");
+const unicode = @import("../unicode.zig");
 
 const TextInput = @This();
 
@@ -26,12 +26,9 @@ prev_cursor_idx: u16 = 0,
 /// approximate distance from an edge before we scroll
 scroll_offset: u16 = 4,
 
-unicode: *const Unicode,
-
-pub fn init(alloc: std.mem.Allocator, unicode: *const Unicode) TextInput {
+pub fn init(alloc: std.mem.Allocator) TextInput {
     return TextInput{
         .buf = Buffer.init(alloc),
-        .unicode = unicode,
     };
 }
 
@@ -75,7 +72,7 @@ pub fn update(self: *TextInput, event: Event) !void {
 
 /// insert text at the cursor position
 pub fn insertSliceAtCursor(self: *TextInput, data: []const u8) std.mem.Allocator.Error!void {
-    var iter = self.unicode.graphemeIterator(data);
+    var iter = unicode.graphemeIterator(data);
     while (iter.next()) |text| {
         try self.buf.insertSliceAtCursor(text.bytes(data));
     }
@@ -91,7 +88,7 @@ pub fn sliceToCursor(self: *TextInput, buf: []u8) []const u8 {
 pub fn widthToCursor(self: *TextInput, win: Window) u16 {
     var width: u16 = 0;
     const first_half = self.buf.firstHalf();
-    var first_iter = self.unicode.graphemeIterator(first_half);
+    var first_iter = unicode.graphemeIterator(first_half);
     var i: usize = 0;
     while (first_iter.next()) |grapheme| {
         defer i += 1;
@@ -106,7 +103,7 @@ pub fn widthToCursor(self: *TextInput, win: Window) u16 {
 
 pub fn cursorLeft(self: *TextInput) void {
     // We need to find the size of the last grapheme in the first half
-    var iter = self.unicode.graphemeIterator(self.buf.firstHalf());
+    var iter = unicode.graphemeIterator(self.buf.firstHalf());
     var len: usize = 0;
     while (iter.next()) |grapheme| {
         len = grapheme.len;
@@ -115,14 +112,14 @@ pub fn cursorLeft(self: *TextInput) void {
 }
 
 pub fn cursorRight(self: *TextInput) void {
-    var iter = self.unicode.graphemeIterator(self.buf.secondHalf());
+    var iter = unicode.graphemeIterator(self.buf.secondHalf());
     const grapheme = iter.next() orelse return;
     self.buf.moveGapRight(grapheme.len);
 }
 
 pub fn graphemesBeforeCursor(self: *const TextInput) u16 {
     const first_half = self.buf.firstHalf();
-    var first_iter = self.unicode.graphemeIterator(first_half);
+    var first_iter = unicode.graphemeIterator(first_half);
     var i: u16 = 0;
     while (first_iter.next()) |_| {
         i += 1;
@@ -152,7 +149,7 @@ pub fn drawWithStyle(self: *TextInput, win: Window, style: Cell.Style) void {
     // assumption!! the gap is never within a grapheme
     // one way to _ensure_ this is to move the gap... but that's a cost we probably don't want to pay.
     const first_half = self.buf.firstHalf();
-    var first_iter = self.unicode.graphemeIterator(first_half);
+    var first_iter = unicode.graphemeIterator(first_half);
     var col: u16 = 0;
     var i: u16 = 0;
     while (first_iter.next()) |grapheme| {
@@ -181,7 +178,7 @@ pub fn drawWithStyle(self: *TextInput, win: Window, style: Cell.Style) void {
         if (i == cursor_idx) self.prev_cursor_col = col;
     }
     const second_half = self.buf.secondHalf();
-    var second_iter = self.unicode.graphemeIterator(second_half);
+    var second_iter = unicode.graphemeIterator(second_half);
     while (second_iter.next()) |grapheme| {
         if (i < self.draw_offset) {
             i += 1;
@@ -252,7 +249,7 @@ pub fn deleteToStart(self: *TextInput) void {
 
 pub fn deleteBeforeCursor(self: *TextInput) void {
     // We need to find the size of the last grapheme in the first half
-    var iter = self.unicode.graphemeIterator(self.buf.firstHalf());
+    var iter = unicode.graphemeIterator(self.buf.firstHalf());
     var len: usize = 0;
     while (iter.next()) |grapheme| {
         len = grapheme.len;
@@ -261,7 +258,7 @@ pub fn deleteBeforeCursor(self: *TextInput) void {
 }
 
 pub fn deleteAfterCursor(self: *TextInput) void {
-    var iter = self.unicode.graphemeIterator(self.buf.secondHalf());
+    var iter = unicode.graphemeIterator(self.buf.secondHalf());
     const grapheme = iter.next() orelse return;
     self.buf.growGapRight(grapheme.len);
 }
@@ -304,15 +301,12 @@ pub fn deleteWordAfter(self: *TextInput) void {
 }
 
 test "assertion" {
-    const alloc = std.testing.allocator_instance.allocator();
-    const unicode = try Unicode.init(alloc);
-    defer unicode.deinit();
     const astronaut = "👩‍🚀";
     const astronaut_emoji: Key = .{
         .text = astronaut,
         .codepoint = try std.unicode.utf8Decode(astronaut[0..4]),
     };
-    var input = TextInput.init(std.testing.allocator, &unicode);
+    var input = TextInput.init(std.testing.allocator);
     defer input.deinit();
     for (0..6) |_| {
         try input.update(.{ .key_press = astronaut_emoji });
@@ -320,10 +314,7 @@ test "assertion" {
 }
 
 test "sliceToCursor" {
-    const alloc = std.testing.allocator_instance.allocator();
-    const unicode = try Unicode.init(alloc);
-    defer unicode.deinit();
-    var input = init(alloc, &unicode);
+    var input = init(std.testing.allocator);
     defer input.deinit();
     try input.insertSliceAtCursor("hello, world");
     input.cursorLeft();

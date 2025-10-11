@@ -191,11 +191,9 @@ pub const DrawContext = struct {
     cell_size: Size,
 
     // Unicode stuff
-    var unicode: ?*const vaxis.Unicode = null;
     var width_method: vaxis.gwidth.Method = .unicode;
 
-    pub fn init(ucd: *const vaxis.Unicode, method: vaxis.gwidth.Method) void {
-        DrawContext.unicode = ucd;
+    pub fn init(method: vaxis.gwidth.Method) void {
         DrawContext.width_method = method;
     }
 
@@ -206,9 +204,8 @@ pub const DrawContext = struct {
         );
     }
 
-    pub fn graphemeIterator(_: DrawContext, str: []const u8) vaxis.Unicode.GraphemeIterator {
-        assert(DrawContext.unicode != null); // DrawContext not initialized
-        return DrawContext.unicode.?.graphemeIterator(str);
+    pub fn graphemeIterator(_: DrawContext, str: []const u8) vaxis.unicode.GraphemeIterator {
+        return vaxis.unicode.graphemeIterator(str);
     }
 
     pub fn withConstraints(self: DrawContext, min: Size, max: MaxSize) DrawContext {

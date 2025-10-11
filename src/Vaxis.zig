@@ -11,7 +11,7 @@ const InternalScreen = @import("InternalScreen.zig");
 const Key = @import("Key.zig");
 const Mouse = @import("Mouse.zig");
 const Screen = @import("Screen.zig");
-const Unicode = @import("Unicode.zig");
+const unicode = @import("unicode.zig");
 const Window = @import("Window.zig");
 
 const Hyperlink = Cell.Hyperlink;
@@ -74,8 +74,6 @@ queries_done: atomic.Value(bool) = atomic.Value(bool).init(true),
 // images
 next_img_id: u32 = 1,
 
-unicode: Unicode,
-
 sgr: enum {
     standard,
     legacy,
@@ -110,7 +108,6 @@ pub fn init(alloc: std.mem.Allocator, opts: Options) !Vaxis {
         .opts = opts,
         .screen = .{},
         .screen_last = try .init(alloc, 0, 0),
-        .unicode = try Unicode.init(alloc),
     };
 }
 
@@ -124,7 +121,6 @@ pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator, tty: *IoWriter) void {
     if (alloc) |a| {
         self.screen.deinit(a);
         self.screen_last.deinit(a);
-        self.unicode.deinit(a);
     }
 }
 
@@ -227,7 +223,6 @@ pub fn window(self: *Vaxis) Window {
         .width = self.screen.width,
         .height = self.screen.height,
         .screen = &self.screen,
-        .unicode = &self.unicode,
     };
 }
 

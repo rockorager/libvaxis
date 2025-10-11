@@ -536,8 +536,7 @@ test ListView {
     // Boiler plate draw context
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-    const ucd = try vaxis.Unicode.init(arena.allocator());
-    vxfw.DrawContext.init(&ucd, .unicode);
+    vxfw.DrawContext.init(.unicode);
 
     const list_widget = list_view.widget();
     const draw_ctx: vxfw.DrawContext = .{
@@ -709,8 +708,7 @@ test "ListView: uneven scroll" {
     // Boiler plate draw context
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-    const ucd = try vaxis.Unicode.init(arena.allocator());
-    vxfw.DrawContext.init(&ucd, .unicode);
+    vxfw.DrawContext.init(.unicode);
 
     const list_widget = list_view.widget();
     const draw_ctx: vxfw.DrawContext = .{

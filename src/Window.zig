@@ -4,7 +4,7 @@ const Screen = @import("Screen.zig");
 const Cell = @import("Cell.zig");
 const Mouse = @import("Mouse.zig");
 const Segment = @import("Cell.zig").Segment;
-const Unicode = @import("Unicode.zig");
+const unicode = @import("unicode.zig");
 const gw = @import("gwidth.zig");
 
 const Window = @This();
@@ -25,7 +25,6 @@ width: u16,
 height: u16,
 
 screen: *Screen,
-unicode: *const Unicode,
 
 /// Creates a new window with offset relative to parent and size clamped to the
 /// parent's size. Windows do not retain a reference to their parent and are
@@ -50,7 +49,6 @@ fn initChild(
         .width = @min(width, max_width),
         .height = @min(height, max_height),
         .screen = self.screen,
-        .unicode = self.unicode,
     };
 }
 
@@ -295,7 +293,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
         .grapheme => {
             var col: u16 = opts.col_offset;
             const overflow: bool = blk: for (segments) |segment| {
-                var iter = self.unicode.graphemeIterator(segment.text);
+                var iter = unicode.graphemeIterator(segment.text);
                 while (iter.next()) |grapheme| {
                     if (col >= self.width) {
                         row += 1;
@@ -378,7 +376,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
                                     col = 0;
                                 }
 
-                                var grapheme_iterator = self.unicode.graphemeIterator(word);
+                                var grapheme_iterator = unicode.graphemeIterator(word);
                                 while (grapheme_iterator.next()) |grapheme| {
                                     soft_wrapped = false;
                                     if (row >= self.height) {
@@ -417,7 +415,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
         .none => {
             var col: u16 = opts.col_offset;
             const overflow: bool = blk: for (segments) |segment| {
-                var iter = self.unicode.graphemeIterator(segment.text);
+                var iter = unicode.graphemeIterator(segment.text);
                 while (iter.next()) |grapheme| {
                     if (col >= self.width) break :blk true;
                     const s = grapheme.bytes(segment.text);
@@ -489,7 +487,6 @@ test "Window size set" {
         .width = 20,
         .height = 20,
         .screen = undefined,
-        .unicode = undefined,
     };
 
     const ch = parent.initChild(1, 1, null, null);
@@ -506,7 +503,6 @@ test "Window size set too big" {
         .width = 20,
         .height = 20,
         .screen = undefined,
-        .unicode = undefined,
     };
 
     const ch = parent.initChild(0, 0, 21, 21);
@@ -523,7 +519,6 @@ test "Window size set too big with offset" {
         .width = 20,
         .height = 20,
         .screen = undefined,
-        .unicode = undefined,
     };
 
     const ch = parent.initChild(10, 10, 21, 21);
@@ -540,7 +535,6 @@ test "Window size nested offsets" {
         .width = 20,
         .height = 20,
         .screen = undefined,
-        .unicode = undefined,
     };
 
     const ch = parent.initChild(10, 10, 21, 21);
@@ -557,7 +551,6 @@ test "Window offsets" {
         .width = 20,
         .height = 20,
         .screen = undefined,
-        .unicode = undefined,
     };
 
     const ch = parent.initChild(10, 10, 21, 21);
@@ -569,9 +562,6 @@ test "Window offsets" {
 }
 
 test "print: grapheme" {
-    const alloc = std.testing.allocator_instance.allocator();
-    const unicode = try Unicode.init(alloc);
-    defer unicode.deinit(alloc);
     var screen: Screen = .{ .width_method = .unicode };
     const win: Window = .{
         .x_off = 0,
@@ -581,7 +571,6 @@ test "print: grapheme" {
         .width = 4,
         .height = 2,
         .screen = &screen,
-        .unicode = &unicode,
     };
     const opts: PrintOptions = .{
         .commit = false,
@@ -636,9 +625,6 @@ test "print: grapheme" {
 }
 
 test "print: word" {
-    const alloc = std.testing.allocator_instance.allocator();
-    const unicode = try Unicode.init(alloc);
-    defer unicode.deinit(alloc);
     var screen: Screen = .{
         .width_method = .unicode,
     };
@@ -650,7 +636,6 @@ test "print: word" {
         .width = 4,
         .height = 2,
         .screen = &screen,
-        .unicode = &unicode,
     };
     const opts: PrintOptions = .{
         .commit = false,

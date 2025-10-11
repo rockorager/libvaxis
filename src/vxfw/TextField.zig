@@ -9,7 +9,7 @@ const Allocator = std.mem.Allocator;
 const Key = vaxis.Key;
 const Cell = vaxis.Cell;
 const Window = vaxis.Window;
-const Unicode = vaxis.Unicode;
+const unicode = vaxis.unicode;
 
 const TextField = @This();
 
@@ -32,18 +32,15 @@ scroll_offset: u4 = 4,
 /// Previous width we drew at
 prev_width: u16 = 0,
 
-unicode: *const Unicode,
-
 previous_val: []const u8 = "",
 
 userdata: ?*anyopaque = null,
 onChange: ?*const fn (?*anyopaque, *vxfw.EventContext, []const u8) anyerror!void = null,
 onSubmit: ?*const fn (?*anyopaque, *vxfw.EventContext, []const u8) anyerror!void = null,
 
-pub fn init(alloc: std.mem.Allocator, unicode: *const Unicode) TextField {
+pub fn init(alloc: std.mem.Allocator) TextField {
     return TextField{
         .buf = Buffer.init(alloc),
-        .unicode = unicode,
     };
 }
 
@@ -137,7 +134,7 @@ fn checkChanged(self: *TextField, ctx: *vxfw.EventContext) anyerror!void {
 
 /// insert text at the cursor position
 pub fn insertSliceAtCursor(self: *TextField, data: []const u8) std.mem.Allocator.Error!void {
-    var iter = self.unicode.graphemeIterator(data);
+    var iter = unicode.graphemeIterator(data);
     while (iter.next()) |text| {
         try self.buf.insertSliceAtCursor(text.bytes(data));
     }
@@ -153,7 +150,7 @@ pub fn sliceToCursor(self: *TextField, buf: []u8) []const u8 {
 pub fn widthToCursor(self: *TextField, ctx: vxfw.DrawContext) u16 {
     var width: u16 = 0;
     const first_half = self.buf.firstHalf();
-    var first_iter = self.unicode.graphemeIterator(first_half);
+    var first_iter = unicode.graphemeIterator(first_half);
     var i: usize = 0;
     while (first_iter.next()) |grapheme| {
         defer i += 1;
@@ -168,7 +165,7 @@ pub fn widthToCursor(self: *TextField, ctx: vxfw.DrawContext) u16 {
 
 pub fn cursorLeft(self: *TextField) void {
     // We need to find the size of the last grapheme in the first half
-    var iter = self.unicode.graphemeIterator(self.buf.firstHalf());
+    var iter = unicode.graphemeIterator(self.buf.firstHalf());
     var len: usize = 0;
     while (iter.next()) |grapheme| {
         len = grapheme.len;
@@ -177,14 +174,14 @@ pub fn cursorLeft(self: *TextField) void {
 }
 
 pub fn cursorRight(self: *TextField) void {
-    var iter = self.unicode.graphemeIterator(self.buf.secondHalf());
+    var iter = unicode.graphemeIterator(self.buf.secondHalf());
     const grapheme = iter.next() orelse return;
     self.buf.moveGapRight(grapheme.len);
 }
 
 pub fn graphemesBeforeCursor(self: *const TextField) u16 {
     const first_half = self.buf.firstHalf();
-    var first_iter = self.unicode.graphemeIterator(first_half);
+    var first_iter = unicode.graphemeIterator(first_half);
     var i: u16 = 0;
     while (first_iter.next()) |_| {
         i += 1;
@@ -230,7 +227,7 @@ pub fn draw(self: *TextField, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfac
     self.prev_cursor_col = 0;
 
     const first_half = self.buf.firstHalf();
-    var first_iter = self.unicode.graphemeIterator(first_half);
+    var first_iter = unicode.graphemeIterator(first_half);
     var col: u16 = 0;
     var i: u16 = 0;
     while (first_iter.next()) |grapheme| {
@@ -259,7 +256,7 @@ pub fn draw(self: *TextField, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfac
         if (i == cursor_idx) self.prev_cursor_col = col;
     }
     const second_half = self.buf.secondHalf();
-    var second_iter = self.unicode.graphemeIterator(second_half);
+    var second_iter = unicode.graphemeIterator(second_half);
     while (second_iter.next()) |grapheme| {
         if (i < self.draw_offset) {
             i += 1;
@@ -332,7 +329,7 @@ pub fn deleteToStart(self: *TextField) void {
 
 pub fn deleteBeforeCursor(self: *TextField) void {
     // We need to find the size of the last grapheme in the first half
-    var iter = self.unicode.graphemeIterator(self.buf.firstHalf());
+    var iter = unicode.graphemeIterator(self.buf.firstHalf());
     var len: usize = 0;
     while (iter.next()) |grapheme| {
         len = grapheme.len;
@@ -341,7 +338,7 @@ pub fn deleteBeforeCursor(self: *TextField) void {
 }
 
 pub fn deleteAfterCursor(self: *TextField) void {
-    var iter = self.unicode.graphemeIterator(self.buf.secondHalf());
+    var iter = unicode.graphemeIterator(self.buf.secondHalf());
     const grapheme = iter.next() orelse return;
     self.buf.growGapRight(grapheme.len);
 }
@@ -384,10 +381,7 @@ pub fn deleteWordAfter(self: *TextField) void {
 }
 
 test "sliceToCursor" {
-    const alloc = std.testing.allocator_instance.allocator();
-    const unicode = try Unicode.init(alloc);
-    defer unicode.deinit(alloc);
-    var input = init(alloc, &unicode);
+    var input = init(std.testing.allocator);
     defer input.deinit();
     try input.insertSliceAtCursor("hello, world");
     input.cursorLeft();
@@ -541,8 +535,7 @@ test TextField {
     // Boiler plate draw context init
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-    const ucd = try vaxis.Unicode.init(arena.allocator());
-    vxfw.DrawContext.init(&ucd, .unicode);
+    vxfw.DrawContext.init(.unicode);
 
     // Create some object which reacts to text field changes
     const Foo = struct {
@@ -572,7 +565,7 @@ test TextField {
     };
 
     // Enough boiler plate...Create the text field
-    var text_field = TextField.init(std.testing.allocator, &ucd);
+    var text_field = TextField.init(std.testing.allocator);
     defer text_field.deinit();
     text_field.onChange = Foo.onChange;
     text_field.onSubmit = Foo.onChange;

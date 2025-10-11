@@ -8,7 +8,6 @@ const Model = struct {
     list_view: vxfw.ListView,
     text_field: vxfw.TextField,
     result: []const u8,
-    unicode_data: *const vaxis.Unicode,
 
     /// Used for filtered RichText Spans
     arena: std.heap.ArenaAllocator,
@@ -119,7 +118,7 @@ const Model = struct {
 
             var spans = std.ArrayList(vxfw.RichText.TextSpan){};
             var i: usize = 0;
-            var iter = self.unicode_data.graphemeIterator(str);
+            var iter = vaxis.unicode.graphemeIterator(str);
             while (iter.next()) |g| {
                 if (std.mem.indexOfPos(u8, tgt, i, g.bytes(str))) |idx| {
                     const up_to_here: vxfw.RichText.TextSpan = .{ .text = item.text[i..idx] };
@@ -189,14 +188,12 @@ pub fn main() !void {
         },
         .text_field = .{
             .buf = vxfw.TextField.Buffer.init(allocator),
-            .unicode = &app.vx.unicode,
             .userdata = model,
             .onChange = Model.onChange,
             .onSubmit = Model.onSubmit,
         },
         .result = "",
         .arena = std.heap.ArenaAllocator.init(allocator),
-        .unicode_data = &app.vx.unicode,
     };
     defer model.text_field.deinit();
     defer model.list.deinit(allocator);

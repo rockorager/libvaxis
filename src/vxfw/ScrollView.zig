@@ -609,8 +609,7 @@ test ScrollView {
     // Boiler plate draw context
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-    const ucd = try vaxis.Unicode.init(arena.allocator());
-    vxfw.DrawContext.init(&ucd, .unicode);
+    vxfw.DrawContext.init(.unicode);
 
     const scroll_widget = scroll_view.widget();
     const draw_ctx: vxfw.DrawContext = .{
@@ -1022,8 +1021,7 @@ test "ScrollView: uneven scroll" {
     // Boiler plate draw context
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-    const ucd = try vaxis.Unicode.init(arena.allocator());
-    vxfw.DrawContext.init(&ucd, .unicode);
+    vxfw.DrawContext.init(.unicode);
 
     const scroll_widget = scroll_view.widget();
     const draw_ctx: vxfw.DrawContext = .{

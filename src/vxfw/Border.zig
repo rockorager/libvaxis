@@ -119,8 +119,7 @@ test Border {
 
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-    const ucd = try vaxis.Unicode.init(arena.allocator());
-    vxfw.DrawContext.init(&ucd, .unicode);
+    vxfw.DrawContext.init(.unicode);
 
     // Border will draw itself tightly around the child
     const ctx: vxfw.DrawContext = .{

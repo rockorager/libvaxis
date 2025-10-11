@@ -76,7 +76,6 @@ pub const GraphemeIterator = struct {
 };
 
 /// creates a grapheme iterator based on str
-pub fn graphemeIterator(self: *const Unicode, str: []const u8) GraphemeIterator {
-    _ = self;
+pub fn graphemeIterator(str: []const u8) GraphemeIterator {
     return GraphemeIterator.init(str);
 }
