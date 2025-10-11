@@ -1,23 +1,6 @@
 const std = @import("std");
 const uucode = @import("uucode");
 
-/// A thin wrapper around Unicode data - no longer needs allocation with uucode
-const Unicode = @This();
-
-/// initialize all unicode data vaxis may possibly need
-/// With uucode, no initialization is needed but we keep this for API compatibility
-pub fn init(alloc: std.mem.Allocator) !Unicode {
-    _ = alloc;
-    return .{};
-}
-
-/// free all data
-/// With uucode, no deinitialization is needed but we keep this for API compatibility
-pub fn deinit(self: *const Unicode, alloc: std.mem.Allocator) void {
-    _ = self;
-    _ = alloc;
-}
-
 // Old API-compatible Grapheme value
 pub const Grapheme = struct {
     start: usize,
