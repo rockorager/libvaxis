@@ -64,6 +64,10 @@ pub fn readCell(self: *const Screen, col: u16, row: u16) ?Cell {
     return self.buf[i];
 }
 
+pub fn clear(self: *Screen) void {
+    @memset(self.buf, .{});
+}
+
 test "refAllDecls" {
     std.testing.refAllDecls(@This());
 }
