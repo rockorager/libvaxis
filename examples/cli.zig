@@ -29,7 +29,7 @@ pub fn main() !void {
 
     try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
 
-    var text_input = TextInput.init(alloc, &vx.unicode);
+    var text_input = TextInput.init(alloc);
     defer text_input.deinit();
 
     var selected_option: ?usize = null;

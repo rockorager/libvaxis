@@ -68,7 +68,7 @@ pub fn main() !void {
 
     // Initialize Views
     // - Large Map
-    var lg_map_view = try View.init(alloc, &vx.unicode, .{ .width = lg_map_width, .height = lg_map_height });
+    var lg_map_view = try View.init(alloc, .{ .width = lg_map_width, .height = lg_map_height });
     defer lg_map_view.deinit();
     //w = lg_map_view.screen.width;
     //h = lg_map_view.screen.height;
@@ -76,7 +76,7 @@ pub fn main() !void {
     _ = mem.replace(u8, lg_world_map, "\n", "", lg_map_buf[0..]);
     _ = lg_map_view.printSegment(.{ .text = lg_map_buf[0..] }, .{ .wrap = .grapheme });
     // - Small Map
-    var sm_map_view = try View.init(alloc, &vx.unicode, .{ .width = sm_map_width, .height = sm_map_height });
+    var sm_map_view = try View.init(alloc, .{ .width = sm_map_width, .height = sm_map_height });
     defer sm_map_view.deinit();
     w = sm_map_view.screen.width;
     h = sm_map_view.screen.height;

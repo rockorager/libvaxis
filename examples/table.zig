@@ -66,7 +66,7 @@ pub fn main() !void {
     };
     var title_segs = [_]vaxis.Cell.Segment{ title_logo, title_info, title_disclaimer };
 
-    var cmd_input = vaxis.widgets.TextInput.init(alloc, &vx.unicode);
+    var cmd_input = vaxis.widgets.TextInput.init(alloc);
     defer cmd_input.deinit();
 
     // Colors

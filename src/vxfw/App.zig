@@ -80,8 +80,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     vx.caps.sgr_pixels = false;
     try vx.setMouseMode(tty.writer(), true);
 
-    // Give DrawContext the unicode data
-    vxfw.DrawContext.init(&vx.unicode, vx.screen.width_method);
+    vxfw.DrawContext.init(vx.screen.width_method);
 
     const framerate: u64 = if (opts.framerate > 0) opts.framerate else 60;
     // Calculate tick rate
