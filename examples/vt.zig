@@ -54,7 +54,6 @@ pub fn main() !void {
         alloc,
         &argv,
         &env,
-        &vx.unicode,
         vt_opts,
         &write_buf,
     );
