@@ -18,6 +18,10 @@ pub fn build(b: *std.Build) void {
             "grapheme_break",
             "general_category",
             "is_emoji_presentation",
+            "wcwidth",
+        }),
+        .extensions = @as([]const []const u8, &.{
+            "wcwidth",
         }),
     });
 

@@ -51,73 +51,14 @@ pub fn gwidth(str: []const u8, method: Method) u16 {
         .unicode => {
             var total: u16 = 0;
             var grapheme_iter = uucode.grapheme.Iterator(uucode.utf8.Iterator).init(.init(str));
+            var start: usize = 0;
 
-            var grapheme_start: usize = 0;
-            var prev_break: bool = true;
-
-            while (grapheme_iter.next()) |result| {
-                if (prev_break and !result.is_break) {
-                    // Start of a new grapheme
-                    const cp_len: usize = std.unicode.utf8CodepointSequenceLength(result.cp) catch 1;
-                    grapheme_start = grapheme_iter.i - cp_len;
-                }
-
-                if (result.is_break) {
-                    // End of a grapheme - calculate its width
-                    const grapheme_end = grapheme_iter.i;
-                    const grapheme_bytes = str[grapheme_start..grapheme_end];
-
-                    // Calculate grapheme width
-                    var g_iter = uucode.utf8.Iterator.init(grapheme_bytes);
-                    var width: i16 = 0;
-                    var has_emoji_vs: bool = false;
-                    var has_text_vs: bool = false;
-                    var has_emoji_presentation: bool = false;
-                    var ri_count: u8 = 0;
-
-                    while (g_iter.next()) |cp| {
-                        // Check for emoji variation selector (U+FE0F)
-                        if (cp == 0xfe0f) {
-                            has_emoji_vs = true;
-                            continue;
-                        }
-
-                        // Check for text variation selector (U+FE0E)
-                        if (cp == 0xfe0e) {
-                            has_text_vs = true;
-                            continue;
-                        }
-
-                        // Check if this codepoint has emoji presentation
-                        if (uucode.get(.is_emoji_presentation, cp)) {
-                            has_emoji_presentation = true;
-                        }
-
-                        // Count regional indicators (for flag emojis)
-                        if (cp >= 0x1F1E6 and cp <= 0x1F1FF) {
-                            ri_count += 1;
-                        }
-
-                        const eaw = uucode.get(.east_asian_width, cp);
-                        const w = eawToWidth(cp, eaw);
-                        // Take max of non-zero widths
-                        if (w > 0 and w > width) width = w;
-                    }
-
-                    // Handle variation selectors and emoji presentation
-                    if (has_text_vs) {
-                        // Text presentation explicit - keep width as-is (usually 1)
-                        width = @max(1, width);
-                    } else if (has_emoji_vs or has_emoji_presentation or ri_count == 2) {
-                        // Emoji presentation or flag pair - force width 2
-                        width = @max(2, width);
-                    }
-
-                    total += @max(0, width);
-
-                    grapheme_start = grapheme_end;
-                }
-                prev_break = result.is_break;
+            while (grapheme_iter.next()) |_| {
+                const end = grapheme_iter.i;
+                const g_iter = uucode.grapheme.Iterator(uucode.utf8.Iterator).init(.init(str[start..end]));
+                const width = uucode.x.grapheme.unverifiedWcwidth(g_iter);
+                total += @intCast(@max(0, width));
+                start = end;
             }
 
             return total;
@@ -125,16 +66,14 @@ pub fn gwidth(str: []const u8, method: Method) u16 {
         .wcwidth => {
             var total: u16 = 0;
             var iter = uucode.utf8.Iterator.init(str);
+            var start: usize = 0;
             while (iter.next()) |cp| {
-                const w: i16 = switch (cp) {
-                    // undo an override in zg for emoji skintone selectors
-                    0x1f3fb...0x1f3ff => 2,
-                    else => blk: {
-                        const eaw = uucode.get(.east_asian_width, cp);
-                        break :blk eawToWidth(cp, eaw);
-                    },
-                };
-                total += @intCast(@max(0, w));
+                const cp_len = unicode.utf8CodepointSequenceLength(cp) catch 1;
+                const end = start + cp_len;
+                const g_iter = uucode.grapheme.Iterator(uucode.utf8.Iterator).init(.init(str[start..end]));
+                const width = uucode.x.grapheme.unverifiedWcwidth(g_iter);
+                total += @intCast(@max(0, width));
+                start = end;
             }
             return total;
         },
