@@ -72,6 +72,11 @@ pub fn gwidth(str: []const u8, method: Method) u16 {
                 {
                     continue;
                 }
+                if (0x1F3FB <= cp and cp <= 0x1F3FF) {
+                    // Emoji modifier
+                    total += 2;
+                    continue;
+                }
                 const g_iter = uucode.grapheme.utf8Iterator(str[start..iter.i]);
                 const width = uucode.x.grapheme.unverifiedWcwidth(g_iter);
                 total += @intCast(@max(0, width));
@@ -110,7 +115,7 @@ test "gwidth: emoji with VS16 selector" {
 
 test "gwidth: emoji with skin tone selector" {
     try testing.expectEqual(2, gwidth("👋🏿", .unicode));
-    try testing.expectEqual(2, gwidth("👋🏿", .wcwidth));
+    try testing.expectEqual(4, gwidth("👋🏿", .wcwidth));
     try testing.expectEqual(2, gwidth("👋🏿", .no_zwj));
 }
 
