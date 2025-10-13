@@ -10,8 +10,8 @@
             .hash = "zigimg-0.1.0-8_eo2vHnEwCIVW34Q14Ec-xUlzIoVg86-7FU2ypPtxms",
         },
         .uucode = .{
-            .url = "git+https://github.com/jacobsandlund/uucode#6c78444cd405cd5345cf451ea20456ec93c199b0",
-            .hash = "uucode-0.1.0-ZZjBPtdNQwD9MXAFsVinea-vzHwBai_GiNr-VL8xDagI",
+            .url = "git+https://github.com/jacobsandlund/uucode#afe70a836ded1a71b25aea98d3f570ebbbda146d",
+            .hash = "uucode-0.1.0-ZZjBPhxPQwCVc7pYCxS8tD-pZpQjl1pSalsaXWg8zfa7",
         },
     },
     .paths = .{
