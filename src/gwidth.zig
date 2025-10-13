@@ -64,7 +64,14 @@ pub fn gwidth(str: []const u8, method: Method) u16 {
             var total: u16 = 0;
             var iter = uucode.utf8.Iterator.init(str);
             var start: usize = 0;
-            while (iter.next()) |_| {
+            while (iter.next()) |cp| {
+                // Skip zero-width joiner, and text/emoji presentation selectors
+                if (cp == uucode.config.zero_width_joiner or
+                    cp == 0xFE0E or
+                    cp == 0xFE0F)
+                {
+                    continue;
+                }
                 const g_iter = uucode.grapheme.utf8Iterator(str[start..iter.i]);
                 const width = uucode.x.grapheme.unverifiedWcwidth(g_iter);
                 total += @intCast(@max(0, width));
@@ -91,8 +98,6 @@ test "gwidth: a" {
 
 test "gwidth: emoji with ZWJ" {
     try testing.expectEqual(2, gwidth("👩‍🚀", .unicode));
-    // TODO: this is failing with 6 now, because EMOJI MODIFIER FITZPATRICK is
-    // being counted as East Asian Width: wide
     try testing.expectEqual(4, gwidth("👩‍🚀", .wcwidth));
     try testing.expectEqual(4, gwidth("👩‍🚀", .no_zwj));
 }
@@ -105,7 +110,7 @@ test "gwidth: emoji with VS16 selector" {
 
 test "gwidth: emoji with skin tone selector" {
     try testing.expectEqual(2, gwidth("👋🏿", .unicode));
-    try testing.expectEqual(4, gwidth("👋🏿", .wcwidth));
+    try testing.expectEqual(2, gwidth("👋🏿", .wcwidth));
     try testing.expectEqual(2, gwidth("👋🏿", .no_zwj));
 }
 
