@@ -77,12 +77,12 @@ pub const Buffer = struct {
     /// Appends content to the buffer.
     pub fn append(self: *@This(), allocator: std.mem.Allocator, content: Content) Error!void {
         var cols: usize = self.last_cols;
-        var iter = uucode.grapheme.Iterator(uucode.utf8.Iterator).init(.init(content.bytes));
+        var iter = uucode.grapheme.utf8Iterator(content.bytes);
 
         var grapheme_start: usize = 0;
         var prev_break: bool = true;
 
-        while (iter.next()) |result| {
+        while (iter.nextCodepoint()) |result| {
             if (prev_break and !result.is_break) {
                 // Start of a new grapheme
                 grapheme_start = iter.i - std.unicode.utf8CodepointSequenceLength(result.cp) catch 1;
