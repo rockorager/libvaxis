@@ -114,11 +114,11 @@ inline fn parseGround(input: []const u8) !Result {
 
             // Check if we have a multi-codepoint grapheme
             var code = first_cp;
-            var grapheme_iter = uucode.grapheme.Iterator(uucode.utf8.Iterator).init(.init(input));
+            var grapheme_iter = uucode.grapheme.utf8Iterator(input);
             var grapheme_len: usize = 0;
             var cp_count: usize = 0;
 
-            while (grapheme_iter.next()) |result| {
+            while (grapheme_iter.nextCodepoint()) |result| {
                 cp_count += 1;
                 if (result.is_break) {
                     // Found the first grapheme boundary

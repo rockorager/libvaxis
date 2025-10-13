@@ -50,15 +50,12 @@ pub fn gwidth(str: []const u8, method: Method) u16 {
     switch (method) {
         .unicode => {
             var total: u16 = 0;
-            var grapheme_iter = uucode.grapheme.Iterator(uucode.utf8.Iterator).init(.init(str));
-            var start: usize = 0;
+            var grapheme_iter = uucode.grapheme.utf8Iterator(str);
 
-            while (grapheme_iter.next()) |_| {
-                const end = grapheme_iter.i;
-                const g_iter = uucode.grapheme.Iterator(uucode.utf8.Iterator).init(.init(str[start..end]));
-                const width = uucode.x.grapheme.unverifiedWcwidth(g_iter);
+            while (true) {
+                const width = uucode.x.grapheme.unverifiedWcwidth(grapheme_iter);
                 total += @intCast(@max(0, width));
-                start = end;
+                if (grapheme_iter.nextGrapheme() == null) break;
             }
 
             return total;
@@ -67,13 +64,11 @@ pub fn gwidth(str: []const u8, method: Method) u16 {
             var total: u16 = 0;
             var iter = uucode.utf8.Iterator.init(str);
             var start: usize = 0;
-            while (iter.next()) |cp| {
-                const cp_len = unicode.utf8CodepointSequenceLength(cp) catch 1;
-                const end = start + cp_len;
-                const g_iter = uucode.grapheme.Iterator(uucode.utf8.Iterator).init(.init(str[start..end]));
+            while (iter.next()) |_| {
+                const g_iter = uucode.grapheme.utf8Iterator(str[start..iter.i]);
                 const width = uucode.x.grapheme.unverifiedWcwidth(g_iter);
                 total += @intCast(@max(0, width));
-                start = end;
+                start = iter.i;
             }
             return total;
         },
@@ -96,6 +91,8 @@ test "gwidth: a" {
 
 test "gwidth: emoji with ZWJ" {
     try testing.expectEqual(2, gwidth("👩‍🚀", .unicode));
+    // TODO: this is failing with 6 now, because EMOJI MODIFIER FITZPATRICK is
+    // being counted as East Asian Width: wide
     try testing.expectEqual(4, gwidth("👩‍🚀", .wcwidth));
     try testing.expectEqual(4, gwidth("👩‍🚀", .no_zwj));
 }
