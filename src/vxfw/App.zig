@@ -530,11 +530,8 @@ const FocusHandler = struct {
         // Find the path to the focused widget. This builds a list that has the first element as the
         // focused widget, and walks backward to the root. It's possible our focused widget is *not*
         // in this tree. If this is the case, we refocus to the root widget
-        const has_focus = try self.childHasFocus(allocator, surface);
+        _ = try self.childHasFocus(allocator, surface);
 
-        // We assert that the focused widget *must* be in the widget tree. There is certianly a
-        // logic bug in the code somewhere if this is not the case
-        assert(has_focus); // Focused widget not found in Surface tree
         if (!self.root.eql(surface.widget)) {
             // If the root of surface is not the initial widget, we append the initial widget
             try self.path_to_focused.append(allocator, self.root);
