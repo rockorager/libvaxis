@@ -302,16 +302,6 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                         return self.postEvent(.focus_out);
                     }
                 },
-                .paste_start => {
-                    if (@hasField(Event, "paste_start")) {
-                        return self.postEvent(.paste_start);
-                    }
-                },
-                .paste_end => {
-                    if (@hasField(Event, "paste_end")) {
-                        return self.postEvent(.paste_end);
-                    }
-                },
                 .paste => |text| {
                     if (@hasField(Event, "paste")) {
                         return self.postEvent(.{ .paste = text });
