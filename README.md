@@ -325,7 +325,7 @@ pub fn main() !void {
 
     // init our text input widget. The text input widget needs an allocator to
     // store the contents of the input
-    var text_input = TextInput.init(alloc, &vx.unicode);
+    var text_input = TextInput.init(alloc);
     defer text_input.deinit();
 
     // Sends queries to terminal to detect certain features. This should always
