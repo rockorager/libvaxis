@@ -134,8 +134,14 @@ pub const osc52_clipboard_request = "\x1b]52;c;?\x1b\\";
 
 // Kitty graphics
 pub const kitty_graphics_clear = "\x1b_Ga=d\x1b\\";
+pub const kitty_graphics_free = "\x1b_Ga=d,d=I,i={d};\x1b\\";
 pub const kitty_graphics_preamble = "\x1b_Ga=p,i={d}";
 pub const kitty_graphics_closing = ",C=1\x1b\\";
+
+// Kitty transmission
+pub const kitty_transmit_one_chunk = "\x1b_Gf={d},s={d},v={d},i={d};{s}\x1b\\";
+pub const kitty_transmit_first_chunk = "\x1b_Gf={d},s={d},v={d},i={d},m=1;{s}\x1b\\";
+pub const kitty_transmit_data_chunk = "\x1b_Gm={d};{s}\x1b\\";
 
 // Color control sequences
 pub const osc4_query = "\x1b]4;{d};?\x1b\\"; // color index {d}
@@ -149,3 +155,28 @@ pub const osc11_reset = "\x1b]111\x1b\\"; // reset bg to terminal default
 pub const osc12_query = "\x1b]12;?\x1b\\"; // cursor color
 pub const osc12_set = "\x1b]12;rgb:{x:0>2}{x:0>2}/{x:0>2}{x:0>2}/{x:0>2}{x:0>2}\x1b\\"; // set terminal cursor color
 pub const osc12_reset = "\x1b]112\x1b\\"; // reset cursor to terminal default
+
+// Tmux sequences
+fn wrapTmux(comptime query: []const u8) []const u8 {
+    comptime var buf: []const u8 = "";
+    for (query) |c| {
+        if (c == '\x1b') {
+            buf = buf ++ "\x1b\x1b";
+        } else {
+            buf = buf ++ [_]u8{c};
+        }
+    }
+    return "\x1bPtmux;" ++ buf ++ "\x1b\\";
+}
+
+pub const tmux_kitty_transmit_one_chunk = "\x1bPtmux;\x1b\x1b_Gf={d},s={d},v={d},i={d},q=2;{s}\x1b\\\x1b\\";
+pub const tmux_kitty_transmit_first_chunk = "\x1bPtmux;\x1b\x1b_Gf={d},s={d},v={d},i={d},m=1,q=2;{s}\x1b\\\x1b\\";
+pub const tmux_kitty_transmit_data_chunk = "\x1bPtmux;\x1b\x1b_Gm={d},q=2;{s}\x1b\\\x1b\\";
+pub const tmux_kitty_graphics_preamble = "\x1bPtmux;\x1b\x1b_Ga=p,U=1,q=2,i={d}";
+// pub const tmux_kitty_transmit_one_chunk = wrapTmux(kitty_transmit_one_chunk);
+// pub const tmux_kitty_transmit_first_chunk = wrapTmux(kitty_transmit_first_chunk);
+// pub const tmux_kitty_transmit_data_chunk = wrapTmux(kitty_transmit_data_chunk);
+pub const tmux_kitty_graphics_query = wrapTmux(kitty_graphics_query);
+pub const tmux_kitty_graphics_clear = wrapTmux(kitty_graphics_clear);
+pub const tmux_kitty_graphics_free = wrapTmux(kitty_graphics_free);
+pub const tmux_kitty_graphics_closing = ",C=1\x1b\\\x1b\\";
