@@ -59,7 +59,7 @@ pub fn parse(self: *Parser, input: []const u8, paste_allocator: ?std.mem.Allocat
             0x4F => return parseSs3(input),
             0x50 => return skipUntilST(input), // DCS
             0x58 => return skipUntilST(input), // SOS
-            0x5B => return parseCsi(input, &self.buf), // CSI
+            0x5B => return parseCsi(input, &self.buf, paste_allocator), // CSI
             0x5D => return parseOsc(input, paste_allocator),
             0x5E => return skipUntilST(input), // PM
             0x5F => return parseApc(input),
@@ -307,6 +307,8 @@ inline fn parseOsc(input: []const u8, paste_allocator: ?std.mem.Allocator) !Resu
             };
         },
         52 => {
+            if (paste_allocator == null)
+                return error.NoPasteAllocator;
             if (input[semicolon_idx + 1] != 'c') return null_event;
             const payload = if (bel_terminated)
                 input[semicolon_idx + 3 .. sequence.len - 1]
@@ -325,7 +327,7 @@ inline fn parseOsc(input: []const u8, paste_allocator: ?std.mem.Allocator) !Resu
     }
 }
 
-inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
+inline fn parseCsi(input: []const u8, text_buf: []u8, paste_allocator: ?std.mem.Allocator) !Result {
     if (input.len < 3) {
         return .{
             .event = null,
@@ -432,8 +434,22 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
                     21 => Key.f10,
                     23 => Key.f11,
                     24 => Key.f12,
-                    200 => return .{ .event = .paste_start, .n = sequence.len },
-                    201 => return .{ .event = .paste_end, .n = sequence.len },
+                    200 => { // bracketed paste
+                        if (paste_allocator == null)
+                            return error.NoPasteAllocator;
+                        const end_sequence: []const u8 = "\x1b[201~";
+                        const end_position = std.mem.indexOf(u8, input[sequence.len..], end_sequence);
+                        if (end_position) |index| {
+                            const text = try paste_allocator.?.dupe(u8, input[sequence.len .. sequence.len + index]);
+                            return .{
+                                .event = .{ .paste = text },
+                                .n = sequence.len + index + end_sequence.len,
+                            };
+                        } else {
+                            return .{ .event = null, .n = 0 };
+                        }
+                    },
+                    // 201 "paste end" handled in 200 "paste start"
                     57427 => Key.kp_begin,
                     else => return null_event,
                 },
@@ -867,26 +883,21 @@ test "parse: xterm insert" {
     try testing.expectEqual(expected_event, result.event);
 }
 
-test "parse: paste_start" {
+test "parse: bracketed paste" {
     const alloc = testing.allocator_instance.allocator();
-    const input = "\x1b[200~";
+    const input = "\x1b[200~bracketed paste\x1b[201~";
+    const expected_text = "bracketed paste";
     var parser: Parser = .{};
     const result = try parser.parse(input, alloc);
-    const expected_event: Event = .paste_start;
 
-    try testing.expectEqual(6, result.n);
-    try testing.expectEqual(expected_event, result.event);
-}
-
-test "parse: paste_end" {
-    const alloc = testing.allocator_instance.allocator();
-    const input = "\x1b[201~";
-    var parser: Parser = .{};
-    const result = try parser.parse(input, alloc);
-    const expected_event: Event = .paste_end;
-
-    try testing.expectEqual(6, result.n);
-    try testing.expectEqual(expected_event, result.event);
+    try testing.expectEqual(27, result.n);
+    switch (result.event.?) {
+        .paste => |text| {
+            defer alloc.free(text);
+            try testing.expectEqualStrings(expected_text, text);
+        },
+        else => try testing.expect(false),
+    }
 }
 
 test "parse: osc52 paste" {
@@ -1131,7 +1142,7 @@ test "parse(csi): kitty multi cursor" {
     var buf: [1]u8 = undefined;
     {
         const input = "\x1b[>1;2;3;29;30;40;100;101 q";
-        const result = parseCsi(input, &buf);
+        const result = try parseCsi(input, &buf, null);
         const expected: Result = .{
             .event = .cap_multi_cursor,
             .n = input.len,
@@ -1142,7 +1153,7 @@ test "parse(csi): kitty multi cursor" {
     }
     {
         const input = "\x1b[> q";
-        const result = parseCsi(input, &buf);
+        const result = try parseCsi(input, &buf, null);
         const expected: Result = .{
             .event = null,
             .n = input.len,
@@ -1157,7 +1168,7 @@ test "parse(csi): decrpm" {
     var buf: [1]u8 = undefined;
     {
         const input = "\x1b[?1016;1$y";
-        const result = parseCsi(input, &buf);
+        const result = try parseCsi(input, &buf, null);
         const expected: Result = .{
             .event = .cap_sgr_pixels,
             .n = input.len,
@@ -1168,7 +1179,7 @@ test "parse(csi): decrpm" {
     }
     {
         const input = "\x1b[?1016;0$y";
-        const result = parseCsi(input, &buf);
+        const result = try parseCsi(input, &buf, null);
         const expected: Result = .{
             .event = null,
             .n = input.len,
@@ -1182,7 +1193,7 @@ test "parse(csi): decrpm" {
 test "parse(csi): primary da" {
     var buf: [1]u8 = undefined;
     const input = "\x1b[?c";
-    const result = parseCsi(input, &buf);
+    const result = try parseCsi(input, &buf, null);
     const expected: Result = .{
         .event = .cap_da1,
         .n = input.len,
@@ -1196,7 +1207,7 @@ test "parse(csi): dsr" {
     var buf: [1]u8 = undefined;
     {
         const input = "\x1b[?997;1n";
-        const result = parseCsi(input, &buf);
+        const result = try parseCsi(input, &buf, null);
         const expected: Result = .{
             .event = .{ .color_scheme = .dark },
             .n = input.len,
@@ -1207,7 +1218,7 @@ test "parse(csi): dsr" {
     }
     {
         const input = "\x1b[?997;2n";
-        const result = parseCsi(input, &buf);
+        const result = try parseCsi(input, &buf, null);
         const expected: Result = .{
             .event = .{ .color_scheme = .light },
             .n = input.len,
@@ -1218,7 +1229,7 @@ test "parse(csi): dsr" {
     }
     {
         const input = "\x1b[0n";
-        const result = parseCsi(input, &buf);
+        const result = try parseCsi(input, &buf, null);
         const expected: Result = .{
             .event = null,
             .n = input.len,
@@ -1232,7 +1243,7 @@ test "parse(csi): dsr" {
 test "parse(csi): mouse" {
     var buf: [1]u8 = undefined;
     const input = "\x1b[<35;1;1m";
-    const result = parseCsi(input, &buf);
+    const result = try parseCsi(input, &buf, null);
     const expected: Result = .{
         .event = .{ .mouse = .{
             .col = 0,
@@ -1251,7 +1262,7 @@ test "parse(csi): mouse" {
 test "parse(csi): xterm mouse" {
     var buf: [1]u8 = undefined;
     const input = "\x1b[M\x20\x21\x21";
-    const result = parseCsi(input, &buf);
+    const result = try parseCsi(input, &buf, null);
     const expected: Result = .{
         .event = .{ .mouse = .{
             .col = 0,
