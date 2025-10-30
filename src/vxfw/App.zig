@@ -261,6 +261,7 @@ fn handleCommand(self: *App, cmds: *vxfw.CommandList) Allocator.Error!void {
             .set_mouse_shape => |shape| self.vx.setMouseShape(shape),
             .request_focus => |widget| self.wants_focus = widget,
             .copy_to_clipboard => |content| {
+                defer self.allocator.free(content);
                 self.vx.copyToSystemClipboard(self.tty.writer(), content, self.allocator) catch |err| {
                     switch (err) {
                         error.OutOfMemory => return Allocator.Error.OutOfMemory,
@@ -269,6 +270,7 @@ fn handleCommand(self: *App, cmds: *vxfw.CommandList) Allocator.Error!void {
                 };
             },
             .set_title => |title| {
+                defer self.allocator.free(title);
                 self.vx.setTitle(self.tty.writer(), title) catch |err| {
                     std.log.err("set_title error: {}", .{err});
                 };

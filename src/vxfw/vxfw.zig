@@ -141,12 +141,18 @@ pub const EventContext = struct {
         try self.addCmd(.{ .request_focus = widget });
     }
 
+    /// Copy content to clipboard.
+    /// content is duplicated using self.alloc. 
+    /// Caller retains ownership of their copy of content.
     pub fn copyToClipboard(self: *EventContext, content: []const u8) Allocator.Error!void {
-        try self.addCmd(.{ .copy_to_clipboard = content });
-    }
+        try self.addCmd(.{ .copy_to_clipboard = try self.alloc.dupe(u8, content) });
+    } 
 
+    /// Set window title.
+    /// title is duplicated using self.alloc.
+    /// Caller retains ownership of their copy of title.
     pub fn setTitle(self: *EventContext, title: []const u8) Allocator.Error!void {
-        try self.addCmd(.{ .set_title = title });
+        try self.addCmd(.{ .set_title = try self.alloc.dupe(u8, title) });
     }
 
     pub fn queueRefresh(self: *EventContext) Allocator.Error!void {
