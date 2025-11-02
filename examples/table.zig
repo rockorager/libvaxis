@@ -21,11 +21,6 @@ pub fn main() !void {
 
     // Users set up below the main function
     const users_buf = try alloc.dupe(User, users[0..]);
-    var user_list = std.ArrayList(User).fromOwnedSlice(users_buf);
-    defer user_list.deinit(alloc);
-    var user_mal = std.MultiArrayList(User){};
-    for (users_buf[0..]) |user| try user_mal.append(alloc, user);
-    defer user_mal.deinit(alloc);
 
     var buffer: [1024]u8 = undefined;
     var tty = try vaxis.Tty.init(&buffer);
@@ -178,7 +173,7 @@ pub fn main() !void {
                                 mem.eql(u8, ":quit", cmd) or
                                 mem.eql(u8, ":exit", cmd)) return;
                             if (mem.eql(u8, "G", cmd)) {
-                                demo_tbl.row = @intCast(user_list.items.len - 1);
+                                demo_tbl.row = @intCast(users_buf.len - 1);
                                 active = .mid;
                             }
                             if (cmd.len >= 2 and mem.eql(u8, "gg", cmd[0..2])) {
@@ -277,14 +272,15 @@ pub fn main() !void {
             .width = win.width,
             .height = win.height - (top_bar.height + 1),
         });
-        if (user_list.items.len > 0) {
+        if (users_buf.len > 0) {
             demo_tbl.active = active == .mid;
             try vaxis.widgets.Table.drawTable(
-                event_alloc,
+                null,
+                // event_alloc,
                 middle_bar,
                 //users_buf[0..],
                 //user_list,
-                user_mal,
+                users_buf,
                 &demo_tbl,
             );
         }
