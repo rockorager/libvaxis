@@ -134,7 +134,7 @@ pub fn drawTable(
         const data_ti = @typeInfo(DataListT);
         switch (data_ti) {
             .pointer => |ptr| {
-                if (ptr.size != .Slice) return error.UnsupportedTableDataType;
+                if (ptr.size != .slice) return error.UnsupportedTableDataType;
                 break :getData data_list;
             },
             .@"struct" => {
