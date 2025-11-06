@@ -85,7 +85,7 @@ pub const Buffer = struct {
         while (iter.next()) |result| {
             if (prev_break and !result.is_break) {
                 // Start of a new grapheme
-                grapheme_start = iter.i - std.unicode.utf8CodepointSequenceLength(result.cp) catch 1;
+                grapheme_start = iter.i - @as(usize, std.unicode.utf8CodepointSequenceLength(result.cp) catch 1);
             }
 
             if (result.is_break) {
