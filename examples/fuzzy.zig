@@ -4,6 +4,7 @@ const vxfw = vaxis.vxfw;
 
 const Model = struct {
     list: std.ArrayList(vxfw.Text),
+    /// Memory owned by .arena
     filtered: std.ArrayList(vxfw.RichText),
     list_view: vxfw.ListView,
     text_field: vxfw.TextField,
@@ -197,7 +198,6 @@ pub fn main() !void {
     };
     defer model.text_field.deinit();
     defer model.list.deinit(allocator);
-    defer model.filtered.deinit(allocator);
     defer model.arena.deinit();
 
     // Run the command
