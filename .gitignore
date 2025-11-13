@@ -5,4 +5,3 @@ zig-out/
 Session*.*vim
 commit_msg
 *.sw?
-.direnv
