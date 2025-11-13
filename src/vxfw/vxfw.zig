@@ -38,19 +38,32 @@ pub const Event = union(enum) {
     key_press: vaxis.Key,
     key_release: vaxis.Key,
     mouse: vaxis.Mouse,
-    focus_in, // window has gained focus
-    focus_out, // window has lost focus
-    paste_start, // bracketed paste start
-    paste_end, // bracketed paste end
-    paste: []const u8, // osc 52 paste, caller must free
-    color_report: vaxis.Color.Report, // osc 4, 10, 11, 12 response
-    color_scheme: vaxis.Color.Scheme, // light / dark OS theme changes
-    winsize: vaxis.Winsize, // the window size has changed. This event is always sent when the loop is started
-    app: UserEvent, // A custom event from the app
-    tick, // An event from a Tick command
-    init, // sent when the application starts
-    mouse_leave, // The mouse has left the widget
-    mouse_enter, // The mouse has enterred the widget
+    /// window has gained focus
+    focus_in,
+    /// window has lost focus
+    focus_out,
+    /// bracketed paste start
+    paste_start,
+    /// bracketed paste end
+    paste_end,
+    /// osc 52 paste, caller must free
+    paste: []const u8,
+    /// osc 4, 10, 11, 12 response
+    color_report: vaxis.Color.Report,
+    /// light / dark OS theme changes
+    color_scheme: vaxis.Color.Scheme,
+    /// the window size has changed. This event is always sent when the loop is started
+    winsize: vaxis.Winsize,
+    /// A custom event from the app
+    app: UserEvent,
+    /// An event from a Tick command
+    tick,
+    /// sent when the application starts
+    init,
+    /// The mouse has left the widget
+    mouse_leave,
+    /// The mouse has enterred the widget
+    mouse_enter,
 };
 
 pub const Tick = struct {
@@ -142,14 +155,14 @@ pub const EventContext = struct {
     }
 
     /// Copy content to clipboard.
-    /// content is duplicated using self.alloc.
+    /// content is duplicated using `self.alloc`.
     /// Caller retains ownership of their copy of content.
     pub fn copyToClipboard(self: *EventContext, content: []const u8) Allocator.Error!void {
         try self.addCmd(.{ .copy_to_clipboard = try self.alloc.dupe(u8, content) });
     }
 
     /// Set window title.
-    /// title is duplicated using self.alloc.
+    /// title is duplicated using `self.alloc`.
     /// Caller retains ownership of their copy of title.
     pub fn setTitle(self: *EventContext, title: []const u8) Allocator.Error!void {
         try self.addCmd(.{ .set_title = try self.alloc.dupe(u8, title) });
@@ -160,7 +173,7 @@ pub const EventContext = struct {
         self.redraw = true;
     }
 
-    /// Send a system notification. This function dupes title and body using it's own allocator.
+    /// Send a system notification. This function dupes title and body using its own allocator.
     /// They will be freed once the notification has been sent
     pub fn sendNotification(
         self: *EventContext,
@@ -298,7 +311,7 @@ pub const Widget = struct {
 
 pub const FlexItem = struct {
     widget: Widget,
-    /// A value of zero means the child will have it's inherent size. Any value greater than zero
+    /// A value of zero means the child will have its inherent size. Any value greater than zero
     /// and the remaining space will be proportioned to each item
     flex: u8 = 1,
 
@@ -354,9 +367,9 @@ pub const Surface = struct {
         };
     }
 
-    /// Creates a slice of vaxis.Cell's equal to size.width * size.height
+    /// Creates a slice of `vaxis.Cell`s equal to `size.width` * `size.height`
     pub fn createBuffer(allocator: Allocator, size: Size) Allocator.Error![]vaxis.Cell {
-        const buffer = try allocator.alloc(vaxis.Cell, size.width * size.height);
+        const buffer = try allocator.alloc(vaxis.Cell, size.width *| size.height);
         @memset(buffer, .{ .default = true });
         return buffer;
     }
@@ -387,14 +400,14 @@ pub const Surface = struct {
     pub fn writeCell(self: Surface, col: u16, row: u16, cell: vaxis.Cell) void {
         if (self.size.width <= col) return;
         if (self.size.height <= row) return;
-        const i = (row * self.size.width) + col;
+        const i = @min((row *| self.size.width) +| col, self.buffer.len);
         assert(i < self.buffer.len);
         self.buffer[i] = cell;
     }
 
     pub fn readCell(self: Surface, col: usize, row: usize) vaxis.Cell {
         assert(col < self.size.width and row < self.size.height);
-        const i = (row * self.size.width) + col;
+        const i = (row *| self.size.width) +| col;
         assert(i < self.buffer.len);
         return self.buffer[i];
     }
@@ -405,7 +418,7 @@ pub const Surface = struct {
         return .{
             .size = .{ .width = self.size.width, .height = height },
             .widget = self.widget,
-            .buffer = self.buffer[0 .. self.size.width * height],
+            .buffer = self.buffer[0 .. self.size.width *| height],
             .children = self.children,
         };
     }
@@ -420,8 +433,8 @@ pub const Surface = struct {
         for (self.children) |child| {
             if (!child.containsPoint(point)) continue;
             const child_point: Point = .{
-                .row = @intCast(point.row - child.origin.row),
-                .col = @intCast(point.col - child.origin.col),
+                .row = @intCast(point.row -| child.origin.row),
+                .col = @intCast(point.col -| child.origin.col),
             };
             try child.surface.hitTest(allocator, list, child_point);
         }
@@ -486,8 +499,8 @@ pub const SubSurface = struct {
     pub fn containsPoint(self: SubSurface, point: Point) bool {
         return point.col >= self.origin.col and
             point.row >= self.origin.row and
-            point.col < (self.origin.col + self.surface.size.width) and
-            point.row < (self.origin.row + self.surface.size.height);
+            point.col < (self.origin.col +| self.surface.size.width) and
+            point.row < (self.origin.row +| self.surface.size.height);
     }
 };
 
@@ -563,7 +576,7 @@ test "All widgets have a doctest and refAllDecls test" {
             const decl = ast.nodes.get(@intFromEnum(root_decl));
             switch (decl.tag) {
                 .test_decl => {
-                    const test_name = ast.tokenSlice(decl.main_token + 1);
+                    const test_name = ast.tokenSlice(decl.main_token +| 1);
                     if (std.mem.eql(u8, "\"refAllDecls\"", test_name))
                         has_refAllDecls = true
                     else if (std.mem.eql(u8, container_name, test_name))
