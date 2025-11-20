@@ -268,11 +268,12 @@ pub fn handleEvent(self: *ScrollBars, ctx: *vxfw.EventContext, event: vxfw.Event
     switch (event) {
         .mouse => |mouse| {
             // 1. Process vertical scroll thumb hover.
-
+            const mouse_col: u16 = if (mouse.col < 0) 0 else @intCast(mouse.col);
+            const mouse_row: u16 = if (mouse.row < 0) 0 else @intCast(mouse.row);
             const is_mouse_over_vertical_thumb =
-                mouse.col == self.last_frame_size.width -| 1 and
-                mouse.row >= self.vertical_thumb_top_row and
-                mouse.row < self.vertical_thumb_bottom_row;
+                mouse_col == self.last_frame_size.width -| 1 and
+                mouse_row >= self.vertical_thumb_top_row and
+                mouse_row < self.vertical_thumb_bottom_row;
 
             // Make sure we only update the state and redraw when it's necessary.
             if (!self.is_hovering_vertical_thumb and is_mouse_over_vertical_thumb) {
@@ -288,7 +289,7 @@ pub fn handleEvent(self: *ScrollBars, ctx: *vxfw.EventContext, event: vxfw.Event
 
             if (did_start_dragging_vertical_thumb) {
                 self.is_dragging_vertical_thumb = true;
-                self.mouse_offset_into_thumb = @intCast(mouse.row -| self.vertical_thumb_top_row);
+                self.mouse_offset_into_thumb = @intCast(mouse_row -| self.vertical_thumb_top_row);
 
                 // No need to redraw yet, but we must consume the event.
                 return ctx.consumeEvent();
@@ -297,9 +298,9 @@ pub fn handleEvent(self: *ScrollBars, ctx: *vxfw.EventContext, event: vxfw.Event
             // 2. Process horizontal scroll thumb hover.
 
             const is_mouse_over_horizontal_thumb =
-                mouse.row == self.last_frame_size.height -| 1 and
-                mouse.col >= self.horizontal_thumb_start_col and
-                mouse.col < self.horizontal_thumb_end_col;
+                mouse_row == self.last_frame_size.height -| 1 and
+                mouse_col >= self.horizontal_thumb_start_col and
+                mouse_col < self.horizontal_thumb_end_col;
 
             // Make sure we only update the state and redraw when it's necessary.
             if (!self.is_hovering_horizontal_thumb and is_mouse_over_horizontal_thumb) {
@@ -316,7 +317,7 @@ pub fn handleEvent(self: *ScrollBars, ctx: *vxfw.EventContext, event: vxfw.Event
             if (did_start_dragging_horizontal_thumb) {
                 self.is_dragging_horizontal_thumb = true;
                 self.mouse_offset_into_thumb = @intCast(
-                    mouse.col -| self.horizontal_thumb_start_col,
+                    mouse_col -| self.horizontal_thumb_start_col,
                 );
 
                 // No need to redraw yet, but we must consume the event.
