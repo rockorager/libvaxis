@@ -851,13 +851,13 @@ pub fn translateMouse(self: Vaxis, mouse: Mouse) Mouse {
         const ypos = mouse.row;
         const xextra = self.screen.width_pix % self.screen.width;
         const yextra = self.screen.height_pix % self.screen.height;
-        const xcell = (self.screen.width_pix - xextra) / self.screen.width;
-        const ycell = (self.screen.height_pix - yextra) / self.screen.height;
+        const xcell: i16 = @intCast((self.screen.width_pix - xextra) / self.screen.width);
+        const ycell: i16 = @intCast((self.screen.height_pix - yextra) / self.screen.height);
         if (xcell == 0 or ycell == 0) return mouse;
-        result.col = xpos / xcell;
-        result.row = ypos / ycell;
-        result.xoffset = xpos % xcell;
-        result.yoffset = ypos % ycell;
+        result.col = @divFloor(xpos, xcell);
+        result.row = @divFloor(ypos, ycell);
+        result.xoffset = @intCast(@mod(xpos, xcell));
+        result.yoffset = @intCast(@mod(ypos, ycell));
     }
     return result;
 }
