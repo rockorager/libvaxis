@@ -41,8 +41,8 @@ pub const Type = enum {
     drag,
 };
 
-col: u16,
-row: u16,
+col: i16,
+row: i16,
 xoffset: u16 = 0,
 yoffset: u16 = 0,
 button: Button,

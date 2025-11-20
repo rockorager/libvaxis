@@ -670,7 +670,7 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
 /// Parse a param buffer, returning a default value if the param was empty
 inline fn parseParam(comptime T: type, buf: []const u8, default: ?T) ?T {
     if (buf.len == 0) return default;
-    return std.fmt.parseUnsigned(T, buf, 10) catch return null;
+    return std.fmt.parseInt(T, buf, 10) catch return null;
 }
 
 /// Parse a mouse event
@@ -678,8 +678,8 @@ inline fn parseMouse(input: []const u8, full_input: []const u8) Result {
     const null_event: Result = .{ .event = null, .n = input.len };
 
     var button_mask: u16 = undefined;
-    var px: u16 = undefined;
-    var py: u16 = undefined;
+    var px: i16 = undefined;
+    var py: i16 = undefined;
     var xterm: bool = undefined;
     if (input.len == 3 and (input[2] == 'M') and full_input.len >= 6) {
         xterm = true;
@@ -691,8 +691,8 @@ inline fn parseMouse(input: []const u8, full_input: []const u8) Result {
         const delim1 = std.mem.indexOfScalarPos(u8, input, 3, ';') orelse return null_event;
         button_mask = parseParam(u16, input[3..delim1], null) orelse return null_event;
         const delim2 = std.mem.indexOfScalarPos(u8, input, delim1 + 1, ';') orelse return null_event;
-        px = parseParam(u16, input[delim1 + 1 .. delim2], 1) orelse return null_event;
-        py = parseParam(u16, input[delim2 + 1 .. input.len - 1], 1) orelse return null_event;
+        px = parseParam(i16, input[delim1 + 1 .. delim2], 1) orelse return null_event;
+        py = parseParam(i16, input[delim2 + 1 .. input.len - 1], 1) orelse return null_event;
     } else {
         return null_event;
     }
@@ -1237,6 +1237,25 @@ test "parse(csi): mouse" {
         .event = .{ .mouse = .{
             .col = 0,
             .row = 0,
+            .button = .none,
+            .type = .motion,
+            .mods = .{},
+        } },
+        .n = input.len,
+    };
+
+    try testing.expectEqual(expected.n, result.n);
+    try testing.expectEqual(expected.event, result.event);
+}
+
+test "parse(csi): mouse (negative)" {
+    var buf: [1]u8 = undefined;
+    const input = "\x1b[<35;-50;-100m";
+    const result = parseCsi(input, &buf);
+    const expected: Result = .{
+        .event = .{ .mouse = .{
+            .col = -51,
+            .row = -101,
             .button = .none,
             .type = .motion,
             .mods = .{},
