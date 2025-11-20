@@ -88,7 +88,8 @@ fn typeErasedEventHandler(ptr: *anyopaque, ctx: *vxfw.EventContext, event: vxfw.
             },
             .rhs => {
                 const last_max = self.last_max_width orelse return;
-                self.width = @min(last_max -| self.min_width, last_max -| mouse.col -| 1);
+                const mouse_col: u16 = if (mouse.col < 0) 0 else @intCast(mouse.col);
+                self.width = @min(last_max -| self.min_width, last_max -| mouse_col -| 1);
                 if (self.max_width) |max| {
                     self.width = @max(self.width, max);
                 }
@@ -218,7 +219,7 @@ test SplitView {
     // Send the widget a mouse press on the separator
     var mouse: vaxis.Mouse = .{
         // The separator is at width
-        .col = split_view.width,
+        .col = @intCast(split_view.width),
         .row = 0,
         .type = .press,
         .button = .left,
@@ -241,7 +242,8 @@ test SplitView {
     try split_widget.handleEvent(&ctx, .{ .mouse = mouse });
     try std.testing.expect(ctx.redraw);
     try std.testing.expect(split_view.pressed);
-    try std.testing.expectEqual(mouse.col, split_view.width);
+    const mouse_col: u16 = if (mouse.col < 0) 0 else @intCast(mouse.col);
+    try std.testing.expectEqual(mouse_col, split_view.width);
 }
 
 test "refAllDecls" {
