@@ -575,8 +575,8 @@ pub const WindowsTty = struct {
                 };
 
                 const mouse: Mouse = .{
-                    .col = @as(u16, @bitCast(event.dwMousePosition.X)), // Windows reports with 0 index
-                    .row = @as(u16, @bitCast(event.dwMousePosition.Y)), // Windows reports with 0 index
+                    .col = @as(i16, @bitCast(event.dwMousePosition.X)), // Windows reports with 0 index
+                    .row = @as(i16, @bitCast(event.dwMousePosition.Y)), // Windows reports with 0 index
                     .mods = mods,
                     .type = event_type,
                     .button = btn,
