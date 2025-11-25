@@ -418,7 +418,7 @@ pub const Surface = struct {
         return .{
             .size = .{ .width = self.size.width, .height = height },
             .widget = self.widget,
-            .buffer = self.buffer[0 .. self.size.width *| height],
+            .buffer = self.buffer[0..self.size.width *| height],
             .children = self.children,
         };
     }
