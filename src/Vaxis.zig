@@ -995,15 +995,15 @@ pub fn transmitImage(
     const buf = switch (format) {
         .png => png: {
             const png_buf = try arena.allocator().alloc(u8, img.imageByteSize());
-            const png = try img.writeToMemory(png_buf, .{ .png = .{} });
+            const png = try img.writeToMemory(arena.allocator(), png_buf, .{ .png = .{} });
             break :png png;
         },
         .rgb => rgb: {
-            try img.convert(.rgb24);
+            try img.convert(arena.allocator(), .rgb24);
             break :rgb img.rawBytes();
         },
         .rgba => rgba: {
-            try img.convert(.rgba32);
+            try img.convert(arena.allocator(), .rgba32);
             break :rgba img.rawBytes();
         },
     };
@@ -1027,7 +1027,7 @@ pub fn loadImage(
         .path => |path| try zigimg.Image.fromFilePath(alloc, path, &read_buffer),
         .mem => |bytes| try zigimg.Image.fromMemory(alloc, bytes),
     };
-    defer img.deinit();
+    defer img.deinit(alloc);
     return self.transmitImage(alloc, tty, &img, .png);
 }
 

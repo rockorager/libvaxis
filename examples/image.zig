@@ -36,7 +36,7 @@ pub fn main() !void {
 
     var read_buffer: [1024 * 1024]u8 = undefined; // 1MB buffer
     var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, "examples/zig.png", &read_buffer);
-    defer img1.deinit();
+    defer img1.deinit(alloc);
 
     const imgs = [_]vaxis.Image{
         try vx.transmitImage(alloc, tty.writer(), &img1, .rgba),
