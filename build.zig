@@ -41,6 +41,7 @@ pub fn build(b: *std.Build) void {
         split_view,
         table,
         text_input,
+        text_view,
         vaxis,
         view,
         vt,
