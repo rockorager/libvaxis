@@ -453,6 +453,7 @@ pub const WindowsTty = struct {
                     0xc0 => '`',
                     0xdb => '[',
                     0xdc => '\\',
+                    0xdf => '\\',
                     0xe2 => '\\',
                     0xdd => ']',
                     0xde => '\'',
