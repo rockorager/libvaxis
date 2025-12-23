@@ -1,5 +1,6 @@
 const std = @import("std");
 const testing = std.testing;
+const builtin = @import("builtin");
 
 const Key = @This();
 
@@ -163,6 +164,11 @@ pub const enter: u21 = 0x0D;
 pub const escape: u21 = 0x1B;
 pub const space: u21 = 0x20;
 pub const backspace: u21 = 0x7F;
+
+// For whatever reason, when you press cmd+backspace on macOS it's encoded as ctrl+forward_delete.
+// forward_delete is encoded as 0x75, as per kVK_ForwardDelete in
+// /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/Headers/Events.h
+pub const forward_delete: u21 = if (builtin.os.tag == .macos) 0x75 else @compileError("forward_delete is only ever checked on macOS");
 
 /// multicodepoint is a key which generated text but cannot be expressed as a
 /// single codepoint. The value is the maximum unicode codepoint + 1
