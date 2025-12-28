@@ -1,6 +1,7 @@
 const std = @import("std");
 const uucode = @import("uucode");
 
+/// Returns the length of a contiguous run of printable ASCII bytes (0x20..0x7E).
 pub fn printableRunLen(input: []const u8) usize {
     const VecLenOpt = std.simd.suggestVectorLength(u8);
     if (VecLenOpt) |VecLen| {
@@ -35,6 +36,12 @@ pub fn printableRunLen(input: []const u8) usize {
     return input.len;
 }
 
+/// Returns the safe fast-path length for ASCII runs.
+///
+/// This behaves like printableRunLen, but if the next codepoint is a combining
+/// mark (Mn/Mc/Me, including keycaps/variation selectors), it leaves the last
+/// ASCII byte for the parser to avoid breaking grapheme clusters. If the
+/// following UTF-8 sequence is incomplete, it also leaves the last ASCII byte.
 pub fn fastPathLen(input: []const u8) usize {
     const run = printableRunLen(input);
     if (run == 0) return 0;

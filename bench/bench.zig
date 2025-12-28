@@ -111,12 +111,13 @@ pub fn main() !void {
     const dirty_bytes: usize = dirty_writer.writer.end;
     try printResults(stdout, "dirty", iterations, dirty_ns, dirty_bytes);
 
-    var parser: vaxis.Parser = .{};
+    var parser_baseline: vaxis.Parser = .{};
+    var parser_simd: vaxis.Parser = .{};
     const mixed_stream = "The quick brown fox jumps over the lazy dog " ++
         "1234567890 !@#$%^&*() " ++
         "\x1b[A" ++
         "世界 1️⃣ 👩‍🚀!" ++
         "\r";
-    try benchParseStreamBaseline(stdout, "parse_stream_loop_baseline", &parser, mixed_stream, iterations);
-    try benchParseStreamSimd(stdout, "parse_stream_loop_simd", &parser, mixed_stream, iterations);
+    try benchParseStreamBaseline(stdout, "parse_stream_loop_baseline", &parser_baseline, mixed_stream, iterations);
+    try benchParseStreamSimd(stdout, "parse_stream_loop_simd", &parser_simd, mixed_stream, iterations);
 }
