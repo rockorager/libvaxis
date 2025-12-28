@@ -369,7 +369,7 @@ pub fn render(self: *Vaxis, tty: *IoWriter) !void {
     const mouse_shape_changed = self.screen.mouse_shape != self.screen_last.mouse_shape;
     const cursor_pos_changed = self.screen.cursor_vis and
         (self.screen.cursor_row != self.state.cursor.row or
-        self.screen.cursor_col != self.state.cursor.col);
+            self.screen.cursor_col != self.state.cursor.col);
     const needs_render = self.refresh or cursor_vis_changed or cursor_shape_changed or mouse_shape_changed or cursor_pos_changed;
 
     // initialize some variables
