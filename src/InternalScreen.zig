@@ -83,11 +83,11 @@ pub fn writeCell(
     row: u16,
     cell: Cell,
 ) void {
-    if (self.width < col) {
+    if (col >= self.width) {
         // column out of bounds
         return;
     }
-    if (self.height < row) {
+    if (row >= self.height) {
         // height out of bounds
         return;
     }
@@ -110,11 +110,11 @@ pub fn writeCell(
 }
 
 pub fn readCell(self: *InternalScreen, col: u16, row: u16) ?Cell {
-    if (self.width < col) {
+    if (col >= self.width) {
         // column out of bounds
         return null;
     }
-    if (self.height < row) {
+    if (row >= self.height) {
         // height out of bounds
         return null;
     }
@@ -130,4 +130,18 @@ pub fn readCell(self: *InternalScreen, col: u16, row: u16) ?Cell {
         },
         .default = cell.default,
     };
+}
+
+test "InternalScreen: out-of-bounds read/write are ignored" {
+    var screen = try InternalScreen.init(std.testing.allocator, 2, 2);
+    defer screen.deinit(std.testing.allocator);
+
+    const sentinel: Cell = .{ .char = .{ .grapheme = "A", .width = 1 } };
+    screen.writeCell(0, 1, sentinel);
+
+    const oob_cell: Cell = .{ .char = .{ .grapheme = "X", .width = 1 } };
+    screen.writeCell(2, 0, oob_cell);
+    const read_back = screen.readCell(0, 1) orelse return error.TestUnexpectedResult;
+    try std.testing.expect(std.mem.eql(u8, read_back.char.grapheme, "A"));
+    try std.testing.expect(screen.readCell(2, 0) == null);
 }
