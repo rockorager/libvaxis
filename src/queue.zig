@@ -30,13 +30,7 @@ pub fn Queue(
                 self.not_empty.wait(&self.mutex);
             }
             std.debug.assert(!self.isEmptyLH());
-            if (self.isFullLH()) {
-                // If we are full, wake up a push that might be
-                // waiting here.
-                self.not_full.signal();
-            }
-
-            return self.popLH();
+            return self.popAndSignalLH();
         }
 
         /// Push an item into the queue. Blocks until an item has been
@@ -48,15 +42,7 @@ pub fn Queue(
                 self.not_full.wait(&self.mutex);
             }
             std.debug.assert(!self.isFullLH());
-            const was_empty = self.isEmptyLH();
-
-            self.buf[self.mask(self.write_index)] = item;
-            self.write_index = self.mask2(self.write_index + 1);
-
-            // If we were empty, wake up a pop if it was waiting.
-            if (was_empty) {
-                self.not_empty.signal();
-            }
+            self.pushAndSignalLH(item);
         }
 
         /// Push an item into the queue. Returns true when the item
@@ -64,12 +50,9 @@ pub fn Queue(
         /// was full.
         pub fn tryPush(self: *Self, item: T) bool {
             self.mutex.lock();
-            if (self.isFullLH()) {
-                self.mutex.unlock();
-                return false;
-            }
-            self.mutex.unlock();
-            self.push(item);
+            defer self.mutex.unlock();
+            if (self.isFullLH()) return false;
+            self.pushAndSignalLH(item);
             return true;
         }
 
@@ -77,12 +60,9 @@ pub fn Queue(
         /// available.
         pub fn tryPop(self: *Self) ?T {
             self.mutex.lock();
-            if (self.isEmptyLH()) {
-                self.mutex.unlock();
-                return null;
-            }
-            self.mutex.unlock();
-            return self.pop();
+            defer self.mutex.unlock();
+            if (self.isEmptyLH()) return null;
+            return self.popAndSignalLH();
         }
 
         /// Poll the queue. This call blocks until events are in the queue
@@ -148,6 +128,24 @@ pub fn Queue(
         /// Returns `index` modulo twice the length of the backing slice.
         fn mask2(self: Self, index: usize) usize {
             return index % (2 * self.buf.len);
+        }
+
+        fn pushAndSignalLH(self: *Self, item: T) void {
+            const was_empty = self.isEmptyLH();
+            self.buf[self.mask(self.write_index)] = item;
+            self.write_index = self.mask2(self.write_index + 1);
+            if (was_empty) {
+                self.not_empty.signal();
+            }
+        }
+
+        fn popAndSignalLH(self: *Self) T {
+            const was_full = self.isFullLH();
+            const result = self.popLH();
+            if (was_full) {
+                self.not_full.signal();
+            }
+            return result;
         }
 
         fn popLH(self: *Self) T {
