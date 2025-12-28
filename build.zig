@@ -76,6 +76,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .imports = &.{
                 .{ .name = "vaxis", .module = vaxis_mod },
+                .{ .name = "uucode", .module = uucode_dep.module("uucode") },
             },
         }),
     });
