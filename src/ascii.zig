@@ -39,9 +39,10 @@ pub fn printableRunLen(input: []const u8) usize {
 /// Returns the safe fast-path length for ASCII runs.
 ///
 /// This behaves like printableRunLen, but if the next codepoint is a combining
-/// mark (Mn/Mc/Me, including keycaps/variation selectors), it leaves the last
-/// ASCII byte for the parser to avoid breaking grapheme clusters. If the
-/// following UTF-8 sequence is incomplete, it also leaves the last ASCII byte.
+/// mark (Mn/Mc/Me) or a variation selector (U+FE00..U+FE0F, U+E0100..U+E01EF),
+/// it leaves the last ASCII byte for the parser to avoid breaking grapheme
+/// clusters. If the following UTF-8 sequence is incomplete, it also leaves the
+/// last ASCII byte.
 pub fn fastPathLen(input: []const u8) usize {
     const run = printableRunLen(input);
     if (run == 0) return 0;
@@ -52,6 +53,7 @@ pub fn fastPathLen(input: []const u8) usize {
             const seq_len = std.unicode.utf8ByteSequenceLength(first) catch return run;
             if (next.len < seq_len) return run - 1;
             const cp = std.unicode.utf8Decode(next[0..seq_len]) catch return run;
+            if (isVariationSelector(cp)) return run - 1;
             const gc = uucode.get(.general_category, cp);
             switch (gc) {
                 .mark_nonspacing,
@@ -63,6 +65,10 @@ pub fn fastPathLen(input: []const u8) usize {
         }
     }
     return run;
+}
+
+fn isVariationSelector(cp: u21) bool {
+    return (cp >= 0xFE00 and cp <= 0xFE0F) or (cp >= 0xE0100 and cp <= 0xE01EF);
 }
 
 test "printableRunLen: empty" {
@@ -95,6 +101,10 @@ test "fastPathLen: holds for combining mark" {
 
 test "fastPathLen: holds for keycap" {
     try std.testing.expectEqual(@as(usize, 0), fastPathLen("1\u{20E3}"));
+}
+
+test "fastPathLen: holds for variation selector" {
+    try std.testing.expectEqual(@as(usize, 0), fastPathLen("a\u{FE0F}"));
 }
 
 test "fastPathLen: holds for incomplete utf8" {
