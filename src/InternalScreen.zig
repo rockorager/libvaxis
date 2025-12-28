@@ -83,11 +83,11 @@ pub fn writeCell(
     row: u16,
     cell: Cell,
 ) void {
-    if (col >= self.width) {
+    if (self.width <= col) {
         // column out of bounds
         return;
     }
-    if (row >= self.height) {
+    if (self.height <= row) {
         // height out of bounds
         return;
     }
@@ -110,11 +110,11 @@ pub fn writeCell(
 }
 
 pub fn readCell(self: *InternalScreen, col: u16, row: u16) ?Cell {
-    if (col >= self.width) {
+    if (self.width <= col) {
         // column out of bounds
         return null;
     }
-    if (row >= self.height) {
+    if (self.height <= row) {
         // height out of bounds
         return null;
     }
