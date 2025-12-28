@@ -75,6 +75,49 @@ fn benchParseSlow(writer: anytype, label: []const u8, input: []const u8, iterati
     try printResults(writer, label, iterations, elapsed_ns, input.len * iterations);
 }
 
+fn benchParseStreamSlow(writer: anytype, label: []const u8, parser: *vaxis.Parser, input: []const u8, iterations: usize) !void {
+    var timer = try std.time.Timer.start();
+    var i: usize = 0;
+    while (i < iterations) : (i += 1) {
+        var idx: usize = 0;
+        while (idx < input.len) {
+            const next = if (idx + 1 < input.len) input[idx + 1] else null;
+            if (input[idx] >= 0x20 and input[idx] <= 0x7E and (next == null or next.? < 0x80)) {
+                const result = try parseAsciiSlow(input[idx..]);
+                if (result.n == 0) break;
+                idx += result.n;
+                std.mem.doNotOptimizeAway(result);
+                continue;
+            }
+
+            const result = try parser.parse(input[idx..], null);
+            if (result.n == 0) break;
+            idx += result.n;
+            std.mem.doNotOptimizeAway(result);
+        }
+        std.mem.doNotOptimizeAway(idx);
+    }
+    const elapsed_ns = timer.read();
+    try printResults(writer, label, iterations, elapsed_ns, input.len * iterations);
+}
+
+fn benchParseStreamFast(writer: anytype, label: []const u8, parser: *vaxis.Parser, input: []const u8, iterations: usize) !void {
+    var timer = try std.time.Timer.start();
+    var i: usize = 0;
+    while (i < iterations) : (i += 1) {
+        var idx: usize = 0;
+        while (idx < input.len) {
+            const result = try parser.parse(input[idx..], null);
+            if (result.n == 0) break;
+            idx += result.n;
+            std.mem.doNotOptimizeAway(result);
+        }
+        std.mem.doNotOptimizeAway(idx);
+    }
+    const elapsed_ns = timer.read();
+    try printResults(writer, label, iterations, elapsed_ns, input.len * iterations);
+}
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -119,4 +162,8 @@ pub fn main() !void {
     const ascii_input = "a";
     try benchParseSlow(stdout, "parse_ground_ascii_slow", ascii_input, iterations);
     try benchParseFast(stdout, "parse_ground_ascii_fast", &parser, ascii_input, iterations);
+
+    const mixed_input = "hello \x1b[A世界 1️⃣ 👩‍🚀!\r";
+    try benchParseStreamSlow(stdout, "parse_stream_mixed_slow", &parser, mixed_input, iterations);
+    try benchParseStreamFast(stdout, "parse_stream_mixed_fast", &parser, mixed_input, iterations);
 }
