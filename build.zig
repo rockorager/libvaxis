@@ -66,6 +66,25 @@ pub fn build(b: *std.Build) void {
     const example_run = b.addRunArtifact(example);
     example_step.dependOn(&example_run.step);
 
+    // Benchmarks
+    const bench_step = b.step("bench", "Run benchmarks");
+    const bench = b.addExecutable(.{
+        .name = "bench",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("bench/bench.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "vaxis", .module = vaxis_mod },
+            },
+        }),
+    });
+    const bench_run = b.addRunArtifact(bench);
+    if (b.args) |args| {
+        bench_run.addArgs(args);
+    }
+    bench_step.dependOn(&bench_run.step);
+
     // Tests
     const tests_step = b.step("test", "Run tests");
 
