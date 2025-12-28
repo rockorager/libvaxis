@@ -126,16 +126,20 @@ pub fn main() !void {
     try printResults(stdout, "dirty", iterations, dirty_ns, dirty_bytes);
 
     const pattern = "hello 世界 👩‍🚀 foo bar ";
+    const long_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const small_text = try buildRepeated(allocator, pattern, 8);
     defer allocator.free(small_text);
     const medium_text = try buildRepeated(allocator, pattern, 32);
     defer allocator.free(medium_text);
     const large_text = try buildRepeated(allocator, pattern, 64);
     defer allocator.free(large_text);
+    const overflow_text = try buildRepeated(allocator, long_token, 200);
+    defer allocator.free(overflow_text);
 
     const small_segments = [_]vaxis.Segment{.{ .text = small_text }};
     const medium_segments = [_]vaxis.Segment{.{ .text = medium_text }};
     const large_segments = [_]vaxis.Segment{.{ .text = large_text }};
+    const overflow_segments = [_]vaxis.Segment{.{ .text = overflow_text }};
 
     const print_opts: vaxis.PrintOptions = .{ .wrap = .word, .commit = false };
     const win = vx.window();
@@ -146,6 +150,8 @@ pub fn main() !void {
     try benchPrintWord(stdout, "print_word_medium_cached", win, medium_segments[0..], print_opts, iterations);
     try benchPrintWordBaseline(stdout, "print_word_large_baseline", win, large_segments[0..], print_opts, iterations);
     try benchPrintWord(stdout, "print_word_large_cached", win, large_segments[0..], print_opts, iterations);
+    try benchPrintWordBaseline(stdout, "print_word_overflow_baseline", win, overflow_segments[0..], print_opts, iterations);
+    try benchPrintWord(stdout, "print_word_overflow_cached", win, overflow_segments[0..], print_opts, iterations);
 }
 
 /// Iterates a slice of bytes by linebreaks. Lines are split by '\r', '\n', or '\r\n'
