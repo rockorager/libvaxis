@@ -360,27 +360,17 @@ pub fn render(self: *Vaxis, tty: *IoWriter) !void {
     assert(self.screen.buf.len == @as(usize, @intCast(self.screen.width)) * self.screen.height); // correct size
     assert(self.screen.buf.len == self.screen_last.buf.len); // same size
 
-    // Set up sync before we write anything
-    // TODO: optimize sync so we only sync _when we have changes_. This
-    // requires a smarter buffered writer, we'll probably have to write
-    // our own
-    try tty.writeAll(ctlseqs.sync_set);
-    errdefer tty.writeAll(ctlseqs.sync_reset) catch {};
+    var started: bool = false;
+    var sync_active: bool = false;
+    errdefer if (sync_active) tty.writeAll(ctlseqs.sync_reset) catch {};
 
-    // Send the cursor to 0,0
-    // TODO: this needs to move after we optimize writes. We only do
-    // this if we have an update to make. We also need to hide cursor
-    // and then reshow it if needed
-    try tty.writeAll(ctlseqs.hide_cursor);
-    if (self.state.alt_screen)
-        try tty.writeAll(ctlseqs.home)
-    else {
-        try tty.writeByte('\r');
-        for (0..self.state.cursor.row) |_| {
-            try tty.writeAll(ctlseqs.ri);
-        }
-    }
-    try tty.writeAll(ctlseqs.sgr_reset);
+    const cursor_vis_changed = self.screen.cursor_vis != self.screen_last.cursor_vis;
+    const cursor_shape_changed = self.screen.cursor_shape != self.screen_last.cursor_shape;
+    const mouse_shape_changed = self.screen.mouse_shape != self.screen_last.mouse_shape;
+    const cursor_pos_changed = self.screen.cursor_vis and
+        (self.screen.cursor_row != self.state.cursor.row or
+        self.screen.cursor_col != self.state.cursor.col);
+    const needs_render = self.refresh or cursor_vis_changed or cursor_shape_changed or mouse_shape_changed or cursor_pos_changed;
 
     // initialize some variables
     var reposition: bool = false;
@@ -388,18 +378,52 @@ pub fn render(self: *Vaxis, tty: *IoWriter) !void {
     var col: u16 = 0;
     var cursor: Style = .{};
     var link: Hyperlink = .{};
-    var cursor_pos: struct {
+    const CursorPos = struct {
         row: u16 = 0,
         col: u16 = 0,
-    } = .{};
+    };
+    var cursor_pos: CursorPos = .{};
 
-    // Clear all images
-    if (self.caps.kitty_graphics)
-        try tty.writeAll(ctlseqs.kitty_graphics_clear);
+    const startRender = struct {
+        fn run(
+            vx: *Vaxis,
+            io: *IoWriter,
+            cursor_pos_ptr: *CursorPos,
+            reposition_ptr: *bool,
+            started_ptr: *bool,
+            sync_active_ptr: *bool,
+        ) !void {
+            if (started_ptr.*) return;
+            started_ptr.* = true;
+            sync_active_ptr.* = true;
+            // Set up sync before we write anything
+            try io.writeAll(ctlseqs.sync_set);
+            // Send the cursor to 0,0
+            try io.writeAll(ctlseqs.hide_cursor);
+            if (vx.state.alt_screen)
+                try io.writeAll(ctlseqs.home)
+            else {
+                try io.writeByte('\r');
+                for (0..vx.state.cursor.row) |_| {
+                    try io.writeAll(ctlseqs.ri);
+                }
+            }
+            try io.writeAll(ctlseqs.sgr_reset);
+            cursor_pos_ptr.* = .{};
+            reposition_ptr.* = true;
+            // Clear all images
+            if (vx.caps.kitty_graphics)
+                try io.writeAll(ctlseqs.kitty_graphics_clear);
+        }
+    };
 
     // Reset skip flag on all last_screen cells
     for (self.screen_last.buf) |*last_cell| {
         last_cell.skip = false;
+    }
+
+    if (needs_render) {
+        try startRender.run(self, tty, &cursor_pos, &reposition, &started, &sync_active);
     }
 
     var i: usize = 0;
@@ -446,6 +470,9 @@ pub fn render(self: *Vaxis, tty: *IoWriter) !void {
                 try tty.writeAll(ctlseqs.osc8_clear);
             }
             continue;
+        }
+        if (!started) {
+            try startRender.run(self, tty, &cursor_pos, &reposition, &started, &sync_active);
         }
         self.screen_last.buf[i].skipped = false;
         defer {
@@ -730,6 +757,7 @@ pub fn render(self: *Vaxis, tty: *IoWriter) !void {
         cursor_pos.col = col + w;
         cursor_pos.row = row;
     }
+    if (!started) return;
     if (self.screen.cursor_vis) {
         if (self.state.alt_screen) {
             try tty.print(
@@ -761,6 +789,7 @@ pub fn render(self: *Vaxis, tty: *IoWriter) !void {
         self.state.cursor.row = cursor_pos.row;
         self.state.cursor.col = cursor_pos.col;
     }
+    self.screen_last.cursor_vis = self.screen.cursor_vis;
     if (self.screen.mouse_shape != self.screen_last.mouse_shape) {
         try tty.print(
             ctlseqs.osc22_mouse_shape,
@@ -1408,4 +1437,18 @@ pub fn setTerminalWorkingDirectory(_: *Vaxis, tty: *IoWriter, path: []const u8) 
     };
     try tty.print(ctlseqs.osc7, .{uri.fmt(.{ .scheme = true, .authority = true, .path = true })});
     try tty.flush();
+}
+
+test "render: no output when no changes" {
+    var vx = try Vaxis.init(std.testing.allocator, .{});
+    var deinit_writer = std.io.Writer.Allocating.init(std.testing.allocator);
+    defer deinit_writer.deinit();
+    defer vx.deinit(std.testing.allocator, &deinit_writer.writer);
+
+    var render_writer = std.io.Writer.Allocating.init(std.testing.allocator);
+    defer render_writer.deinit();
+    try vx.render(&render_writer.writer);
+    const output = try render_writer.toOwnedSlice();
+    defer std.testing.allocator.free(output);
+    try std.testing.expectEqual(@as(usize, 0), output.len);
 }
