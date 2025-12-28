@@ -45,10 +45,7 @@ fn benchParseStreamSimd(writer: anytype, label: []const u8, parser: *vaxis.Parse
         var idx: usize = 0;
         while (idx < input.len) {
             const slice = input[idx..];
-            var ascii_len = ascii.printableRunLen(slice);
-            if (ascii_len > 0 and ascii_len < slice.len and slice[ascii_len] >= 0x80) {
-                ascii_len -= 1;
-            }
+            const ascii_len = ascii.fastPathLen(slice);
             if (ascii_len > 0) {
                 var j: usize = 0;
                 while (j < ascii_len) : (j += 1) {

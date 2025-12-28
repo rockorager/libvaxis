@@ -140,10 +140,7 @@ pub fn Loop(comptime T: type) type {
                         while (seq_start < n) {
                             if (@hasField(Event, "key_press")) {
                                 const input = buf[seq_start..n];
-                                var ascii_len = ascii.printableRunLen(input);
-                                if (ascii_len > 0 and ascii_len < input.len and input[ascii_len] >= 0x80) {
-                                    ascii_len -= 1;
-                                }
+                                const ascii_len = ascii.fastPathLen(input);
                                 if (ascii_len > 0) {
                                     var i: usize = 0;
                                     while (i < ascii_len) : (i += 1) {
