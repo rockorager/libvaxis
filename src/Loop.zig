@@ -5,44 +5,11 @@ const GraphemeCache = @import("GraphemeCache.zig");
 const Parser = @import("Parser.zig");
 const Queue = @import("queue.zig").Queue;
 const vaxis = @import("main.zig");
+const ascii = @import("ascii.zig");
 const Tty = vaxis.Tty;
 const Vaxis = @import("Vaxis.zig");
 
 const log = std.log.scoped(.vaxis);
-
-fn asciiPrintableRunLen(input: []const u8) usize {
-    const VecLenOpt = std.simd.suggestVectorLength(u8);
-    if (VecLenOpt) |VecLen| {
-        const Vec = @Vector(VecLen, u8);
-        const lo: Vec = @splat(0x20);
-        const hi: Vec = @splat(0x7E);
-        var i: usize = 0;
-        while (i + VecLen <= input.len) : (i += VecLen) {
-            const chunk = @as(*const [VecLen]u8, @ptrCast(input[i..].ptr)).*;
-            const vec: Vec = chunk;
-            const ok = (vec >= lo) & (vec <= hi);
-            if (!@reduce(.And, ok)) {
-                var j: usize = 0;
-                while (j < VecLen) : (j += 1) {
-                    const b = input[i + j];
-                    if (b < 0x20 or b > 0x7E) return i + j;
-                }
-            }
-        }
-        while (i < input.len) : (i += 1) {
-            const b = input[i];
-            if (b < 0x20 or b > 0x7E) return i;
-        }
-        return input.len;
-    }
-
-    var i: usize = 0;
-    while (i < input.len) : (i += 1) {
-        const b = input[i];
-        if (b < 0x20 or b > 0x7E) return i;
-    }
-    return input.len;
-}
 
 pub fn Loop(comptime T: type) type {
     return struct {
@@ -173,7 +140,7 @@ pub fn Loop(comptime T: type) type {
                         while (seq_start < n) {
                             if (@hasField(Event, "key_press")) {
                                 const input = buf[seq_start..n];
-                                var ascii_len = asciiPrintableRunLen(input);
+                                var ascii_len = ascii.printableRunLen(input);
                                 if (ascii_len > 0 and ascii_len < input.len and input[ascii_len] >= 0x80) {
                                     ascii_len -= 1;
                                 }
