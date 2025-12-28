@@ -81,6 +81,10 @@ test "printableRunLen: stops at utf8" {
     try std.testing.expectEqual(@as(usize, 5), printableRunLen("hello世界"));
 }
 
+test "printableRunLen: includes space and tilde" {
+    try std.testing.expectEqual(@as(usize, 2), printableRunLen(" ~"));
+}
+
 test "fastPathLen: keeps ascii before utf8" {
     try std.testing.expectEqual(@as(usize, 5), fastPathLen("hello世界"));
 }
@@ -95,4 +99,8 @@ test "fastPathLen: holds for keycap" {
 
 test "fastPathLen: holds for incomplete utf8" {
     try std.testing.expectEqual(@as(usize, 0), fastPathLen("a\xE2"));
+}
+
+test "fastPathLen: leaves last ascii for incomplete utf8 after run" {
+    try std.testing.expectEqual(@as(usize, 2), fastPathLen("abc\xE2"));
 }
