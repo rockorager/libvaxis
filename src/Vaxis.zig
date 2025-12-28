@@ -49,6 +49,7 @@ pub const Options = struct {
     system_clipboard_allocator: ?std.mem.Allocator = null,
 };
 
+
 /// the screen we write to
 screen: Screen,
 /// The last screen we drew. We keep this so we can efficiently update on
@@ -190,6 +191,10 @@ pub fn resize(
     tty: *IoWriter,
     winsize: Winsize,
 ) !void {
+    _ = std.math.mul(u16, winsize.cols, winsize.rows) catch {
+        log.warn("Invalid Screen Size: width={d} height={d}", .{ winsize.cols, winsize.rows });
+        return;
+    };
     log.debug("resizing screen: width={d} height={d}", .{ winsize.cols, winsize.rows });
     self.screen.deinit(alloc);
     self.screen = try Screen.init(alloc, winsize);
