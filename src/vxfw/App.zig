@@ -350,17 +350,19 @@ const MouseHandler = struct {
 
         var hits: std.ArrayList(vxfw.HitResult) = .empty;
         defer hits.deinit(app.allocator);
-        const sub: vxfw.SubSurface = .{
-            .origin = .{ .row = 0, .col = 0 },
-            .surface = last_frame,
-            .z_index = 0,
-        };
-        const mouse_point: vxfw.Point = .{
-            .row = @intCast(mouse.row),
-            .col = @intCast(mouse.col),
-        };
-        if (sub.containsPoint(mouse_point)) {
-            try last_frame.hitTest(app.allocator, &hits, mouse_point);
+        if (mouse.row >= 0 and mouse.col >= 0) {
+            const sub: vxfw.SubSurface = .{
+                .origin = .{ .row = 0, .col = 0 },
+                .surface = last_frame,
+                .z_index = 0,
+            };
+            const mouse_point: vxfw.Point = .{
+                .row = @intCast(mouse.row),
+                .col = @intCast(mouse.col),
+            };
+            if (sub.containsPoint(mouse_point)) {
+                try last_frame.hitTest(app.allocator, &hits, mouse_point);
+            }
         }
 
         // We store the hit list from the last mouse event to determine mouse_enter and mouse_leave
@@ -409,17 +411,19 @@ const MouseHandler = struct {
 
         var hits: std.ArrayList(vxfw.HitResult) = .empty;
         defer hits.deinit(app.allocator);
-        const sub: vxfw.SubSurface = .{
-            .origin = .{ .row = 0, .col = 0 },
-            .surface = last_frame,
-            .z_index = 0,
-        };
-        const mouse_point: vxfw.Point = .{
-            .row = @intCast(mouse.row),
-            .col = @intCast(mouse.col),
-        };
-        if (sub.containsPoint(mouse_point)) {
-            try last_frame.hitTest(app.allocator, &hits, mouse_point);
+        if (mouse.row >= 0 and mouse.col >= 0) {
+            const sub: vxfw.SubSurface = .{
+                .origin = .{ .row = 0, .col = 0 },
+                .surface = last_frame,
+                .z_index = 0,
+            };
+            const mouse_point: vxfw.Point = .{
+                .row = @intCast(mouse.row),
+                .col = @intCast(mouse.col),
+            };
+            if (sub.containsPoint(mouse_point)) {
+                try last_frame.hitTest(app.allocator, &hits, mouse_point);
+            }
         }
 
         // Handle mouse_enter and mouse_leave events
@@ -661,6 +665,92 @@ test "timer consume does not leak to the next event" {
     try testing.expect(ctx.redraw);
     try testing.expect(!ctx.consume_event);
     try testing.expectEqual(vxfw.EventContext.Phase.capturing, ctx.phase);
+}
+
+test "MouseHandler: negative coordinates leave the hovered widget" {
+    const testing = std.testing;
+
+    const TestWidget = struct {
+        mouse_events: usize = 0,
+        mouse_enters: usize = 0,
+        mouse_leaves: usize = 0,
+
+        fn handle(userdata: *anyopaque, _: *vxfw.EventContext, event: vxfw.Event) anyerror!void {
+            const self: *@This() = @ptrCast(@alignCast(userdata));
+            switch (event) {
+                .mouse => self.mouse_events += 1,
+                .mouse_enter => self.mouse_enters += 1,
+                .mouse_leave => self.mouse_leaves += 1,
+                else => {},
+            }
+        }
+
+        fn draw(_: *anyopaque, _: vxfw.DrawContext) Allocator.Error!vxfw.Surface {
+            unreachable;
+        }
+    };
+    var test_widget: TestWidget = .{};
+    const widget: Widget = .{
+        .userdata = &test_widget,
+        .eventHandler = TestWidget.handle,
+        .drawFn = TestWidget.draw,
+    };
+    const surface: vxfw.Surface = .{
+        .size = .{ .width = 1, .height = 1 },
+        .widget = widget,
+        .buffer = &.{},
+        .children = &.{},
+    };
+    var app: App = .{
+        .io = testing.io,
+        .allocator = testing.allocator,
+        .tty = undefined,
+        .vx = undefined,
+        .timers = .empty,
+        .wants_focus = null,
+    };
+    defer app.timers.deinit(testing.allocator);
+    var ctx: vxfw.EventContext = .{
+        .io = testing.io,
+        .alloc = testing.allocator,
+        .phase = .capturing,
+        .cmds = .empty,
+        .consume_event = false,
+        .redraw = false,
+        .quit = false,
+    };
+    defer ctx.cmds.deinit(testing.allocator);
+    var handler = MouseHandler.init(widget);
+    handler.last_frame = surface;
+    defer handler.deinit(testing.allocator);
+
+    const on_screen_mouse: vaxis.Mouse = .{
+        .row = 0,
+        .col = 0,
+        .button = .none,
+        .mods = .{},
+        .type = .motion,
+    };
+    try handler.handleMouse(&app, &ctx, on_screen_mouse);
+    try testing.expectEqual(1, test_widget.mouse_events);
+    try testing.expectEqual(1, test_widget.mouse_enters);
+    try testing.expectEqual(0, test_widget.mouse_leaves);
+
+    var negative_mouse = on_screen_mouse;
+    negative_mouse.col = -1;
+    handler.mouse = negative_mouse;
+    try handler.updateMouse(&app, surface, &ctx);
+    try testing.expectEqual(1, test_widget.mouse_events);
+    try testing.expectEqual(1, test_widget.mouse_enters);
+    try testing.expectEqual(1, test_widget.mouse_leaves);
+
+    try handler.handleMouse(&app, &ctx, on_screen_mouse);
+    negative_mouse.row = -1;
+    negative_mouse.col = 0;
+    try handler.handleMouse(&app, &ctx, negative_mouse);
+    try testing.expectEqual(2, test_widget.mouse_events);
+    try testing.expectEqual(2, test_widget.mouse_enters);
+    try testing.expectEqual(2, test_widget.mouse_leaves);
 }
 
 test {
