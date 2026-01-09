@@ -1013,13 +1013,15 @@ pub fn transmitImage(
     self: *Vaxis,
     alloc: std.mem.Allocator,
     tty: *IoWriter,
-    img: *zigimg.Image,
+    img: *const zigimg.Image,
     format: Image.TransmitFormat,
 ) !Image {
     if (!self.caps.kitty_graphics) return error.NoGraphicsCapability;
 
     var arena = std.heap.ArenaAllocator.init(alloc);
     defer arena.deinit();
+
+    var img_modifiable = img.*;
 
     const buf = switch (format) {
         .png => png: {
@@ -1028,12 +1030,12 @@ pub fn transmitImage(
             break :png png;
         },
         .rgb => rgb: {
-            try img.convert(arena.allocator(), .rgb24);
-            break :rgb img.rawBytes();
+            try img_modifiable.convertNoFree(arena.allocator(), .rgb24);
+            break :rgb img_modifiable.rawBytes();
         },
         .rgba => rgba: {
-            try img.convert(arena.allocator(), .rgba32);
-            break :rgba img.rawBytes();
+            try img_modifiable.convertNoFree(arena.allocator(), .rgba32);
+            break :rgba img_modifiable.rawBytes();
         },
     };
 
