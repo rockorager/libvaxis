@@ -35,7 +35,6 @@ pub fn main() !void {
     var loop: vaxis.Loop(union(enum) {
         key_press: vaxis.Key,
         winsize: vaxis.Winsize,
-        table_upd,
     }) = .{ .tty = &tty, .vaxis = &vx };
     try loop.init();
     try loop.start();
@@ -188,7 +187,6 @@ pub fn main() !void {
                 moving = false;
             },
             .winsize => |ws| try vx.resize(alloc, tty.writer(), ws),
-            else => {},
         }
 
         // Content
@@ -238,7 +236,6 @@ pub fn main() !void {
                     return see_win.height;
                 }
             }.see;
-            loop.postEvent(.table_upd);
         }
 
         // Sections
