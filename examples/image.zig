@@ -3,6 +3,13 @@ const vaxis = @import("vaxis");
 
 const log = std.log.scoped(.main);
 
+pub const std_options: std.Options = .{
+    .log_scope_levels = &[_]std.log.ScopeLevel{
+        .{ .scope = .main , .level = .err },
+        .{ .scope = .vaxis, .level = .err },
+    },
+};
+
 const Event = union(enum) {
     key_press: vaxis.Key,
     winsize: vaxis.Winsize,
@@ -40,9 +47,8 @@ pub fn main() !void {
 
     const imgs = [_]vaxis.Image{
         try vx.transmitImage(alloc, tty.writer(), &img1, .rgba),
-        // var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, "examples/zig.png");
-        // try vx.loadImage(alloc, tty.writer(), .{ .path = "examples/zig.png" }),
-        try vx.loadImage(alloc, tty.writer(), .{ .path = "examples/vaxis.png" }),
+        try vx.loadImage(alloc, tty.writer(), .{ .path = "examples/zig.png" }),
+        // try vx.loadImage(alloc, tty.writer(), .{ .path = "examples/vaxis.png" }),
     };
     defer vx.freeImage(tty.writer(), imgs[0].id);
     defer vx.freeImage(tty.writer(), imgs[1].id);

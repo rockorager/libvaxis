@@ -9,6 +9,12 @@ const Event = union(enum) {
     winsize: vaxis.Winsize,
 };
 
+pub const std_options: std.Options = .{
+    .log_scope_levels = &[_]std.log.ScopeLevel{
+        .{ .scope = .vaxis, .level = .err },
+    },
+};
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 
@@ -47,7 +53,7 @@ pub fn main() !void {
         switch (event) {
             .key_press => |key| {
                 // Close demo
-                if (key.matches('c', .{})) break;
+                if (key.matches('c', .{}) or key.matches('c', .{ .ctrl = true })) break;
                 if (key.matches(vaxis.Key.enter, .{})) {
                     counter += 1;
                     const new_content = try std.fmt.bufPrint(&lineBuf, "\nLine {d}", .{counter});
@@ -57,10 +63,11 @@ pub fn main() !void {
             },
             .winsize => |ws| try vx.resize(alloc, tty.writer(), ws),
         }
+
         const win = vx.window();
         win.clear();
         text_view.draw(win, text_view_buffer);
         try vx.render(tty.writer());
-        try tty.writer.flush();
+        try tty.writer().flush();
     }
 }
