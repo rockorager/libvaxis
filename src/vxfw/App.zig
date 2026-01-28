@@ -463,8 +463,8 @@ const MouseHandler = struct {
         ctx.phase = .capturing;
         for (hits.items) |item| {
             var m_local = mouse;
-            m_local.col = item.local.col;
-            m_local.row = item.local.row;
+            m_local.col = @intCast(item.local.col);
+            m_local.row = @intCast(item.local.row);
             try item.widget.captureEvent(ctx, .{ .mouse = m_local });
             try app.handleCommand(&ctx.cmds);
 
@@ -475,8 +475,8 @@ const MouseHandler = struct {
         ctx.phase = .at_target;
         {
             var m_local = mouse;
-            m_local.col = target.local.col;
-            m_local.row = target.local.row;
+            m_local.col = @intCast(target.local.col);
+            m_local.row = @intCast(target.local.row);
             try target.widget.handleEvent(ctx, .{ .mouse = m_local });
             try app.handleCommand(&ctx.cmds);
 
@@ -487,8 +487,8 @@ const MouseHandler = struct {
         ctx.phase = .bubbling;
         while (hits.pop()) |item| {
             var m_local = mouse;
-            m_local.col = item.local.col;
-            m_local.row = item.local.row;
+            m_local.col = @intCast(item.local.col);
+            m_local.row = @intCast(item.local.row);
             try item.widget.handleEvent(ctx, .{ .mouse = m_local });
             try app.handleCommand(&ctx.cmds);
 
