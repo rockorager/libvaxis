@@ -4,6 +4,12 @@ const math = std.math;
 const base64 = std.base64.standard.Encoder;
 const zigimg = @import("zigimg");
 
+pub const std_options: std.Options = .{
+    .log_scope_levels = &[_]std.log.ScopeLevel{
+        .{ .scope = .vaxis, .level = .err },
+    },
+};
+
 const Window = @import("Window.zig");
 
 const Image = @This();

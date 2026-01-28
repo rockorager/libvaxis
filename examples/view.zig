@@ -13,6 +13,13 @@ const Event = union(enum) {
     winsize: vaxis.Winsize,
 };
 
+pub const std_options: std.Options = .{
+    .log_scope_levels = &[_]std.log.ScopeLevel{
+        .{ .scope = .main, .level = .err },
+        .{ .scope = .vaxis, .level = .err },
+    },
+};
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {

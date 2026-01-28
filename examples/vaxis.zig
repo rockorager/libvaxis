@@ -9,6 +9,12 @@ const Event = union(enum) {
 
 pub const panic = vaxis.panic_handler;
 
+pub const std_options: std.Options = .{
+    .log_scope_levels = &[_]std.log.ScopeLevel{
+        .{ .scope = .vaxis, .level = .err },
+    },
+};
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {

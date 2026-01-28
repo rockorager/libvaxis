@@ -3,6 +3,14 @@ const vaxis = @import("vaxis");
 const Cell = vaxis.Cell;
 
 const log = std.log.scoped(.main);
+
+pub const std_options: std.Options = .{
+    .log_scope_levels = &[_]std.log.ScopeLevel{
+        .{ .scope = .main, .level = .err },
+        .{ .scope = .vaxis, .level = .err },
+    },
+};
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {
