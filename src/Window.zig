@@ -285,6 +285,12 @@ pub const PrintResult = struct {
     overflow: bool,
 };
 
+const WordPiece = struct {
+    start: usize,
+    len: usize,
+    width: u16,
+};
+
 /// prints segments to the window. returns true if the text overflowed with the
 /// given wrap strategy and size.
 pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintResult {
@@ -370,34 +376,110 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
                                 }
                             },
                             .word => |word| {
-                                const width = self.gwidth(word);
+                                // Fixed buffer avoids heap allocation for the per-word cache
+                                // (ArrayListUnmanaged append); if it fills, reuse the cached
+                                // prefix and fall back to the original per-grapheme path for
+                                // the remainder (4KB ~ 170 graphemes on 64-bit).
+                                var cache_buf: [4096]u8 = undefined;
+                                var fba = std.heap.FixedBufferAllocator.init(&cache_buf);
+                                var pieces = std.ArrayListUnmanaged(WordPiece){};
+                                var cached_all = true;
+                                var fallback_start: usize = word.len;
+                                var width: u16 = 0;
+                                var width_iter = unicode.graphemeIterator(word);
+                                while (width_iter.next()) |grapheme| {
+                                    const s = grapheme.bytes(word);
+                                    const w = self.gwidth(s);
+                                    width +|= w;
+                                    if (cached_all) {
+                                        pieces.append(fba.allocator(), .{
+                                            .start = grapheme.start,
+                                            .len = grapheme.len,
+                                            .width = @intCast(w),
+                                        }) catch {
+                                            cached_all = false;
+                                            fallback_start = grapheme.start;
+                                        };
+                                    }
+                                }
                                 if (width + col > self.width and width < self.width) {
                                     row += 1;
                                     col = 0;
                                 }
 
-                                var grapheme_iterator = unicode.graphemeIterator(word);
-                                while (grapheme_iterator.next()) |grapheme| {
-                                    soft_wrapped = false;
-                                    if (row >= self.height) {
-                                        overflow = true;
-                                        break :outer;
+                                if (cached_all) {
+                                    for (pieces.items) |piece| {
+                                        soft_wrapped = false;
+                                        if (row >= self.height) {
+                                            overflow = true;
+                                            break :outer;
+                                        }
+                                        const s = word[piece.start .. piece.start + piece.len];
+                                        const w = piece.width;
+                                        if (opts.commit) self.writeCell(col, row, .{
+                                            .char = .{
+                                                .grapheme = s,
+                                                .width = @intCast(w),
+                                            },
+                                            .style = segment.style,
+                                            .link = segment.link,
+                                        });
+                                        col += w;
+                                        if (col >= self.width) {
+                                            row += 1;
+                                            col = 0;
+                                            soft_wrapped = true;
+                                        }
                                     }
-                                    const s = grapheme.bytes(word);
-                                    const w = self.gwidth(s);
-                                    if (opts.commit) self.writeCell(col, row, .{
-                                        .char = .{
-                                            .grapheme = s,
-                                            .width = @intCast(w),
-                                        },
-                                        .style = segment.style,
-                                        .link = segment.link,
-                                    });
-                                    col += w;
-                                    if (col >= self.width) {
-                                        row += 1;
-                                        col = 0;
-                                        soft_wrapped = true;
+                                } else {
+                                    for (pieces.items) |piece| {
+                                        soft_wrapped = false;
+                                        if (row >= self.height) {
+                                            overflow = true;
+                                            break :outer;
+                                        }
+                                        const s = word[piece.start .. piece.start + piece.len];
+                                        const w = piece.width;
+                                        if (opts.commit) self.writeCell(col, row, .{
+                                            .char = .{
+                                                .grapheme = s,
+                                                .width = @intCast(w),
+                                            },
+                                            .style = segment.style,
+                                            .link = segment.link,
+                                        });
+                                        col += w;
+                                        if (col >= self.width) {
+                                            row += 1;
+                                            col = 0;
+                                            soft_wrapped = true;
+                                        }
+                                    }
+
+                                    const tail_start = fallback_start;
+                                    var grapheme_iterator = unicode.graphemeIterator(word[tail_start..]);
+                                    while (grapheme_iterator.next()) |grapheme| {
+                                        soft_wrapped = false;
+                                        if (row >= self.height) {
+                                            overflow = true;
+                                            break :outer;
+                                        }
+                                        const s = grapheme.bytes(word[tail_start..]);
+                                        const w = self.gwidth(s);
+                                        if (opts.commit) self.writeCell(col, row, .{
+                                            .char = .{
+                                                .grapheme = s,
+                                                .width = @intCast(w),
+                                            },
+                                            .style = segment.style,
+                                            .link = segment.link,
+                                        });
+                                        col += w;
+                                        if (col >= self.width) {
+                                            row += 1;
+                                            col = 0;
+                                            soft_wrapped = true;
+                                        }
                                     }
                                 }
                             },
