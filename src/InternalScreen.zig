@@ -42,8 +42,6 @@ height: u16 = 0,
 
 buf: []InternalCell,
 
-cursor_row: u16 = 0,
-cursor_col: u16 = 0,
 cursor_vis: bool = false,
 cursor_shape: CursorShape = .default,
 
