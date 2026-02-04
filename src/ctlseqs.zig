@@ -65,6 +65,11 @@ pub const ind = "\n";
 pub const cuf = "\x1b[{d}C";
 pub const cub = "\x1b[{d}D";
 
+// Multi Cursor
+pub const secondary_cursors_rgb = "\x1b[>40;2:{d}:{d}:{d} q";
+pub const reset_secondary_cursors = "\x1b[>0;4 q";
+pub const show_secondary_cursor = "\x1b[>29;2:{d}:{d} q";
+
 // Erase
 pub const erase_below_cursor = "\x1b[J";
 

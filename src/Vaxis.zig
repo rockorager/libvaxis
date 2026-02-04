@@ -11,6 +11,7 @@ const InternalScreen = @import("InternalScreen.zig");
 const Key = @import("Key.zig");
 const Mouse = @import("Mouse.zig");
 const Screen = @import("Screen.zig");
+const Cursor = Screen.Cursor;
 const unicode = @import("unicode.zig");
 const Window = @import("Window.zig");
 
@@ -96,10 +97,9 @@ state: struct {
     changed_default_fg: bool = false,
     changed_default_bg: bool = false,
     changed_cursor_color: bool = false,
-    cursor: struct {
-        row: u16 = 0,
-        col: u16 = 0,
-    } = .{},
+    cursor: Cursor = .{},
+    cursor_secondary: []Cursor = &.{},
+    prev_cursor_secondary: []const Cursor = &.{},
 } = .{},
 
 /// Initialize Vaxis with runtime options
@@ -119,6 +119,9 @@ pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator, tty: *IoWriter) void {
     self.resetState(tty) catch {};
 
     if (alloc) |a| {
+        if (self.state.prev_cursor_secondary.ptr != self.screen.cursor_secondary.ptr)
+            a.free(self.state.prev_cursor_secondary);
+        a.free(self.screen.cursor_secondary);
         self.screen.deinit(a);
         self.screen_last.deinit(a);
     }
@@ -368,9 +371,16 @@ pub fn render(self: *Vaxis, tty: *IoWriter) !void {
     const cursor_shape_changed = self.screen.cursor_shape != self.screen_last.cursor_shape;
     const mouse_shape_changed = self.screen.mouse_shape != self.screen_last.mouse_shape;
     const cursor_pos_changed = self.screen.cursor_vis and
-        (self.screen.cursor_row != self.state.cursor.row or
-            self.screen.cursor_col != self.state.cursor.col);
-    const needs_render = self.refresh or cursor_vis_changed or cursor_shape_changed or mouse_shape_changed or cursor_pos_changed;
+        (self.screen.cursor.row != self.state.cursor.row or
+            self.screen.cursor.col != self.state.cursor.col);
+    const cursor_secondary_changed = self.screen.cursor_vis and
+        std.meta.eql(self.screen.cursor_secondary, self.state.cursor_secondary);
+    const needs_render = self.refresh or
+        cursor_vis_changed or
+        cursor_shape_changed or
+        mouse_shape_changed or
+        cursor_pos_changed or
+        cursor_secondary_changed;
 
     // initialize some variables
     var reposition: bool = false;
@@ -763,31 +773,40 @@ pub fn render(self: *Vaxis, tty: *IoWriter) !void {
             try tty.print(
                 ctlseqs.cup,
                 .{
-                    self.screen.cursor_row + 1,
-                    self.screen.cursor_col + 1,
+                    self.screen.cursor.row + 1,
+                    self.screen.cursor.col + 1,
                 },
             );
         } else {
             // TODO: position cursor relative to current location
             try tty.writeByte('\r');
-            if (self.screen.cursor_row >= cursor_pos.row) {
-                for (0..(self.screen.cursor_row - cursor_pos.row)) |_| {
+            if (self.screen.cursor.row >= cursor_pos.row) {
+                for (0..(self.screen.cursor.row - cursor_pos.row)) |_| {
                     try tty.writeByte('\n');
                 }
             } else {
-                for (0..(cursor_pos.row - self.screen.cursor_row)) |_| {
+                for (0..(cursor_pos.row - self.screen.cursor.row)) |_| {
                     try tty.writeAll(ctlseqs.ri);
                 }
             }
-            if (self.screen.cursor_col > 0)
-                try tty.print(ctlseqs.cuf, .{self.screen.cursor_col});
+            if (self.screen.cursor.col > 0)
+                try tty.print(ctlseqs.cuf, .{self.screen.cursor.col});
         }
-        self.state.cursor.row = self.screen.cursor_row;
-        self.state.cursor.col = self.screen.cursor_col;
+        self.state.cursor.row = self.screen.cursor.row;
+        self.state.cursor.col = self.screen.cursor.col;
         try tty.writeAll(ctlseqs.show_cursor);
     } else {
         self.state.cursor.row = cursor_pos.row;
         self.state.cursor.col = cursor_pos.col;
+    }
+    if (self.screen.cursor_vis) {
+        try tty.print(ctlseqs.reset_secondary_cursors, .{});
+        for (self.screen.cursor_secondary) |cur|
+            try tty.print(ctlseqs.show_secondary_cursor, .{ cur.row + 1, cur.col + 1 });
+        if (cursor_secondary_changed) {
+            self.state.prev_cursor_secondary = self.state.cursor_secondary;
+            self.state.cursor_secondary = self.screen.cursor_secondary;
+        }
     }
     self.screen_last.cursor_vis = self.screen.cursor_vis;
     if (self.screen.mouse_shape != self.screen_last.mouse_shape) {
@@ -1113,6 +1132,37 @@ pub fn setTerminalCursorColor(self: *Vaxis, tty: *IoWriter, rgb: [3]u8) !void {
     try tty.print(ctlseqs.osc12_set, .{ rgb[0], rgb[0], rgb[1], rgb[1], rgb[2], rgb[2] });
     try tty.flush();
     self.state.changed_cursor_color = true;
+}
+
+/// Set the terminal secondary cursor color
+pub fn setTerminalCursorSecondaryColor(self: *Vaxis, tty: *IoWriter, rgb: [3]u8) error{WriteFailed}!void {
+    try tty.print(ctlseqs.secondary_cursors_rgb, .{ rgb[0], rgb[1], rgb[2] });
+    try tty.flush();
+    self.state.changed_cursor_color = true;
+}
+
+pub fn resetAllTerminalSecondaryCursors(self: *Vaxis, alloc: std.mem.Allocator) error{OutOfMemory}!void {
+    if (self.state.prev_cursor_secondary.ptr != self.state.cursor_secondary.ptr) {
+        alloc.free(self.state.prev_cursor_secondary);
+        self.state.prev_cursor_secondary = &.{};
+    }
+    if (self.screen.cursor_secondary.ptr != self.state.cursor_secondary.ptr)
+        alloc.free(self.screen.cursor_secondary);
+    self.screen.cursor_secondary = &.{};
+}
+
+pub fn addTerminalSecondaryCursor(self: *Vaxis, alloc: std.mem.Allocator, y: u16, x: u16) error{OutOfMemory}!void {
+    if (self.state.prev_cursor_secondary.ptr != self.state.cursor_secondary.ptr) {
+        alloc.free(self.state.prev_cursor_secondary);
+        self.state.prev_cursor_secondary = &.{};
+    }
+    var cursors: std.ArrayList(Screen.Cursor) = if (self.screen.cursor_secondary.ptr == self.state.cursor_secondary.ptr)
+        .fromOwnedSlice(try alloc.dupe(Cursor, self.screen.cursor_secondary))
+    else
+        .fromOwnedSlice(self.screen.cursor_secondary);
+
+    (try cursors.addOne(alloc)).* = .{ .row = y, .col = x };
+    self.screen.cursor_secondary = try cursors.toOwnedSlice(alloc);
 }
 
 /// Request a color report from the terminal. Note: not all terminals support
