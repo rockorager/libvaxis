@@ -248,8 +248,8 @@ pub fn showCursor(self: Window, col: u16, row: u16) void {
         col >= self.width)
         return;
     self.screen.cursor_vis = true;
-    self.screen.cursor_row = @intCast(row + self.y_off);
-    self.screen.cursor_col = @intCast(col + self.x_off);
+    self.screen.cursor.row = @intCast(row + self.y_off);
+    self.screen.cursor.col = @intCast(col + self.x_off);
 }
 
 pub fn setCursorShape(self: Window, shape: Cell.CursorShape) void {
