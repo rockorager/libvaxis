@@ -57,7 +57,7 @@ pub fn parse(self: *Parser, input: []const u8, paste_allocator: ?std.mem.Allocat
     if (input[0] == 0x1b and input.len > 1) {
         switch (input[1]) {
             0x4F => return parseSs3(input),
-            0x50 => return skipUntilST(input), // DCS
+            0x50 => return parseDcs(input), // DCS
             0x58 => return skipUntilST(input), // SOS
             0x5B => return parseCsi(input, &self.buf), // CSI
             0x5D => return parseOsc(input, paste_allocator),
@@ -188,11 +188,9 @@ inline fn parseApc(input: []const u8) Result {
             .n = 0,
         };
     }
-    const end = std.mem.indexOfScalarPos(u8, input, 2, 0x1b) orelse return .{
-        .event = null,
-        .n = 0,
-    };
-    const sequence = input[0 .. end + 1 + 1];
+    const st = skipUntilST(input);
+    if (st.n == 0) return st;
+    const sequence = input[0..st.n];
 
     switch (input[2]) {
         'G' => return .{
@@ -206,6 +204,31 @@ inline fn parseApc(input: []const u8) Result {
     }
 }
 
+inline fn parseDcs(input: []const u8) Result {
+    const st = skipUntilST(input);
+    if (st.n == 0) return st;
+
+    const sequence = input[0..st.n];
+    // tmux passthrough wraps escaped sequences as:
+    // ESC Ptmux; ESC ESC <inner-sequence> ESC ESC \ ESC \
+    if (sequence.len >= 11 and std.mem.startsWith(u8, sequence, "\x1bPtmux;")) {
+        // We only need to detect wrapped kitty graphics capability replies here.
+        // Inner APC can appear as ESC ESC _ G (escaped) or ESC _ G.
+        if (std.mem.indexOf(u8, sequence, "\x1b\x1b_G") != null or
+            std.mem.indexOf(u8, sequence, "\x1b_G") != null)
+        {
+            return .{
+                .event = .cap_kitty_graphics,
+                .n = sequence.len,
+            };
+        }
+    }
+    return .{
+        .event = null,
+        .n = sequence.len,
+    };
+}
+
 /// Skips sequences until we see an ST (String Terminator, ESC \)
 inline fn skipUntilST(input: []const u8) Result {
     if (input.len < 3) {
@@ -214,20 +237,24 @@ inline fn skipUntilST(input: []const u8) Result {
             .n = 0,
         };
     }
-    const end = std.mem.indexOfScalarPos(u8, input, 2, 0x1b) orelse return .{
-        .event = null,
-        .n = 0,
-    };
-    if (input.len < end + 1 + 1) {
-        return .{
-            .event = null,
-            .n = 0,
-        };
+    var i: usize = 2;
+    while (i + 1 < input.len) : (i += 1) {
+        if (input[i] != 0x1b) continue;
+        // tmux passthrough escapes embedded ESC bytes by doubling them.
+        if (input[i + 1] == 0x1b) {
+            i += 1;
+            continue;
+        }
+        if (input[i + 1] == '\\') {
+            return .{
+                .event = null,
+                .n = i + 2,
+            };
+        }
     }
-    const sequence = input[0 .. end + 1 + 1];
     return .{
         .event = null,
-        .n = sequence.len,
+        .n = 0,
     };
 }
 
@@ -904,6 +931,26 @@ test "parse: osc52 paste" {
         },
         else => try testing.expect(false),
     }
+}
+
+test "parse: dcs with escaped esc bytes" {
+    const alloc = testing.allocator_instance.allocator();
+    const input = "\x1bPabc\x1b\x1bdef\x1b\\x";
+    var parser: Parser = .{};
+    const result = try parser.parse(input, alloc);
+
+    try testing.expectEqual(input.len - 1, result.n);
+    try testing.expectEqual(@as(?Event, null), result.event);
+}
+
+test "parse: tmux wrapped kitty graphics response" {
+    const alloc = testing.allocator_instance.allocator();
+    const input = "\x1bPtmux;\x1b\x1b_Gi=1;OK\x1b\x1b\\\x1b\\";
+    var parser: Parser = .{};
+    const result = try parser.parse(input, alloc);
+
+    try testing.expectEqual(input.len, result.n);
+    try testing.expectEqual(@as(?Event, .cap_kitty_graphics), result.event);
 }
 
 test "parse: focus_in" {

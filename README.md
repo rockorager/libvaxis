@@ -32,6 +32,29 @@ Unix-likes.
 - Images ([kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/))
 - [Explicit Width](https://github.com/kovidgoyal/kitty/blob/master/docs/text-sizing-protocol.rst) (width modifiers only)
 
+### tmux + kitty graphics
+
+When running inside `tmux`, kitty graphics needs passthrough enabled:
+
+```tmux
+set -g allow-passthrough on
+```
+
+`libvaxis` can auto-detect `tmux` and wrap kitty graphics commands in tmux
+passthrough mode. It also uses kitty Unicode placeholders for image rendering
+in tmux.
+
+The behavior is configured with `Vaxis.Options.kitty_graphics_tmux_mode`:
+
+- `.auto` (default): enable tmux wrapping when `$TMUX` is present
+- `.off`: disable tmux wrapping
+- `.on`: force tmux wrapping
+
+In placeholder mode, `pixel_offset` placement is not supported and falls back
+to direct placement.
+If placeholder row/column indexes exceed the combining-mark table, `libvaxis`
+uses a deterministic fallback combining mark.
+
 ## Usage
 
 [Documentation](https://rockorager.github.io/libvaxis/#vaxis.Vaxis)
@@ -295,7 +318,9 @@ pub fn main() !void {
     defer tty.deinit();
 
     // Initialize Vaxis
-    var vx = try vaxis.init(alloc, .{});
+    var vx = try vaxis.init(alloc, .{
+        .kitty_graphics_tmux_mode = .auto,
+    });
     // deinit takes an optional allocator. If your program is exiting, you can
     // choose to pass a null allocator to save some exit time.
     defer vx.deinit(alloc, tty.writer());
