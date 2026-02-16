@@ -799,7 +799,7 @@ pub fn render(self: *Vaxis, tty: *IoWriter) !void {
         self.state.cursor.row = cursor_pos.row;
         self.state.cursor.col = cursor_pos.col;
     }
-    if (self.screen.cursor_vis) {
+    if (self.screen.cursor_vis and self.caps.multi_cursor) {
         try tty.print(ctlseqs.reset_secondary_cursors, .{});
         for (self.screen.cursor_secondary) |cur|
             try tty.print(ctlseqs.show_secondary_cursor, .{ cur.row + 1, cur.col + 1 });
@@ -1136,9 +1136,11 @@ pub fn setTerminalCursorColor(self: *Vaxis, tty: *IoWriter, rgb: [3]u8) !void {
 
 /// Set the terminal secondary cursor color
 pub fn setTerminalCursorSecondaryColor(self: *Vaxis, tty: *IoWriter, rgb: [3]u8) error{WriteFailed}!void {
-    try tty.print(ctlseqs.secondary_cursors_rgb, .{ rgb[0], rgb[1], rgb[2] });
-    try tty.flush();
-    self.state.changed_cursor_color = true;
+    if (self.caps.multi_cursor) {
+        try tty.print(ctlseqs.secondary_cursors_rgb, .{ rgb[0], rgb[1], rgb[2] });
+        try tty.flush();
+        self.state.changed_cursor_color = true;
+    }
 }
 
 pub fn resetAllTerminalSecondaryCursors(self: *Vaxis, alloc: std.mem.Allocator) error{OutOfMemory}!void {
