@@ -4,6 +4,14 @@ const Cell = vaxis.Cell;
 const TextInput = vaxis.widgets.TextInput;
 
 const log = std.log.scoped(.main);
+
+pub const std_options: std.Options = .{
+    .log_scope_levels = &[_]std.log.ScopeLevel{
+        .{ .scope = .main, .level = .err },
+        .{ .scope = .vaxis, .level = .err },
+    },
+};
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {
@@ -27,6 +35,7 @@ pub fn main() !void {
     try loop.start();
     defer loop.stop();
 
+    try vx.enterAltScreen(tty.writer());
     try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
 
     var text_input = TextInput.init(alloc);
@@ -65,7 +74,7 @@ pub fn main() !void {
                     }
                 } else if (key.matches(vaxis.Key.enter, .{}) or key.matches('j', .{ .ctrl = true })) {
                     if (selected_option) |i| {
-                        log.err("enter", .{});
+                        log.debug("enter", .{});
                         try text_input.insertSliceAtCursor(options[i]);
                         selected_option = null;
                     }
@@ -88,7 +97,7 @@ pub fn main() !void {
         if (selected_option) |i| {
             win.hideCursor();
             for (options, 0..) |opt, j| {
-                log.err("i = {d}, j = {d}, opt = {s}", .{ i, j, opt });
+                log.debug("i = {d}, j = {d}, opt = {s}", .{ i, j, opt });
                 var seg = [_]vaxis.Segment{.{
                     .text = opt,
                     .style = if (j == i) .{ .reverse = true } else .{},

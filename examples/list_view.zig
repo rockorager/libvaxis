@@ -6,6 +6,12 @@ const Text = vxfw.Text;
 const ListView = vxfw.ListView;
 const Widget = vxfw.Widget;
 
+pub const std_options: std.Options = .{
+    .log_scope_levels = &[_]std.log.ScopeLevel{
+        .{ .scope = .vaxis, .level = .err },
+    },
+};
+
 const Model = struct {
     list_view: ListView,
 

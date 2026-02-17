@@ -2,6 +2,12 @@ const std = @import("std");
 const vaxis = @import("vaxis");
 const vxfw = vaxis.vxfw;
 
+pub const std_options: std.Options = .{
+    .log_scope_levels = &[_]std.log.ScopeLevel{
+        .{ .scope = .vaxis, .level = .err },
+    },
+};
+
 /// Our main application state
 const Model = struct {
     /// State of the counter
