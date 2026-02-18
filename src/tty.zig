@@ -626,10 +626,12 @@ pub const WindowsTty = struct {
         const alt: u32 = left_alt | right_alt;
         const ctrl: u32 = left_ctrl | right_ctrl;
 
+        const altGr = (mods & right_alt > 0) and (mods & left_ctrl > 0);
+
         return .{
             .shift = mods & shift > 0,
-            .alt = mods & alt > 0,
-            .ctrl = mods & ctrl > 0,
+            .alt = if (altGr) mods & left_alt > 0 else mods & alt > 0,
+            .ctrl = if (altGr) mods & right_ctrl > 0 else mods & ctrl > 0,
             .caps_lock = mods & caps > 0,
             .num_lock = mods & num_lock > 0,
         };
