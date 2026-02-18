@@ -14,6 +14,7 @@ const Screen = @import("Screen.zig");
 const Cursor = Screen.Cursor;
 const unicode = @import("unicode.zig");
 const Window = @import("Window.zig");
+const kitty_placeholders = @import("kitty_placeholders.zig");
 
 const Hyperlink = Cell.Hyperlink;
 const KittyFlags = Key.KittyFlags;
@@ -42,8 +43,16 @@ pub const Capabilities = struct {
     multi_cursor: bool = false,
 };
 
+pub const KittyGraphicsTmuxMode = enum {
+    auto,
+    off,
+    on,
+};
+
 pub const Options = struct {
     kitty_keyboard_flags: KittyFlags = .{},
+    /// Configure tmux wrapping for kitty graphics commands.
+    kitty_graphics_tmux_mode: KittyGraphicsTmuxMode = .auto,
     /// When supplied, this allocator will be used for system clipboard
     /// requests. If not supplied, it won't be possible to request the system
     /// clipboard
@@ -74,6 +83,7 @@ queries_done: atomic.Value(bool) = atomic.Value(bool).init(true),
 
 // images
 next_img_id: u32 = 1,
+kitty_graphics_tmux_active: bool = false,
 
 sgr: enum {
     standard,
@@ -244,6 +254,223 @@ pub fn exitAltScreen(self: *Vaxis, tty: *IoWriter) !void {
     self.state.alt_screen = false;
 }
 
+fn kgpCommandBegin(self: *const Vaxis, tty: *IoWriter) !void {
+    if (self.kitty_graphics_tmux_active) {
+        try tty.writeAll("\x1bPtmux;\x1b\x1b_G");
+        return;
+    }
+    try tty.writeAll("\x1b_G");
+}
+
+fn resolveKittyGraphicsTmuxActive(self: *const Vaxis) bool {
+    if (builtin.os.tag == .windows) return false;
+    return switch (self.opts.kitty_graphics_tmux_mode) {
+        .off => false,
+        .on => true,
+        .auto => std.posix.getenv("TMUX") != null,
+    };
+}
+
+fn kittyGraphicsCommandPathEnabled(self: *const Vaxis) bool {
+    return self.caps.kitty_graphics or self.kitty_graphics_tmux_active;
+}
+
+fn kgpWriteEscapedPayload(self: *const Vaxis, tty: *IoWriter, payload: []const u8) !void {
+    if (!self.kitty_graphics_tmux_active) {
+        try tty.writeAll(payload);
+        return;
+    }
+
+    for (payload) |byte| {
+        if (byte == 0x1B)
+            try tty.writeAll("\x1b\x1b")
+        else
+            try tty.writeByte(byte);
+    }
+}
+
+fn kgpCommandEnd(self: *const Vaxis, tty: *IoWriter) !void {
+    if (self.kitty_graphics_tmux_active) {
+        // End wrapped command (escaped ST), then end the tmux passthrough DCS.
+        try tty.writeAll("\x1b\x1b\\\x1b\\");
+        return;
+    }
+    try tty.writeAll("\x1b\\");
+}
+
+fn kgpWriteCommand(self: *const Vaxis, tty: *IoWriter, payload: []const u8) !void {
+    try self.kgpCommandBegin(tty);
+    try self.kgpWriteEscapedPayload(tty, payload);
+    try self.kgpCommandEnd(tty);
+}
+
+const PlaceholderCellArea = struct {
+    rows: u16,
+    cols: u16,
+};
+
+fn placeholderCellGeometry(self: *const Vaxis) ?struct { w: u32, h: u32 } {
+    if (self.screen.width == 0 or self.screen.height == 0) return null;
+    if (self.screen.width_pix == 0 or self.screen.height_pix == 0) return null;
+
+    const cell_w = std.math.divCeil(u32, self.screen.width_pix, self.screen.width) catch return null;
+    const cell_h = std.math.divCeil(u32, self.screen.height_pix, self.screen.height) catch return null;
+    if (cell_w == 0 or cell_h == 0) return null;
+    return .{ .w = cell_w, .h = cell_h };
+}
+
+fn inferColsFromRows(
+    self: *const Vaxis,
+    rows: u16,
+    src_width_px: u16,
+    src_height_px: u16,
+) ?u16 {
+    const geom = self.placeholderCellGeometry() orelse return null;
+    if (src_width_px == 0 or src_height_px == 0) return null;
+
+    const target_height_px = @as(u64, @intCast(@max(1, rows))) * geom.h;
+    const scaled_width_px = std.math.divCeil(
+        u64,
+        target_height_px * src_width_px,
+        src_height_px,
+    ) catch return null;
+    const cols = std.math.divCeil(u64, scaled_width_px, geom.w) catch return null;
+    return @intCast(@min(cols, std.math.maxInt(u16)));
+}
+
+fn inferRowsFromCols(
+    self: *const Vaxis,
+    cols: u16,
+    src_width_px: u16,
+    src_height_px: u16,
+) ?u16 {
+    const geom = self.placeholderCellGeometry() orelse return null;
+    if (src_width_px == 0 or src_height_px == 0) return null;
+
+    const target_width_px = @as(u64, @intCast(@max(1, cols))) * geom.w;
+    const scaled_height_px = std.math.divCeil(
+        u64,
+        target_width_px * src_height_px,
+        src_width_px,
+    ) catch return null;
+    const rows = std.math.divCeil(u64, scaled_height_px, geom.h) catch return null;
+    return @intCast(@min(rows, std.math.maxInt(u16)));
+}
+
+fn naturalImageCellArea(self: *const Vaxis, img: Image.Placement) ?PlaceholderCellArea {
+    const geom = self.placeholderCellGeometry() orelse return null;
+    if (img.src_width_px == 0 or img.src_height_px == 0) return null;
+
+    const cols = std.math.divCeil(u32, img.src_width_px, geom.w) catch return null;
+    const rows = std.math.divCeil(u32, img.src_height_px, geom.h) catch return null;
+    return .{
+        .rows = @max(1, @as(u16, @intCast(@min(rows, std.math.maxInt(u16))))),
+        .cols = @max(1, @as(u16, @intCast(@min(cols, std.math.maxInt(u16))))),
+    };
+}
+
+fn resolvePlaceholderCellArea(self: *const Vaxis, img: Image.Placement) ?PlaceholderCellArea {
+    if (img.options.size) |size| {
+        if (size.rows) |rows| {
+            if (size.cols) |cols| {
+                return .{
+                    .rows = @max(1, rows),
+                    .cols = @max(1, cols),
+                };
+            }
+            const inferred_cols = inferColsFromRows(self, rows, img.src_width_px, img.src_height_px) orelse return null;
+            return .{
+                .rows = @max(1, rows),
+                .cols = @max(1, inferred_cols),
+            };
+        }
+        if (size.cols) |cols| {
+            const inferred_rows = inferRowsFromCols(self, cols, img.src_width_px, img.src_height_px) orelse return null;
+            return .{
+                .rows = @max(1, inferred_rows),
+                .cols = @max(1, cols),
+            };
+        }
+    }
+    return self.naturalImageCellArea(img);
+}
+
+fn canUsePlaceholderModeForImage(self: *const Vaxis, img: Image.Placement) bool {
+    if (!self.kitty_graphics_tmux_active or !self.caps.kitty_graphics) return false;
+    if (img.options.pixel_offset != null) return false;
+    return self.resolvePlaceholderCellArea(img) != null;
+}
+
+fn writeKittyPlacement(
+    self: *const Vaxis,
+    tty: *IoWriter,
+    img: Image.Placement,
+    placeholder_mode: bool,
+) !void {
+    try self.kgpCommandBegin(tty);
+    try tty.print("a=p,i={d}", .{img.img_id});
+
+    if (placeholder_mode) {
+        try tty.writeAll(",U=1");
+    } else {
+        if (img.options.pixel_offset) |offset| {
+            try tty.print(",X={d},Y={d}", .{ offset.x, offset.y });
+        }
+        if (img.options.size) |size| {
+            if (size.rows) |rows|
+                try tty.print(",r={d}", .{rows});
+            if (size.cols) |cols|
+                try tty.print(",c={d}", .{cols});
+        }
+    }
+
+    if (img.options.clip_region) |clip| {
+        if (clip.x) |x|
+            try tty.print(",x={d}", .{x});
+        if (clip.y) |y|
+            try tty.print(",y={d}", .{y});
+        if (clip.width) |width|
+            try tty.print(",w={d}", .{width});
+        if (clip.height) |height|
+            try tty.print(",h={d}", .{height});
+    }
+    if (img.options.z_index) |z| {
+        try tty.print(",z={d}", .{z});
+    }
+    try tty.writeAll(",C=1");
+    try self.kgpCommandEnd(tty);
+}
+
+fn renderTmuxPlaceholders(self: *const Vaxis, tty: *IoWriter) !void {
+    if (!self.kitty_graphics_tmux_active or !self.caps.kitty_graphics) return;
+
+    var row: u16 = 0;
+    while (row < self.screen.height) : (row += 1) {
+        var col: u16 = 0;
+        while (col < self.screen.width) : (col += 1) {
+            const i = (@as(usize, @intCast(row)) * self.screen.width) + col;
+            const cell = self.screen.buf[i];
+            const img = cell.image orelse continue;
+            if (!self.canUsePlaceholderModeForImage(img)) continue;
+
+            const area = self.resolvePlaceholderCellArea(img) orelse continue;
+            const r = (img.img_id >> 16) & 0xFF;
+            const g = (img.img_id >> 8) & 0xFF;
+            const b = img.img_id & 0xFF;
+            try tty.print(ctlseqs.fg_rgb_legacy, .{ r, g, b });
+
+            var dy: u16 = 0;
+            while (dy < area.rows and row + dy < self.screen.height) : (dy += 1) {
+                try tty.print(ctlseqs.cup, .{ row + dy + 1, col + 1 });
+                var dx: u16 = 0;
+                while (dx < area.cols and col + dx < self.screen.width) : (dx += 1) {
+                    try kitty_placeholders.writeGrapheme(tty, dy, dx);
+                }
+            }
+        }
+    }
+}
+
 /// write queries to the terminal to determine capabilities. Individual
 /// capabilities will be delivered to the client and possibly intercepted by
 /// Vaxis to enable features.
@@ -263,6 +490,7 @@ pub fn queryTerminal(self: *Vaxis, tty: *IoWriter, timeout_ns: u64) !void {
 /// you are using Loop.run()
 pub fn queryTerminalSend(vx: *Vaxis, tty: *IoWriter) !void {
     vx.queries_done.store(false, .unordered);
+    vx.kitty_graphics_tmux_active = vx.resolveKittyGraphicsTmuxActive();
 
     // TODO: re-enable this
     // const colorterm = std.posix.getenv("COLORTERM") orelse "";
@@ -302,9 +530,9 @@ pub fn queryTerminalSend(vx: *Vaxis, tty: *IoWriter) !void {
         ctlseqs.multi_cursor_query ++
         ctlseqs.cursor_position_request ++
         ctlseqs.xtversion ++
-        ctlseqs.csi_u_query ++
-        ctlseqs.kitty_graphics_query ++
-        ctlseqs.primary_device_attrs);
+        ctlseqs.csi_u_query);
+    try vx.kgpWriteCommand(tty, "i=1,a=q");
+    try tty.writeAll(ctlseqs.primary_device_attrs);
 
     try tty.flush();
 }
@@ -317,6 +545,7 @@ pub fn enableDetectedFeatures(self: *Vaxis, tty: *IoWriter) !void {
         .windows => {
             // No feature detection on windows. We just hard enable some knowns for ConPTY
             self.sgr = .legacy;
+            self.kitty_graphics_tmux_active = false;
         },
         else => {
             // Apply any environment variables
@@ -337,6 +566,7 @@ pub fn enableDetectedFeatures(self: *Vaxis, tty: *IoWriter) !void {
                 self.caps.unicode = .wcwidth;
             if (std.posix.getenv("VAXIS_FORCE_UNICODE")) |_|
                 self.caps.unicode = .unicode;
+            self.kitty_graphics_tmux_active = self.resolveKittyGraphicsTmuxActive();
 
             // enable detected features
             if (self.caps.kitty_keyboard) {
@@ -423,7 +653,7 @@ pub fn render(self: *Vaxis, tty: *IoWriter) !void {
             reposition_ptr.* = true;
             // Clear all images
             if (vx.caps.kitty_graphics)
-                try io.writeAll(ctlseqs.kitty_graphics_clear);
+                try vx.kgpWriteCommand(io, "a=d");
         }
     };
 
@@ -534,36 +764,8 @@ pub fn render(self: *Vaxis, tty: *IoWriter) !void {
         }
 
         if (cell.image) |img| {
-            try tty.print(
-                ctlseqs.kitty_graphics_preamble,
-                .{img.img_id},
-            );
-            if (img.options.pixel_offset) |offset| {
-                try tty.print(
-                    ",X={d},Y={d}",
-                    .{ offset.x, offset.y },
-                );
-            }
-            if (img.options.clip_region) |clip| {
-                if (clip.x) |x|
-                    try tty.print(",x={d}", .{x});
-                if (clip.y) |y|
-                    try tty.print(",y={d}", .{y});
-                if (clip.width) |width|
-                    try tty.print(",w={d}", .{width});
-                if (clip.height) |height|
-                    try tty.print(",h={d}", .{height});
-            }
-            if (img.options.size) |size| {
-                if (size.rows) |rows|
-                    try tty.print(",r={d}", .{rows});
-                if (size.cols) |cols|
-                    try tty.print(",c={d}", .{cols});
-            }
-            if (img.options.z_index) |z| {
-                try tty.print(",z={d}", .{z});
-            }
-            try tty.writeAll(ctlseqs.kitty_graphics_closing);
+            const placeholder_mode = self.canUsePlaceholderModeForImage(img);
+            try self.writeKittyPlacement(tty, img, placeholder_mode);
         }
 
         // something is different, so let's loop through everything and
@@ -767,6 +969,16 @@ pub fn render(self: *Vaxis, tty: *IoWriter) !void {
         cursor_pos.col = col + w;
         cursor_pos.row = row;
     }
+    if (started and self.kitty_graphics_tmux_active and self.caps.kitty_graphics) {
+        try self.renderTmuxPlaceholders(tty);
+        try tty.print(
+            ctlseqs.cup,
+            .{
+                cursor_pos.row + 1,
+                cursor_pos.col + 1,
+            },
+        );
+    }
     if (!started) return;
     if (self.screen.cursor_vis) {
         if (self.state.alt_screen) {
@@ -921,7 +1133,7 @@ pub fn transmitLocalImagePath(
     medium: Image.TransmitMedium,
     format: Image.TransmitFormat,
 ) !Image {
-    if (!self.caps.kitty_graphics) return error.NoGraphicsCapability;
+    if (!self.kittyGraphicsCommandPathEnabled()) return error.NoGraphicsCapability;
 
     defer self.next_img_id += 1;
 
@@ -942,22 +1154,22 @@ pub fn transmitLocalImagePath(
 
     switch (format) {
         .rgb => {
-            try tty.print(
-                "\x1b_Gf=24,s={d},v={d},i={d},t={c};{s}\x1b\\",
-                .{ width, height, id, medium_char, encoded },
-            );
+            try self.kgpCommandBegin(tty);
+            try tty.print("f=24,s={d},v={d},i={d},t={c};", .{ width, height, id, medium_char });
+            try tty.writeAll(encoded);
+            try self.kgpCommandEnd(tty);
         },
         .rgba => {
-            try tty.print(
-                "\x1b_Gf=32,s={d},v={d},i={d},t={c};{s}\x1b\\",
-                .{ width, height, id, medium_char, encoded },
-            );
+            try self.kgpCommandBegin(tty);
+            try tty.print("f=32,s={d},v={d},i={d},t={c};", .{ width, height, id, medium_char });
+            try tty.writeAll(encoded);
+            try self.kgpCommandEnd(tty);
         },
         .png => {
-            try tty.print(
-                "\x1b_Gf=100,i={d},t={c};{s}\x1b\\",
-                .{ id, medium_char, encoded },
-            );
+            try self.kgpCommandBegin(tty);
+            try tty.print("f=100,i={d},t={c};", .{ id, medium_char });
+            try tty.writeAll(encoded);
+            try self.kgpCommandEnd(tty);
         },
     }
 
@@ -978,7 +1190,7 @@ pub fn transmitPreEncodedImage(
     height: u16,
     format: Image.TransmitFormat,
 ) !Image {
-    if (!self.caps.kitty_graphics) return error.NoGraphicsCapability;
+    if (!self.kittyGraphicsCommandPathEnabled()) return error.NoGraphicsCapability;
 
     defer self.next_img_id += 1;
     const id = self.next_img_id;
@@ -990,33 +1202,30 @@ pub fn transmitPreEncodedImage(
     };
 
     if (bytes.len < 4096) {
+        try self.kgpCommandBegin(tty);
         try tty.print(
-            "\x1b_Gf={d},s={d},v={d},i={d};{s}\x1b\\",
-            .{
-                fmt,
-                width,
-                height,
-                id,
-                bytes,
-            },
+            "f={d},s={d},v={d},i={d};",
+            .{ fmt, width, height, id },
         );
+        try tty.writeAll(bytes);
+        try self.kgpCommandEnd(tty);
     } else {
         var n: usize = 4096;
 
+        try self.kgpCommandBegin(tty);
         try tty.print(
-            "\x1b_Gf={d},s={d},v={d},i={d},m=1;{s}\x1b\\",
-            .{ fmt, width, height, id, bytes[0..n] },
+            "f={d},s={d},v={d},i={d},m=1;",
+            .{ fmt, width, height, id },
         );
+        try tty.writeAll(bytes[0..n]);
+        try self.kgpCommandEnd(tty);
         while (n < bytes.len) : (n += 4096) {
             const end: usize = @min(n + 4096, bytes.len);
             const m: u2 = if (end == bytes.len) 0 else 1;
-            try tty.print(
-                "\x1b_Gm={d};{s}\x1b\\",
-                .{
-                    m,
-                    bytes[n..end],
-                },
-            );
+            try self.kgpCommandBegin(tty);
+            try tty.print("m={d};", .{m});
+            try tty.writeAll(bytes[n..end]);
+            try self.kgpCommandEnd(tty);
         }
     }
 
@@ -1035,7 +1244,7 @@ pub fn transmitImage(
     img: *const zigimg.Image,
     format: Image.TransmitFormat,
 ) !Image {
-    if (!self.caps.kitty_graphics) return error.NoGraphicsCapability;
+    if (!self.kittyGraphicsCommandPathEnabled()) return error.NoGraphicsCapability;
 
     var arena = std.heap.ArenaAllocator.init(alloc);
     defer arena.deinit();
@@ -1070,7 +1279,7 @@ pub fn loadImage(
     tty: *IoWriter,
     src: Image.Source,
 ) !Image {
-    if (!self.caps.kitty_graphics) return error.NoGraphicsCapability;
+    if (!self.kittyGraphicsCommandPathEnabled()) return error.NoGraphicsCapability;
 
     var read_buffer: [1024 * 1024]u8 = undefined; // 1MB buffer
     var img = switch (src) {
@@ -1082,9 +1291,17 @@ pub fn loadImage(
 }
 
 /// deletes an image from the terminal's memory
-pub fn freeImage(_: Vaxis, tty: *IoWriter, id: u32) void {
-    tty.print("\x1b_Ga=d,d=I,i={d};\x1b\\", .{id}) catch |err| {
+pub fn freeImage(self: *const Vaxis, tty: *IoWriter, id: u32) void {
+    self.kgpCommandBegin(tty) catch |err| {
+        log.err("couldn't start delete image {d} command: {}", .{ id, err });
+        return;
+    };
+    tty.print("a=d,d=I,i={d};", .{id}) catch |err| {
         log.err("couldn't delete image {d}: {}", .{ id, err });
+        return;
+    };
+    self.kgpCommandEnd(tty) catch |err| {
+        log.err("couldn't end delete image {d} command: {}", .{ id, err });
         return;
     };
     tty.flush() catch {};
@@ -1277,36 +1494,7 @@ pub fn prettyPrint(self: *Vaxis, tty: *IoWriter) !void {
         }
 
         if (cell.image) |img| {
-            try tty.print(
-                ctlseqs.kitty_graphics_preamble,
-                .{img.img_id},
-            );
-            if (img.options.pixel_offset) |offset| {
-                try tty.print(
-                    ",X={d},Y={d}",
-                    .{ offset.x, offset.y },
-                );
-            }
-            if (img.options.clip_region) |clip| {
-                if (clip.x) |x|
-                    try tty.print(",x={d}", .{x});
-                if (clip.y) |y|
-                    try tty.print(",y={d}", .{y});
-                if (clip.width) |width|
-                    try tty.print(",w={d}", .{width});
-                if (clip.height) |height|
-                    try tty.print(",h={d}", .{height});
-            }
-            if (img.options.size) |size| {
-                if (size.rows) |rows|
-                    try tty.print(",r={d}", .{rows});
-                if (size.cols) |cols|
-                    try tty.print(",c={d}", .{cols});
-            }
-            if (img.options.z_index) |z| {
-                try tty.print(",z={d}", .{z});
-            }
-            try tty.writeAll(ctlseqs.kitty_graphics_closing);
+            try self.writeKittyPlacement(tty, img, false);
         }
 
         // something is different, so let's loop through everything and
@@ -1505,4 +1693,139 @@ test "render: no output when no changes" {
     const output = try render_writer.toOwnedSlice();
     defer std.testing.allocator.free(output);
     try std.testing.expectEqual(@as(usize, 0), output.len);
+}
+
+test "kgp wrapper: tmux mode wraps and escapes" {
+    var vx = try Vaxis.init(std.testing.allocator, .{});
+    var deinit_writer = std.io.Writer.Allocating.init(std.testing.allocator);
+    defer deinit_writer.deinit();
+    defer vx.deinit(std.testing.allocator, &deinit_writer.writer);
+
+    vx.kitty_graphics_tmux_active = true;
+
+    var writer = std.io.Writer.Allocating.init(std.testing.allocator);
+    defer writer.deinit();
+    try vx.kgpWriteCommand(&writer.writer, "a=p,i=1,C=1");
+    const output = try writer.toOwnedSlice();
+    defer std.testing.allocator.free(output);
+
+    const expected = "\x1bPtmux;\x1b\x1b_Ga=p,i=1,C=1\x1b\x1b\\\x1b\\";
+    try std.testing.expectEqualStrings(expected, output);
+}
+
+test "kgp wrapper: non tmux mode is raw kgp" {
+    var vx = try Vaxis.init(std.testing.allocator, .{});
+    var deinit_writer = std.io.Writer.Allocating.init(std.testing.allocator);
+    defer deinit_writer.deinit();
+    defer vx.deinit(std.testing.allocator, &deinit_writer.writer);
+
+    vx.kitty_graphics_tmux_active = false;
+
+    var writer = std.io.Writer.Allocating.init(std.testing.allocator);
+    defer writer.deinit();
+    try vx.kgpWriteCommand(&writer.writer, "a=p,i=1,C=1");
+    const output = try writer.toOwnedSlice();
+    defer std.testing.allocator.free(output);
+
+    const expected = "\x1b_Ga=p,i=1,C=1\x1b\\";
+    try std.testing.expectEqualStrings(expected, output);
+}
+
+test "resolve placeholder area" {
+    var vx = try Vaxis.init(std.testing.allocator, .{});
+    var deinit_writer = std.io.Writer.Allocating.init(std.testing.allocator);
+    defer deinit_writer.deinit();
+    defer vx.deinit(std.testing.allocator, &deinit_writer.writer);
+
+    vx.screen.width = 80;
+    vx.screen.height = 24;
+    vx.screen.width_pix = 800;
+    vx.screen.height_pix = 480;
+
+    const with_both: Image.Placement = .{
+        .img_id = 1,
+        .options = .{ .size = .{ .rows = 3, .cols = 4 } },
+        .src_width_px = 400,
+        .src_height_px = 200,
+    };
+    const both = vx.resolvePlaceholderCellArea(with_both) orelse return error.TestUnexpectedResult;
+    try std.testing.expectEqual(@as(u16, 3), both.rows);
+    try std.testing.expectEqual(@as(u16, 4), both.cols);
+
+    const with_rows_only: Image.Placement = .{
+        .img_id = 1,
+        .options = .{ .size = .{ .rows = 5 } },
+        .src_width_px = 400,
+        .src_height_px = 200,
+    };
+    const rows_only = vx.resolvePlaceholderCellArea(with_rows_only) orelse return error.TestUnexpectedResult;
+    try std.testing.expectEqual(@as(u16, 5), rows_only.rows);
+    try std.testing.expectEqual(@as(u16, 20), rows_only.cols);
+
+    const with_cols_only: Image.Placement = .{
+        .img_id = 1,
+        .options = .{ .size = .{ .cols = 10 } },
+        .src_width_px = 400,
+        .src_height_px = 200,
+    };
+    const cols_only = vx.resolvePlaceholderCellArea(with_cols_only) orelse return error.TestUnexpectedResult;
+    try std.testing.expectEqual(@as(u16, 3), cols_only.rows);
+    try std.testing.expectEqual(@as(u16, 10), cols_only.cols);
+
+    const natural: Image.Placement = .{
+        .img_id = 1,
+        .options = .{},
+        .src_width_px = 400,
+        .src_height_px = 200,
+    };
+    const none = vx.resolvePlaceholderCellArea(natural) orelse return error.TestUnexpectedResult;
+    try std.testing.expectEqual(@as(u16, 10), none.rows);
+    try std.testing.expectEqual(@as(u16, 40), none.cols);
+}
+
+test "render: tmux placeholder path emits wrapped placement and placeholder text" {
+    var vx = try Vaxis.init(std.testing.allocator, .{ .kitty_graphics_tmux_mode = .on });
+    var deinit_writer = std.io.Writer.Allocating.init(std.testing.allocator);
+    defer deinit_writer.deinit();
+    defer vx.deinit(std.testing.allocator, &deinit_writer.writer);
+
+    vx.caps.kitty_graphics = true;
+    vx.kitty_graphics_tmux_active = true;
+
+    var resize_writer = std.io.Writer.Allocating.init(std.testing.allocator);
+    defer resize_writer.deinit();
+    try vx.resize(
+        std.testing.allocator,
+        &resize_writer.writer,
+        .{
+            .rows = 2,
+            .cols = 2,
+            .x_pixel = 20,
+            .y_pixel = 20,
+        },
+    );
+
+    const win = vx.window();
+    win.writeCell(0, 0, .{
+        .image = .{
+            .img_id = 0x010203,
+            .options = .{ .size = .{ .rows = 1, .cols = 1 } },
+            .src_width_px = 10,
+            .src_height_px = 10,
+        },
+    });
+
+    var render_writer = std.io.Writer.Allocating.init(std.testing.allocator);
+    defer render_writer.deinit();
+    try vx.render(&render_writer.writer);
+    const output = try render_writer.toOwnedSlice();
+    defer std.testing.allocator.free(output);
+
+    const placement = "\x1bPtmux;\x1b\x1b_Ga=p,i=66051,U=1,C=1\x1b\x1b\\\x1b\\";
+    try std.testing.expect(std.mem.indexOf(u8, output, placement) != null);
+    try std.testing.expect(std.mem.indexOf(u8, output, "\x1b[38;2;1;2;3m") != null);
+
+    var placeholder_buf: [16]u8 = undefined;
+    const placeholder = try kitty_placeholders.encodeGrapheme(&placeholder_buf, 0, 0);
+    try std.testing.expect(std.mem.indexOf(u8, output, placeholder) != null);
 }

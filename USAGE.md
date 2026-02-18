@@ -16,6 +16,29 @@ lets Vaxis know what features it can use. For example, the Kitty Keyboard
 protocol, in-band-resize reports, and Unicode width measurements are just a few
 examples.
 
+## tmux + kitty graphics
+
+If your application uses kitty graphics inside `tmux`, enable passthrough in
+tmux configuration:
+
+```tmux
+set -g allow-passthrough on
+```
+
+`Vaxis.Options` includes `kitty_graphics_tmux_mode`:
+
+- `.auto` (default): detect tmux via `$TMUX`
+- `.off`: disable tmux wrapping
+- `.on`: force tmux wrapping
+
+Example:
+
+```zig
+var vx = try vaxis.init(alloc, .{
+    .kitty_graphics_tmux_mode = .auto,
+});
+```
+
 ### `libxev`
 
 Below is an example [`libxev`](https://github.com/mitchellh/libxev) event loop.
