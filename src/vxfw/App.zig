@@ -1,4 +1,5 @@
 const std = @import("std");
+const log = std.log.scoped(.vx_app);
 const vaxis = @import("../main.zig");
 const vxfw = @import("vxfw.zig");
 
@@ -27,8 +28,9 @@ pub const Options = struct {
 /// Create an application. We require stable pointers to do the set up, so this will create an App
 /// object on the heap. Call destroy when the app is complete to reset terminal state and release
 /// resources
-pub fn init(allocator: Allocator) !App {
-    var app: App = .{
+pub fn init(allocator: Allocator) !*App {
+    const app = try allocator.create(App);
+    app.* = .{
         .allocator = allocator,
         .tty = undefined,
         .vx = try vaxis.init(allocator, .{
@@ -37,7 +39,8 @@ pub fn init(allocator: Allocator) !App {
                 .report_events = true,
             },
         }),
-        .timers = std.ArrayList(vxfw.Tick){},
+        //.timers = std.ArrayList(vxfw.Tick){},
+        .timers = .empty,
         .wants_focus = null,
         .buffer = undefined,
     };
@@ -49,6 +52,7 @@ pub fn deinit(self: *App) void {
     self.timers.deinit(self.allocator);
     self.vx.deinit(self.allocator, self.tty.writer());
     self.tty.deinit();
+    self.allocator.destroy(self);
 }
 
 pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
@@ -116,8 +120,29 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
             // Deadline exceeded. Schedule the next frame
             next_frame_ms = now_ms + tick_ms;
         } else {
+            const diff_ms = diffMS: {
+                const diff = std.math.sub(u64, next_frame_ms, now_ms) catch {
+                    log.warn("Invalid Time Diff: {d}ms(next) - {d}ms(now)", .{ next_frame_ms, now_ms });
+                    next_frame_ms = now_ms;
+                    continue;
+                };
+                break :diffMS @min(tick_ms, diff);
+            };
+            //log.info(
+            //    \\Vx App Sleep:
+            //    \\- Now:  {d}ms
+            //    \\- Tick: {d}ms
+            //    \\- Next: {d}ms
+            //    \\- Diff: {d}ns
+            //    , .{
+            //        now_ms,
+            //        tick_ms,
+            //        next_frame_ms,
+            //        diff_ms *| std.time.ns_per_ms,
+            //    },
+            //);
             // Sleep until the deadline
-            std.Thread.sleep((next_frame_ms - now_ms) * std.time.ns_per_ms);
+            std.Thread.sleep(diff_ms *| std.time.ns_per_ms);
             next_frame_ms += tick_ms;
         }
 
