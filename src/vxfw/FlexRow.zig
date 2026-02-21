@@ -70,7 +70,7 @@ pub fn draw(self: *const FlexRow, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Su
 
         // Create a context for the child
         const child_ctx = ctx.withConstraints(
-            .{ .width = child_width, .height = 0 },
+            .{ .width = child_width, .height = ctx.min.height },
             .{ .width = child_width, .height = ctx.max.height.? },
         );
         const surf = try child.widget.draw(child_ctx);
