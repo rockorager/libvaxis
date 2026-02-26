@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const vaxis = @import("../main.zig");
 const vxfw = @import("vxfw.zig");
 
@@ -22,6 +23,8 @@ buffer: [1024]u8,
 pub const Options = struct {
     /// Frames per second
     framerate: u8 = 60,
+    /// Render in the primary screen and preserve scrollback/history. Defaults to libvaxis behavior.
+    primary_screen_history: bool = false,
 };
 
 /// Create an application. We require stable pointers to do the set up, so this will create an App
@@ -54,6 +57,7 @@ pub fn deinit(self: *App) void {
 pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     const tty = &self.tty;
     const vx = &self.vx;
+    const use_primary_screen_history = opts.primary_screen_history;
 
     var loop: EventLoop = .{ .tty = tty, .vaxis = vx };
     try loop.start();
@@ -64,10 +68,19 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     // Also always initialize the app with a focus event
     loop.postEvent(.focus_in);
 
-    try vx.enterAltScreen(tty.writer());
-    try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
-    try vx.setBracketedPaste(tty.writer(), true);
-    try vx.subscribeToColorSchemeUpdates(tty.writer());
+    vx.opts.preserve_screen_on_exit = use_primary_screen_history;
+
+    if (!use_primary_screen_history) {
+        try vx.enterAltScreen(tty.writer());
+    }
+    if (builtin.os.tag == .windows) {
+        // Windows console input is event-driven and these OSC/CSI queries can render as garbage.
+        try vx.enableDetectedFeatures(tty.writer());
+    } else {
+        try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
+        try vx.setBracketedPaste(tty.writer(), true);
+        try vx.subscribeToColorSchemeUpdates(tty.writer());
+    }
 
     {
         // This part deserves a comment. loop.init installs a signal handler for the tty. We wait to
@@ -81,6 +94,21 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     try vx.setMouseMode(tty.writer(), true);
 
     vxfw.DrawContext.init(vx.screen.width_method);
+
+    // Ensure we have a real initial size before the first layout. On Windows we cannot rely on
+    // receiving an initial winsize event.
+    const initial_ws = try getInitialWinsize(tty);
+    try vx.resize(self.allocator, tty.writer(), initial_ws);
+    if (use_primary_screen_history) {
+        // Reserve a dedicated canvas in primary screen so we don't overwrite existing shell history.
+        var row: u16 = 0;
+        while (row < vx.screen.height) : (row += 1) {
+            try tty.writer().writeAll("\r\n");
+        }
+        vx.state.cursor.row = vx.screen.height;
+        vx.state.cursor.col = 0;
+        try tty.writer().flush();
+    }
 
     const framerate: u64 = if (opts.framerate > 0) opts.framerate else 60;
     // Calculate tick rate
@@ -105,7 +133,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
         .phase = .capturing,
         .cmds = vxfw.CommandList{},
         .consume_event = false,
-        .redraw = false,
+        .redraw = true,
         .quit = false,
     };
     defer ctx.cmds.deinit(self.allocator);
@@ -210,6 +238,8 @@ fn doLayout(
     arena: *std.heap.ArenaAllocator,
 ) !vxfw.Surface {
     const vx = &self.vx;
+    const screen_w: u16 = @max(@as(u16, 1), vx.screen.width);
+    const screen_h: u16 = @max(@as(u16, 1), vx.screen.height);
 
     const draw_context: vxfw.DrawContext = .{
         .arena = arena.allocator(),
@@ -219,11 +249,32 @@ fn doLayout(
             .height = @intCast(vx.screen.height),
         },
         .cell_size = .{
-            .width = vx.screen.width_pix / vx.screen.width,
-            .height = vx.screen.height_pix / vx.screen.height,
+            .width = vx.screen.width_pix / screen_w,
+            .height = vx.screen.height_pix / screen_h,
         },
     };
     return widget.draw(draw_context);
+}
+
+fn getInitialWinsize(tty: *vaxis.Tty) !vaxis.Winsize {
+    switch (builtin.os.tag) {
+        .windows => {
+            const windows = std.os.windows;
+            var console_info: windows.CONSOLE_SCREEN_BUFFER_INFO = undefined;
+            if (windows.kernel32.GetConsoleScreenBufferInfo(tty.stdout, &console_info) == 0)
+                return windows.unexpectedError(windows.kernel32.GetLastError());
+            const window_rect = console_info.srWindow;
+            const width = window_rect.Right - window_rect.Left + 1;
+            const height = window_rect.Bottom - window_rect.Top + 1;
+            return .{
+                .cols = @intCast(width),
+                .rows = @intCast(height),
+                .x_pixel = 0,
+                .y_pixel = 0,
+            };
+        },
+        else => return vaxis.Tty.getWinsize(tty.fd),
+    }
 }
 
 fn render(
