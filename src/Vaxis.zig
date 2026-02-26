@@ -48,6 +48,8 @@ pub const Options = struct {
     /// requests. If not supplied, it won't be possible to request the system
     /// clipboard
     system_clipboard_allocator: ?std.mem.Allocator = null,
+    /// Leave the final primary-screen frame in scrollback on deinit.
+    preserve_screen_on_exit: bool = false,
 };
 
 /// the screen we write to
@@ -152,12 +154,17 @@ pub fn resetState(self: *Vaxis, tty: *IoWriter) !void {
         try tty.writeAll(ctlseqs.erase_below_cursor);
         try self.exitAltScreen(tty);
     } else {
-        try tty.writeByte('\r');
-        var i: u16 = 0;
-        while (i < self.state.cursor.row) : (i += 1) {
-            try tty.writeAll(ctlseqs.ri);
+        if (self.opts.preserve_screen_on_exit) {
+            // Place the shell prompt on a fresh line without erasing the TUI frame.
+            try tty.writeAll("\r\n");
+        } else {
+            try tty.writeByte('\r');
+            var i: u16 = 0;
+            while (i < self.state.cursor.row) : (i += 1) {
+                try tty.writeAll(ctlseqs.ri);
+            }
+            try tty.writeAll(ctlseqs.erase_below_cursor);
         }
-        try tty.writeAll(ctlseqs.erase_below_cursor);
     }
     if (self.state.color_scheme_updates) {
         try tty.writeAll(ctlseqs.color_scheme_reset);
@@ -212,7 +219,8 @@ pub fn resize(
     }
     self.state.cursor.row = 0;
     self.state.cursor.col = 0;
-    try tty.writeAll(ctlseqs.sgr_reset ++ ctlseqs.erase_below_cursor);
+    try tty.writeAll(ctlseqs.sgr_reset);
+    try tty.writeAll(ctlseqs.erase_below_cursor);
     try tty.flush();
 }
 
