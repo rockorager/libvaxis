@@ -6,6 +6,13 @@ const border = vaxis.widgets.border;
 
 const log = std.log.scoped(.main);
 
+pub const std_options: std.Options = .{
+    .log_scope_levels = &[_]std.log.ScopeLevel{
+        .{ .scope = .main, .level = .err },
+        .{ .scope = .vaxis, .level = .err },
+    },
+};
+
 // Our Event. This can contain internal events as well as Vaxis events.
 // Internal events can be posted into the same queue as vaxis events to allow
 // for a single event loop with exhaustive switching. Booya

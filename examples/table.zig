@@ -8,6 +8,13 @@ const vaxis = @import("vaxis");
 
 const log = std.log.scoped(.main);
 
+pub const std_options: std.Options = .{
+    .log_scope_levels = &[_]std.log.ScopeLevel{
+        .{ .scope = .main, .level = .err },
+        .{ .scope = .vaxis, .level = .err },
+    },
+};
+
 const ActiveSection = enum {
     top,
     mid,
@@ -21,6 +28,7 @@ pub fn main() !void {
 
     // Users set up below the main function
     const users_buf = try alloc.dupe(User, users[0..]);
+    defer alloc.free(users_buf);
 
     var buffer: [1024]u8 = undefined;
     var tty = try vaxis.Tty.init(&buffer);

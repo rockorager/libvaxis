@@ -9,19 +9,33 @@ const Event = union(enum) {
 
 pub const panic = vaxis.panic_handler;
 
+const log = std.log.scoped(.main);
+
+pub const std_options: std.Options = .{
+    .log_scope_levels = &[_]std.log.ScopeLevel{
+        .{ .scope = .main, .level = .err },
+        .{ .scope = .terminal, .level = .err },
+        .{ .scope = .vaxis, .level = .err },
+        .{ .scope = .vaxis_terminal, .level = .err },
+    },
+};
+
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {
         const deinit_status = gpa.deinit();
         //fail test; can't try in defer as defer is executed after we return
         if (deinit_status == .leak) {
-            std.log.err("memory leak", .{});
+            log.err("memory leak", .{});
         }
     }
     const alloc = gpa.allocator();
 
     var buffer: [1024]u8 = undefined;
     var tty = try vaxis.Tty.init(&buffer);
+    defer tty.deinit();
+
     const writer = tty.writer();
     var vx = try vaxis.init(alloc, .{});
     defer vx.deinit(alloc, writer);
@@ -107,7 +121,6 @@ pub fn main() !void {
             .y_pixel = 0,
         });
         try vt.draw(alloc, child);
-
         try vx.render(writer);
     }
 }

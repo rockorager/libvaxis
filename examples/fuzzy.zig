@@ -2,10 +2,15 @@ const std = @import("std");
 const vaxis = @import("vaxis");
 const vxfw = vaxis.vxfw;
 
+pub const std_options: std.Options = .{
+    .log_scope_levels = &[_]std.log.ScopeLevel{
+        .{ .scope = .vaxis, .level = .err },
+    },
+};
+
 const Model = struct {
     list: std.ArrayList(vxfw.Text),
     /// Memory owned by .arena
-    filtered: std.ArrayList(vxfw.RichText),
     list_view: vxfw.ListView,
     text_field: vxfw.TextField,
 
@@ -223,7 +228,15 @@ pub fn main() !void {
     defer stderr.deinit(gpa);
     try fd.spawn();
     try fd.collectOutput(gpa, &stdout, &stderr, 10_000_000);
-    _ = try fd.wait();
+    _ = fd.wait() catch |err| {
+        if (err == error.FileNotFound) {
+            var err_writer = std.fs.File.stderr().writer(&.{});
+            try err_writer.interface.writeAll("error: The 'fd' command was not found on PATH, please install it for this demo.\n");
+            try err_writer.interface.flush();
+        }
+
+        return err; 
+    };
 
     var iter = std.mem.splitScalar(u8, stdout.items, '\n');
     while (iter.next()) |line| {
