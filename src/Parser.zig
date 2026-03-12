@@ -403,6 +403,17 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
                 .n = sequence.len,
             };
         },
+        'Z' => {
+            // Legacy keys
+            // CSI Z
+            return .{
+                .event = .{ .key_press = .{
+                    .codepoint = Key.tab,
+                    .mods = .{ .shift = true },
+                } },
+                .n = sequence.len,
+            };
+        },
         '~' => {
             // Legacy keys
             // CSI number ~
@@ -852,6 +863,18 @@ test "parse: xterm shift+up" {
     const expected_event: Event = .{ .key_press = expected_key };
 
     try testing.expectEqual(6, result.n);
+    try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: xterm shift+tab" {
+    const alloc = testing.allocator_instance.allocator();
+    const input = "\x1b[Z";
+    var parser: Parser = .{};
+    const result = try parser.parse(input, alloc);
+    const expected_key: Key = .{ .codepoint = Key.tab, .mods = .{ .shift = true } };
+    const expected_event: Event = .{ .key_press = expected_key };
+
+    try testing.expectEqual(3, result.n);
     try testing.expectEqual(expected_event, result.event);
 }
 
