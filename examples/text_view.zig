@@ -61,6 +61,6 @@ pub fn main() !void {
         win.clear();
         text_view.draw(win, text_view_buffer);
         try vx.render(tty.writer());
-        try tty.writer.flush();
+        try tty.writer().flush();
     }
 }
