@@ -346,10 +346,11 @@ pub fn deleteAfterCursor(self: *TextField) void {
     self.buf.growGapRight(grapheme.len);
 }
 
-/// Returns true if the byte is a word constituent (alnum or underscore),
-/// matching readline/emacs word character classes.
+/// Returns true if the byte is a word constituent: ASCII alnum, underscore,
+/// or any non-ASCII byte (part of a multi-byte UTF-8 sequence). This ensures
+/// word motion never splits inside non-ASCII characters like accented letters.
 fn isWordChar(c: u8) bool {
-    return std.ascii.isAlphanumeric(c) or c == '_';
+    return std.ascii.isAlphanumeric(c) or c == '_' or c >= 0x80;
 }
 
 /// Moves the cursor backward by one word using character-class boundaries.
@@ -719,6 +720,31 @@ test "word motion with underscores treats them as word chars" {
     input.moveBackwardWordwise();
     try std.testing.expectEqualStrings("hello_world-", input.buf.firstHalf());
     input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+}
+
+test "word motion with non-ASCII text" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("café-latte");
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("café-", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("latte", input.buf.secondHalf());
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+
+    input.moveForwardWordwise();
+    try std.testing.expectEqualStrings("caf\xc3\xa9", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("-latte", input.buf.secondHalf());
+}
+
+test "deleteWordBefore with non-ASCII text" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("über-cool");
+    input.deleteWordBefore();
+    try std.testing.expectEqualStrings("über-", input.buf.firstHalf());
+    input.deleteWordBefore();
     try std.testing.expectEqualStrings("", input.buf.firstHalf());
 }
 
