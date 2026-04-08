@@ -59,8 +59,10 @@ pub fn update(self: *TextInput, event: Event) !void {
                 self.moveBackwardWordwise();
             } else if (key.matches('f', .{ .alt = true }) or key.matches(Key.right, .{ .alt = true })) {
                 self.moveForwardWordwise();
-            } else if (key.matches('w', .{ .ctrl = true }) or key.matches(Key.backspace, .{ .alt = true })) {
+            } else if (key.matches(Key.backspace, .{ .alt = true })) {
                 self.deleteWordBefore();
+            } else if (key.matches('w', .{ .ctrl = true })) {
+                self.deleteWordBeforeWhitespace();
             } else if (key.matches('d', .{ .alt = true })) {
                 self.deleteWordAfter();
             } else if (key.text) |text| {
@@ -263,41 +265,68 @@ pub fn deleteAfterCursor(self: *TextInput) void {
     self.buf.growGapRight(grapheme.len);
 }
 
-/// Moves the cursor backward by words. If the character before the cursor is a space, the cursor is
-/// positioned just after the next previous space
-pub fn moveBackwardWordwise(self: *TextInput) void {
-    const trimmed = std.mem.trimRight(u8, self.buf.firstHalf(), " ");
-    const idx = if (std.mem.lastIndexOfScalar(u8, trimmed, ' ')) |last|
-        last + 1
-    else
-        0;
-    self.buf.moveGapLeft(self.buf.cursor - idx);
+/// Returns true if the byte is a word constituent (alnum or underscore),
+/// matching readline/emacs word character classes.
+fn isWordChar(c: u8) bool {
+    return std.ascii.isAlphanumeric(c) or c == '_';
 }
 
+/// Moves the cursor backward by one word using character-class boundaries.
+/// Skips non-word characters, then skips word characters (matching readline backward-word).
+pub fn moveBackwardWordwise(self: *TextInput) void {
+    const first_half = self.buf.firstHalf();
+    var i: usize = first_half.len;
+    // Skip non-word characters
+    while (i > 0 and !isWordChar(first_half[i - 1])) : (i -= 1) {}
+    // Skip word characters
+    while (i > 0 and isWordChar(first_half[i - 1])) : (i -= 1) {}
+    self.buf.moveGapLeft(self.buf.cursor - i);
+}
+
+/// Moves the cursor forward by one word using character-class boundaries.
+/// Skips word characters, then skips non-word characters (matching readline forward-word).
 pub fn moveForwardWordwise(self: *TextInput) void {
     const second_half = self.buf.secondHalf();
     var i: usize = 0;
-    while (i < second_half.len and second_half[i] == ' ') : (i += 1) {}
-    const idx = std.mem.indexOfScalarPos(u8, second_half, i, ' ') orelse second_half.len;
-    self.buf.moveGapRight(idx);
+    // Skip word characters
+    while (i < second_half.len and isWordChar(second_half[i])) : (i += 1) {}
+    // Skip non-word characters
+    while (i < second_half.len and !isWordChar(second_half[i])) : (i += 1) {}
+    self.buf.moveGapRight(i);
 }
 
+/// Deletes the word before the cursor using character-class boundaries
+/// (matching readline backward-kill-word / Alt+Backspace).
 pub fn deleteWordBefore(self: *TextInput) void {
-    // Store current cursor position. Move one word backward. Delete after the cursor the bytes we
-    // moved
     const pre = self.buf.cursor;
     self.moveBackwardWordwise();
     self.buf.growGapRight(pre - self.buf.cursor);
 }
 
+/// Deletes the word before the cursor using whitespace boundaries
+/// (matching readline unix-word-rubout / Ctrl+W).
+pub fn deleteWordBeforeWhitespace(self: *TextInput) void {
+    const first_half = self.buf.firstHalf();
+    var i: usize = first_half.len;
+    // Skip trailing whitespace
+    while (i > 0 and std.ascii.isWhitespace(first_half[i - 1])) : (i -= 1) {}
+    // Skip non-whitespace
+    while (i > 0 and !std.ascii.isWhitespace(first_half[i - 1])) : (i -= 1) {}
+    const to_delete = self.buf.cursor - i;
+    self.buf.moveGapLeft(to_delete);
+    self.buf.growGapRight(to_delete);
+}
+
+/// Deletes the word after the cursor using character-class boundaries
+/// (matching readline kill-word / Alt+D).
 pub fn deleteWordAfter(self: *TextInput) void {
-    // Store current cursor position. Move one word backward. Delete after the cursor the bytes we
-    // moved
     const second_half = self.buf.secondHalf();
     var i: usize = 0;
-    while (i < second_half.len and second_half[i] == ' ') : (i += 1) {}
-    const idx = std.mem.indexOfScalarPos(u8, second_half, i, ' ') orelse second_half.len;
-    self.buf.growGapRight(idx);
+    // Skip non-word characters
+    while (i < second_half.len and !isWordChar(second_half[i])) : (i += 1) {}
+    // Skip word characters
+    while (i < second_half.len and isWordChar(second_half[i])) : (i += 1) {}
+    self.buf.growGapRight(i);
 }
 
 test "assertion" {
@@ -431,6 +460,134 @@ pub const Buffer = struct {
         return self.firstHalf().len + self.secondHalf().len;
     }
 };
+
+test "moveBackwardWordwise stops at word boundary" {
+    var input = TextInput.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("hello-world");
+    // Cursor is at end: "hello-world|"
+    input.moveBackwardWordwise();
+    // Should stop at start of "world": "hello-|world"
+    try std.testing.expectEqualStrings("hello-", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("world", input.buf.secondHalf());
+    input.moveBackwardWordwise();
+    // Should skip "-" and stop at start of "hello": "|hello-world"
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("hello-world", input.buf.secondHalf());
+}
+
+test "moveForwardWordwise stops at word boundary" {
+    var input = TextInput.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("hello-world");
+    // Move cursor to start
+    input.buf.moveGapLeft(input.buf.firstHalf().len);
+    // Cursor at start: "|hello-world"
+    input.moveForwardWordwise();
+    // Should skip "hello" then "-": "hello-|world"
+    try std.testing.expectEqualStrings("hello-", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("world", input.buf.secondHalf());
+    input.moveForwardWordwise();
+    // Should skip "world" to end: "hello-world|"
+    try std.testing.expectEqualStrings("hello-world", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("", input.buf.secondHalf());
+}
+
+test "moveBackwardWordwise with path separators" {
+    var input = TextInput.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("/usr/local/bin");
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("/usr/local/", input.buf.firstHalf());
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("/usr/", input.buf.firstHalf());
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("/", input.buf.firstHalf());
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+}
+
+test "moveForwardWordwise with dots" {
+    var input = TextInput.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("foo.bar.baz");
+    input.buf.moveGapLeft(input.buf.firstHalf().len);
+    input.moveForwardWordwise();
+    try std.testing.expectEqualStrings("foo.", input.buf.firstHalf());
+    input.moveForwardWordwise();
+    try std.testing.expectEqualStrings("foo.bar.", input.buf.firstHalf());
+    input.moveForwardWordwise();
+    try std.testing.expectEqualStrings("foo.bar.baz", input.buf.firstHalf());
+}
+
+test "deleteWordBefore with hyphens" {
+    var input = TextInput.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("hello-world");
+    input.deleteWordBefore();
+    // Should delete "world" only: "hello-|"
+    try std.testing.expectEqualStrings("hello-", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("", input.buf.secondHalf());
+    input.deleteWordBefore();
+    // Should skip "-" and delete "hello": "|"
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+}
+
+test "deleteWordBeforeWhitespace deletes to whitespace" {
+    var input = TextInput.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("hello-world foo.bar");
+    input.deleteWordBeforeWhitespace();
+    // Should delete "foo.bar" (entire whitespace-delimited word)
+    try std.testing.expectEqualStrings("hello-world ", input.buf.firstHalf());
+    input.deleteWordBeforeWhitespace();
+    // Should delete " hello-world"
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+}
+
+test "deleteWordAfter with mixed punctuation" {
+    var input = TextInput.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("foo.bar baz");
+    input.buf.moveGapLeft(input.buf.firstHalf().len);
+    // Cursor at start: "|foo.bar baz"
+    input.deleteWordAfter();
+    // Should delete "foo" then ".": ".bar baz" — wait, readline kill-word skips non-word then word
+    // Actually: skip non-word (none at start), skip word "foo" = delete "foo"
+    // No: kill-word skips word chars first, then non-word chars? Let me think...
+    // readline forward-kill-word: delete forward to end of next word
+    // From "|foo.bar": delete "foo" (word chars), then "." (non-word chars) = "foo."
+    // Actually no. readline kill-word: skip non-word, then skip word. Same as our deleteWordAfter.
+    // From "|foo.bar": no non-word to skip, then skip "foo" = delete "foo" leaving ".bar baz"
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+    try std.testing.expectEqualStrings(".bar baz", input.buf.secondHalf());
+    input.deleteWordAfter();
+    // From "|.bar baz": skip "." (non-word), then skip "bar" (word) = delete ".bar"
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+    try std.testing.expectEqualStrings(" baz", input.buf.secondHalf());
+}
+
+test "word motion with underscores treats them as word chars" {
+    var input = TextInput.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("hello_world-test");
+    input.moveBackwardWordwise();
+    // "test" is a word, should stop before it: "hello_world-|test"
+    try std.testing.expectEqualStrings("hello_world-", input.buf.firstHalf());
+    input.moveBackwardWordwise();
+    // "hello_world" is one word (underscore is word char): "|hello_world-test"
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+}
+
+test "word motion with spaces" {
+    var input = TextInput.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("hello world");
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("hello ", input.buf.firstHalf());
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+}
 
 test "TextInput.zig: Buffer" {
     var gap_buf = Buffer.init(std.testing.allocator);
