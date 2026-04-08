@@ -284,14 +284,15 @@ pub fn moveBackwardWordwise(self: *TextInput) void {
 }
 
 /// Moves the cursor forward by one word using character-class boundaries.
-/// Skips word characters, then skips non-word characters (matching readline forward-word).
+/// Skips non-word characters, then skips word characters — landing at the end of the next word
+/// (matching readline forward-word).
 pub fn moveForwardWordwise(self: *TextInput) void {
     const second_half = self.buf.secondHalf();
     var i: usize = 0;
-    // Skip word characters
-    while (i < second_half.len and isWordChar(second_half[i])) : (i += 1) {}
     // Skip non-word characters
     while (i < second_half.len and !isWordChar(second_half[i])) : (i += 1) {}
+    // Skip word characters
+    while (i < second_half.len and isWordChar(second_half[i])) : (i += 1) {}
     self.buf.moveGapRight(i);
 }
 
@@ -476,7 +477,7 @@ test "moveBackwardWordwise stops at word boundary" {
     try std.testing.expectEqualStrings("hello-world", input.buf.secondHalf());
 }
 
-test "moveForwardWordwise stops at word boundary" {
+test "moveForwardWordwise stops at end of word" {
     var input = TextInput.init(std.testing.allocator);
     defer input.deinit();
     try input.insertSliceAtCursor("hello-world");
@@ -484,11 +485,11 @@ test "moveForwardWordwise stops at word boundary" {
     input.buf.moveGapLeft(input.buf.firstHalf().len);
     // Cursor at start: "|hello-world"
     input.moveForwardWordwise();
-    // Should skip "hello" then "-": "hello-|world"
-    try std.testing.expectEqualStrings("hello-", input.buf.firstHalf());
-    try std.testing.expectEqualStrings("world", input.buf.secondHalf());
+    // Should stop at end of "hello": "hello|-world"
+    try std.testing.expectEqualStrings("hello", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("-world", input.buf.secondHalf());
     input.moveForwardWordwise();
-    // Should skip "world" to end: "hello-world|"
+    // Should skip "-" then stop at end of "world": "hello-world|"
     try std.testing.expectEqualStrings("hello-world", input.buf.firstHalf());
     try std.testing.expectEqualStrings("", input.buf.secondHalf());
 }
@@ -513,10 +514,13 @@ test "moveForwardWordwise with dots" {
     try input.insertSliceAtCursor("foo.bar.baz");
     input.buf.moveGapLeft(input.buf.firstHalf().len);
     input.moveForwardWordwise();
-    try std.testing.expectEqualStrings("foo.", input.buf.firstHalf());
+    // Stops at end of "foo": "foo|.bar.baz"
+    try std.testing.expectEqualStrings("foo", input.buf.firstHalf());
     input.moveForwardWordwise();
-    try std.testing.expectEqualStrings("foo.bar.", input.buf.firstHalf());
+    // Skips "." then stops at end of "bar": "foo.bar|.baz"
+    try std.testing.expectEqualStrings("foo.bar", input.buf.firstHalf());
     input.moveForwardWordwise();
+    // Skips "." then stops at end of "baz": "foo.bar.baz|"
     try std.testing.expectEqualStrings("foo.bar.baz", input.buf.firstHalf());
 }
 
@@ -550,19 +554,12 @@ test "deleteWordAfter with mixed punctuation" {
     defer input.deinit();
     try input.insertSliceAtCursor("foo.bar baz");
     input.buf.moveGapLeft(input.buf.firstHalf().len);
-    // Cursor at start: "|foo.bar baz"
     input.deleteWordAfter();
-    // Should delete "foo" then ".": ".bar baz" — wait, readline kill-word skips non-word then word
-    // Actually: skip non-word (none at start), skip word "foo" = delete "foo"
-    // No: kill-word skips word chars first, then non-word chars? Let me think...
-    // readline forward-kill-word: delete forward to end of next word
-    // From "|foo.bar": delete "foo" (word chars), then "." (non-word chars) = "foo."
-    // Actually no. readline kill-word: skip non-word, then skip word. Same as our deleteWordAfter.
-    // From "|foo.bar": no non-word to skip, then skip "foo" = delete "foo" leaving ".bar baz"
+    // kill-word: skip non-word (none), skip word "foo" → delete "foo"
     try std.testing.expectEqualStrings("", input.buf.firstHalf());
     try std.testing.expectEqualStrings(".bar baz", input.buf.secondHalf());
     input.deleteWordAfter();
-    // From "|.bar baz": skip "." (non-word), then skip "bar" (word) = delete ".bar"
+    // kill-word: skip "." (non-word), skip "bar" (word) → delete ".bar"
     try std.testing.expectEqualStrings("", input.buf.firstHalf());
     try std.testing.expectEqualStrings(" baz", input.buf.secondHalf());
 }

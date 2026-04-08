@@ -365,14 +365,15 @@ pub fn moveBackwardWordwise(self: *TextField) void {
 }
 
 /// Moves the cursor forward by one word using character-class boundaries.
-/// Skips word characters, then skips non-word characters (matching readline forward-word).
+/// Skips non-word characters, then skips word characters — landing at the end of the next word
+/// (matching readline forward-word).
 pub fn moveForwardWordwise(self: *TextField) void {
     const second_half = self.buf.secondHalf();
     var i: usize = 0;
-    // Skip word characters
-    while (i < second_half.len and isWordChar(second_half[i])) : (i += 1) {}
     // Skip non-word characters
     while (i < second_half.len and !isWordChar(second_half[i])) : (i += 1) {}
+    // Skip word characters
+    while (i < second_half.len and isWordChar(second_half[i])) : (i += 1) {}
     self.buf.moveGapRight(i);
 }
 
@@ -635,15 +636,17 @@ test "moveBackwardWordwise stops at word boundary" {
     try std.testing.expectEqualStrings("hello-world", input.buf.secondHalf());
 }
 
-test "moveForwardWordwise stops at word boundary" {
+test "moveForwardWordwise stops at end of word" {
     var input = TextField.init(std.testing.allocator);
     defer input.deinit();
     try input.insertSliceAtCursor("hello-world");
     input.buf.moveGapLeft(input.buf.firstHalf().len);
     input.moveForwardWordwise();
-    try std.testing.expectEqualStrings("hello-", input.buf.firstHalf());
-    try std.testing.expectEqualStrings("world", input.buf.secondHalf());
+    // Stops at end of "hello": "hello|-world"
+    try std.testing.expectEqualStrings("hello", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("-world", input.buf.secondHalf());
     input.moveForwardWordwise();
+    // Skips "-" then stops at end of "world": "hello-world|"
     try std.testing.expectEqualStrings("hello-world", input.buf.firstHalf());
     try std.testing.expectEqualStrings("", input.buf.secondHalf());
 }
@@ -696,12 +699,35 @@ test "deleteWordAfter with mixed punctuation" {
     try std.testing.expectEqualStrings(" baz", input.buf.secondHalf());
 }
 
+test "moveForwardWordwise with dots" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("foo.bar.baz");
+    input.buf.moveGapLeft(input.buf.firstHalf().len);
+    input.moveForwardWordwise();
+    try std.testing.expectEqualStrings("foo", input.buf.firstHalf());
+    input.moveForwardWordwise();
+    try std.testing.expectEqualStrings("foo.bar", input.buf.firstHalf());
+    input.moveForwardWordwise();
+    try std.testing.expectEqualStrings("foo.bar.baz", input.buf.firstHalf());
+}
+
 test "word motion with underscores treats them as word chars" {
     var input = TextField.init(std.testing.allocator);
     defer input.deinit();
     try input.insertSliceAtCursor("hello_world-test");
     input.moveBackwardWordwise();
     try std.testing.expectEqualStrings("hello_world-", input.buf.firstHalf());
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+}
+
+test "word motion with spaces" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("hello world");
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("hello ", input.buf.firstHalf());
     input.moveBackwardWordwise();
     try std.testing.expectEqualStrings("", input.buf.firstHalf());
 }
