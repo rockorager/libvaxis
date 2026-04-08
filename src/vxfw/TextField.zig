@@ -738,6 +738,18 @@ test "word motion with non-ASCII text" {
     try std.testing.expectEqualStrings("-latte", input.buf.secondHalf());
 }
 
+test "non-ASCII punctuation treated as word chars" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    // Em dash (U+2014, 3 bytes: E2 80 94) has bytes >= 0x80, so all bytes are
+    // classified as word chars. The entire string is one continuous "word" — the
+    // em dash does NOT act as a separator. This is a known limitation of the
+    // byte-based classifier.
+    try input.insertSliceAtCursor("hello\xe2\x80\x94world");
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+}
+
 test "deleteWordBefore with non-ASCII text" {
     var input = TextField.init(std.testing.allocator);
     defer input.deinit();
