@@ -11,7 +11,6 @@ const Model = struct {
 
     /// Used for filtered RichText Spans and result
     arena: std.heap.ArenaAllocator,
-    filtered: std.ArrayList(vxfw.RichText),
     result: []const u8,
 
     pub fn init(gpa: std.mem.Allocator) !*Model {
