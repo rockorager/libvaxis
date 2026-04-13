@@ -39,13 +39,15 @@ fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) Allocator.Error!vxfw
 /// before drawing the child. If the size is unbounded, border will draw the child and then itself
 /// around the childs size
 pub fn draw(self: *const Border, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surface {
+    const min_width: u16 = ctx.min.width -| 2;
+    const min_height: u16 = ctx.min.height -| 2;
     const max_width: ?u16 = if (ctx.max.width) |width| width -| 2 else null;
     const max_height: ?u16 = if (ctx.max.height) |height| height -| 2 else null;
 
-    const child_ctx = ctx.withConstraints(ctx.min, .{
-        .width = max_width,
-        .height = max_height,
-    });
+    const child_ctx = ctx.withConstraints(
+        .{ .width = min_width, .height = min_height },
+        .{ .width = max_width, .height = max_height },
+    );
     const child = try self.child.draw(child_ctx);
 
     const children = try ctx.arena.alloc(vxfw.SubSurface, 1);
