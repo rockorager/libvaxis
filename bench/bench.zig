@@ -1,5 +1,6 @@
 const std = @import("std");
 const vaxis = @import("vaxis");
+const ascii = vaxis.ascii;
 
 fn parseIterations(allocator: std.mem.Allocator) !usize {
     var args = try std.process.argsWithAllocator(allocator);
@@ -18,6 +19,56 @@ fn printResults(writer: anytype, label: []const u8, iterations: usize, elapsed_n
         "{s}: frames={d} total_ns={d} ns/frame={d} bytes={d} bytes/frame={d}\n",
         .{ label, iterations, elapsed_ns, ns_per_frame, total_bytes, bytes_per_frame },
     );
+}
+
+fn benchParseStreamBaseline(writer: anytype, label: []const u8, parser: *vaxis.Parser, input: []const u8, iterations: usize) !void {
+    var timer = try std.time.Timer.start();
+    var i: usize = 0;
+    while (i < iterations) : (i += 1) {
+        var idx: usize = 0;
+        while (idx < input.len) {
+            const result = try parser.parse(input[idx..], null);
+            if (result.n == 0) break;
+            idx += result.n;
+            std.mem.doNotOptimizeAway(result);
+        }
+        std.mem.doNotOptimizeAway(idx);
+    }
+    const elapsed_ns = timer.read();
+    try printResults(writer, label, iterations, elapsed_ns, input.len * iterations);
+}
+
+fn benchParseStreamSimd(writer: anytype, label: []const u8, parser: *vaxis.Parser, input: []const u8, iterations: usize) !void {
+    var timer = try std.time.Timer.start();
+    var i: usize = 0;
+    while (i < iterations) : (i += 1) {
+        var idx: usize = 0;
+        while (idx < input.len) {
+            const slice = input[idx..];
+            const ascii_len = ascii.fastPathLen(slice);
+            if (ascii_len > 0) {
+                var j: usize = 0;
+                while (j < ascii_len) : (j += 1) {
+                    const key: vaxis.Key = .{
+                        .codepoint = slice[j],
+                        .text = slice[j .. j + 1],
+                    };
+                    const event: vaxis.Event = .{ .key_press = key };
+                    std.mem.doNotOptimizeAway(event);
+                }
+                idx += ascii_len;
+                continue;
+            }
+
+            const result = try parser.parse(slice, null);
+            if (result.n == 0) break;
+            idx += result.n;
+            std.mem.doNotOptimizeAway(result);
+        }
+        std.mem.doNotOptimizeAway(idx);
+    }
+    const elapsed_ns = timer.read();
+    try printResults(writer, label, iterations, elapsed_ns, input.len * iterations);
 }
 
 pub fn main() !void {
@@ -59,4 +110,14 @@ pub fn main() !void {
     const dirty_ns = timer.read();
     const dirty_bytes: usize = dirty_writer.writer.end;
     try printResults(stdout, "dirty", iterations, dirty_ns, dirty_bytes);
+
+    var parser_baseline: vaxis.Parser = .{};
+    var parser_simd: vaxis.Parser = .{};
+    const mixed_stream = "The quick brown fox jumps over the lazy dog " ++
+        "1234567890 !@#$%^&*() " ++
+        "\x1b[A" ++
+        "世界 1️⃣ 👩‍🚀!" ++
+        "\r";
+    try benchParseStreamBaseline(stdout, "parse_stream_loop_baseline", &parser_baseline, mixed_stream, iterations);
+    try benchParseStreamSimd(stdout, "parse_stream_loop_simd", &parser_simd, mixed_stream, iterations);
 }

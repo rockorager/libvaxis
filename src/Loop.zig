@@ -5,6 +5,7 @@ const GraphemeCache = @import("GraphemeCache.zig");
 const Parser = @import("Parser.zig");
 const Queue = @import("queue.zig").Queue;
 const vaxis = @import("main.zig");
+const ascii = @import("ascii.zig");
 const Tty = vaxis.Tty;
 const Vaxis = @import("Vaxis.zig");
 
@@ -135,17 +136,36 @@ pub fn Loop(comptime T: type) type {
                     // read loop
                     read_loop: while (!self.should_quit) {
                         const n = try self.tty.read(buf[read_start..]);
+                        const total = read_start + n;
                         var seq_start: usize = 0;
-                        while (seq_start < n) {
-                            const result = try parser.parse(buf[seq_start..n], paste_allocator);
+                        while (seq_start < total) {
+                            if (@hasField(Event, "key_press")) {
+                                const input = buf[seq_start..total];
+                                const ascii_len = ascii.fastPathLen(input);
+                                if (ascii_len > 0) {
+                                    var i: usize = 0;
+                                    while (i < ascii_len) : (i += 1) {
+                                        const key: vaxis.Key = .{
+                                            .codepoint = input[i],
+                                            .text = input[i .. i + 1],
+                                        };
+                                        const event: Event = .{ .key_press = key };
+                                        try handleEventGeneric(self, self.vaxis, &cache, Event, event, paste_allocator);
+                                    }
+                                    read_start = 0;
+                                    seq_start += ascii_len;
+                                    continue;
+                                }
+                            }
+                            const result = try parser.parse(buf[seq_start..total], paste_allocator);
                             if (result.n == 0) {
                                 // copy the read to the beginning. We don't use memcpy because
                                 // this could be overlapping, and it's also rare
                                 const initial_start = seq_start;
-                                while (seq_start < n) : (seq_start += 1) {
+                                while (seq_start < total) : (seq_start += 1) {
                                     buf[seq_start - initial_start] = buf[seq_start];
                                 }
-                                read_start = seq_start - initial_start + 1;
+                                read_start = total - initial_start;
                                 continue :read_loop;
                             }
                             read_start = 0;
