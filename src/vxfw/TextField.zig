@@ -1,4 +1,5 @@
 const std = @import("std");
+const uucode = @import("uucode");
 const vaxis = @import("../main.zig");
 
 const vxfw = @import("vxfw.zig");
@@ -346,11 +347,69 @@ pub fn deleteAfterCursor(self: *TextField) void {
     self.buf.growGapRight(grapheme.len);
 }
 
-/// Returns true if the byte is a word constituent: ASCII alnum, underscore,
-/// or any non-ASCII byte (part of a multi-byte UTF-8 sequence). This ensures
-/// word motion never splits inside non-ASCII characters like accented letters.
-fn isWordChar(c: u8) bool {
-    return std.ascii.isAlphanumeric(c) or c == '_' or c >= 0x80;
+const DecodedCodepoint = struct {
+    cp: u21,
+    start: usize,
+    len: usize,
+};
+
+fn decodeCodepointAt(bytes: []const u8, start: usize) DecodedCodepoint {
+    const first = bytes[start];
+    const len = std.unicode.utf8ByteSequenceLength(first) catch 1;
+    const capped_len = @min(len, bytes.len - start);
+    const slice = bytes[start .. start + capped_len];
+    const cp = std.unicode.utf8Decode(slice) catch {
+        return .{ .cp = first, .start = start, .len = 1 };
+    };
+    return .{ .cp = cp, .start = start, .len = capped_len };
+}
+
+fn isUtf8ContinuationByte(c: u8) bool {
+    return (c & 0b1100_0000) == 0b1000_0000;
+}
+
+fn decodeCodepointBefore(bytes: []const u8, end: usize) DecodedCodepoint {
+    var start = end - 1;
+    while (start > 0 and isUtf8ContinuationByte(bytes[start])) : (start -= 1) {}
+    const slice = bytes[start..end];
+    const cp = std.unicode.utf8Decode(slice) catch {
+        return .{ .cp = bytes[end - 1], .start = end - 1, .len = 1 };
+    };
+    return .{ .cp = cp, .start = start, .len = end - start };
+}
+
+/// Returns true if the codepoint is a readline-style word constituent.
+fn isWordCodepoint(cp: u21) bool {
+    if (cp == '_') return true;
+    return switch (uucode.get(.general_category, cp)) {
+        .letter_uppercase,
+        .letter_lowercase,
+        .letter_titlecase,
+        .letter_modifier,
+        .letter_other,
+        .number_decimal_digit,
+        .number_letter,
+        .number_other,
+        .mark_nonspacing,
+        .mark_spacing_combining,
+        .mark_enclosing,
+        .punctuation_connector,
+        => true,
+        else => false,
+    };
+}
+
+fn isWhitespaceCodepoint(cp: u21) bool {
+    return switch (cp) {
+        ' ', '\t', '\n', '\r', 0x0b, 0x0c, 0x85 => true,
+        else => switch (uucode.get(.general_category, cp)) {
+            .separator_space,
+            .separator_line,
+            .separator_paragraph,
+            => true,
+            else => false,
+        },
+    };
 }
 
 /// Moves the cursor backward by one word using character-class boundaries.
@@ -359,9 +418,17 @@ pub fn moveBackwardWordwise(self: *TextField) void {
     const first_half = self.buf.firstHalf();
     var i: usize = first_half.len;
     // Skip non-word characters
-    while (i > 0 and !isWordChar(first_half[i - 1])) : (i -= 1) {}
+    while (i > 0) {
+        const decoded = decodeCodepointBefore(first_half, i);
+        if (isWordCodepoint(decoded.cp)) break;
+        i = decoded.start;
+    }
     // Skip word characters
-    while (i > 0 and isWordChar(first_half[i - 1])) : (i -= 1) {}
+    while (i > 0) {
+        const decoded = decodeCodepointBefore(first_half, i);
+        if (!isWordCodepoint(decoded.cp)) break;
+        i = decoded.start;
+    }
     self.buf.moveGapLeft(self.buf.cursor - i);
 }
 
@@ -372,9 +439,17 @@ pub fn moveForwardWordwise(self: *TextField) void {
     const second_half = self.buf.secondHalf();
     var i: usize = 0;
     // Skip non-word characters
-    while (i < second_half.len and !isWordChar(second_half[i])) : (i += 1) {}
+    while (i < second_half.len) {
+        const decoded = decodeCodepointAt(second_half, i);
+        if (isWordCodepoint(decoded.cp)) break;
+        i += decoded.len;
+    }
     // Skip word characters
-    while (i < second_half.len and isWordChar(second_half[i])) : (i += 1) {}
+    while (i < second_half.len) {
+        const decoded = decodeCodepointAt(second_half, i);
+        if (!isWordCodepoint(decoded.cp)) break;
+        i += decoded.len;
+    }
     self.buf.moveGapRight(i);
 }
 
@@ -392,9 +467,17 @@ pub fn deleteWordBeforeWhitespace(self: *TextField) void {
     const first_half = self.buf.firstHalf();
     var i: usize = first_half.len;
     // Skip trailing whitespace
-    while (i > 0 and std.ascii.isWhitespace(first_half[i - 1])) : (i -= 1) {}
+    while (i > 0) {
+        const decoded = decodeCodepointBefore(first_half, i);
+        if (!isWhitespaceCodepoint(decoded.cp)) break;
+        i = decoded.start;
+    }
     // Skip non-whitespace
-    while (i > 0 and !std.ascii.isWhitespace(first_half[i - 1])) : (i -= 1) {}
+    while (i > 0) {
+        const decoded = decodeCodepointBefore(first_half, i);
+        if (isWhitespaceCodepoint(decoded.cp)) break;
+        i = decoded.start;
+    }
     const to_delete = self.buf.cursor - i;
     self.buf.moveGapLeft(to_delete);
     self.buf.growGapRight(to_delete);
@@ -406,9 +489,17 @@ pub fn deleteWordAfter(self: *TextField) void {
     const second_half = self.buf.secondHalf();
     var i: usize = 0;
     // Skip non-word characters
-    while (i < second_half.len and !isWordChar(second_half[i])) : (i += 1) {}
+    while (i < second_half.len) {
+        const decoded = decodeCodepointAt(second_half, i);
+        if (isWordCodepoint(decoded.cp)) break;
+        i += decoded.len;
+    }
     // Skip word characters
-    while (i < second_half.len and isWordChar(second_half[i])) : (i += 1) {}
+    while (i < second_half.len) {
+        const decoded = decodeCodepointAt(second_half, i);
+        if (!isWordCodepoint(decoded.cp)) break;
+        i += decoded.len;
+    }
     self.buf.growGapRight(i);
 }
 
@@ -738,16 +829,27 @@ test "word motion with non-ASCII text" {
     try std.testing.expectEqualStrings("-latte", input.buf.secondHalf());
 }
 
-test "non-ASCII punctuation treated as word chars" {
+test "non-ASCII punctuation acts as a separator" {
     var input = TextField.init(std.testing.allocator);
     defer input.deinit();
-    // Em dash (U+2014, 3 bytes: E2 80 94) has bytes >= 0x80, so all bytes are
-    // classified as word chars. The entire string is one continuous "word" — the
-    // em dash does NOT act as a separator. This is a known limitation of the
-    // byte-based classifier.
-    try input.insertSliceAtCursor("hello\xe2\x80\x94world");
+    try input.insertSliceAtCursor("hello\u{2014}world");
     input.moveBackwardWordwise();
-    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("hello\u{2014}", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("world", input.buf.secondHalf());
+
+    input.buf.moveGapLeft(input.buf.firstHalf().len);
+    input.moveForwardWordwise();
+    try std.testing.expectEqualStrings("hello", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("\u{2014}world", input.buf.secondHalf());
+}
+
+test "deleteWordBeforeWhitespace handles unicode whitespace" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("hello\u{3000}world");
+    input.deleteWordBeforeWhitespace();
+    try std.testing.expectEqualStrings("hello\u{3000}", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("", input.buf.secondHalf());
 }
 
 test "deleteWordBefore with non-ASCII text" {
