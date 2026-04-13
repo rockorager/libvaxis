@@ -30,6 +30,8 @@ pub const TransmitMedium = enum {
 pub const Placement = struct {
     img_id: u32,
     options: Image.DrawOptions,
+    src_width_px: u16 = 0,
+    src_height_px: u16 = 0,
 };
 
 pub const CellSize = struct {
@@ -164,6 +166,8 @@ pub fn draw(self: Image, win: Window, opts: DrawOptions) !void {
     const p = Placement{
         .img_id = self.id,
         .options = p_opts,
+        .src_width_px = self.width,
+        .src_height_px = self.height,
     };
     win.writeCell(0, 0, .{ .image = p });
 }
