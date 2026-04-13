@@ -350,8 +350,8 @@ const MouseHandler = struct {
             .z_index = 0,
         };
         const mouse_point: vxfw.Point = .{
-            .row = @intCast(mouse.row),
-            .col = @intCast(mouse.col),
+            .row = if (mouse.row < 0) 0 else @intCast(mouse.row),
+            .col = if (mouse.col < 0) 0 else @intCast(mouse.col),
         };
         if (sub.containsPoint(mouse_point)) {
             try last_frame.hitTest(app.allocator, &hits, mouse_point);
@@ -409,8 +409,8 @@ const MouseHandler = struct {
             .z_index = 0,
         };
         const mouse_point: vxfw.Point = .{
-            .row = @intCast(mouse.row),
-            .col = @intCast(mouse.col),
+            .row = if (mouse.row < 0) 0 else @intCast(mouse.row),
+            .col = if (mouse.col < 0) 0 else @intCast(mouse.col),
         };
         if (sub.containsPoint(mouse_point)) {
             try last_frame.hitTest(app.allocator, &hits, mouse_point);
