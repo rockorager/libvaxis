@@ -21,6 +21,7 @@ pub fn main() !void {
 
     // Users set up below the main function
     const users_buf = try alloc.dupe(User, users[0..]);
+    defer alloc.free(users_buf);
 
     var buffer: [1024]u8 = undefined;
     var tty = try vaxis.Tty.init(&buffer);
@@ -34,7 +35,6 @@ pub fn main() !void {
     var loop: vaxis.Loop(union(enum) {
         key_press: vaxis.Key,
         winsize: vaxis.Winsize,
-        table_upd,
     }) = .{ .tty = &tty, .vaxis = &vx };
     try loop.init();
     try loop.start();
@@ -187,7 +187,6 @@ pub fn main() !void {
                 moving = false;
             },
             .winsize => |ws| try vx.resize(alloc, tty.writer(), ws),
-            else => {},
         }
 
         // Content
@@ -237,7 +236,6 @@ pub fn main() !void {
                     return see_win.height;
                 }
             }.see;
-            loop.postEvent(.table_upd);
         }
 
         // Sections
