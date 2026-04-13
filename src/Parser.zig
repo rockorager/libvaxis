@@ -83,6 +83,18 @@ inline fn parseGround(input: []const u8) !Result {
     std.debug.assert(input.len > 0);
 
     const b = input[0];
+    // Fast path for printable ASCII only (0x20..0x7E). Control bytes are
+    // mapped to special key handling and ESC can start control sequences.
+    // Require the next byte to be ASCII (or absent) to avoid multi-codepoint
+    // graphemes like combining marks/keycap sequences that start with ASCII
+    // but continue with non-ASCII bytes.
+    if (b >= 0x20 and b <= 0x7E and (input.len == 1 or input[1] < 0x80)) {
+        return .{
+            .event = .{ .key_press = .{ .codepoint = b, .text = input[0..1] } },
+            .n = 1,
+        };
+    }
+
     var n: usize = 1;
     // ground state generates keypresses when parsing input. We
     // generally get ascii characters, but anything less than
