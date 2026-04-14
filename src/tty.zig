@@ -27,6 +27,8 @@ else switch (builtin.os.tag) {
 pub var global_tty: ?Tty = null;
 
 pub const PosixTty = struct {
+    io: std.Io,
+
     /// the original state of the terminal, prior to calling makeRaw
     termios: posix.termios,
 
@@ -34,7 +36,7 @@ pub const PosixTty = struct {
     fd: std.Io.File,
 
     /// File.Writer for efficient buffered writing
-    tty_writer: std.fs.File.Writer,
+    tty_writer: std.Io.File.Writer,
 
     pub const SignalHandler = struct {
         context: *anyopaque,
@@ -43,7 +45,8 @@ pub const PosixTty = struct {
 
     /// global signal handlers
     var handlers: [8]SignalHandler = undefined;
-    var handler_mutex: std.Thread.Mutex = .{};
+    var handler_io: std.Io = undefined;
+    var handler_mutex: std.Io.Mutex = .init;
     var handler_idx: usize = 0;
 
     var handler_installed: bool = false;
@@ -54,28 +57,31 @@ pub const PosixTty = struct {
     pub fn init(io: std.Io, buffer: []u8) !PosixTty {
         // Open our tty
         var f = try std.Io.Dir.openFileAbsolute(io, "/dev/tty", .{ .mode = .read_write });
-        // const fd = try posix.open("/dev/tty", .{ .ACCMODE = .RDWR }, 0);
 
         // Set the termios of the tty
         const termios = try makeRaw(f.handle);
 
-        var act = posix.Sigaction{
-            .handler = .{ .handler = PosixTty.handleWinch },
-            .mask = switch (builtin.os.tag) {
-                .macos => 0,
-                else => posix.sigemptyset(),
-            },
-            .flags = 0,
-        };
-        posix.sigaction(posix.SIG.WINCH, &act, null);
-        handler_installed = true;
+        if (!handler_installed) {
+            var act = posix.Sigaction{
+                .handler = .{ .handler = PosixTty.handleWinch },
+                .mask = switch (builtin.os.tag) {
+                    .macos => 0,
+                    else => posix.sigemptyset(),
+                },
+                .flags = 0,
+            };
+            posix.sigaction(posix.SIG.WINCH, &act, null);
+            handler_io = io;
+            handler_installed = true;
+        }
 
         // const file = std.fs.File{ .handle = fd };
 
         const self: PosixTty = .{
+            .io = io,
             .fd = f,
             .termios = termios,
-            .tty_writer = f.readerStreaming(io, &buffer),
+            .tty_writer = f.writerStreaming(io, buffer),
         };
 
         global_tty = self;
@@ -85,11 +91,11 @@ pub const PosixTty = struct {
 
     /// release resources associated with the Tty return it to its original state
     pub fn deinit(self: PosixTty) void {
-        posix.tcsetattr(self.fd, .FLUSH, self.termios) catch |err| {
+        posix.tcsetattr(self.fd.handle, .FLUSH, self.termios) catch |err| {
             std.log.err("couldn't restore terminal: {}", .{err});
         };
         if (builtin.os.tag != .macos) // closing /dev/tty may block indefinitely on macos
-            posix.close(self.fd);
+            self.fd.close(self.io);
     }
 
     /// Resets the signal handler to it's default
@@ -112,22 +118,22 @@ pub const PosixTty = struct {
     }
 
     pub fn read(self: *const PosixTty, buf: []u8) !usize {
-        return posix.read(self.fd, buf);
+        return try self.fd.readStreaming(self.io, &.{buf});
     }
 
     /// Install a signal handler for winsize. A maximum of 8 handlers may be
     /// installed
     pub fn notifyWinsize(handler: SignalHandler) !void {
-        handler_mutex.lock();
-        defer handler_mutex.unlock();
+        try handler_mutex.lock(handler_io);
+        defer handler_mutex.unlock(handler_io);
         if (handler_idx == handlers.len) return error.OutOfMemory;
         handlers[handler_idx] = handler;
         handler_idx += 1;
     }
 
-    fn handleWinch(_: c_int) callconv(.c) void {
-        handler_mutex.lock();
-        defer handler_mutex.unlock();
+    fn handleWinch(_: std.posix.SIG) callconv(.c) void {
+        handler_mutex.lock(handler_io) catch @panic("unable to lock SIGWINCH handlers");
+        defer handler_mutex.unlock(handler_io);
         var i: usize = 0;
         while (i < handler_idx) : (i += 1) {
             const handler = handlers[i];
@@ -167,7 +173,7 @@ pub const PosixTty = struct {
     }
 
     /// Get the window size from the kernel
-    pub fn getWinsize(fd: posix.fd_t) !Winsize {
+    pub fn getWinsize(self: *PosixTty) !Winsize {
         var winsize = posix.winsize{
             .row = 0,
             .col = 0,
@@ -175,7 +181,7 @@ pub const PosixTty = struct {
             .ypixel = 0,
         };
 
-        const err = posix.system.ioctl(fd, posix.T.IOCGWINSZ, @intFromPtr(&winsize));
+        const err = posix.system.ioctl(self.fd.handle, posix.T.IOCGWINSZ, @intFromPtr(&winsize));
         if (posix.errno(err) == .SUCCESS)
             return Winsize{
                 .rows = winsize.row,
