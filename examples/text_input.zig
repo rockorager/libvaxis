@@ -18,20 +18,13 @@ const Event = union(enum) {
     foo: u8,
 };
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer {
-        const deinit_status = gpa.deinit();
-        //fail test; can't try in defer as defer is executed after we return
-        if (deinit_status == .leak) {
-            log.err("memory leak", .{});
-        }
-    }
-    const alloc = gpa.allocator();
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+    const alloc = init.gpa;
 
     // Initalize a tty
     var buffer: [1024]u8 = undefined;
-    var tty = try vaxis.Tty.init(&buffer);
+    var tty = try vaxis.Tty.init(io, &buffer);
     defer tty.deinit();
 
     // Use a buffered writer for better performance. There are a lot of writes
@@ -39,7 +32,7 @@ pub fn main() !void {
     const writer = tty.writer();
 
     // Initialize Vaxis
-    var vx = try vaxis.init(alloc, .{
+    var vx = try vaxis.init(io, alloc, init.environ_map, .{
         .kitty_keyboard_flags = .{ .report_events = true },
     });
     defer vx.deinit(alloc, tty.writer());
@@ -48,7 +41,7 @@ pub fn main() !void {
         .vaxis = &vx,
         .tty = &tty,
     };
-    try loop.init();
+    try loop.init(io);
 
     // Start the read loop. This puts the terminal in raw mode and begins
     // reading user input
@@ -77,7 +70,7 @@ pub fn main() !void {
     // queue which can serve as the primary event queue for an application
     while (true) {
         // nextEvent blocks until an event is in the queue
-        const event = loop.nextEvent();
+        const event = try loop.nextEvent();
         log.debug("event: {}", .{event});
         // exhaustive switching ftw. Vaxis will send events if your Event
         // enum has the fields for those events (ie "key_press", "winsize")
@@ -94,8 +87,13 @@ pub fn main() !void {
                 } else if (key.matches('n', .{ .ctrl = true })) {
                     try vx.notify(tty.writer(), "vaxis", "hello from vaxis");
                     loop.stop();
-                    var child = std.process.Child.init(&.{"nvim"}, alloc);
-                    _ = try child.spawnAndWait();
+                    var child = try std.process.spawn(io, .{
+                        .argv = &.{"nvim"},
+                        .stdin = .inherit,
+                        .stdout = .inherit,
+                        .stderr = .inherit,
+                    });
+                    _ = try child.wait(io);
                     try loop.start();
                     try vx.enterAltScreen(tty.writer());
                     vx.queueRefresh();

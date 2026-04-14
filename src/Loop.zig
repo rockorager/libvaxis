@@ -66,14 +66,14 @@ pub fn Loop(comptime T: type) type {
         }
 
         /// returns the next available event, blocking until one is available
-        pub fn nextEvent(self: *Self) T {
-            return self.queue.pop();
+        pub fn nextEvent(self: *Self) !T {
+            return try self.queue.pop();
         }
 
         /// blocks until an event is available. Useful when your application is
         /// operating on a poll + drain architecture (see tryEvent)
-        pub fn pollEvent(self: *Self) void {
-            self.queue.poll();
+        pub fn pollEvent(self: *Self) !void {
+            try self.queue.poll();
         }
 
         /// returns an event if one is available, otherwise null. Non-blocking.
@@ -83,12 +83,12 @@ pub fn Loop(comptime T: type) type {
 
         /// posts an event into the event queue. Will block if there is not
         /// capacity for the event
-        pub fn postEvent(self: *Self, event: T) void {
-            self.queue.push(event);
+        pub fn postEvent(self: *Self, event: T) !void {
+            try self.queue.push(event);
         }
 
-        pub fn tryPostEvent(self: *Self, event: T) bool {
-            return self.queue.tryPush(event);
+        pub fn tryPostEvent(self: *Self, event: T) !bool {
+            return try self.queue.tryPush(event);
         }
 
         pub fn winsizeCallback(ptr: *anyopaque) void {
@@ -96,9 +96,9 @@ pub fn Loop(comptime T: type) type {
             // We will be receiving winsize updates in-band
             if (self.vaxis.state.in_band_resize) return;
 
-            const winsize = Tty.getWinsize(self.tty.fd) catch return;
+            const winsize = self.tty.getWinsize() catch return;
             if (@hasField(Event, "winsize")) {
-                self.postEvent(.{ .winsize = winsize });
+                self.postEvent(.{ .winsize = winsize }) catch {};
             }
         }
 
@@ -123,9 +123,9 @@ pub fn Loop(comptime T: type) type {
                 },
                 else => {
                     // get our initial winsize
-                    const winsize = try Tty.getWinsize(self.tty.fd);
+                    const winsize = try self.tty.getWinsize();
                     if (@hasField(Event, "winsize")) {
-                        self.postEvent(.{ .winsize = winsize });
+                        try self.postEvent(.{ .winsize = winsize });
                     }
 
                     var parser: Parser = .{};
@@ -360,7 +360,7 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                     vx.caps.multi_cursor = true;
                 },
                 .cap_da1 => {
-                    std.Thread.Futex.wake(&vx.query_futex, 10);
+                    std.Io.futexWake(vx.io, std.atomic.Value(u32), &vx.query_futex, 10);
                     vx.queries_done.store(true, .unordered);
                 },
                 .winsize => |winsize| {
