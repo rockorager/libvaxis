@@ -5,8 +5,8 @@
     .minimum_zig_version = "0.15.1",
     .dependencies = .{
         .zigimg = .{
-            .url = "git+https://github.com/zigimg/zigimg#eab2522c023b9259db8b13f2f90d609b7437e5f6",
-            .hash = "zigimg-0.1.0-8_eo2vUZFgAAtN1c6dAO5DdqL0d4cEWHtn6iR5ucZJti",
+            .url = "git+https://github.com/GasInfinity-Forks/zigimg?ref=0.16.x#c474a50ce9ec79ae726ee3f86fe08d530ff91e78",
+            .hash = "zigimg-0.1.0-8_eo2gCZFwA239CedNPHzAkZMxkUxQpLBq3UrataPX1x",
         },
         .uucode = .{
             .url = "git+https://github.com/jcollie/uucode#0079a52812bc675eb5f031252391c3fc18f21973",

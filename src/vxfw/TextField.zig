@@ -655,6 +655,8 @@ test "TextField.zig: Buffer" {
 }
 
 test TextField {
+    const io = std.testing.io;
+
     // Boiler plate draw context init
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
@@ -683,6 +685,7 @@ test TextField {
     _ = draw_ctx;
 
     var ctx: vxfw.EventContext = .{
+        .io = io,
         .alloc = arena.allocator(),
         .cmds = .empty,
     };

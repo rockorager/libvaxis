@@ -10,6 +10,7 @@ const Spinner = @This();
 const frames: []const []const u8 = &.{ "⣶", "⣧", "⣏", "⡟", "⠿", "⢻", "⣹", "⣼" };
 const time_lapse: u32 = std.time.ms_per_s / 12; // 12 fps
 
+io: std.Io,
 count: std.atomic.Value(u16) = .{ .raw = 0 },
 style: vaxis.Style = .{},
 /// The frame index
@@ -24,7 +25,7 @@ pub fn start(self: *Spinner) ?vxfw.Command {
     self.was_spinning.store(true, .unordered);
     const count = self.count.fetchAdd(1, .monotonic);
     if (count == 0) {
-        return vxfw.Tick.in(time_lapse, self.widget());
+        return vxfw.Tick.in(self.io, time_lapse, self.widget());
     }
     return null;
 }
@@ -104,7 +105,7 @@ test Spinner {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     // Create a spinner
-    var spinner: Spinner = .{};
+    var spinner: Spinner = .{ .io = std.testing.io };
     // Get our widget interface
     const spinner_widget = spinner.widget();
 
@@ -124,6 +125,7 @@ test Spinner {
     // We are about to deliver the tick to the widget. We need an EventContext (the engine will
     // provide this)
     var ctx: vxfw.EventContext = .{
+        .io = std.testing.io,
         .alloc = arena.allocator(),
         .cmds = .empty,
     };

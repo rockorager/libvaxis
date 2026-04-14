@@ -562,6 +562,7 @@ test ListView {
     };
     // Event handlers need a context
     var ctx: vxfw.EventContext = .{
+        .io = std.testing.io,
         .alloc = std.testing.allocator,
         .cmds = .empty,
     };
@@ -729,6 +730,7 @@ test "ListView: uneven scroll" {
     };
     // Event handlers need a context
     var ctx: vxfw.EventContext = .{
+        .io = std.testing.io,
         .alloc = std.testing.allocator,
         .cmds = .empty,
     };

@@ -43,8 +43,8 @@ pub const Winsize = struct {
 };
 
 /// Initialize a Vaxis application.
-pub fn init(alloc: std.mem.Allocator, opts: Vaxis.Options) !Vaxis {
-    return Vaxis.init(alloc, opts);
+pub fn init(io: std.Io, alloc: std.mem.Allocator, env_map: *std.process.Environ.Map, opts: Vaxis.Options) !Vaxis {
+    return Vaxis.init(io, alloc, env_map, opts);
 }
 
 pub const Panic = struct {

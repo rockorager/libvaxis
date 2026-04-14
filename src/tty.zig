@@ -31,7 +31,7 @@ pub const PosixTty = struct {
     termios: posix.termios,
 
     /// The file descriptor of the tty
-    fd: posix.fd_t,
+    fd: std.Io.File,
 
     /// File.Writer for efficient buffered writing
     tty_writer: std.fs.File.Writer,
@@ -51,12 +51,13 @@ pub const PosixTty = struct {
     /// initializes a Tty instance by opening /dev/tty and "making it raw". A
     /// signal handler is installed for SIGWINCH. No callbacks are installed, be
     /// sure to register a callback when initializing the event loop
-    pub fn init(buffer: []u8) !PosixTty {
+    pub fn init(io: std.Io, buffer: []u8) !PosixTty {
         // Open our tty
-        const fd = try posix.open("/dev/tty", .{ .ACCMODE = .RDWR }, 0);
+        var f = try std.Io.Dir.openFileAbsolute(io, "/dev/tty", .{ .mode = .read_write });
+        // const fd = try posix.open("/dev/tty", .{ .ACCMODE = .RDWR }, 0);
 
         // Set the termios of the tty
-        const termios = try makeRaw(fd);
+        const termios = try makeRaw(f.handle);
 
         var act = posix.Sigaction{
             .handler = .{ .handler = PosixTty.handleWinch },
@@ -69,12 +70,12 @@ pub const PosixTty = struct {
         posix.sigaction(posix.SIG.WINCH, &act, null);
         handler_installed = true;
 
-        const file = std.fs.File{ .handle = fd };
+        // const file = std.fs.File{ .handle = fd };
 
         const self: PosixTty = .{
-            .fd = fd,
+            .fd = f,
             .termios = termios,
-            .tty_writer = .initStreaming(file, buffer),
+            .tty_writer = f.readerStreaming(io, &buffer),
         };
 
         global_tty = self;
@@ -692,6 +693,7 @@ pub const WindowsTty = struct {
 };
 
 pub const TestTty = struct {
+    const linux = std.os.linux;
     /// Used for API compat
     fd: posix.fd_t,
     pipe_read: posix.fd_t,
@@ -702,21 +704,26 @@ pub const TestTty = struct {
     pub fn init(buffer: []u8) !TestTty {
         _ = buffer;
 
-        if (builtin.os.tag == .windows) return error.SkipZigTest;
+        if (builtin.os.tag != .linux) return error.SkipZigTest;
         const list = try std.testing.allocator.create(std.Io.Writer.Allocating);
         list.* = .init(std.testing.allocator);
-        const r, const w = try posix.pipe();
+        var fds: [2]i32 = undefined;
+        const rc = linux.pipe(&fds);
+        switch (linux.errno(rc)) {
+            .SUCCESS => {},
+            else => return error.PipeCreateFailed,
+        }
         return .{
-            .fd = r,
-            .pipe_read = r,
-            .pipe_write = w,
+            .fd = fds[0],
+            .pipe_read = fds[0],
+            .pipe_write = fds[0],
             .tty_writer = list,
         };
     }
 
     pub fn deinit(self: TestTty) void {
-        std.posix.close(self.pipe_read);
-        std.posix.close(self.pipe_write);
+        _ = linux.close(self.pipe_read);
+        _ = linux.close(self.pipe_write);
         self.tty_writer.deinit();
         std.testing.allocator.destroy(self.tty_writer);
     }
