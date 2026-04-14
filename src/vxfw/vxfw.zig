@@ -61,8 +61,8 @@ pub const Tick = struct {
         return lhs.deadline_ms > rhs.deadline_ms;
     }
 
-    pub fn in(ms: u32, widget: Widget) Command {
-        const now = std.time.milliTimestamp();
+    pub fn in(io: std.Io, ms: u32, widget: Widget) Command {
+        const now = std.Io.Timestamp.now(io, .real).toMilliseconds();
         return .{ .tick = .{
             .deadline_ms = now + ms,
             .widget = widget,
@@ -99,6 +99,7 @@ pub const Command = union(enum) {
 
 pub const EventContext = struct {
     phase: Phase = .at_target,
+    io: std.Io,
     alloc: Allocator,
     cmds: CommandList,
 
@@ -120,7 +121,7 @@ pub const EventContext = struct {
     }
 
     pub fn tick(self: *EventContext, ms: u32, widget: Widget) Allocator.Error!void {
-        try self.addCmd(Tick.in(ms, widget));
+        try self.addCmd(Tick.in(self.io, ms, widget));
     }
 
     pub fn consumeAndRedraw(self: *EventContext) void {
@@ -535,16 +536,17 @@ test "Surface: satisfiesConstraints" {
 }
 
 test "All widgets have a doctest and refAllDecls test" {
+    const io = std.testing.io;
     // This test goes through every file in src/ and checks that it has a doctest (the filename
     // stripped of ".zig" matches a test name) and a test called "refAllDecls". It makes no
     // guarantees about the quality of the test, but it does ensure it exists which at least makes
     // it easy to fail CI early, or spot bad tests vs non-existant tests
     const excludes = &[_][]const u8{ "vxfw.zig", "App.zig" };
 
-    var cwd = try std.fs.cwd().openDir("./src/vxfw", .{ .iterate = true });
+    var cwd = try std.Io.Dir.cwd().openDir(io, "./src/vxfw", .{ .iterate = true });
     var iter = cwd.iterate();
-    defer cwd.close();
-    outer: while (try iter.next()) |file| {
+    defer cwd.close(io);
+    outer: while (try iter.next(io)) |file| {
         if (file.kind != .file) continue;
         for (excludes) |ex| if (std.mem.eql(u8, ex, file.name)) continue :outer;
 
@@ -552,7 +554,7 @@ test "All widgets have a doctest and refAllDecls test" {
             file.name[0..idx]
         else
             continue;
-        const data = try cwd.readFileAllocOptions(std.testing.allocator, file.name, 10_000_000, null, .of(u8), 0x00);
+        const data = try cwd.readFileAllocOptions(io, file.name, std.testing.allocator, .limited(10_000_000), .of(u8), 0x00);
         defer std.testing.allocator.free(data);
         var ast = try std.zig.Ast.parse(std.testing.allocator, data, .zig);
         defer ast.deinit(std.testing.allocator);

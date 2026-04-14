@@ -3,7 +3,6 @@ const builtin = @import("builtin");
 const atomic = std.atomic;
 const base64Encoder = std.base64.standard.Encoder;
 const zigimg = @import("zigimg");
-const IoWriter = std.io.Writer;
 
 const Cell = @import("Cell.zig");
 const Image = @import("Image.zig");
@@ -49,6 +48,9 @@ pub const Options = struct {
     /// clipboard
     system_clipboard_allocator: ?std.mem.Allocator = null,
 };
+
+io: std.Io,
+env_map: *std.process.Environ.Map,
 
 /// the screen we write to
 screen: Screen,
@@ -103,8 +105,10 @@ state: struct {
 } = .{},
 
 /// Initialize Vaxis with runtime options
-pub fn init(alloc: std.mem.Allocator, opts: Options) !Vaxis {
+pub fn init(io: std.Io, alloc: std.mem.Allocator, env_map: *std.process.Environ.Map, opts: Options) !Vaxis {
     return .{
+        .io = io,
+        .env_map = env_map,
         .opts = opts,
         .screen = .{},
         .screen_last = try .init(alloc, 0, 0),
@@ -115,7 +119,7 @@ pub fn init(alloc: std.mem.Allocator, opts: Options) !Vaxis {
 /// passed, this will free resources associated with Vaxis. This is left as an
 /// optional so applications can choose to not free resources when the
 /// application will be exiting anyways
-pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator, tty: *IoWriter) void {
+pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator, tty: *std.Io.Writer) void {
     self.resetState(tty) catch {};
 
     if (alloc) |a| {
@@ -128,7 +132,7 @@ pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator, tty: *IoWriter) void {
 }
 
 /// resets enabled features, sends cursor to home and clears below cursor
-pub fn resetState(self: *Vaxis, tty: *IoWriter) !void {
+pub fn resetState(self: *Vaxis, tty: *std.Io.Writer) !void {
     // always show the cursor on state reset
     tty.writeAll(ctlseqs.show_cursor) catch {};
     tty.writeAll(ctlseqs.sgr_reset) catch {};
@@ -190,7 +194,7 @@ pub fn resetState(self: *Vaxis, tty: *IoWriter) !void {
 pub fn resize(
     self: *Vaxis,
     alloc: std.mem.Allocator,
-    tty: *IoWriter,
+    tty: *std.Io.Writer,
     winsize: Winsize,
 ) !void {
     log.debug("resizing screen: width={d} height={d}", .{ winsize.cols, winsize.rows });
@@ -231,14 +235,14 @@ pub fn window(self: *Vaxis) Window {
 
 /// enter the alternate screen. The alternate screen will automatically
 /// be exited if calling deinit while in the alt screen.
-pub fn enterAltScreen(self: *Vaxis, tty: *IoWriter) !void {
+pub fn enterAltScreen(self: *Vaxis, tty: *std.Io.Writer) !void {
     try tty.writeAll(ctlseqs.smcup);
     try tty.flush();
     self.state.alt_screen = true;
 }
 
 /// exit the alternate screen. Does not flush the writer.
-pub fn exitAltScreen(self: *Vaxis, tty: *IoWriter) !void {
+pub fn exitAltScreen(self: *Vaxis, tty: *std.Io.Writer) !void {
     try tty.writeAll(ctlseqs.rmcup);
     try tty.flush();
     self.state.alt_screen = false;
@@ -250,10 +254,10 @@ pub fn exitAltScreen(self: *Vaxis, tty: *IoWriter) !void {
 ///
 /// This call will block until Vaxis.query_futex is woken up, or the timeout.
 /// Event loops can wake up this futex when cap_da1 is received
-pub fn queryTerminal(self: *Vaxis, tty: *IoWriter, timeout_ns: u64) !void {
+pub fn queryTerminal(self: *Vaxis, tty: *std.Io.Writer, timeout_ns: u64) !void {
     try self.queryTerminalSend(tty);
     // 1 second timeout
-    std.Thread.Futex.timedWait(&self.query_futex, 0, timeout_ns) catch {};
+    try std.Io.futexWaitTimeout(self.io, atomic.Value(u32), &self.query_futex, .init(0), .{ .duration = .{ .clock = .real, .raw = .fromNanoseconds(timeout_ns) } });
     self.queries_done.store(true, .unordered);
     try self.enableDetectedFeatures(tty);
 }
@@ -261,7 +265,7 @@ pub fn queryTerminal(self: *Vaxis, tty: *IoWriter, timeout_ns: u64) !void {
 /// write queries to the terminal to determine capabilities. This function
 /// is only for use with a custom main loop. Call Vaxis.queryTerminal() if
 /// you are using Loop.run()
-pub fn queryTerminalSend(vx: *Vaxis, tty: *IoWriter) !void {
+pub fn queryTerminalSend(vx: *Vaxis, tty: *std.Io.Writer) !void {
     vx.queries_done.store(false, .unordered);
 
     // TODO: re-enable this
@@ -312,7 +316,7 @@ pub fn queryTerminalSend(vx: *Vaxis, tty: *IoWriter) !void {
 /// Enable features detected by responses to queryTerminal. This function
 /// is only for use with a custom main loop. Call Vaxis.queryTerminal() if
 /// you are using Loop.run()
-pub fn enableDetectedFeatures(self: *Vaxis, tty: *IoWriter) !void {
+pub fn enableDetectedFeatures(self: *Vaxis, tty: *std.Io.Writer) !void {
     switch (builtin.os.tag) {
         .windows => {
             // No feature detection on windows. We just hard enable some knowns for ConPTY
@@ -320,22 +324,22 @@ pub fn enableDetectedFeatures(self: *Vaxis, tty: *IoWriter) !void {
         },
         else => {
             // Apply any environment variables
-            if (std.posix.getenv("TERMUX_VERSION")) |_|
+            if (self.env_map.get("TERMUX_VERSION")) |_|
                 self.sgr = .legacy;
-            if (std.posix.getenv("VHS_RECORD")) |_| {
+            if (self.env_map.get("VHS_RECORD")) |_| {
                 self.caps.unicode = .wcwidth;
                 self.caps.kitty_keyboard = false;
                 self.sgr = .legacy;
             }
-            if (std.posix.getenv("TERM_PROGRAM")) |prg| {
+            if (self.env_map.get("TERM_PROGRAM")) |prg| {
                 if (std.mem.eql(u8, prg, "vscode"))
                     self.sgr = .legacy;
             }
-            if (std.posix.getenv("VAXIS_FORCE_LEGACY_SGR")) |_|
+            if (self.env_map.get("VAXIS_FORCE_LEGACY_SGR")) |_|
                 self.sgr = .legacy;
-            if (std.posix.getenv("VAXIS_FORCE_WCWIDTH")) |_|
+            if (self.env_map.get("VAXIS_FORCE_WCWIDTH")) |_|
                 self.caps.unicode = .wcwidth;
-            if (std.posix.getenv("VAXIS_FORCE_UNICODE")) |_|
+            if (self.env_map.get("VAXIS_FORCE_UNICODE")) |_|
                 self.caps.unicode = .unicode;
 
             // enable detected features
@@ -358,7 +362,7 @@ pub fn queueRefresh(self: *Vaxis) void {
 }
 
 /// draws the screen to the terminal
-pub fn render(self: *Vaxis, tty: *IoWriter) !void {
+pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
     defer self.refresh = false;
     assert(self.screen.buf.len == @as(usize, @intCast(self.screen.width)) * self.screen.height); // correct size
     assert(self.screen.buf.len == self.screen_last.buf.len); // same size
@@ -397,7 +401,7 @@ pub fn render(self: *Vaxis, tty: *IoWriter) !void {
     const startRender = struct {
         fn run(
             vx: *Vaxis,
-            io: *IoWriter,
+            io: *std.Io.Writer,
             cursor_pos_ptr: *CursorPos,
             reposition_ptr: *bool,
             started_ptr: *bool,
@@ -828,7 +832,7 @@ pub fn render(self: *Vaxis, tty: *IoWriter) !void {
     try tty.flush();
 }
 
-fn enableKittyKeyboard(self: *Vaxis, tty: *IoWriter, flags: Key.KittyFlags) !void {
+fn enableKittyKeyboard(self: *Vaxis, tty: *std.Io.Writer, flags: Key.KittyFlags) !void {
     const flag_int: u5 = @bitCast(flags);
     try tty.print(ctlseqs.csi_u_push, .{flag_int});
     try tty.flush();
@@ -836,7 +840,7 @@ fn enableKittyKeyboard(self: *Vaxis, tty: *IoWriter, flags: Key.KittyFlags) !voi
 }
 
 /// send a system notification
-pub fn notify(_: *Vaxis, tty: *IoWriter, title: ?[]const u8, body: []const u8) !void {
+pub fn notify(_: *Vaxis, tty: *std.Io.Writer, title: ?[]const u8, body: []const u8) !void {
     if (title) |t|
         try tty.print(ctlseqs.osc777_notify, .{ t, body })
     else
@@ -846,7 +850,7 @@ pub fn notify(_: *Vaxis, tty: *IoWriter, title: ?[]const u8, body: []const u8) !
 }
 
 /// sets the window title
-pub fn setTitle(_: *Vaxis, tty: *IoWriter, title: []const u8) !void {
+pub fn setTitle(_: *Vaxis, tty: *std.Io.Writer, title: []const u8) !void {
     try tty.print(ctlseqs.osc2_set_title, .{title});
     try tty.flush();
 }
@@ -854,7 +858,7 @@ pub fn setTitle(_: *Vaxis, tty: *IoWriter, title: []const u8) !void {
 // turn bracketed paste on or off. An event will be sent at the
 // beginning and end of a detected paste. All keystrokes between these
 // events were pasted
-pub fn setBracketedPaste(self: *Vaxis, tty: *IoWriter, enable: bool) !void {
+pub fn setBracketedPaste(self: *Vaxis, tty: *std.Io.Writer, enable: bool) !void {
     const seq = if (enable)
         ctlseqs.bp_set
     else
@@ -870,7 +874,7 @@ pub fn setMouseShape(self: *Vaxis, shape: Shape) void {
 }
 
 /// Change the mouse reporting mode
-pub fn setMouseMode(self: *Vaxis, tty: *IoWriter, enable: bool) !void {
+pub fn setMouseMode(self: *Vaxis, tty: *std.Io.Writer, enable: bool) !void {
     if (enable) {
         self.state.mouse = true;
         if (self.caps.sgr_pixels) {
@@ -914,7 +918,7 @@ pub fn translateMouse(self: Vaxis, mouse: Mouse) Mouse {
 pub fn transmitLocalImagePath(
     self: *Vaxis,
     allocator: std.mem.Allocator,
-    tty: *IoWriter,
+    tty: *std.Io.Writer,
     payload: []const u8,
     width: u16,
     height: u16,
@@ -972,7 +976,7 @@ pub fn transmitLocalImagePath(
 /// Transmit an image which has been pre-base64 encoded
 pub fn transmitPreEncodedImage(
     self: *Vaxis,
-    tty: *IoWriter,
+    tty: *std.Io.Writer,
     bytes: []const u8,
     width: u16,
     height: u16,
@@ -1031,7 +1035,7 @@ pub fn transmitPreEncodedImage(
 pub fn transmitImage(
     self: *Vaxis,
     alloc: std.mem.Allocator,
-    tty: *IoWriter,
+    tty: *std.Io.Writer,
     img: *const zigimg.Image,
     format: Image.TransmitFormat,
 ) !Image {
@@ -1067,7 +1071,7 @@ pub fn transmitImage(
 pub fn loadImage(
     self: *Vaxis,
     alloc: std.mem.Allocator,
-    tty: *IoWriter,
+    tty: *std.Io.Writer,
     src: Image.Source,
 ) !Image {
     if (!self.caps.kitty_graphics) return error.NoGraphicsCapability;
@@ -1082,7 +1086,7 @@ pub fn loadImage(
 }
 
 /// deletes an image from the terminal's memory
-pub fn freeImage(_: Vaxis, tty: *IoWriter, id: u32) void {
+pub fn freeImage(_: Vaxis, tty: *std.Io.Writer, id: u32) void {
     tty.print("\x1b_Ga=d,d=I,i={d};\x1b\\", .{id}) catch |err| {
         log.err("couldn't delete image {d}: {}", .{ id, err });
         return;
@@ -1090,7 +1094,7 @@ pub fn freeImage(_: Vaxis, tty: *IoWriter, id: u32) void {
     tty.flush() catch {};
 }
 
-pub fn copyToSystemClipboard(_: Vaxis, tty: *IoWriter, text: []const u8, encode_allocator: std.mem.Allocator) !void {
+pub fn copyToSystemClipboard(_: Vaxis, tty: *std.Io.Writer, text: []const u8, encode_allocator: std.mem.Allocator) !void {
     const encoder = std.base64.standard.Encoder;
     const size = encoder.calcSize(text.len);
     const buf = try encode_allocator.alloc(u8, size);
@@ -1104,7 +1108,7 @@ pub fn copyToSystemClipboard(_: Vaxis, tty: *IoWriter, text: []const u8, encode_
     try tty.flush();
 }
 
-pub fn requestSystemClipboard(self: Vaxis, tty: *IoWriter) !void {
+pub fn requestSystemClipboard(self: Vaxis, tty: *std.Io.Writer) !void {
     if (self.opts.system_clipboard_allocator == null) return error.NoClipboardAllocator;
     try tty.print(
         ctlseqs.osc52_clipboard_request,
@@ -1114,28 +1118,28 @@ pub fn requestSystemClipboard(self: Vaxis, tty: *IoWriter) !void {
 }
 
 /// Set the default terminal foreground color
-pub fn setTerminalForegroundColor(self: *Vaxis, tty: *IoWriter, rgb: [3]u8) !void {
+pub fn setTerminalForegroundColor(self: *Vaxis, tty: *std.Io.Writer, rgb: [3]u8) !void {
     try tty.print(ctlseqs.osc10_set, .{ rgb[0], rgb[0], rgb[1], rgb[1], rgb[2], rgb[2] });
     try tty.flush();
     self.state.changed_default_fg = true;
 }
 
 /// Set the default terminal background color
-pub fn setTerminalBackgroundColor(self: *Vaxis, tty: *IoWriter, rgb: [3]u8) !void {
+pub fn setTerminalBackgroundColor(self: *Vaxis, tty: *std.Io.Writer, rgb: [3]u8) !void {
     try tty.print(ctlseqs.osc11_set, .{ rgb[0], rgb[0], rgb[1], rgb[1], rgb[2], rgb[2] });
     try tty.flush();
     self.state.changed_default_bg = true;
 }
 
 /// Set the terminal cursor color
-pub fn setTerminalCursorColor(self: *Vaxis, tty: *IoWriter, rgb: [3]u8) !void {
+pub fn setTerminalCursorColor(self: *Vaxis, tty: *std.Io.Writer, rgb: [3]u8) !void {
     try tty.print(ctlseqs.osc12_set, .{ rgb[0], rgb[0], rgb[1], rgb[1], rgb[2], rgb[2] });
     try tty.flush();
     self.state.changed_cursor_color = true;
 }
 
 /// Set the terminal secondary cursor color
-pub fn setTerminalCursorSecondaryColor(self: *Vaxis, tty: *IoWriter, rgb: [3]u8) error{WriteFailed}!void {
+pub fn setTerminalCursorSecondaryColor(self: *Vaxis, tty: *std.Io.Writer, rgb: [3]u8) error{WriteFailed}!void {
     if (self.caps.multi_cursor) {
         try tty.print(ctlseqs.secondary_cursors_rgb, .{ rgb[0], rgb[1], rgb[2] });
         try tty.flush();
@@ -1170,7 +1174,7 @@ pub fn addTerminalSecondaryCursor(self: *Vaxis, alloc: std.mem.Allocator, y: u16
 /// Request a color report from the terminal. Note: not all terminals support
 /// reporting colors. It is always safe to try, but you may not receive a
 /// response.
-pub fn queryColor(_: Vaxis, tty: *IoWriter, kind: Cell.Color.Kind) !void {
+pub fn queryColor(_: Vaxis, tty: *std.Io.Writer, kind: Cell.Color.Kind) !void {
     switch (kind) {
         .fg => try tty.writeAll(ctlseqs.osc10_query),
         .bg => try tty.writeAll(ctlseqs.osc11_query),
@@ -1185,14 +1189,14 @@ pub fn queryColor(_: Vaxis, tty: *IoWriter, kind: Cell.Color.Kind) !void {
 /// capability. Support can be detected by checking the value of
 /// vaxis.caps.color_scheme_updates. The initial scheme will be reported when
 /// subscribing.
-pub fn subscribeToColorSchemeUpdates(self: *Vaxis, tty: *IoWriter) !void {
+pub fn subscribeToColorSchemeUpdates(self: *Vaxis, tty: *std.Io.Writer) !void {
     try tty.writeAll(ctlseqs.color_scheme_request);
     try tty.writeAll(ctlseqs.color_scheme_set);
     try tty.flush();
     self.state.color_scheme_updates = true;
 }
 
-pub fn deviceStatusReport(_: Vaxis, tty: *IoWriter) !void {
+pub fn deviceStatusReport(_: Vaxis, tty: *std.Io.Writer) !void {
     try tty.writeAll(ctlseqs.device_status_report);
     try tty.flush();
 }
@@ -1201,7 +1205,7 @@ pub fn deviceStatusReport(_: Vaxis, tty: *IoWriter) !void {
 /// the cursor will be put on the next line after the last line is printed. This is useful to
 /// sequentially print data in a styled format to eg. stdout. This function returns an error if you
 /// are not in the alt screen. The cursor is always hidden, and mouse shapes are not available
-pub fn prettyPrint(self: *Vaxis, tty: *IoWriter) !void {
+pub fn prettyPrint(self: *Vaxis, tty: *std.Io.Writer) !void {
     if (self.state.alt_screen) return error.NotInPrimaryScreen;
 
     try tty.writeAll(ctlseqs.hide_cursor);
@@ -1476,7 +1480,7 @@ pub fn prettyPrint(self: *Vaxis, tty: *IoWriter) !void {
 }
 
 /// Set the terminal's current working directory
-pub fn setTerminalWorkingDirectory(_: *Vaxis, tty: *IoWriter, path: []const u8) !void {
+pub fn setTerminalWorkingDirectory(_: *Vaxis, tty: *std.Io.Writer, path: []const u8) !void {
     if (path.len == 0 or path[0] != '/')
         return error.InvalidAbsolutePath;
     const hostname = switch (builtin.os.tag) {
@@ -1494,12 +1498,15 @@ pub fn setTerminalWorkingDirectory(_: *Vaxis, tty: *IoWriter, path: []const u8) 
 }
 
 test "render: no output when no changes" {
-    var vx = try Vaxis.init(std.testing.allocator, .{});
-    var deinit_writer = std.io.Writer.Allocating.init(std.testing.allocator);
+    const io = std.testing.io;
+    var env_map = try std.testing.environ.createMap(std.testing.allocator);
+    defer env_map.deinit();
+    var vx = try Vaxis.init(io, std.testing.allocator, &env_map, .{});
+    var deinit_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
     defer deinit_writer.deinit();
     defer vx.deinit(std.testing.allocator, &deinit_writer.writer);
 
-    var render_writer = std.io.Writer.Allocating.init(std.testing.allocator);
+    var render_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
     defer render_writer.deinit();
     try vx.render(&render_writer.writer);
     const output = try render_writer.toOwnedSlice();

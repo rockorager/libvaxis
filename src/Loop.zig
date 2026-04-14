@@ -19,13 +19,14 @@ pub fn Loop(comptime T: type) type {
         tty: *Tty,
         vaxis: *Vaxis,
 
-        queue: Queue(T, 512) = .{},
+        queue: Queue(T, 512) = undefined,
         thread: ?std.Thread = null,
         should_quit: bool = false,
 
         /// Initialize the event loop. This is an intrusive init so that we have
         /// a stable pointer to register signal callbacks with posix TTYs
-        pub fn init(self: *Self) !void {
+        pub fn init(self: *Self, io: std.Io) !void {
+            self.queue = .init(io);
             switch (builtin.os.tag) {
                 .windows => {},
                 else => {
@@ -379,6 +380,10 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
 }
 
 test Loop {
+    const io = std.testing.io;
+    var env_map = try std.testing.environ.createMap(std.testing.allocator);
+    defer env_map.deinit();
+
     const Event = union(enum) {
         key_press: vaxis.Key,
         winsize: vaxis.Winsize,
@@ -389,11 +394,11 @@ test Loop {
     var tty = try vaxis.Tty.init(&.{});
     defer tty.deinit();
 
-    var vx = try vaxis.init(std.testing.allocator, .{});
+    var vx = try vaxis.init(io, std.testing.allocator, &env_map, .{});
     defer vx.deinit(std.testing.allocator, tty.writer());
 
     var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
-    try loop.init();
+    try loop.init(io);
 
     try loop.start();
     defer loop.stop();

@@ -223,7 +223,7 @@ pub const SoftwrapIterator = struct {
         // Advance the hard iterator
         if (self.index == self.line.len) {
             self.line = self.hard_iter.next() orelse return null;
-            self.line = std.mem.trimRight(u8, self.line, " \t");
+            self.line = std.mem.trimEnd(u8, self.line, " \t");
             self.index = 0;
         }
 
@@ -237,7 +237,7 @@ pub const SoftwrapIterator = struct {
             if (self.ctx.max.width) |max| {
                 if (cur_width + next_width > max) {
                     // Trim the word to see if it can fit on a line by itself
-                    const trimmed = std.mem.trimLeft(u8, word, " \t");
+                    const trimmed = std.mem.trimEnd(u8, word, " \t");
                     const trimmed_bytes = word.len - trimmed.len;
                     // The number of bytes we trimmed is equal to the reduction in length
                     const trimmed_width = next_width - trimmed_bytes;
