@@ -5,23 +5,24 @@ const std = @import("std");
 const builtin = @import("builtin");
 const Winsize = @import("../../main.zig").Winsize;
 
+const linux = std.os.linux;
 const posix = std.posix;
 
-pty: std.fs.File,
-tty: std.fs.File,
+pty: std.Io.File,
+tty: std.Io.File,
 
 /// opens a new tty/pty pair
-pub fn init() !Pty {
+pub fn init(io: std.Io) !Pty {
     switch (builtin.os.tag) {
-        .linux => return openPtyLinux(),
+        .linux => return openPtyLinux(io),
         else => @compileError("unsupported os"),
     }
 }
 
 /// closes the tty and pty
-pub fn deinit(self: Pty) void {
-    self.pty.close();
-    self.tty.close();
+pub fn deinit(self: Pty, io: std.Io) void {
+    self.pty.close(io);
+    self.tty.close(io);
 }
 
 /// sets the size of the pty
@@ -36,24 +37,30 @@ pub fn setSize(self: Pty, ws: Winsize) !void {
         return error.SetWinsizeError;
 }
 
-fn openPtyLinux() !Pty {
-    const p = try posix.open("/dev/ptmx", .{ .ACCMODE = .RDWR, .NOCTTY = true }, 0);
-    errdefer posix.close(p);
+fn openPtyLinux(io: std.Io) !Pty {
+    const pty = try std.Io.Dir.openFileAbsolute(io, "/dev/ptmx", .{
+        .mode = .read_write,
+        .allow_ctty = false,
+    });
+    errdefer pty.close(io);
 
     // unlockpt
     var n: c_uint = 0;
-    if (posix.system.ioctl(p, posix.T.IOCSPTLCK, @intFromPtr(&n)) != 0) return error.IoctlError;
+    if (posix.system.ioctl(pty.handle, posix.T.IOCSPTLCK, @intFromPtr(&n)) != 0) return error.IoctlError;
 
     // ptsname
-    if (posix.system.ioctl(p, posix.T.IOCGPTN, @intFromPtr(&n)) != 0) return error.IoctlError;
+    if (posix.system.ioctl(pty.handle, posix.T.IOCGPTN, @intFromPtr(&n)) != 0) return error.IoctlError;
     var buf: [16]u8 = undefined;
     const sname = try std.fmt.bufPrint(&buf, "/dev/pts/{d}", .{n});
     std.log.debug("pts: {s}", .{sname});
 
-    const t = try posix.open(sname, .{ .ACCMODE = .RDWR, .NOCTTY = true }, 0);
+    const tty = try std.Io.Dir.openFileAbsolute(io, sname, .{
+        .mode = .read_write,
+        .allow_ctty = false,
+    });
 
     return .{
-        .pty = .{ .handle = p },
-        .tty = .{ .handle = t },
+        .pty = pty,
+        .tty = tty,
     };
 }

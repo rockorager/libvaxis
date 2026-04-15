@@ -43,21 +43,24 @@ pub const InputEvent = union(enum) {
     key_press: vaxis.Key,
 };
 
-pub var global_vt_mutex: std.Thread.Mutex = .{};
-pub var global_vts: ?std.AutoHashMap(i32, *Terminal) = null;
+pub var global_io: std.Io = undefined;
+pub var global_io_initialized: bool = false;
+pub var global_vt_mutex: std.Io.Mutex = .init;
+pub var global_vts: std.AutoHashMapUnmanaged(i32, *Terminal) = .empty;
 pub var global_sigchild_installed: bool = false;
 
+io: std.Io,
 allocator: std.mem.Allocator,
 scrollback_size: u16,
 
 pty: Pty,
-pty_writer: std.fs.File.Writer,
+pty_writer: std.Io.File.Writer,
 cmd: Command,
-thread: ?std.Thread = null,
+thread: ?std.Io.Future(void) = null,
 
 /// the screen we draw from
 front_screen: Screen,
-front_mutex: std.Thread.Mutex = .{},
+front_mutex: std.Io.Mutex = .init,
 
 /// the back screens
 back_screen: *Screen = undefined,
@@ -65,7 +68,7 @@ back_screen_pri: Screen,
 back_screen_alt: Screen,
 // only applies to primary screen
 scroll_offset: usize = 0,
-back_mutex: std.Thread.Mutex = .{},
+back_mutex: std.Io.Mutex = .init,
 // dirty is protected by back_mutex. Only access this field when you hold that mutex
 dirty: bool = false,
 
@@ -79,22 +82,27 @@ working_directory: std.ArrayList(u8) = .empty,
 
 last_printed: []const u8 = "",
 
-event_queue: Queue = .{},
+event_queue: Queue,
 
 /// initialize a Terminal. This sets the size of the underlying pty and allocates the sizes of the
 /// screen
 pub fn init(
+    io: std.Io,
     allocator: std.mem.Allocator,
     argv: []const []const u8,
-    env: *const std.process.EnvMap,
+    env: *const std.process.Environ.Map,
     opts: Options,
     write_buf: []u8,
 ) !Terminal {
+    if (!global_io_initialized) {
+        global_io = io;
+        global_io_initialized = true;
+    }
     // Verify we have an absolute path
     if (opts.initial_working_directory) |pwd| {
         if (!std.fs.path.isAbsolute(pwd)) return error.InvalidWorkingDirectory;
     }
-    const pty = try Pty.init();
+    const pty = try Pty.init(io);
     try pty.setSize(opts.winsize);
     const cmd: Command = .{
         .argv = argv,
@@ -108,15 +116,17 @@ pub fn init(
         try tabs.append(allocator, col);
     }
     return .{
+        .io = io,
         .allocator = allocator,
         .pty = pty,
-        .pty_writer = pty.pty.writerStreaming(write_buf),
+        .pty_writer = pty.pty.writerStreaming(io, write_buf),
         .cmd = cmd,
         .scrollback_size = opts.scrollback_size,
         .front_screen = try Screen.init(allocator, opts.winsize.cols, opts.winsize.rows),
         .back_screen_pri = try Screen.init(allocator, opts.winsize.cols, opts.winsize.rows + opts.scrollback_size),
         .back_screen_alt = try Screen.init(allocator, opts.winsize.cols, opts.winsize.rows),
         .tab_stops = tabs,
+        .event_queue = .init(io),
     };
 }
 
@@ -125,25 +135,23 @@ pub fn deinit(self: *Terminal) void {
     self.should_quit = true;
 
     pid: {
-        global_vt_mutex.lock();
-        defer global_vt_mutex.unlock();
-        var vts = global_vts orelse break :pid;
+        global_vt_mutex.lock(self.io) catch break :pid;
+        defer global_vt_mutex.unlock(self.io);
         if (self.cmd.pid) |pid|
-            _ = vts.remove(pid);
-        if (vts.count() == 0) {
-            vts.deinit();
-            global_vts = null;
+            _ = global_vts.remove(pid);
+        if (global_vts.count() == 0) {
+            global_vts.deinit(self.allocator);
         }
     }
     self.cmd.kill();
-    if (self.thread) |thread| {
+    if (self.thread) |*thread| {
         // write an EOT into the tty to trigger a read on our thread
         const EOT = "\x04";
-        _ = self.pty.tty.write(EOT) catch {};
-        thread.join();
+        self.pty.tty.writeStreamingAll(self.io, EOT) catch {};
+        thread.await(self.io);
         self.thread = null;
     }
-    self.pty.deinit();
+    self.pty.deinit(self.io);
     self.front_screen.deinit(self.allocator);
     self.back_screen_pri.deinit(self.allocator);
     self.back_screen_alt.deinit(self.allocator);
@@ -156,29 +164,26 @@ pub fn spawn(self: *Terminal) !void {
     if (self.thread != null) return;
     self.back_screen = &self.back_screen_pri;
 
-    try self.cmd.spawn(self.allocator);
+    try self.cmd.spawn(self.io, self.allocator);
 
     self.working_directory.clearRetainingCapacity();
     if (self.cmd.working_directory) |pwd| {
         try self.working_directory.appendSlice(self.allocator, pwd);
     } else {
-        const pwd = std.fs.cwd();
-        var buffer: [std.fs.max_path_bytes]u8 = undefined;
-        const out_path = try std.os.getFdPath(pwd.fd, &buffer);
+        const pwd: std.Io.Dir = .cwd();
+        const out_path = try pwd.realPathFileAlloc(self.io, ".", self.allocator);
         try self.working_directory.appendSlice(self.allocator, out_path);
     }
 
     {
         // add to our global list
-        global_vt_mutex.lock();
-        defer global_vt_mutex.unlock();
-        if (global_vts == null)
-            global_vts = std.AutoHashMap(i32, *Terminal).init(self.allocator);
+        try global_vt_mutex.lock(self.io);
+        defer global_vt_mutex.unlock(self.io);
         if (self.cmd.pid) |pid|
-            try global_vts.?.put(pid, self);
+            try global_vts.put(self.allocator, pid, self);
     }
 
-    self.thread = try std.Thread.spawn(.{}, Terminal.run, .{self});
+    self.thread = try self.io.concurrent(Terminal.run, .{self});
 }
 
 /// resize the screen. Locks access to the back screen. Should only be called from the main thread.
@@ -190,8 +195,8 @@ pub fn resize(self: *Terminal, ws: Winsize) !void {
         ws.rows == self.front_screen.height)
         return;
 
-    self.back_mutex.lock();
-    defer self.back_mutex.unlock();
+    try self.back_mutex.lock(self.io);
+    defer self.back_mutex.unlock(self.io);
 
     self.front_screen.deinit(self.allocator);
     self.front_screen = try Screen.init(self.allocator, ws.cols, ws.rows);
@@ -206,7 +211,7 @@ pub fn resize(self: *Terminal, ws: Winsize) !void {
 
 pub fn draw(self: *Terminal, allocator: std.mem.Allocator, win: vaxis.Window) !void {
     if (self.back_mutex.tryLock()) {
-        defer self.back_mutex.unlock();
+        defer self.back_mutex.unlock(self.io);
         // We keep this as a separate condition so we don't deadlock by obtaining the lock but not
         // having sync
         if (!self.mode.sync) {
@@ -231,8 +236,8 @@ pub fn draw(self: *Terminal, allocator: std.mem.Allocator, win: vaxis.Window) !v
     }
 }
 
-pub fn tryEvent(self: *Terminal) ?Event {
-    return self.event_queue.tryPop();
+pub fn tryEvent(self: *Terminal) !?Event {
+    return try self.event_queue.tryPop();
 }
 
 pub fn update(self: *Terminal, event: InputEvent) !void {
@@ -249,12 +254,16 @@ pub fn get_pty_writer(self: *Terminal) *std.Io.Writer {
     return &self.pty_writer.interface;
 }
 
-fn reader(self: *const Terminal, buf: []u8) std.fs.File.Reader {
-    return self.pty.pty.readerStreaming(buf);
+fn reader(self: *const Terminal, buf: []u8) std.Io.File.Reader {
+    return self.pty.pty.readerStreaming(self.io, buf);
 }
 
 /// process the output from the command on the pty
-fn run(self: *Terminal) !void {
+fn run(self: *Terminal) void {
+    self._run() catch {};
+}
+
+fn _run(self: *Terminal) !void {
     var parser: Parser = .{
         .buf = try .initCapacity(self.allocator, 128),
     };
@@ -265,10 +274,10 @@ fn run(self: *Terminal) !void {
 
     while (!self.should_quit) {
         const event = try parser.parseReader(&reader_.interface);
-        self.back_mutex.lock();
-        defer self.back_mutex.unlock();
+        try self.back_mutex.lock(self.io);
+        defer self.back_mutex.unlock(self.io);
 
-        if (!self.dirty and self.event_queue.tryPush(.redraw))
+        if (!self.dirty and try self.event_queue.tryPush(.redraw))
             self.dirty = true;
 
         switch (event) {
@@ -673,7 +682,7 @@ fn run(self: *Terminal) !void {
                     0 => {
                         self.title.clearRetainingCapacity();
                         try self.title.appendSlice(self.allocator, osc[semicolon + 1 ..]);
-                        self.event_queue.push(.{ .title_change = self.title.items });
+                        try self.event_queue.push(.{ .title_change = self.title.items });
                     },
                     7 => {
                         // OSC 7 ; file:// <hostname> <pwd>
@@ -693,7 +702,7 @@ fn run(self: *Terminal) !void {
                             } else enc[i];
                             try self.working_directory.append(self.allocator, b);
                         }
-                        self.event_queue.push(.{ .pwd_change = self.working_directory.items });
+                        try self.event_queue.push(.{ .pwd_change = self.working_directory.items });
                     },
                     else => log.info("unhandled osc: {s}", .{osc}),
                 }
@@ -708,7 +717,7 @@ inline fn handleC0(self: *Terminal, b: ansi.C0) !void {
         .NUL, .SOH, .STX => {},
         .EOT => {}, // we send EOT to quit the read thread
         .ENQ => {},
-        .BEL => self.event_queue.push(.bell),
+        .BEL => try self.event_queue.push(.bell),
         .BS => self.back_screen.cursorLeft(1),
         .HT => self.horizontalTab(1),
         .LF, .VT, .FF => try self.back_screen.index(),

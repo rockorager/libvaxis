@@ -5,6 +5,7 @@ const builtin = @import("builtin");
 const Pty = @import("Pty.zig");
 const Terminal = @import("Terminal.zig");
 
+const linux = std.os.linux;
 const posix = std.posix;
 
 argv: []const []const u8,
@@ -14,22 +15,21 @@ working_directory: ?[]const u8,
 // Set after spawn()
 pid: ?std.posix.pid_t = null,
 
-env_map: *const std.process.EnvMap,
+env_map: *const std.process.Environ.Map,
 
 pty: Pty,
 
-pub fn spawn(self: *Command, allocator: std.mem.Allocator) !void {
+pub fn spawn(self: *Command, io: std.Io, allocator: std.mem.Allocator) !void {
     var arena_allocator = std.heap.ArenaAllocator.init(allocator);
     defer arena_allocator.deinit();
 
-    const arena = arena_allocator.allocator();
-
-    const argv_buf = try arena.allocSentinel(?[*:0]const u8, self.argv.len, null);
-    for (self.argv, 0..) |arg, i| argv_buf[i] = (try arena.dupeZ(u8, arg)).ptr;
-
-    const envp = try createEnvironFromMap(arena, self.env_map);
-
-    const pid = try std.posix.fork();
+    const pid = pid: {
+        const rc = linux.fork();
+        break :pid switch (linux.errno(rc)) {
+            .SUCCESS => rc,
+            else => return error.ForkError,
+        };
+    };
     if (pid == 0) {
         // we are the child
         _ = std.os.linux.setsid();
@@ -39,20 +39,39 @@ pub fn spawn(self: *Command, allocator: std.mem.Allocator) !void {
         if (posix.system.ioctl(self.pty.tty.handle, posix.T.IOCSCTTY, @intFromPtr(&u)) != 0) return error.IoctlError;
 
         // set up io
-        try posix.dup2(self.pty.tty.handle, std.posix.STDIN_FILENO);
-        try posix.dup2(self.pty.tty.handle, std.posix.STDOUT_FILENO);
-        try posix.dup2(self.pty.tty.handle, std.posix.STDERR_FILENO);
-
-        self.pty.tty.close();
-        if (self.pty.pty.handle > 2) self.pty.pty.close();
-
-        if (self.working_directory) |wd| {
-            try std.posix.chdir(wd);
+        {
+            const rc = linux.dup2(self.pty.tty.handle, std.posix.STDIN_FILENO);
+            switch (linux.errno(rc)) {
+                .SUCCESS => {},
+                else => return error.Dup2Failed,
+            }
         }
+        {
+            const rc = linux.dup2(self.pty.tty.handle, std.posix.STDOUT_FILENO);
+            switch (linux.errno(rc)) {
+                .SUCCESS => {},
+                else => return error.Dup2Failed,
+            }
+        }
+        {
+            const rc = linux.dup2(self.pty.tty.handle, std.posix.STDERR_FILENO);
+            switch (linux.errno(rc)) {
+                .SUCCESS => {},
+                else => return error.Dup2Failed,
+            }
+        }
+        self.pty.tty.close(io);
+        if (self.pty.pty.handle > 2) self.pty.pty.close(io);
+
+        // if (self.working_directory) |wd| {
+        //     try std.posix.chdir(wd);
+        // }
 
         // exec
-        const err = std.posix.execvpeZ(argv_buf.ptr[0].?, argv_buf.ptr, envp);
-        _ = err catch {};
+        std.process.replace(io, .{
+            .argv = self.argv,
+            .environ_map = self.env_map,
+        }) catch {};
     }
 
     // we are the parent
@@ -75,15 +94,18 @@ pub fn spawn(self: *Command, allocator: std.mem.Allocator) !void {
     return;
 }
 
-fn handleSigChild(_: c_int) callconv(.c) void {
-    const result = std.posix.waitpid(-1, 0);
+fn handleSigChild(_: posix.SIG) callconv(.c) void {
+    var status: u32 = undefined;
+    const rc = linux.waitpid(-1, &status, 0);
+    const pid: i32 = switch (linux.errno(rc)) {
+        .SUCCESS => @intCast(rc),
+        else => return,
+    };
 
-    Terminal.global_vt_mutex.lock();
-    defer Terminal.global_vt_mutex.unlock();
-    if (Terminal.global_vts) |vts| {
-        var vt = vts.get(result.pid) orelse return;
-        vt.event_queue.push(.exited);
-    }
+    Terminal.global_vt_mutex.lock(Terminal.global_io) catch return;
+    defer Terminal.global_vt_mutex.unlock(Terminal.global_io);
+    var vt = Terminal.global_vts.get(pid) orelse return;
+    vt.event_queue.push(.exited) catch {};
 }
 
 pub fn kill(self: *Command) void {
@@ -97,21 +119,7 @@ pub fn kill(self: *Command) void {
 /// hash map plus options.
 fn createEnvironFromMap(
     arena: std.mem.Allocator,
-    map: *const std.process.EnvMap,
+    map: *const std.process.Environ.Map,
 ) ![:null]?[*:0]u8 {
-    const envp_count: usize = map.count();
-
-    const envp_buf = try arena.allocSentinel(?[*:0]u8, envp_count, null);
-    var i: usize = 0;
-
-    {
-        var it = map.iterator();
-        while (it.next()) |pair| {
-            envp_buf[i] = try std.fmt.allocPrintSentinel(arena, "{s}={s}", .{ pair.key_ptr.*, pair.value_ptr.* }, 0);
-            i += 1;
-        }
-    }
-
-    std.debug.assert(i == envp_count);
-    return envp_buf;
+    return try map.createPosixBlock(arena, .{});
 }
