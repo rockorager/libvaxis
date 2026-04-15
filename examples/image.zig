@@ -8,44 +8,49 @@ const Event = union(enum) {
     winsize: vaxis.Winsize,
 };
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer {
-        const deinit_status = gpa.deinit();
-        if (deinit_status == .leak) {
-            log.err("memory leak", .{});
-        }
-    }
-    const alloc = gpa.allocator();
+pub fn main(init: std.process.Init) !void {
+    std.log.warn("YYYYY", .{});
+    const io = init.io;
+    const alloc = init.gpa;
 
     var buffer: [1024]u8 = undefined;
-    var tty = try vaxis.Tty.init(&buffer);
+    std.log.warn("ZZZZ", .{});
+    var tty = try vaxis.Tty.init(io, &buffer);
     defer tty.deinit();
+    std.log.warn("1111", .{});
 
-    var vx = try vaxis.init(alloc, .{});
+    var vx = try vaxis.init(io, alloc, init.environ_map, .{});
     defer vx.deinit(alloc, tty.writer());
+    std.log.warn("2222", .{});
 
-    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
-    try loop.init();
-
+    var loop: vaxis.Loop(Event) = .init(io, &tty, &vx);
+    std.log.warn("AAAA", .{});
     try loop.start();
     defer loop.stop();
 
+    std.log.warn("BBBB", .{});
     try vx.enterAltScreen(tty.writer());
+    std.log.warn("CCCC", .{});
     try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
 
+    std.log.warn("DDDD", .{});
     var read_buffer: [1024 * 1024]u8 = undefined; // 1MB buffer
-    var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, "examples/zig.png", &read_buffer);
+    var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, io, "examples/zig.png", &read_buffer);
+    std.log.warn("EEEE", .{});
     defer img1.deinit(alloc);
 
+    std.log.warn("FFFF", .{});
     const imgs = [_]vaxis.Image{
         try vx.transmitImage(alloc, tty.writer(), &img1, .rgba),
         // var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, "examples/zig.png");
         // try vx.loadImage(alloc, tty.writer(), .{ .path = "examples/zig.png" }),
         try vx.loadImage(alloc, tty.writer(), .{ .path = "examples/vaxis.png" }),
     };
+    std.log.warn("GGGG", .{});
     defer vx.freeImage(tty.writer(), imgs[0].id);
+    std.log.warn("HHHH", .{});
     defer vx.freeImage(tty.writer(), imgs[1].id);
+    std.log.warn("JJJJ", .{});
 
     var n: usize = 0;
 
