@@ -15,8 +15,7 @@ pub fn main(init: std.process.Init) !void {
     var vx = try vaxis.init(io, alloc, init.environ_map, .{});
     defer vx.deinit(alloc, tty.writer());
 
-    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
-    try loop.init(io);
+    var loop: vaxis.Loop(Event) = .init(io, &tty, &vx);
 
     try loop.start();
     defer loop.stop();

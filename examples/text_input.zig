@@ -22,7 +22,7 @@ pub fn main(init: std.process.Init) !void {
     const io = init.io;
     const alloc = init.gpa;
 
-    // Initalize a tty
+    // Initialize a tty
     var buffer: [1024]u8 = undefined;
     var tty = try vaxis.Tty.init(io, &buffer);
     defer tty.deinit();
@@ -37,11 +37,7 @@ pub fn main(init: std.process.Init) !void {
     });
     defer vx.deinit(alloc, tty.writer());
 
-    var loop: vaxis.Loop(Event) = .{
-        .vaxis = &vx,
-        .tty = &tty,
-    };
-    try loop.init(io);
+    var loop: vaxis.Loop(Event) = .init(io, &tty, &vx);
 
     // Start the read loop. This puts the terminal in raw mode and begins
     // reading user input
@@ -71,7 +67,7 @@ pub fn main(init: std.process.Init) !void {
     while (true) {
         // nextEvent blocks until an event is in the queue
         const event = try loop.nextEvent();
-        log.debug("event: {}", .{event});
+        // log.debug("event: {}", .{event});
         // exhaustive switching ftw. Vaxis will send events if your Event
         // enum has the fields for those events (ie "key_press", "winsize")
         switch (event) {

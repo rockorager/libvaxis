@@ -96,7 +96,7 @@ pub fn Queue(
             const was_full = self.isFullLH();
             const item = self.popLH();
             if (was_full) {
-                self.not_full.signal();
+                self.not_full.signal(self.io);
             }
             return item;
         }
