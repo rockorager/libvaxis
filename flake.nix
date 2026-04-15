@@ -32,7 +32,9 @@
         default = pkgs.mkShell {
           name = "libvaxis";
           nativeBuildInputs = [
-            zig.packages.${pkgs.stdenv.hostPlatform.system}.master
+            pkgs.neovim
+            pkgs.fd
+            zig.packages.${pkgs.stdenv.hostPlatform.system}."0.16.0"
           ];
         };
       });
