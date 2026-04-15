@@ -29,7 +29,7 @@ pub const BufferWriter = struct {
 };
 
 pub const Buffer = struct {
-    const StyleList = std.ArrayListUnmanaged(vaxis.Style);
+    const StyleList = std.ArrayList(vaxis.Style);
     const StyleMap = std.HashMapUnmanaged(usize, usize, std.hash_map.AutoContext(usize), std.hash_map.default_max_load_percentage);
 
     pub const Content = struct {
@@ -44,10 +44,10 @@ pub const Buffer = struct {
 
     pub const Error = error{OutOfMemory};
 
-    grapheme: std.MultiArrayList(Grapheme) = .{},
-    content: std.ArrayListUnmanaged(u8) = .{},
-    style_list: StyleList = .{},
-    style_map: StyleMap = .{},
+    grapheme: std.MultiArrayList(Grapheme) = .empty,
+    content: std.ArrayListUnmanaged(u8) = .empty,
+    style_list: StyleList = .empty,
+    style_map: StyleMap = .empty,
     rows: usize = 0,
     cols: usize = 0,
     // used when appending to a buffer
@@ -82,10 +82,10 @@ pub const Buffer = struct {
         var grapheme_start: usize = 0;
         var prev_break: bool = true;
 
-        while (iter.next()) |result| {
+        while (iter.nextCodePoint()) |result| {
             if (prev_break and !result.is_break) {
                 // Start of a new grapheme
-                const cp_len: usize = std.unicode.utf8CodepointSequenceLength(result.cp) catch 1;
+                const cp_len: usize = std.unicode.utf8CodepointSequenceLength(result.code_point) catch 1;
                 grapheme_start = iter.i - cp_len;
             }
 
