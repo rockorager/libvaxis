@@ -14,19 +14,19 @@ const ActiveSection = enum {
     btm,
 };
 
-pub fn main() !void {
-    var gpa = heap.GeneralPurposeAllocator(.{}){};
-    defer if (gpa.detectLeaks()) log.err("Memory leak detected!", .{});
-    const alloc = gpa.allocator();
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+    const alloc = init.gpa;
 
     // Users set up below the main function
     const users_buf = try alloc.dupe(User, users[0..]);
+    defer alloc.free(users_buf);
 
     var buffer: [1024]u8 = undefined;
-    var tty = try vaxis.Tty.init(&buffer);
+    var tty: vaxis.Tty = try .init(io, &buffer);
     defer tty.deinit();
     const tty_writer = tty.writer();
-    var vx = try vaxis.init(alloc, .{
+    var vx = try vaxis.init(io, alloc, init.environ_map, .{
         .kitty_keyboard_flags = .{ .report_events = true },
     });
     defer vx.deinit(alloc, tty.writer());
@@ -35,8 +35,7 @@ pub fn main() !void {
         key_press: vaxis.Key,
         winsize: vaxis.Winsize,
         table_upd,
-    }) = .{ .tty = &tty, .vaxis = &vx };
-    try loop.init();
+    }) = .init(io, &tty, &vx);
     try loop.start();
     defer loop.stop();
     try vx.enterAltScreen(tty.writer());
@@ -96,13 +95,13 @@ pub fn main() !void {
     var see_content = false;
 
     // Create an Arena Allocator for easy allocations on each Event.
-    var event_arena = heap.ArenaAllocator.init(alloc);
+    var event_arena: heap.ArenaAllocator = .init(alloc);
     defer event_arena.deinit();
     while (true) {
         defer _ = event_arena.reset(.retain_capacity);
         defer tty_writer.flush() catch {};
         const event_alloc = event_arena.allocator();
-        const event = loop.nextEvent();
+        const event = try loop.nextEvent();
 
         switch (event) {
             .key_press => |key| keyEvt: {
@@ -237,7 +236,7 @@ pub fn main() !void {
                     return see_win.height;
                 }
             }.see;
-            loop.postEvent(.table_upd);
+            try loop.postEvent(.table_upd);
         }
 
         // Sections
