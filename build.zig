@@ -71,6 +71,8 @@ pub fn build(b: *std.Build) void {
         .root_module = examples.get(example_option) orelse unreachable,
     });
 
+    b.getInstallStep().dependOn(&example.step);
+
     const example_run = b.addRunArtifact(example);
     example_step.dependOn(&example_run.step);
 

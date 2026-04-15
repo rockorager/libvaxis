@@ -54,33 +54,33 @@ const Model = struct {
 
 pub fn main(init: std.process.Init) !void {
     const io = init.io;
-    const allocator = init.gpa;
+    const alloc = init.gpa;
 
-    var app: vxfw.App = undefined;
-    try app.init(io, allocator, init.environ_map);
+    var buffer: [1024]u8 = undefined;
+    var app: vxfw.App = try .init(io, alloc, init.environ_map, &buffer);
     defer app.deinit();
 
-    const model = try allocator.create(Model);
-    defer allocator.destroy(model);
+    const model = try alloc.create(Model);
+    defer alloc.destroy(model);
 
     const n = 80;
-    var texts: std.ArrayList(Widget) = try .initCapacity(allocator, n);
-    var allocs: std.ArrayList(*Text) = try .initCapacity(allocator, n);
+    var texts: std.ArrayList(Widget) = try .initCapacity(alloc, n);
+    var allocs: std.ArrayList(*Text) = try .initCapacity(alloc, n);
     defer {
         for (allocs.items) |tw| {
-            allocator.free(tw.text);
-            allocator.destroy(tw);
+            alloc.free(tw.text);
+            alloc.destroy(tw);
         }
-        allocs.deinit(allocator);
-        texts.deinit(allocator);
+        allocs.deinit(alloc);
+        texts.deinit(alloc);
     }
 
     for (0..n) |i| {
-        const t = std.fmt.allocPrint(allocator, "List Item {d} of {d}", .{ i, n }) catch "placeholder";
-        const tw = try allocator.create(Text);
+        const t = std.fmt.allocPrint(alloc, "List Item {d} of {d}", .{ i, n }) catch "placeholder";
+        const tw = try alloc.create(Text);
         tw.* = .{ .text = t };
-        _ = try allocs.append(allocator, tw);
-        _ = try texts.append(allocator, tw.widget());
+        _ = try allocs.append(alloc, tw);
+        _ = try texts.append(alloc, tw.widget());
     }
 
     model.* = .{
