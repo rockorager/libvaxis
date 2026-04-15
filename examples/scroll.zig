@@ -151,16 +151,15 @@ const Model = struct {
     }
 };
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+    const allocator = init.gpa;
 
-    const allocator = gpa.allocator();
+    var app: vxfw.App = undefined;
+    try app.init(io, allocator, init.environ_map);
+    defer app.deinit();
 
-    var app = try vxfw.App.init(allocator);
-    errdefer app.deinit();
-
-    var arena = std.heap.ArenaAllocator.init(allocator);
+    var arena: std.heap.ArenaAllocator = .init(allocator);
     defer arena.deinit();
 
     const model = try allocator.create(Model);
@@ -182,11 +181,11 @@ pub fn main() !void {
             //       it as well to see what that does.
             .estimated_content_height = 800,
         },
-        .rows = std.ArrayList(ModelRow).empty,
+        .rows = .empty,
     };
     defer model.rows.deinit(allocator);
 
-    var lipsum = std.ArrayList([]const u8).empty;
+    var lipsum: std.ArrayList([]const u8) = .empty;
     defer lipsum.deinit(allocator);
 
     try lipsum.append(allocator, "    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc sit amet nunc porta, commodo tellus eu, blandit lectus. Aliquam dignissim rhoncus mi eu ultrices. Suspendisse lectus massa, bibendum sed lorem sit amet, egestas aliquam ante. Mauris venenatis nibh neque. Nulla a mi eget purus porttitor malesuada. Sed ac porta felis. Morbi ultricies urna nisi, et maximus elit convallis a. Morbi ut felis nec orci euismod congue efficitur egestas ex. Quisque eu feugiat magna. Pellentesque porttitor tortor ut iaculis dictum. Nulla erat neque, sollicitudin vitae enim nec, pharetra blandit tortor. Sed orci ante, condimentum vitae sodales in, sodales ut nulla. Suspendisse quam felis, aliquet ut neque a, lacinia sagittis turpis. Vivamus nec dui purus. Proin tempor nisl et porttitor consequat.");
@@ -210,5 +209,4 @@ pub fn main() !void {
     }
 
     try app.run(model.widget(), .{});
-    app.deinit();
 }
