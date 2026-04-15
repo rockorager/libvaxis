@@ -204,9 +204,9 @@ pub fn main(init: std.process.Init) !u8 {
     const io = init.io;
     const alloc = init.gpa;
 
-    var app: vxfw.App = undefined;
-    try app.init(io, alloc, init.environ_map);
-    errdefer app.deinit();
+    var buffer: [1024]u8 = undefined;
+    var app: vxfw.App = try .init(io, alloc, init.environ_map, &buffer);
+    defer app.deinit();
 
     const model = try Model.init(alloc);
     defer model.deinit(alloc);
@@ -229,8 +229,8 @@ pub fn main(init: std.process.Init) !u8 {
 
     if (model.result.len > 0) {
         var stdout_file: std.Io.File = .stdout();
-        var buffer: [1024]u8 = undefined;
-        var stdout_writer = stdout_file.writer(io, &buffer);
+        var stdout_buffer: [1024]u8 = undefined;
+        var stdout_writer = stdout_file.writer(io, &stdout_buffer);
         const stdout = &stdout_writer.interface;
         try stdout.writeAll(model.result);
         try stdout.writeByte('\n');

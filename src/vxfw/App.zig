@@ -17,7 +17,6 @@ tty: vaxis.Tty,
 vx: vaxis.Vaxis,
 timers: std.ArrayList(vxfw.Tick),
 wants_focus: ?vxfw.Widget,
-buffer: [1024]u8,
 
 /// Runtime options
 pub const Options = struct {
@@ -28,11 +27,11 @@ pub const Options = struct {
 /// Create an application. We require stable pointers to do the set up, so this will create an App
 /// object on the heap. Call destroy when the app is complete to reset terminal state and release
 /// resources
-pub fn init(self: *App, io: std.Io, allocator: Allocator, env_map: *std.process.Environ.Map) !void {
-    self.* = .{
+pub fn init(io: std.Io, allocator: Allocator, env_map: *std.process.Environ.Map, buffer: []u8) !App {
+    return .{
         .io = io,
         .allocator = allocator,
-        .tty = try vaxis.Tty.init(io, &self.buffer),
+        .tty = try vaxis.Tty.init(io, buffer),
         .vx = try vaxis.init(io, allocator, env_map, .{
             .system_clipboard_allocator = allocator,
             .kitty_keyboard_flags = .{
@@ -41,7 +40,6 @@ pub fn init(self: *App, io: std.Io, allocator: Allocator, env_map: *std.process.
         }),
         .timers = .empty,
         .wants_focus = null,
-        .buffer = undefined,
     };
 }
 
