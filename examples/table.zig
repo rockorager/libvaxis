@@ -39,7 +39,7 @@ pub fn main(init: std.process.Init) !void {
     try loop.start();
     defer loop.stop();
     try vx.enterAltScreen(tty.writer());
-    try vx.queryTerminal(tty.writer(), 250 * std.time.ns_per_ms);
+    try vx.queryTerminal(tty.writer(), .fromMilliseconds(250));
 
     const logo =
         \\░█░█░█▀█░█░█░▀█▀░█▀▀░░░▀█▀░█▀█░█▀▄░█░░░█▀▀░

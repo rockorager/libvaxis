@@ -72,14 +72,14 @@ or for ZLS support
         .target = target,
         .optimize = optimize,
     });
-    
+
     // add vaxis dependency to module
     const vaxis = b.dependency("vaxis", .{
         .target = target,
         .optimize = optimize,
     });
     exe_mod.addImport("vaxis", vaxis.module("vaxis"));
-    
+
     //create executable
     const exe = b.addExecutable(.{
         .name = "project_foo",
@@ -330,7 +330,7 @@ pub fn main() !void {
 
     // Sends queries to terminal to detect certain features. This should always
     // be called after entering the alt screen, if you are using the alt screen
-    try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
+    try vx.queryTerminal(tty.writer(), .fromSeconds(1));
 
     while (true) {
         // nextEvent blocks until an event is in the queue

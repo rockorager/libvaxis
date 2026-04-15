@@ -275,7 +275,7 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
         else => {
             switch (event) {
                 .key_press => |key| {
-                    // Check for a cursor position response for our explicity width query. This will
+                    // Check for a cursor position response for our explicitly width query. This will
                     // always be an F3 key with shift = true, and we must be looking for queries
                     if (key.codepoint == vaxis.Key.f3 and
                         key.mods.shift and
@@ -433,13 +433,12 @@ test Loop {
     var vx = try vaxis.init(io, std.testing.allocator, &env_map, .{});
     defer vx.deinit(std.testing.allocator, tty.writer());
 
-    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
-    try loop.init(io);
+    var loop: vaxis.Loop(Event) = .init(io, &tty, &vx);
 
     try loop.start();
     defer loop.stop();
 
     // Optionally enter the alternate screen
     try vx.enterAltScreen(tty.writer());
-    try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_ms);
+    try vx.queryTerminal(tty.writer(), .fromSeconds(1));
 }

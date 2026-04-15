@@ -25,7 +25,7 @@ pub fn main(init: std.process.Init) !void {
     defer loop.stop();
 
     try vx.enterAltScreen(tty.writer());
-    try vx.queryTerminal(tty.writer(), 20 * std.time.ns_per_s);
+    try vx.queryTerminal(tty.writer(), .fromSeconds(20));
 
     var text_view = TextView{};
     var text_view_buffer = TextView.Buffer{};

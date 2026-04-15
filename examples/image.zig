@@ -31,7 +31,7 @@ pub fn main(init: std.process.Init) !void {
     std.log.warn("BBBB", .{});
     try vx.enterAltScreen(tty.writer());
     std.log.warn("CCCC", .{});
-    try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
+    try vx.queryTerminal(tty.writer(), .fromSeconds(1));
 
     std.log.warn("DDDD", .{});
     var read_buffer: [1024 * 1024]u8 = undefined; // 1MB buffer

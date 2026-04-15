@@ -65,7 +65,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     try loop.postEvent(.focus_in);
 
     try vx.enterAltScreen(tty.writer());
-    try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
+    try vx.queryTerminal(tty.writer(), .fromSeconds(1));
     try vx.setBracketedPaste(tty.writer(), true);
     try vx.subscribeToColorSchemeUpdates(tty.writer());
 
