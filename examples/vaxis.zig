@@ -9,26 +9,18 @@ const Event = union(enum) {
 
 pub const panic = vaxis.panic_handler;
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer {
-        const deinit_status = gpa.deinit();
-        //fail test; can't try in defer as defer is executed after we return
-        if (deinit_status == .leak) {
-            std.log.err("memory leak", .{});
-        }
-    }
-    const alloc = gpa.allocator();
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+    const alloc = init.gpa;
 
     var buffer: [1024]u8 = undefined;
-    var tty = try vaxis.Tty.init(&buffer);
+    var tty: vaxis.Tty = try .init(io, &buffer);
     defer tty.deinit();
 
-    var vx = try vaxis.init(alloc, .{});
+    var vx = try vaxis.init(io, alloc, init.environ_map, .{});
     defer vx.deinit(alloc, tty.writer());
 
-    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
-    try loop.init();
+    var loop: vaxis.Loop(Event) = .init(io, &tty, &vx);
 
     try loop.start();
     defer loop.stop();
@@ -49,7 +41,7 @@ pub fn main() !void {
 
     // block until we get a resize
     while (true) {
-        const event = loop.nextEvent();
+        const event = try loop.nextEvent();
         switch (event) {
             .key_press => |key| if (key.matches('c', .{ .ctrl = true })) return,
             .winsize => |ws| {
@@ -60,7 +52,7 @@ pub fn main() !void {
     }
 
     while (true) {
-        while (loop.tryEvent()) |event| {
+        while (try loop.tryEvent()) |event| {
             switch (event) {
                 .key_press => |key| if (key.matches('c', .{ .ctrl = true })) return,
                 .winsize => |ws| try vx.resize(alloc, tty.writer(), ws),
@@ -80,11 +72,8 @@ pub fn main() !void {
         };
         const center = vaxis.widgets.alignment.center(win, 28, 4);
         _ = center.printSegment(segment, .{ .wrap = .grapheme });
-        // var bw = tty.bufferedWriter();
-        // try vx.render(bw.writer().any());
-        // try bw.flush();
         try vx.render(tty.writer());
-        std.Thread.sleep(16 * std.time.ns_per_ms);
+        try io.sleep(.fromMilliseconds(16), .real);
         switch (dir) {
             .up => {
                 pct += 1;

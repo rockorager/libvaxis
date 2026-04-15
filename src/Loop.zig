@@ -86,8 +86,8 @@ pub fn Loop(comptime T: type) type {
         }
 
         /// returns an event if one is available, otherwise null. Non-blocking.
-        pub fn tryEvent(self: *Self) ?T {
-            return self.queue.tryPop();
+        pub fn tryEvent(self: *Self) !?T {
+            return try self.queue.tryPop();
         }
 
         /// posts an event into the event queue. Will block if there is not
