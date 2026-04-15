@@ -28,11 +28,11 @@ pub const Options = struct {
 /// Create an application. We require stable pointers to do the set up, so this will create an App
 /// object on the heap. Call destroy when the app is complete to reset terminal state and release
 /// resources
-pub fn init(io: std.Io, allocator: Allocator, env_map: *std.process.Environ.Map) !App {
-    var app: App = .{
+pub fn init(self: *App, io: std.Io, allocator: Allocator, env_map: *std.process.Environ.Map) !void {
+    self.* = .{
         .io = io,
         .allocator = allocator,
-        .tty = undefined,
+        .tty = try vaxis.Tty.init(io, &self.buffer),
         .vx = try vaxis.init(io, allocator, env_map, .{
             .system_clipboard_allocator = allocator,
             .kitty_keyboard_flags = .{
@@ -43,8 +43,6 @@ pub fn init(io: std.Io, allocator: Allocator, env_map: *std.process.Environ.Map)
         .wants_focus = null,
         .buffer = undefined,
     };
-    app.tty = try vaxis.Tty.init(io, &app.buffer);
-    return app;
 }
 
 pub fn deinit(self: *App) void {

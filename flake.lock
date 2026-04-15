@@ -26,11 +26,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1776053585,
-        "narHash": "sha256-E06KRqtDxvKU3vxz7o7AgmeHVYIiIe5Q3kiFJQzEW4g=",
+        "lastModified": 1776208985,
+        "narHash": "sha256-IOuRFpbeQ9jSk54OURX5yvjoC759ujgSNjkMKpChdDA=",
         "ref": "refs/heads/main",
-        "rev": "a3ab4e8e3d22dbf9b4c0aff5f9c39e9a35ede6b6",
-        "revCount": 1664,
+        "rev": "e8ee348125247e7bd74932cc42ac92df90961d5b",
+        "revCount": 1666,
         "type": "git",
         "url": "https://git.ocjtech.us/jeff/zig-overlay.git"
       },
