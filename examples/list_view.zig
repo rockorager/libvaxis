@@ -52,22 +52,20 @@ const Model = struct {
     }
 };
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+    const allocator = init.gpa;
 
-    const allocator = gpa.allocator();
-
-    var app = try vxfw.App.init(allocator);
+    var app: vxfw.App = undefined;
+    try app.init(io, allocator, init.environ_map);
     defer app.deinit();
 
     const model = try allocator.create(Model);
     defer allocator.destroy(model);
 
     const n = 80;
-    var texts = try std.ArrayList(Widget).initCapacity(allocator, n);
-
-    var allocs = try std.ArrayList(*Text).initCapacity(allocator, n);
+    var texts: std.ArrayList(Widget) = try .initCapacity(allocator, n);
+    var allocs: std.ArrayList(*Text) = try .initCapacity(allocator, n);
     defer {
         for (allocs.items) |tw| {
             allocator.free(tw.text);
@@ -78,7 +76,7 @@ pub fn main() !void {
     }
 
     for (0..n) |i| {
-        const t = std.fmt.allocPrint(allocator, "List Item {d}", .{i}) catch "placeholder";
+        const t = std.fmt.allocPrint(allocator, "List Item {d} of {d}", .{ i, n }) catch "placeholder";
         const tw = try allocator.create(Text);
         tw.* = .{ .text = t };
         _ = try allocs.append(allocator, tw);
