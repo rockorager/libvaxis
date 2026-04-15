@@ -9,33 +9,23 @@ const Event = union(enum) {
 
 pub const panic = vaxis.panic_handler;
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer {
-        const deinit_status = gpa.deinit();
-        //fail test; can't try in defer as defer is executed after we return
-        if (deinit_status == .leak) {
-            std.log.err("memory leak", .{});
-        }
-    }
-    const alloc = gpa.allocator();
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+    const alloc = init.gpa;
 
     var buffer: [1024]u8 = undefined;
-    var tty = try vaxis.Tty.init(&buffer);
+    var tty: vaxis.Tty = try .init(io, &buffer);
     const writer = tty.writer();
-    var vx = try vaxis.init(alloc, .{});
+    var vx = try vaxis.init(io, alloc, init.environ_map, .{});
     defer vx.deinit(alloc, writer);
 
-    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
-    try loop.init();
+    var loop: vaxis.Loop(Event) = .init(io, &tty, &vx);
 
     try loop.start();
     defer loop.stop();
 
     try vx.enterAltScreen(writer);
     try vx.queryTerminal(writer, 1 * std.time.ns_per_s);
-    var env = try std.process.getEnvMap(alloc);
-    defer env.deinit();
 
     const vt_opts: vaxis.widgets.Terminal.Options = .{
         .winsize = .{
@@ -45,15 +35,16 @@ pub fn main() !void {
             .y_pixel = 0,
         },
         .scrollback_size = 0,
-        .initial_working_directory = env.get("HOME") orelse @panic("no $HOME"),
+        .initial_working_directory = init.environ_map.get("HOME") orelse @panic("no $HOME"),
     };
-    const shell = env.get("SHELL") orelse "bash";
+    const shell = init.environ_map.get("SHELL") orelse "bash";
     const argv = [_][]const u8{shell};
     var write_buf: [4096]u8 = undefined;
     var vt = try vaxis.widgets.Terminal.init(
+        io,
         alloc,
         &argv,
-        &env,
+        init.environ_map,
         vt_opts,
         &write_buf,
     );
@@ -62,9 +53,9 @@ pub fn main() !void {
 
     var redraw: bool = false;
     while (true) {
-        std.Thread.sleep(8 * std.time.ns_per_ms);
+        try io.sleep(.fromMilliseconds(8), .real);
         // try vt events first
-        while (vt.tryEvent()) |event| {
+        while (try vt.tryEvent()) |event| {
             redraw = true;
             switch (event) {
                 .bell => {},
@@ -74,7 +65,7 @@ pub fn main() !void {
                 .pwd_change => {},
             }
         }
-        while (loop.tryEvent()) |event| {
+        while (try loop.tryEvent()) |event| {
             redraw = true;
             switch (event) {
                 .key_press => |key| {
