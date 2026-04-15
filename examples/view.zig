@@ -54,7 +54,7 @@ pub fn main(init: std.process.Init) !void {
     defer loop.stop();
     try vx.enterAltScreen(writer);
     try writer.flush();
-    try vx.queryTerminal(tty.writer(), 20 * std.time.ns_per_s);
+    try vx.queryTerminal(tty.writer(), .fromSeconds(20));
 
     // Initialize Views
     // - Large Map

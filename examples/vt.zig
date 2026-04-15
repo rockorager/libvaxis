@@ -25,7 +25,7 @@ pub fn main(init: std.process.Init) !void {
     defer loop.stop();
 
     try vx.enterAltScreen(writer);
-    try vx.queryTerminal(writer, 1 * std.time.ns_per_s);
+    try vx.queryTerminal(writer, .fromSeconds(1));
 
     const vt_opts: vaxis.widgets.Terminal.Options = .{
         .winsize = .{

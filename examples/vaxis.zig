@@ -26,7 +26,7 @@ pub fn main(init: std.process.Init) !void {
     defer loop.stop();
 
     try vx.enterAltScreen(tty.writer());
-    try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
+    try vx.queryTerminal(tty.writer(), .fromSeconds(1));
 
     try vx.queryColor(tty.writer(), .fg);
     try vx.queryColor(tty.writer(), .bg);
