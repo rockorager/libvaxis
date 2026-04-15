@@ -11,6 +11,7 @@ const Widget = vxfw.Widget;
 
 const App = @This();
 
+io: std.Io,
 allocator: Allocator,
 tty: vaxis.Tty,
 vx: vaxis.Vaxis,
@@ -27,21 +28,22 @@ pub const Options = struct {
 /// Create an application. We require stable pointers to do the set up, so this will create an App
 /// object on the heap. Call destroy when the app is complete to reset terminal state and release
 /// resources
-pub fn init(allocator: Allocator) !App {
+pub fn init(io: std.Io, allocator: Allocator, env_map: *std.process.Environ.Map) !App {
     var app: App = .{
+        .io = io,
         .allocator = allocator,
         .tty = undefined,
-        .vx = try vaxis.init(allocator, .{
+        .vx = try vaxis.init(io, allocator, env_map, .{
             .system_clipboard_allocator = allocator,
             .kitty_keyboard_flags = .{
                 .report_events = true,
             },
         }),
-        .timers = std.ArrayList(vxfw.Tick){},
+        .timers = .empty,
         .wants_focus = null,
         .buffer = undefined,
     };
-    app.tty = try vaxis.Tty.init(&app.buffer);
+    app.tty = try vaxis.Tty.init(io, &app.buffer);
     return app;
 }
 
@@ -55,14 +57,14 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     const tty = &self.tty;
     const vx = &self.vx;
 
-    var loop: EventLoop = .{ .tty = tty, .vaxis = vx };
+    var loop: EventLoop = .init(self.io, tty, vx);
     try loop.start();
     defer loop.stop();
 
     // Send the init event
-    loop.postEvent(.init);
+    try loop.postEvent(.init);
     // Also always initialize the app with a focus event
-    loop.postEvent(.focus_in);
+    try loop.postEvent(.focus_in);
 
     try vx.enterAltScreen(tty.writer());
     try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
@@ -70,10 +72,11 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     try vx.subscribeToColorSchemeUpdates(tty.writer());
 
     {
-        // This part deserves a comment. loop.init installs a signal handler for the tty. We wait to
-        // init the loop until we know if we need this handler. We don't need it if the terminal
-        // supports in-band-resize
-        if (!vx.state.in_band_resize) try loop.init();
+        // This part deserves a comment. loop.installResizeHandler installs
+        // a signal handler for the tty. We wait to installResizeHandler the
+        // loop until we know if we need this handler. We don't need it if the
+        // terminal supports in-band-resize.
+        if (!vx.state.in_band_resize) try loop.installResizeHandler();
     }
 
     // NOTE: We don't use pixel mouse anywhere
@@ -82,9 +85,9 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
 
     vxfw.DrawContext.init(vx.screen.width_method);
 
-    const framerate: u64 = if (opts.framerate > 0) opts.framerate else 60;
     // Calculate tick rate
-    const tick_ms: u64 = @divFloor(std.time.ms_per_s, framerate);
+    const framerate: u64 = if (opts.framerate > 0) opts.framerate else 60;
+    const tick: std.Io.Duration = .fromNanoseconds(@divFloor(std.time.ns_per_s, framerate));
 
     // Set up arena and context
     var arena = std.heap.ArenaAllocator.init(self.allocator);
@@ -97,13 +100,14 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     defer focus_handler.deinit(self.allocator);
 
     // Timestamp of our next frame
-    var next_frame_ms: u64 = @intCast(std.time.milliTimestamp());
+    var next_frame = std.Io.Timestamp.now(self.io, .real);
 
     // Create our event context
     var ctx: vxfw.EventContext = .{
+        .io = self.io,
         .alloc = self.allocator,
         .phase = .capturing,
-        .cmds = vxfw.CommandList{},
+        .cmds = .empty,
         .consume_event = false,
         .redraw = false,
         .quit = false,
@@ -111,20 +115,21 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     defer ctx.cmds.deinit(self.allocator);
 
     while (true) {
-        const now_ms: u64 = @intCast(std.time.milliTimestamp());
-        if (now_ms >= next_frame_ms) {
+        const now = std.Io.Timestamp.now(self.io, .real);
+        const duration = next_frame.durationTo(now);
+        if (duration.nanoseconds <= 0) {
             // Deadline exceeded. Schedule the next frame
-            next_frame_ms = now_ms + tick_ms;
+            next_frame = now.addDuration(tick);
         } else {
             // Sleep until the deadline
-            std.Thread.sleep((next_frame_ms - now_ms) * std.time.ns_per_ms);
-            next_frame_ms += tick_ms;
+            try self.io.sleep(duration, .real);
+            next_frame = next_frame.addDuration(tick);
         }
 
         try self.checkTimers(&ctx);
 
         {
-            loop.queue.lock();
+            try loop.queue.lock();
             defer loop.queue.unlock();
             while (loop.queue.drain()) |event| {
                 defer {
@@ -296,11 +301,12 @@ fn handleCommand(self: *App, cmds: *vxfw.CommandList) Allocator.Error!void {
 }
 
 fn checkTimers(self: *App, ctx: *vxfw.EventContext) anyerror!void {
-    const now_ms = std.time.milliTimestamp();
+    const now: std.Io.Timestamp = .now(self.io, .real);
 
     // timers are always sorted descending
     while (self.timers.pop()) |tick| {
-        if (now_ms < tick.deadline_ms) {
+        const duration = now.durationTo(tick.deadline);
+        if (duration.nanoseconds < 0) {
             // re-add the timer
             try self.timers.append(self.allocator, tick);
             break;
@@ -342,7 +348,7 @@ const MouseHandler = struct {
         // For mouse events we store the last frame and use that for hit testing
         const last_frame = surface;
 
-        var hits = std.ArrayList(vxfw.HitResult){};
+        var hits: std.ArrayList(vxfw.HitResult) = .empty;
         defer hits.deinit(app.allocator);
         const sub: vxfw.SubSurface = .{
             .origin = .{ .row = 0, .col = 0 },
@@ -401,7 +407,7 @@ const MouseHandler = struct {
         const last_frame = self.last_frame;
         self.mouse = mouse;
 
-        var hits = std.ArrayList(vxfw.HitResult){};
+        var hits: std.ArrayList(vxfw.HitResult) = .empty;
         defer hits.deinit(app.allocator);
         const sub: vxfw.SubSurface = .{
             .origin = .{ .row = 0, .col = 0 },
@@ -516,7 +522,7 @@ const FocusHandler = struct {
         return .{
             .root = root,
             .focused_widget = root,
-            .path_to_focused = std.ArrayList(Widget){},
+            .path_to_focused = .empty,
         };
     }
 

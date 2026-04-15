@@ -16,17 +16,26 @@ pub fn Loop(comptime T: type) type {
 
         const Event = T;
 
+        io: std.Io,
         tty: *Tty,
         vaxis: *Vaxis,
 
-        queue: Queue(T, 512) = undefined,
-        thread: ?std.Thread = null,
+        queue: Queue(T, 512),
+        thread: ?std.Io.Future(void) = null,
         should_quit: bool = false,
 
         /// Initialize the event loop. This is an intrusive init so that we have
         /// a stable pointer to register signal callbacks with posix TTYs
-        pub fn init(self: *Self, io: std.Io) !void {
-            self.queue = .init(io);
+        pub fn init(io: std.Io, tty: *Tty, vx: *Vaxis) Self {
+            return .{
+                .io = io,
+                .tty = tty,
+                .vaxis = vx,
+                .queue = .init(io),
+            };
+        }
+
+        pub fn installResizeHandler(self: *Self) !void {
             switch (builtin.os.tag) {
                 .windows => {},
                 else => {
@@ -44,7 +53,7 @@ pub fn Loop(comptime T: type) type {
         /// spawns the input thread to read input from the tty
         pub fn start(self: *Self) !void {
             if (self.thread) |_| return;
-            self.thread = try std.Thread.spawn(.{}, Self.ttyRun, .{
+            self.thread = try self.io.concurrent(Self.ttyRun, .{
                 self,
                 self.vaxis.opts.system_clipboard_allocator,
             });
@@ -58,8 +67,8 @@ pub fn Loop(comptime T: type) type {
             // trigger a read
             self.vaxis.deviceStatusReport(self.tty.writer()) catch {};
 
-            if (self.thread) |thread| {
-                thread.join();
+            if (self.thread) |*thread| {
+                thread.await(self.io);
                 self.thread = null;
                 self.should_quit = false;
             }
@@ -102,11 +111,38 @@ pub fn Loop(comptime T: type) type {
             }
         }
 
+        const TtyRunError = error{
+            AccessDenied,
+            Canceled,
+            ConnectionResetByPeer,
+            EndOfStream,
+            InputOutput,
+            InvalidCharacter,
+            InvalidColorSpec,
+            InvalidPadding,
+            InvalidUTF8,
+            IoctlError,
+            IsDir,
+            LockViolation,
+            NoSpaceLeft,
+            NotOpenForReading,
+            OutOfMemory,
+            Overflow,
+            SocketUnconnected,
+            SystemResources,
+            Unexpected,
+            WouldBlock,
+        };
+
         /// read input from the tty. This is run in a separate thread
-        fn ttyRun(
+        fn ttyRun(self: *Self, paste_allocator: ?std.mem.Allocator) void {
+            self._ttyRun(paste_allocator) catch {};
+        }
+
+        fn _ttyRun(
             self: *Self,
             paste_allocator: ?std.mem.Allocator,
-        ) !void {
+        ) TtyRunError!void {
             // Return early if we're in test mode to avoid infinite loops
             if (builtin.is_test) return;
 

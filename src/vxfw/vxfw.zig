@@ -50,23 +50,26 @@ pub const Event = union(enum) {
     tick, // An event from a Tick command
     init, // sent when the application starts
     mouse_leave, // The mouse has left the widget
-    mouse_enter, // The mouse has enterred the widget
+    mouse_enter, // The mouse has entered the widget
 };
 
 pub const Tick = struct {
-    deadline_ms: i64,
+    deadline: std.Io.Timestamp,
     widget: Widget,
 
     pub fn lessThan(_: void, lhs: Tick, rhs: Tick) bool {
-        return lhs.deadline_ms > rhs.deadline_ms;
+        return lhs.deadline.nanoseconds > rhs.deadline.nanoseconds;
     }
 
     pub fn in(io: std.Io, ms: u32, widget: Widget) Command {
-        const now = std.Io.Timestamp.now(io, .real).toMilliseconds();
-        return .{ .tick = .{
-            .deadline_ms = now + ms,
-            .widget = widget,
-        } };
+        const now: std.Io.Timestamp = .now(io, .real);
+        const deadline = now.addDuration(.fromMilliseconds(ms));
+        return .{
+            .tick = .{
+                .deadline = deadline,
+                .widget = widget,
+            },
+        };
     }
 };
 
