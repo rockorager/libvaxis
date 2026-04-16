@@ -370,3 +370,7 @@ test "2 writers" {
     try t1.await(io);
     try t2.await(io);
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}

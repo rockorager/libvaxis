@@ -28,3 +28,8 @@ pub const Event = union(enum) {
     cap_color_scheme_updates,
     cap_multi_cursor,
 };
+
+test {
+    const std = @import("std");
+    std.testing.refAllDecls(@This());
+}

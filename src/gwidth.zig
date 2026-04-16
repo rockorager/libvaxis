@@ -214,3 +214,7 @@ test "gwidth: base letter with combining mark" {
     // Should be width 1 (combining mark is zero-width)
     try testing.expectEqual(1, gwidth("á", .unicode));
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}

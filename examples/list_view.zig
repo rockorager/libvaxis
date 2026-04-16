@@ -95,3 +95,7 @@ pub fn main(init: std.process.Init) !void {
 
     try app.run(model.widget(), .{});
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}

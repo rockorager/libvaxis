@@ -63,3 +63,7 @@ pub const GraphemeIterator = struct {
 pub fn graphemeIterator(str: []const u8) GraphemeIterator {
     return GraphemeIterator.init(str);
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}

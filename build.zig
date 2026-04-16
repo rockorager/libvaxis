@@ -110,6 +110,17 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    // Let's make sure that all of the examples compile and can run any tests
+    // that they may have defined.
+    var it = examples.iterator();
+    while (it.next()) |v| {
+        const e = b.addTest(.{
+            .root_module = v.value.*,
+        });
+        const r = b.addRunArtifact(e);
+        tests_step.dependOn(&r.step);
+    }
+
     const tests_run = b.addRunArtifact(tests);
     b.installArtifact(tests);
     tests_step.dependOn(&tests_run.step);

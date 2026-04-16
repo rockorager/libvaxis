@@ -102,3 +102,7 @@ pub fn main(init: std.process.Init) !void {
         try vx.render(writer);
     }
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}

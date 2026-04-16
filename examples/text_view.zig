@@ -57,3 +57,7 @@ pub fn main(init: std.process.Init) !void {
         try tty.writer().flush();
     }
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}

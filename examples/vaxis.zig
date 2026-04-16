@@ -110,3 +110,7 @@ fn blendColors(a: [3]u8, b: [3]u8, pct: u8) !vaxis.Color {
         @min(b_a + b_b, 255),
     } };
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}

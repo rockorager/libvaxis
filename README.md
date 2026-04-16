@@ -9,7 +9,7 @@ It begins with them, but ends with me. Their son, Vaxis
 Libvaxis _does not use terminfo_. Support for vt features is detected through
 terminal queries.
 
-Vaxis uses zig `0.15.1`.
+Vaxis uses zig `0.16.0`.
 
 ## Features
 
@@ -277,24 +277,17 @@ const Event = union(enum) {
     foo: u8,
 };
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer {
-        const deinit_status = gpa.deinit();
-        //fail test; can't try in defer as defer is executed after we return
-        if (deinit_status == .leak) {
-            std.log.err("memory leak", .{});
-        }
-    }
-    const alloc = gpa.allocator();
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+    const alloc = init.gpa;
 
     // Initialize a tty
     var buffer: [1024]u8 = undefined;
-    var tty = try vaxis.Tty.init(&buffer);
+    var tty = try vaxis.Tty.init(io, &buffer);
     defer tty.deinit();
 
     // Initialize Vaxis
-    var vx = try vaxis.init(alloc, .{});
+    var vx = try vaxis.init(io, alloc, init.environ_map, .{});
     // deinit takes an optional allocator. If your program is exiting, you can
     // choose to pass a null allocator to save some exit time.
     defer vx.deinit(alloc, tty.writer());
@@ -305,11 +298,7 @@ pub fn main() !void {
     // installs a signal handler for SIGWINCH on posix TTYs
     //
     // This event loop is thread safe. It reads the tty in a separate thread
-    var loop: vaxis.Loop(Event) = .{
-      .tty = &tty,
-      .vaxis = &vx,
-    };
-    try loop.init();
+    var loop: vaxis.Loop(Event) = .init(io, &tty, &vx);
 
     // Start the read loop. This puts the terminal in raw mode and begins
     // reading user input

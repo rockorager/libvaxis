@@ -456,3 +456,7 @@ test "matches 'shift+;'" {
 test "name_map" {
     try testing.expectEqual(insert, name_map.get("insert"));
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}

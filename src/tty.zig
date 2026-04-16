@@ -707,7 +707,7 @@ pub const TestTty = struct {
     tty_writer: *std.Io.Writer.Allocating,
 
     /// Initializes a TestTty.
-    pub fn init(buffer: []u8) !TestTty {
+    pub fn init(_: std.Io, buffer: []u8) !TestTty {
         _ = buffer;
 
         if (builtin.os.tag != .linux) return error.SkipZigTest;
@@ -761,3 +761,7 @@ pub const TestTty = struct {
         return;
     }
 };
+
+test {
+    std.testing.refAllDecls(@This());
+}

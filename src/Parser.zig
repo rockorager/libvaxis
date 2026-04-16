@@ -1325,3 +1325,7 @@ test "parse: disambiguate shift + space" {
     try testing.expectEqual(7, result.n);
     try testing.expectEqualDeep(expected_event, result.event);
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}

@@ -219,3 +219,7 @@ pub const Color = union(enum) {
         }
     }
 };
+
+test {
+    std.testing.refAllDecls(@This());
+}

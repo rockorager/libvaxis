@@ -427,7 +427,7 @@ test Loop {
         foo: u8,
     };
 
-    var tty = try vaxis.Tty.init(&.{});
+    var tty = try vaxis.Tty.init(io, &.{});
     defer tty.deinit();
 
     var vx = try vaxis.init(io, std.testing.allocator, &env_map, .{});
@@ -441,4 +441,8 @@ test Loop {
     // Optionally enter the alternate screen
     try vx.enterAltScreen(tty.writer());
     try vx.queryTerminal(tty.writer(), .fromSeconds(1));
+}
+
+test {
+    std.testing.refAllDecls(@This());
 }

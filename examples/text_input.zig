@@ -149,3 +149,7 @@ pub fn main(init: std.process.Init) !void {
         try writer.flush();
     }
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}

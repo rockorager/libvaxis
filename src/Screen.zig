@@ -72,3 +72,7 @@ pub fn clear(self: *Screen) void {
 test "refAllDecls" {
     std.testing.refAllDecls(@This());
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}
