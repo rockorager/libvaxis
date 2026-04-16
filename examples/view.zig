@@ -349,3 +349,7 @@ const lg_map_height: u16 = mapHeight: {
     @setEvalBranchQuota(100_000);
     break :mapHeight @intCast(mem.count(u8, lg_world_map, "\n"));
 };
+
+test {
+    std.testing.refAllDecls(@This());
+}

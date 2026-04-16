@@ -10,10 +10,10 @@ const log = std.log.scoped(.vaxis);
 const InternalScreen = @This();
 
 pub const InternalCell = struct {
-    char: std.ArrayListUnmanaged(u8) = .empty,
+    char: std.ArrayList(u8) = .empty,
     style: Style = .{},
-    uri: std.ArrayListUnmanaged(u8) = .empty,
-    uri_id: std.ArrayListUnmanaged(u8) = .empty,
+    uri: std.ArrayList(u8) = .empty,
+    uri_id: std.ArrayList(u8) = .empty,
     // if we got skipped because of a wide character
     skipped: bool = false,
     default: bool = true,
@@ -48,16 +48,16 @@ cursor_shape: CursorShape = .default,
 mouse_shape: MouseShape = .default,
 
 /// sets each cell to the default cell
-pub fn init(alloc: std.mem.Allocator, w: u16, h: u16) !InternalScreen {
-    const arena = try alloc.create(std.heap.ArenaAllocator);
-    arena.* = .init(alloc);
+pub fn init(gpa: std.mem.Allocator, w: u16, h: u16) !InternalScreen {
+    const arena = try gpa.create(std.heap.ArenaAllocator);
+    arena.* = .init(gpa);
     var screen = InternalScreen{
         .arena = arena,
         .buf = try arena.allocator().alloc(InternalCell, @as(usize, @intCast(w)) * h),
     };
     for (screen.buf, 0..) |_, i| {
         screen.buf[i] = .{
-            .char = try std.ArrayListUnmanaged(u8).initCapacity(arena.allocator(), 1),
+            .char = try .initCapacity(arena.allocator(), 1),
             .uri = .empty,
             .uri_id = .empty,
         };
@@ -92,16 +92,16 @@ pub fn writeCell(
     const i = (@as(usize, @intCast(row)) * self.width) + col;
     assert(i < self.buf.len);
     self.buf[i].char.clearRetainingCapacity();
-    self.buf[i].char.appendSlice(self.arena.allocator(), cell.char.grapheme) catch {
-        log.warn("couldn't write grapheme", .{});
+    self.buf[i].char.appendSlice(self.arena.allocator(), cell.char.grapheme) catch |err| {
+        log.warn("couldn't write grapheme: {t}", .{err});
     };
     self.buf[i].uri.clearRetainingCapacity();
-    self.buf[i].uri.appendSlice(self.arena.allocator(), cell.link.uri) catch {
-        log.warn("couldn't write uri", .{});
+    self.buf[i].uri.appendSlice(self.arena.allocator(), cell.link.uri) catch |err| {
+        log.warn("couldn't write uri: {t}", .{err});
     };
     self.buf[i].uri_id.clearRetainingCapacity();
-    self.buf[i].uri_id.appendSlice(self.arena.allocator(), cell.link.params) catch {
-        log.warn("couldn't write uri_id", .{});
+    self.buf[i].uri_id.appendSlice(self.arena.allocator(), cell.link.params) catch |err| {
+        log.warn("couldn't write uri_id: {t}", .{err});
     };
     self.buf[i].style = cell.style;
     self.buf[i].default = cell.default;
@@ -142,4 +142,8 @@ test "InternalScreen: out-of-bounds read/write are ignored" {
     const read_back = screen.readCell(0, 1) orelse return error.TestUnexpectedResult;
     try std.testing.expect(std.mem.eql(u8, read_back.char.grapheme, "A"));
     try std.testing.expect(screen.readCell(2, 0) == null);
+}
+
+test {
+    std.testing.refAllDecls(@This());
 }

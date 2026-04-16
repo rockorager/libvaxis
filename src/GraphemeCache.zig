@@ -18,3 +18,7 @@ pub fn put(self: *GraphemeCache, bytes: []const u8) []u8 {
     // return the slice
     return self.buf[self.idx .. self.idx + bytes.len];
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}

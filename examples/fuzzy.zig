@@ -240,3 +240,7 @@ pub fn main(init: std.process.Init) !u8 {
         return 130;
     }
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}

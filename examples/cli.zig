@@ -102,3 +102,7 @@ const Event = union(enum) {
     focus_in,
     foo: u8,
 };
+
+test {
+    std.testing.refAllDecls(@This());
+}

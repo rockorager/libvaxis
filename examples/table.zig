@@ -347,3 +347,7 @@ const users = [_]User{
     .{ .first = "Tyler", .last = "Sanders", .user = "bennettjessica", .email = null, .phone = "1966269423" },
     .{ .first = "Pamela", .last = "Carter", .user = "zsnyder", .email = null, .phone = "125-062-9130x58413" },
 };
+
+test {
+    std.testing.refAllDecls(@This());
+}

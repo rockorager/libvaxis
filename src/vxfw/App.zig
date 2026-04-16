@@ -604,3 +604,7 @@ const FocusHandler = struct {
         }
     }
 };
+
+test {
+    std.testing.refAllDecls(@This());
+}

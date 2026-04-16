@@ -73,3 +73,7 @@ pub fn main(init: std.process.Init) !void {
         try vx.render(tty.writer());
     }
 }
+
+// test {
+//     std.testing.refAllDecls(@This());
+// }
