@@ -11,7 +11,6 @@ const Model = struct {
 
     /// Used for filtered RichText Spans and result
     arena: std.heap.ArenaAllocator,
-    filtered: std.ArrayList(vxfw.RichText),
     result: []const u8,
 
     pub fn init(gpa: std.mem.Allocator) !*Model {
@@ -30,13 +29,13 @@ const Model = struct {
                 },
             },
             .text_field = .{
-                .buf = vxfw.TextField.Buffer.init(gpa),
+                .buf = .init(gpa),
                 .userdata = model,
                 .onChange = Model.onChange,
                 .onSubmit = Model.onSubmit,
             },
             .result = "",
-            .arena = std.heap.ArenaAllocator.init(gpa),
+            .arena = .init(gpa),
         };
 
         return model;
@@ -64,7 +63,7 @@ const Model = struct {
                 // Initialize the filtered list
                 const arena = self.arena.allocator();
                 for (self.list.items) |line| {
-                    var spans = std.ArrayList(vxfw.RichText.TextSpan).empty;
+                    var spans: std.ArrayList(vxfw.RichText.TextSpan) = .empty;
                     const span: vxfw.RichText.TextSpan = .{ .text = line.text };
                     try spans.append(arena, span);
                     try self.filtered.append(arena, .{ .text = spans.items });
@@ -201,43 +200,47 @@ fn toLower(arena: std.mem.Allocator, src: []const u8) std.mem.Allocator.Error![]
     return lower;
 }
 
-pub fn main() !void {
-    var debug_allocator = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = debug_allocator.deinit();
+pub fn main(init: std.process.Init) !u8 {
+    const io = init.io;
+    const alloc = init.gpa;
 
-    const gpa = debug_allocator.allocator();
+    var buffer: [1024]u8 = undefined;
+    var app: vxfw.App = try .init(io, alloc, init.environ_map, &buffer);
+    defer app.deinit();
 
-    var app = try vxfw.App.init(gpa);
-    errdefer app.deinit();
-
-    const model = try Model.init(gpa);
-    defer model.deinit(gpa);
+    const model = try Model.init(alloc);
+    defer model.deinit(alloc);
 
     // Run the command
-    var fd = std.process.Child.init(&.{"fd"}, gpa);
-    fd.stdout_behavior = .Pipe;
-    fd.stderr_behavior = .Pipe;
-    var stdout = std.ArrayList(u8).empty;
-    var stderr = std.ArrayList(u8).empty;
-    defer stdout.deinit(gpa);
-    defer stderr.deinit(gpa);
-    try fd.spawn();
-    try fd.collectOutput(gpa, &stdout, &stderr, 10_000_000);
-    _ = try fd.wait();
+    const fd = try std.process.run(alloc, io, .{
+        .argv = &.{"fd"},
+    });
+    defer alloc.free(fd.stdout);
+    defer alloc.free(fd.stderr);
 
-    var iter = std.mem.splitScalar(u8, stdout.items, '\n');
+    var iter = std.mem.splitScalar(u8, fd.stdout, '\n');
     while (iter.next()) |line| {
         if (line.len == 0) continue;
-        try model.list.append(gpa, .{ .text = line });
+        try model.list.append(alloc, .{ .text = line });
     }
 
     try app.run(model.widget(), .{});
     app.deinit();
 
     if (model.result.len > 0) {
-        _ = try std.posix.write(std.posix.STDOUT_FILENO, model.result);
-        _ = try std.posix.write(std.posix.STDOUT_FILENO, "\n");
+        var stdout_file: std.Io.File = .stdout();
+        var stdout_buffer: [1024]u8 = undefined;
+        var stdout_writer = stdout_file.writer(io, &stdout_buffer);
+        const stdout = &stdout_writer.interface;
+        try stdout.writeAll(model.result);
+        try stdout.writeByte('\n');
+        try stdout.flush();
+        return 0;
     } else {
-        std.process.exit(130);
+        return 130;
     }
+}
+
+test {
+    std.testing.refAllDecls(@This());
 }

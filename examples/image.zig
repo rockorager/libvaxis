@@ -8,34 +8,26 @@ const Event = union(enum) {
     winsize: vaxis.Winsize,
 };
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer {
-        const deinit_status = gpa.deinit();
-        if (deinit_status == .leak) {
-            log.err("memory leak", .{});
-        }
-    }
-    const alloc = gpa.allocator();
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+    const alloc = init.gpa;
 
     var buffer: [1024]u8 = undefined;
-    var tty = try vaxis.Tty.init(&buffer);
+    var tty = try vaxis.Tty.init(io, &buffer);
     defer tty.deinit();
 
-    var vx = try vaxis.init(alloc, .{});
+    var vx = try vaxis.init(io, alloc, init.environ_map, .{});
     defer vx.deinit(alloc, tty.writer());
 
-    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
-    try loop.init();
-
+    var loop: vaxis.Loop(Event) = .init(io, &tty, &vx);
     try loop.start();
     defer loop.stop();
 
     try vx.enterAltScreen(tty.writer());
-    try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
+    try vx.queryTerminal(tty.writer(), .fromSeconds(1));
 
     var read_buffer: [1024 * 1024]u8 = undefined; // 1MB buffer
-    var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, "examples/zig.png", &read_buffer);
+    var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, io, "examples/zig.png", &read_buffer);
     defer img1.deinit(alloc);
 
     const imgs = [_]vaxis.Image{
@@ -81,3 +73,7 @@ pub fn main() !void {
         try vx.render(tty.writer());
     }
 }
+
+// test {
+//     std.testing.refAllDecls(@This());
+// }

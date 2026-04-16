@@ -111,13 +111,12 @@ const Model = struct {
     }
 };
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+    const allocator = init.gpa;
 
-    const allocator = gpa.allocator();
-
-    var app = try vxfw.App.init(allocator);
+    var buffer: [1024]u8 = undefined;
+    var app: vxfw.App = try .init(io, allocator, init.environ_map, &buffer);
     defer app.deinit();
 
     // We heap allocate our model because we will require a stable pointer to it in our Button
@@ -136,4 +135,8 @@ pub fn main() !void {
     };
 
     try app.run(model.widget(), .{});
+}
+
+test {
+    std.testing.refAllDecls(@This());
 }

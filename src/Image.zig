@@ -186,3 +186,7 @@ pub fn cellSize(self: Image, win: Window) !CellSize {
         .cols = cell_width,
     };
 }
+
+test {
+    std.testing.refAllDecls(@This());
+}

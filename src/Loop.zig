@@ -16,16 +16,26 @@ pub fn Loop(comptime T: type) type {
 
         const Event = T;
 
+        io: std.Io,
         tty: *Tty,
         vaxis: *Vaxis,
 
-        queue: Queue(T, 512) = .{},
-        thread: ?std.Thread = null,
+        queue: Queue(T, 512),
+        thread: ?std.Io.Future(void) = null,
         should_quit: bool = false,
 
         /// Initialize the event loop. This is an intrusive init so that we have
         /// a stable pointer to register signal callbacks with posix TTYs
-        pub fn init(self: *Self) !void {
+        pub fn init(io: std.Io, tty: *Tty, vx: *Vaxis) Self {
+            return .{
+                .io = io,
+                .tty = tty,
+                .vaxis = vx,
+                .queue = .init(io),
+            };
+        }
+
+        pub fn installResizeHandler(self: *Self) !void {
             switch (builtin.os.tag) {
                 .windows => {},
                 else => {
@@ -43,7 +53,7 @@ pub fn Loop(comptime T: type) type {
         /// spawns the input thread to read input from the tty
         pub fn start(self: *Self) !void {
             if (self.thread) |_| return;
-            self.thread = try std.Thread.spawn(.{}, Self.ttyRun, .{
+            self.thread = try self.io.concurrent(Self.ttyRun, .{
                 self,
                 self.vaxis.opts.system_clipboard_allocator,
             });
@@ -57,37 +67,37 @@ pub fn Loop(comptime T: type) type {
             // trigger a read
             self.vaxis.deviceStatusReport(self.tty.writer()) catch {};
 
-            if (self.thread) |thread| {
-                thread.join();
+            if (self.thread) |*thread| {
+                thread.await(self.io);
                 self.thread = null;
                 self.should_quit = false;
             }
         }
 
         /// returns the next available event, blocking until one is available
-        pub fn nextEvent(self: *Self) T {
-            return self.queue.pop();
+        pub fn nextEvent(self: *Self) !T {
+            return try self.queue.pop();
         }
 
         /// blocks until an event is available. Useful when your application is
         /// operating on a poll + drain architecture (see tryEvent)
-        pub fn pollEvent(self: *Self) void {
-            self.queue.poll();
+        pub fn pollEvent(self: *Self) !void {
+            try self.queue.poll();
         }
 
         /// returns an event if one is available, otherwise null. Non-blocking.
-        pub fn tryEvent(self: *Self) ?T {
-            return self.queue.tryPop();
+        pub fn tryEvent(self: *Self) !?T {
+            return try self.queue.tryPop();
         }
 
         /// posts an event into the event queue. Will block if there is not
         /// capacity for the event
-        pub fn postEvent(self: *Self, event: T) void {
-            self.queue.push(event);
+        pub fn postEvent(self: *Self, event: T) !void {
+            try self.queue.push(event);
         }
 
-        pub fn tryPostEvent(self: *Self, event: T) bool {
-            return self.queue.tryPush(event);
+        pub fn tryPostEvent(self: *Self, event: T) !bool {
+            return try self.queue.tryPush(event);
         }
 
         pub fn winsizeCallback(ptr: *anyopaque) void {
@@ -95,17 +105,44 @@ pub fn Loop(comptime T: type) type {
             // We will be receiving winsize updates in-band
             if (self.vaxis.state.in_band_resize) return;
 
-            const winsize = Tty.getWinsize(self.tty.fd) catch return;
+            const winsize = self.tty.getWinsize() catch return;
             if (@hasField(Event, "winsize")) {
-                self.postEvent(.{ .winsize = winsize });
+                self.postEvent(.{ .winsize = winsize }) catch {};
             }
         }
 
+        const TtyRunError = error{
+            AccessDenied,
+            Canceled,
+            ConnectionResetByPeer,
+            EndOfStream,
+            InputOutput,
+            InvalidCharacter,
+            InvalidColorSpec,
+            InvalidPadding,
+            InvalidUTF8,
+            IoctlError,
+            IsDir,
+            LockViolation,
+            NoSpaceLeft,
+            NotOpenForReading,
+            OutOfMemory,
+            Overflow,
+            SocketUnconnected,
+            SystemResources,
+            Unexpected,
+            WouldBlock,
+        };
+
         /// read input from the tty. This is run in a separate thread
-        fn ttyRun(
+        fn ttyRun(self: *Self, paste_allocator: ?std.mem.Allocator) void {
+            self._ttyRun(paste_allocator) catch {};
+        }
+
+        fn _ttyRun(
             self: *Self,
             paste_allocator: ?std.mem.Allocator,
-        ) !void {
+        ) TtyRunError!void {
             // Return early if we're in test mode to avoid infinite loops
             if (builtin.is_test) return;
 
@@ -122,9 +159,9 @@ pub fn Loop(comptime T: type) type {
                 },
                 else => {
                     // get our initial winsize
-                    const winsize = try Tty.getWinsize(self.tty.fd);
+                    const winsize = try self.tty.getWinsize();
                     if (@hasField(Event, "winsize")) {
-                        self.postEvent(.{ .winsize = winsize });
+                        try self.postEvent(.{ .winsize = winsize });
                     }
 
                     var parser: Parser = .{};
@@ -238,7 +275,7 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
         else => {
             switch (event) {
                 .key_press => |key| {
-                    // Check for a cursor position response for our explicity width query. This will
+                    // Check for a cursor position response for our explicitly width query. This will
                     // always be an F3 key with shift = true, and we must be looking for queries
                     if (key.codepoint == vaxis.Key.f3 and
                         key.mods.shift and
@@ -359,7 +396,7 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                     vx.caps.multi_cursor = true;
                 },
                 .cap_da1 => {
-                    std.Thread.Futex.wake(&vx.query_futex, 10);
+                    std.Io.futexWake(vx.io, std.atomic.Value(u32), &vx.query_futex, 10);
                     vx.queries_done.store(true, .unordered);
                 },
                 .winsize => |winsize| {
@@ -379,6 +416,10 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
 }
 
 test Loop {
+    const io = std.testing.io;
+    var env_map = try std.testing.environ.createMap(std.testing.allocator);
+    defer env_map.deinit();
+
     const Event = union(enum) {
         key_press: vaxis.Key,
         winsize: vaxis.Winsize,
@@ -386,19 +427,22 @@ test Loop {
         foo: u8,
     };
 
-    var tty = try vaxis.Tty.init(&.{});
+    var tty = try vaxis.Tty.init(io, &.{});
     defer tty.deinit();
 
-    var vx = try vaxis.init(std.testing.allocator, .{});
+    var vx = try vaxis.init(io, std.testing.allocator, &env_map, .{});
     defer vx.deinit(std.testing.allocator, tty.writer());
 
-    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
-    try loop.init();
+    var loop: vaxis.Loop(Event) = .init(io, &tty, &vx);
 
     try loop.start();
     defer loop.stop();
 
     // Optionally enter the alternate screen
     try vx.enterAltScreen(tty.writer());
-    try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_ms);
+    try vx.queryTerminal(tty.writer(), .fromSeconds(1));
+}
+
+test {
+    std.testing.refAllDecls(@This());
 }

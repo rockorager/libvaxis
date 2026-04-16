@@ -9,31 +9,24 @@ const Event = union(enum) {
     winsize: vaxis.Winsize,
 };
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+    const alloc = init.gpa;
 
-    defer {
-        const deinit_status = gpa.deinit();
-        if (deinit_status == .leak) {
-            log.err("memory leak", .{});
-        }
-    }
-
-    const alloc = gpa.allocator();
     var buffer: [1024]u8 = undefined;
-    var tty = try vaxis.Tty.init(&buffer);
+    var tty: vaxis.Tty = try .init(io, &buffer);
     defer tty.deinit();
-    var vx = try vaxis.init(alloc, .{});
+
+    var vx = try vaxis.init(io, alloc, init.environ_map, .{});
     defer vx.deinit(alloc, tty.writer());
-    var loop: vaxis.Loop(Event) = .{
-        .vaxis = &vx,
-        .tty = &tty,
-    };
-    try loop.init();
+
+    var loop: vaxis.Loop(Event) = .init(io, &tty, &vx);
     try loop.start();
     defer loop.stop();
+
     try vx.enterAltScreen(tty.writer());
-    try vx.queryTerminal(tty.writer(), 20 * std.time.ns_per_s);
+    try vx.queryTerminal(tty.writer(), .fromSeconds(20));
+
     var text_view = TextView{};
     var text_view_buffer = TextView.Buffer{};
     defer text_view_buffer.deinit(alloc);
@@ -43,7 +36,7 @@ pub fn main() !void {
     var lineBuf: [128]u8 = undefined;
 
     while (true) {
-        const event = loop.nextEvent();
+        const event = try loop.nextEvent();
         switch (event) {
             .key_press => |key| {
                 // Close demo
@@ -63,4 +56,8 @@ pub fn main() !void {
         try vx.render(tty.writer());
         try tty.writer().flush();
     }
+}
+
+test {
+    std.testing.refAllDecls(@This());
 }

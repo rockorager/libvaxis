@@ -227,6 +227,7 @@ test SplitView {
     };
 
     var ctx: vxfw.EventContext = .{
+        .io = std.testing.io,
         .alloc = arena.allocator(),
         .cmds = .empty,
     };

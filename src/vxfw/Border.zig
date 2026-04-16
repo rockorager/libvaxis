@@ -37,7 +37,7 @@ fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) Allocator.Error!vxfw
 
 /// If Border has a bounded maximum size, it will shrink the maximum size to account for the border
 /// before drawing the child. If the size is unbounded, border will draw the child and then itself
-/// around the childs size
+/// around the child's size
 pub fn draw(self: *const Border, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surface {
     const max_width: ?u16 = if (ctx.max.width) |width| width -| 2 else null;
     const max_height: ?u16 = if (ctx.max.height) |height| height -| 2 else null;

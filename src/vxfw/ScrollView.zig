@@ -644,6 +644,7 @@ test ScrollView {
     };
     // Event handlers need a context
     var ctx: vxfw.EventContext = .{
+        .io = std.testing.io,
         .alloc = std.testing.allocator,
         .cmds = .empty,
     };
@@ -1042,6 +1043,7 @@ test "ScrollView: uneven scroll" {
     };
     // Event handlers need a context
     var ctx: vxfw.EventContext = .{
+        .io = std.testing.io,
         .alloc = std.testing.allocator,
         .cmds = .empty,
     };

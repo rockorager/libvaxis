@@ -47,21 +47,31 @@ pub fn build(b: *std.Build) void {
         view,
         vt,
     };
+    var examples: std.EnumMap(Example, *std.Build.Module) = .init(.{});
+    inline for (std.meta.fields(Example)) |field| {
+        const example: Example = @enumFromInt(field.value);
+        examples.put(
+            example,
+            b.createModule(.{
+                .root_source_file = b.path(
+                    b.fmt("examples/{t}.zig", .{example}),
+                ),
+                .target = target,
+                .optimize = optimize,
+                .imports = &.{
+                    .{ .name = "vaxis", .module = vaxis_mod },
+                },
+            }),
+        );
+    }
     const example_option = b.option(Example, "example", "Example to run (default: text_input)") orelse .text_input;
     const example_step = b.step("example", "Run example");
     const example = b.addExecutable(.{
-        .name = "example",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path(
-                b.fmt("examples/{s}.zig", .{@tagName(example_option)}),
-            ),
-            .target = target,
-            .optimize = optimize,
-            .imports = &.{
-                .{ .name = "vaxis", .module = vaxis_mod },
-            },
-        }),
+        .name = b.fmt("example-{t}", .{example_option}),
+        .root_module = examples.get(example_option) orelse unreachable,
     });
+
+    b.getInstallStep().dependOn(&example.step);
 
     const example_run = b.addRunArtifact(example);
     example_step.dependOn(&example_run.step);
@@ -99,6 +109,17 @@ pub fn build(b: *std.Build) void {
             },
         }),
     });
+
+    // Let's make sure that all of the examples compile and can run any tests
+    // that they may have defined.
+    var it = examples.iterator();
+    while (it.next()) |v| {
+        const e = b.addTest(.{
+            .root_module = v.value.*,
+        });
+        const r = b.addRunArtifact(e);
+        tests_step.dependOn(&r.step);
+    }
 
     const tests_run = b.addRunArtifact(tests);
     b.installArtifact(tests);

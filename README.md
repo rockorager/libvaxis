@@ -9,7 +9,7 @@ It begins with them, but ends with me. Their son, Vaxis
 Libvaxis _does not use terminfo_. Support for vt features is detected through
 terminal queries.
 
-Vaxis uses zig `0.15.1`.
+Vaxis uses zig `0.16.0`.
 
 ## Features
 
@@ -72,14 +72,14 @@ or for ZLS support
         .target = target,
         .optimize = optimize,
     });
-    
+
     // add vaxis dependency to module
     const vaxis = b.dependency("vaxis", .{
         .target = target,
         .optimize = optimize,
     });
     exe_mod.addImport("vaxis", vaxis.module("vaxis"));
-    
+
     //create executable
     const exe = b.addExecutable(.{
         .name = "project_foo",
@@ -214,18 +214,17 @@ const Model = struct {
     }
 };
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+    const alloc = init.gpa;
 
-    const allocator = gpa.allocator();
-
-    var app = try vxfw.App.init(allocator);
+    var buffer: [1024]u8 = undefined;
+    var app: vxfw.App = try .init(io, alloc, init.environ_map, &buffer);
     defer app.deinit();
 
     // We heap allocate our model because we will require a stable pointer to it in our Button
     // widget
-    const model = try allocator.create(Model);
+    const model = try alloc.create(Model);
     defer allocator.destroy(model);
 
     // Set the initial state of our button
@@ -278,24 +277,17 @@ const Event = union(enum) {
     foo: u8,
 };
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer {
-        const deinit_status = gpa.deinit();
-        //fail test; can't try in defer as defer is executed after we return
-        if (deinit_status == .leak) {
-            std.log.err("memory leak", .{});
-        }
-    }
-    const alloc = gpa.allocator();
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+    const alloc = init.gpa;
 
     // Initialize a tty
     var buffer: [1024]u8 = undefined;
-    var tty = try vaxis.Tty.init(&buffer);
+    var tty = try vaxis.Tty.init(io, &buffer);
     defer tty.deinit();
 
     // Initialize Vaxis
-    var vx = try vaxis.init(alloc, .{});
+    var vx = try vaxis.init(io, alloc, init.environ_map, .{});
     // deinit takes an optional allocator. If your program is exiting, you can
     // choose to pass a null allocator to save some exit time.
     defer vx.deinit(alloc, tty.writer());
@@ -306,11 +298,7 @@ pub fn main() !void {
     // installs a signal handler for SIGWINCH on posix TTYs
     //
     // This event loop is thread safe. It reads the tty in a separate thread
-    var loop: vaxis.Loop(Event) = .{
-      .tty = &tty,
-      .vaxis = &vx,
-    };
-    try loop.init();
+    var loop: vaxis.Loop(Event) = .init(io, &tty, &vx);
 
     // Start the read loop. This puts the terminal in raw mode and begins
     // reading user input
@@ -330,7 +318,7 @@ pub fn main() !void {
 
     // Sends queries to terminal to detect certain features. This should always
     // be called after entering the alt screen, if you are using the alt screen
-    try vx.queryTerminal(tty.writer(), 1 * std.time.ns_per_s);
+    try vx.queryTerminal(tty.writer(), .fromSeconds(1));
 
     while (true) {
         // nextEvent blocks until an event is in the queue

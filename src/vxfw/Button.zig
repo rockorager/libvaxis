@@ -140,6 +140,7 @@ test Button {
 
     // Event handlers need a context
     var ctx: vxfw.EventContext = .{
+        .io = std.testing.io,
         .alloc = std.testing.allocator,
         .cmds = .empty,
     };
