@@ -1,16 +1,16 @@
 .{
     .name = .vaxis,
     .fingerprint = 0x14fbbb94fc556305,
-    .version = "0.5.1",
-    .minimum_zig_version = "0.15.1",
+    .version = "0.6.0",
+    .minimum_zig_version = "0.16.0",
     .dependencies = .{
         .zigimg = .{
-            .url = "git+https://github.com/GasInfinity-Forks/zigimg?ref=0.16.x#c474a50ce9ec79ae726ee3f86fe08d530ff91e78",
-            .hash = "zigimg-0.1.0-8_eo2gCZFwA239CedNPHzAkZMxkUxQpLBq3UrataPX1x",
+            .url = "git+https://github.com/zigimg/zigimg#d695acd97c02e57bb151e8f659d1280f5cd6ca70",
+            .hash = "zigimg-0.1.0-8_eo2oyaFwBZwJpmqPkCfVXWBrHcqbYwmrp1I6bTD3lI",
         },
         .uucode = .{
-            .url = "git+https://github.com/jcollie/uucode#0079a52812bc675eb5f031252391c3fc18f21973",
-            .hash = "uucode-0.2.0-ZZjBPuS4VABmt0lQ-jDiKB4afmuZVvZpbX09FP5JrR8N",
+            .url = "git+https://github.com/jacobsandlund/uucode#2826a37a4562284fdacd8fa029d49509cc9bffcd",
+            .hash = "uucode-0.2.0-ZZjBPlK5VADj7fdoq7G8LIHzD5o6FSkcBXXrRWr4jnrA",
         },
     },
     .paths = .{
