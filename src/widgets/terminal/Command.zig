@@ -22,6 +22,13 @@ pty: Pty,
 pub fn spawn(self: *Command, io: std.Io, allocator: std.mem.Allocator) !void {
     var arena_allocator = std.heap.ArenaAllocator.init(allocator);
     defer arena_allocator.deinit();
+    const arena = arena_allocator.allocator();
+
+    // Keep fork->exec child path allocation-free, following std/Io/Threaded.zig:posixExecv
+    const argv_block = try arena.allocSentinel(?[*:0]const u8, self.argv.len, null);
+    for (self.argv, 0..) |arg, i| argv_block[i] = (try arena.dupeZ(u8, arg)).ptr;
+    const env_block = try self.env_map.createPosixBlock(arena, .{});
+    const path = self.env_map.get("PATH") orelse std.Io.Threaded.default_PATH;
 
     const pid = pid: {
         const rc = linux.fork();
@@ -63,15 +70,14 @@ pub fn spawn(self: *Command, io: std.Io, allocator: std.mem.Allocator) !void {
         self.pty.tty.close(io);
         if (self.pty.pty.handle > 2) self.pty.pty.close(io);
 
-        // if (self.working_directory) |wd| {
-        //     try std.posix.chdir(wd);
-        // }
+        if (self.working_directory) |wd| {
+            const wd_z = try posix.toPosixPath(wd);
+            if (linux.errno(linux.chdir(&wd_z)) != .SUCCESS) return error.ChdirFailed;
+        }
 
         // exec
-        std.process.replace(io, .{
-            .argv = self.argv,
-            .environ_map = self.env_map,
-        }) catch {};
+        execvpeLinux(argv_block.ptr, env_block, self.argv[0], path) catch {};
+        linux.exit(127);
     }
 
     // we are the parent
@@ -110,16 +116,46 @@ fn handleSigChild(_: posix.SIG) callconv(.c) void {
 
 pub fn kill(self: *Command) void {
     if (self.pid) |pid| {
-        std.posix.kill(pid, std.posix.SIG.TERM) catch {};
+        posix.kill(pid, posix.SIG.TERM) catch {};
         self.pid = null;
     }
 }
 
-/// Creates a null-deliminated environment variable block in the format expected by POSIX, from a
-/// hash map plus options.
-fn createEnvironFromMap(
-    arena: std.mem.Allocator,
-    map: *const std.process.Environ.Map,
-) ![:null]?[*:0]u8 {
-    return try map.createPosixBlock(arena, .{});
+// Keep fork->exec child path allocation-free, following std/Io/Threaded.zig:posixExecv
+fn execvpeLinux(
+    argv: [*:null]const ?[*:0]const u8,
+    env_block: std.process.Environ.PosixBlock,
+    arg0: []const u8,
+    path: []const u8,
+) !noreturn {
+    // This implementation is largely copied from std/Io/Threaded.zig
+    // (`spawnPosix` + `posixExecv`/`posixExecvPath`) and adapted for this PTY fork path.
+    if (std.mem.indexOfScalar(u8, arg0, '/') != null) {
+        const path_z = try posix.toPosixPath(arg0);
+        return std.Io.Threaded.posixExecvPath(&path_z, argv, env_block);
+    }
+
+    var it = std.mem.tokenizeScalar(u8, path, std.fs.path.delimiter);
+    var path_buf: [posix.PATH_MAX]u8 = undefined;
+    var err: std.process.ReplaceError = error.FileNotFound;
+    var seen_eacces = false;
+
+    while (it.next()) |dir| {
+        const path_len = dir.len + arg0.len + 1;
+        if (path_buf.len < path_len + 1) return error.NameTooLong;
+        @memcpy(path_buf[0..dir.len], dir);
+        path_buf[dir.len] = '/';
+        @memcpy(path_buf[dir.len + 1 ..][0..arg0.len], arg0);
+        path_buf[path_len] = 0;
+        const full_path = path_buf[0..path_len :0].ptr;
+        err = std.Io.Threaded.posixExecvPath(full_path, argv, env_block);
+        switch (err) {
+            error.AccessDenied => seen_eacces = true,
+            error.FileNotFound, error.NotDir => {},
+            else => |e| return e,
+        }
+    }
+
+    if (seen_eacces) return error.AccessDenied;
+    return err;
 }

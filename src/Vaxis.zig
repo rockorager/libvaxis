@@ -1088,7 +1088,7 @@ pub fn loadImage(
 
     var read_buffer: [1024 * 1024]u8 = undefined; // 1MB buffer
     var img = switch (src) {
-        .path => |path| try zigimg.Image.fromFilePath(alloc, path, &read_buffer),
+        .path => |path| try zigimg.Image.fromFilePath(alloc, self.io, path, &read_buffer),
         .mem => |bytes| try zigimg.Image.fromMemory(alloc, bytes),
     };
     defer img.deinit(alloc);

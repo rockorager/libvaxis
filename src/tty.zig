@@ -722,7 +722,7 @@ pub const TestTty = struct {
         return .{
             .fd = fds[0],
             .pipe_read = fds[0],
-            .pipe_write = fds[0],
+            .pipe_write = fds[1],
             .tty_writer = list,
         };
     }
