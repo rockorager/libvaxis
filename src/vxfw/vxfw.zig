@@ -62,7 +62,7 @@ pub const Tick = struct {
     }
 
     pub fn in(io: std.Io, ms: u32, widget: Widget) Command {
-        const now = std.Io.Clock.real.now(io) catch |e| std.debug.panic("vxfw clock error: {t}", .{e});
+        const now = std.Io.Clock.real.now(io);
         return .{ .tick = .{
             .deadline_ms = now.toMilliseconds() + ms,
             .widget = widget,

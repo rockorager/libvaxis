@@ -20,8 +20,8 @@ pub fn init() !Pty {
 
 /// closes the tty and pty
 pub fn deinit(self: Pty) void {
-    self.pty.close();
-    self.tty.close();
+    std.Io.Threaded.closeFd(self.pty.handle);
+    std.Io.Threaded.closeFd(self.tty.handle);
 }
 
 /// sets the size of the pty
@@ -37,8 +37,15 @@ pub fn setSize(self: Pty, ws: Winsize) !void {
 }
 
 fn openPtyLinux() !Pty {
-    const p = try posix.open("/dev/ptmx", .{ .ACCMODE = .RDWR, .NOCTTY = true }, 0);
-    errdefer posix.close(p);
+    const path_z = std.posix.toPosixPath("/dev/ptmx") catch return error.WatchFailed;
+    const p: std.posix.fd_t = blk: {
+        const raw = std.posix.system.open(&path_z, .{}, @as(c_uint, 0));
+        if (raw < 0) return error.WatchFailed;
+        break :blk @intCast(raw);
+    };
+
+    // const p = try posix.open("/dev/ptmx", .{ .ACCMODE = .RDWR, .NOCTTY = true }, 0);
+    errdefer std.Io.Threaded.closeFd(p);
 
     // unlockpt
     var n: c_uint = 0;
@@ -47,13 +54,18 @@ fn openPtyLinux() !Pty {
     // ptsname
     if (posix.system.ioctl(p, posix.T.IOCGPTN, @intFromPtr(&n)) != 0) return error.IoctlError;
     var buf: [16]u8 = undefined;
-    const sname = try std.fmt.bufPrint(&buf, "/dev/pts/{d}", .{n});
+    const sname = try std.fmt.bufPrintZ(&buf, "/dev/pts/{d}", .{n});
     std.log.debug("pts: {s}", .{sname});
 
-    const t = try posix.open(sname, .{ .ACCMODE = .RDWR, .NOCTTY = true }, 0);
+    const t: std.posix.fd_t = blk: {
+        const raw = std.posix.system.open(sname, .{}, @as(c_uint, 0));
+        if (raw < 0) return error.WatchFailed;
+        break :blk @intCast(raw);
+    };
+    // const t = try posix.open(sname, .{ .ACCMODE = .RDWR, .NOCTTY = true }, 0);
 
     return .{
-        .pty = .{ .handle = p },
-        .tty = .{ .handle = t },
+        .pty = .{ .handle = p, .flags = .{ .nonblocking = false } },
+        .tty = .{ .handle = t, .flags = .{ .nonblocking = false } },
     };
 }
