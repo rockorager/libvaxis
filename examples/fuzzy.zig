@@ -210,19 +210,15 @@ pub fn main(init: std.process.Init) !void {
     defer model.deinit(gpa);
 
     // Run the command
-    var fd = try std.process.spawn(init.io, .{
+    const fd_result = try std.process.run(gpa, init.io, .{
         .argv = &.{"fd"},
-        .stdout = .pipe,
-        .stderr = .pipe,
+        .stdout_limit = .limited(10_000_000),
+        .stderr_limit = .limited(10_000_000),
     });
-    var stdout = std.ArrayList(u8).empty;
-    var stderr = std.ArrayList(u8).empty;
-    defer stdout.deinit(gpa);
-    defer stderr.deinit(gpa);
-    try fd.collectOutput(gpa, &stdout, &stderr, 10_000_000);
-    _ = try fd.wait(init.io);
+    defer gpa.free(fd_result.stdout);
+    defer gpa.free(fd_result.stderr);
 
-    var iter = std.mem.splitScalar(u8, stdout.items, '\n');
+    var iter = std.mem.splitScalar(u8, fd_result.stdout, '\n');
     while (iter.next()) |line| {
         if (line.len == 0) continue;
         try model.list.append(gpa, .{ .text = line });

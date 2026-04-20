@@ -18,17 +18,17 @@ pub fn main(init: std.process.Init) !void {
     var vx = try vaxis.init(alloc, .{});
     defer vx.deinit(alloc, tty.writer());
 
-    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
+    var loop: vaxis.Loop(Event) = .{ .io = init.io, .tty = &tty, .vaxis = &vx };
     try loop.init();
 
     try loop.start();
     defer loop.stop();
 
     try vx.enterAltScreen(tty.writer());
-    try vx.queryTerminal(tty.writer(), init.environ_map, 1 * std.time.ns_per_s);
+    try vx.queryTerminal(init.io, tty.writer(), init.environ_map, 1 * std.time.ns_per_s);
 
     var read_buffer: [1024 * 1024]u8 = undefined; // 1MB buffer
-    var img1 = try vaxis.zigimg.Image.fromFilePath(init.io, alloc, "examples/zig.png", &read_buffer);
+    var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, init.io, "examples/zig.png", &read_buffer);
     defer img1.deinit(alloc);
 
     const imgs = [_]vaxis.Image{
@@ -45,7 +45,7 @@ pub fn main(init: std.process.Init) !void {
     var clip_y: u16 = 0;
 
     while (true) {
-        const event = loop.nextEvent();
+        const event = loop.nextEvent(init.io);
         switch (event) {
             .key_press => |key| {
                 if (key.matches('c', .{ .ctrl = true })) {

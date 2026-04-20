@@ -14,7 +14,7 @@ pub fn main(init: std.process.Init) !void {
     var vx = try vaxis.init(alloc, .{});
     defer vx.deinit(alloc, tty.writer());
 
-    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
+    var loop: vaxis.Loop(Event) = .{ .io = init.io, .tty = &tty, .vaxis = &vx };
     try loop.init();
 
     try loop.start();
@@ -22,7 +22,7 @@ pub fn main(init: std.process.Init) !void {
 
     // Optionally enter the alternate screen
     try vx.enterAltScreen(tty.writer());
-    try vx.queryTerminal(tty.writer(), init.environ_map, 1 * std.time.ns_per_s);
+    try vx.queryTerminal(init.io, tty.writer(), init.environ_map, 1 * std.time.ns_per_s);
 
     // We'll adjust the color index every keypress
     var color_idx: u8 = 0;
@@ -34,7 +34,7 @@ pub fn main(init: std.process.Init) !void {
     // queue which can serve as the primary event queue for an application
     while (true) {
         // nextEvent blocks until an event is in the queue
-        const event = loop.nextEvent();
+        const event = loop.nextEvent(init.io);
         log.debug("event: {}", .{event});
         // exhaustive switching ftw. Vaxis will send events if your Event
         // enum has the fields for those events (ie "key_press", "winsize")

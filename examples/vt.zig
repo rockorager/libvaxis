@@ -18,14 +18,14 @@ pub fn main(init: std.process.Init) !void {
     var vx = try vaxis.init(alloc, .{});
     defer vx.deinit(alloc, writer);
 
-    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
+    var loop: vaxis.Loop(Event) = .{ .io = init.io, .tty = &tty, .vaxis = &vx };
     try loop.init();
 
     try loop.start();
     defer loop.stop();
 
     try vx.enterAltScreen(writer);
-    try vx.queryTerminal(writer, init.environ_map, 1 * std.time.ns_per_s);
+    try vx.queryTerminal(init.io, writer, init.environ_map, 1 * std.time.ns_per_s);
 
     const vt_opts: vaxis.widgets.Terminal.Options = .{
         .winsize = .{
@@ -41,6 +41,7 @@ pub fn main(init: std.process.Init) !void {
     const argv = [_][]const u8{shell};
     var write_buf: [4096]u8 = undefined;
     var vt = try vaxis.widgets.Terminal.init(
+        init.io,
         alloc,
         &argv,
         init.environ_map,
@@ -52,7 +53,7 @@ pub fn main(init: std.process.Init) !void {
 
     var redraw: bool = false;
     while (true) {
-        std.Thread.sleep(8 * std.time.ns_per_ms);
+        std.Io.sleep(init.io, std.Io.Duration.fromMilliseconds(8), .awake) catch {};
         // try vt events first
         while (vt.tryEvent()) |event| {
             redraw = true;

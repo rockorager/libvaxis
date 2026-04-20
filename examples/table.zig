@@ -33,12 +33,12 @@ pub fn main(init: std.process.Init) !void {
         key_press: vaxis.Key,
         winsize: vaxis.Winsize,
         table_upd,
-    }) = .{ .tty = &tty, .vaxis = &vx };
+    }) = .{ .io = init.io, .tty = &tty, .vaxis = &vx };
     try loop.init();
     try loop.start();
     defer loop.stop();
     try vx.enterAltScreen(tty.writer());
-    try vx.queryTerminal(tty.writer(), init.environ_map, 250 * std.time.ns_per_ms);
+    try vx.queryTerminal(init.io, tty.writer(), init.environ_map, 250 * std.time.ns_per_ms);
 
     const logo =
         \\░█░█░█▀█░█░█░▀█▀░█▀▀░░░▀█▀░█▀█░█▀▄░█░░░█▀▀░
@@ -100,7 +100,7 @@ pub fn main(init: std.process.Init) !void {
         defer _ = event_arena.reset(.retain_capacity);
         defer tty_writer.flush() catch {};
         const event_alloc = event_arena.allocator();
-        const event = loop.nextEvent();
+        const event = loop.nextEvent(init.io);
 
         switch (event) {
             .key_press => |key| keyEvt: {
@@ -235,7 +235,7 @@ pub fn main(init: std.process.Init) !void {
                     return see_win.height;
                 }
             }.see;
-            loop.postEvent(.table_upd);
+            loop.postEvent(init.io, .table_upd);
         }
 
         // Sections

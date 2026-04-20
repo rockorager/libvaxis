@@ -19,14 +19,14 @@ pub fn main(init: std.process.Init) !void {
     var vx = try vaxis.init(alloc, .{});
     defer vx.deinit(alloc, tty.writer());
 
-    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
+    var loop: vaxis.Loop(Event) = .{ .io = init.io, .tty = &tty, .vaxis = &vx };
     try loop.init();
 
     try loop.start();
     defer loop.stop();
 
     try vx.enterAltScreen(tty.writer());
-    try vx.queryTerminal(tty.writer(), init.environ_map, 1 * std.time.ns_per_s);
+    try vx.queryTerminal(init.io, tty.writer(), init.environ_map, 1 * std.time.ns_per_s);
 
     try vx.queryColor(tty.writer(), .fg);
     try vx.queryColor(tty.writer(), .bg);
@@ -41,7 +41,7 @@ pub fn main(init: std.process.Init) !void {
 
     // block until we get a resize
     while (true) {
-        const event = loop.nextEvent();
+        const event = loop.nextEvent(init.io);
         switch (event) {
             .key_press => |key| if (key.matches('c', .{ .ctrl = true })) return,
             .winsize => |ws| {

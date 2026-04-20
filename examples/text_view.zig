@@ -18,6 +18,7 @@ pub fn main(init: std.process.Init) !void {
     var vx = try vaxis.init(alloc, .{});
     defer vx.deinit(alloc, tty.writer());
     var loop: vaxis.Loop(Event) = .{
+        .io = init.io,
         .vaxis = &vx,
         .tty = &tty,
     };
@@ -25,7 +26,7 @@ pub fn main(init: std.process.Init) !void {
     try loop.start();
     defer loop.stop();
     try vx.enterAltScreen(tty.writer());
-    try vx.queryTerminal(tty.writer(), init.environ_map, 20 * std.time.ns_per_s);
+    try vx.queryTerminal(init.io, tty.writer(), init.environ_map, 20 * std.time.ns_per_s);
     var text_view = TextView{};
     var text_view_buffer = TextView.Buffer{};
     defer text_view_buffer.deinit(alloc);
@@ -35,7 +36,7 @@ pub fn main(init: std.process.Init) !void {
     var lineBuf: [128]u8 = undefined;
 
     while (true) {
-        const event = loop.nextEvent();
+        const event = loop.nextEvent(init.io);
         switch (event) {
             .key_press => |key| {
                 // Close demo

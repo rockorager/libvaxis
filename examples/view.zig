@@ -49,6 +49,7 @@ pub fn main(init: std.process.Init) !void {
     });
     defer vx.deinit(alloc, tty.writer());
     var loop: vaxis.Loop(Event) = .{
+        .io = init.io,
         .vaxis = &vx,
         .tty = &tty,
     };
@@ -57,7 +58,7 @@ pub fn main(init: std.process.Init) !void {
     defer loop.stop();
     try vx.enterAltScreen(writer);
     try writer.flush();
-    try vx.queryTerminal(tty.writer(), init.environ_map, 20 * std.time.ns_per_s);
+    try vx.queryTerminal(init.io, tty.writer(), init.environ_map, 20 * std.time.ns_per_s);
 
     // Initialize Views
     // - Large Map
@@ -81,7 +82,7 @@ pub fn main(init: std.process.Init) !void {
 
     // TUI Loop
     while (true) {
-        const event = loop.nextEvent();
+        const event = loop.nextEvent(init.io);
         switch (event) {
             .key_press => |key| {
                 // Close Demo

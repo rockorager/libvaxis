@@ -37,6 +37,7 @@ pub fn main(init: std.process.Init) !void {
     defer vx.deinit(alloc, tty.writer());
 
     var loop: vaxis.Loop(Event) = .{
+        .io = init.io,
         .vaxis = &vx,
         .tty = &tty,
     };
@@ -63,13 +64,13 @@ pub fn main(init: std.process.Init) !void {
     try writer.flush();
     // Sends queries to terminal to detect certain features. This should
     // _always_ be called, but is left to the application to decide when
-    try vx.queryTerminal(tty.writer(), init.environ_map, 1 * std.time.ns_per_s);
+    try vx.queryTerminal(init.io, tty.writer(), init.environ_map, 1 * std.time.ns_per_s);
 
     // The main event loop. Vaxis provides a thread safe, blocking, buffered
     // queue which can serve as the primary event queue for an application
     while (true) {
         // nextEvent blocks until an event is in the queue
-        const event = loop.nextEvent();
+        const event = loop.nextEvent(init.io);
         log.debug("event: {}", .{event});
         // exhaustive switching ftw. Vaxis will send events if your Event
         // enum has the fields for those events (ie "key_press", "winsize")
