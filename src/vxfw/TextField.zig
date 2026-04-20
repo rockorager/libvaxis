@@ -1,4 +1,5 @@
 const std = @import("std");
+const uucode = @import("uucode");
 const vaxis = @import("../main.zig");
 
 const vxfw = @import("vxfw.zig");
@@ -96,8 +97,11 @@ pub fn handleEvent(self: *TextField, ctx: *vxfw.EventContext, event: vxfw.Event)
             } else if (key.matches('f', .{ .alt = true }) or key.matches(Key.right, .{ .alt = true })) {
                 self.moveForwardWordwise();
                 return ctx.consumeAndRedraw();
-            } else if (key.matches('w', .{ .ctrl = true }) or key.matches(Key.backspace, .{ .alt = true })) {
+            } else if (key.matches(Key.backspace, .{ .alt = true })) {
                 self.deleteWordBefore();
+                return self.checkChanged(ctx);
+            } else if (key.matches('w', .{ .ctrl = true })) {
+                self.deleteWordBeforeWhitespace();
                 return self.checkChanged(ctx);
             } else if (key.matches('d', .{ .alt = true })) {
                 self.deleteWordAfter();
@@ -343,41 +347,160 @@ pub fn deleteAfterCursor(self: *TextField) void {
     self.buf.growGapRight(grapheme.len);
 }
 
-/// Moves the cursor backward by words. If the character before the cursor is a space, the cursor is
-/// positioned just after the next previous space
-pub fn moveBackwardWordwise(self: *TextField) void {
-    const trimmed = std.mem.trimEnd(u8, self.buf.firstHalf(), " ");
-    const idx = if (std.mem.lastIndexOfScalar(u8, trimmed, ' ')) |last|
-        last + 1
-    else
-        0;
-    self.buf.moveGapLeft(self.buf.cursor - idx);
+const DecodedCodepoint = struct {
+    cp: u21,
+    start: usize,
+    len: usize,
+};
+
+fn decodeCodepointAt(bytes: []const u8, start: usize) DecodedCodepoint {
+    const first = bytes[start];
+    const len = std.unicode.utf8ByteSequenceLength(first) catch 1;
+    const capped_len = @min(len, bytes.len - start);
+    const slice = bytes[start .. start + capped_len];
+    const cp = std.unicode.utf8Decode(slice) catch {
+        return .{ .cp = first, .start = start, .len = 1 };
+    };
+    return .{ .cp = cp, .start = start, .len = capped_len };
 }
 
+fn isUtf8ContinuationByte(c: u8) bool {
+    return (c & 0b1100_0000) == 0b1000_0000;
+}
+
+fn decodeCodepointBefore(bytes: []const u8, end: usize) DecodedCodepoint {
+    var start = end - 1;
+    while (start > 0 and isUtf8ContinuationByte(bytes[start])) : (start -= 1) {}
+    const slice = bytes[start..end];
+    const cp = std.unicode.utf8Decode(slice) catch {
+        return .{ .cp = bytes[end - 1], .start = end - 1, .len = 1 };
+    };
+    return .{ .cp = cp, .start = start, .len = end - start };
+}
+
+/// Returns true if the codepoint is a readline-style word constituent.
+fn isWordCodepoint(cp: u21) bool {
+    if (cp == '_') return true;
+    return switch (uucode.get(.general_category, cp)) {
+        .letter_uppercase,
+        .letter_lowercase,
+        .letter_titlecase,
+        .letter_modifier,
+        .letter_other,
+        .number_decimal_digit,
+        .number_letter,
+        .number_other,
+        .mark_nonspacing,
+        .mark_spacing_combining,
+        .mark_enclosing,
+        .punctuation_connector,
+        => true,
+        else => false,
+    };
+}
+
+fn isWhitespaceCodepoint(cp: u21) bool {
+    return switch (cp) {
+        ' ', '\t', '\n', '\r', 0x0b, 0x0c, 0x85 => true,
+        else => switch (uucode.get(.general_category, cp)) {
+            .separator_space,
+            .separator_line,
+            .separator_paragraph,
+            => true,
+            else => false,
+        },
+    };
+}
+
+/// Moves the cursor backward by one word using character-class boundaries.
+/// Skips non-word characters, then skips word characters (matching readline backward-word).
+pub fn moveBackwardWordwise(self: *TextField) void {
+    const first_half = self.buf.firstHalf();
+    var i: usize = first_half.len;
+    // Skip non-word characters
+    while (i > 0) {
+        const decoded = decodeCodepointBefore(first_half, i);
+        if (isWordCodepoint(decoded.cp)) break;
+        i = decoded.start;
+    }
+    // Skip word characters
+    while (i > 0) {
+        const decoded = decodeCodepointBefore(first_half, i);
+        if (!isWordCodepoint(decoded.cp)) break;
+        i = decoded.start;
+    }
+    self.buf.moveGapLeft(self.buf.cursor - i);
+}
+
+/// Moves the cursor forward by one word using character-class boundaries.
+/// Skips non-word characters, then skips word characters — landing at the end of the next word
+/// (matching readline forward-word).
 pub fn moveForwardWordwise(self: *TextField) void {
     const second_half = self.buf.secondHalf();
     var i: usize = 0;
-    while (i < second_half.len and second_half[i] == ' ') : (i += 1) {}
-    const idx = std.mem.indexOfScalarPos(u8, second_half, i, ' ') orelse second_half.len;
-    self.buf.moveGapRight(idx);
+    // Skip non-word characters
+    while (i < second_half.len) {
+        const decoded = decodeCodepointAt(second_half, i);
+        if (isWordCodepoint(decoded.cp)) break;
+        i += decoded.len;
+    }
+    // Skip word characters
+    while (i < second_half.len) {
+        const decoded = decodeCodepointAt(second_half, i);
+        if (!isWordCodepoint(decoded.cp)) break;
+        i += decoded.len;
+    }
+    self.buf.moveGapRight(i);
 }
 
+/// Deletes the word before the cursor using character-class boundaries
+/// (matching readline backward-kill-word / Alt+Backspace).
 pub fn deleteWordBefore(self: *TextField) void {
-    // Store current cursor position. Move one word backward. Delete after the cursor the bytes we
-    // moved
     const pre = self.buf.cursor;
     self.moveBackwardWordwise();
     self.buf.growGapRight(pre - self.buf.cursor);
 }
 
+/// Deletes the word before the cursor using whitespace boundaries
+/// (matching readline unix-word-rubout / Ctrl+W).
+pub fn deleteWordBeforeWhitespace(self: *TextField) void {
+    const first_half = self.buf.firstHalf();
+    var i: usize = first_half.len;
+    // Skip trailing whitespace
+    while (i > 0) {
+        const decoded = decodeCodepointBefore(first_half, i);
+        if (!isWhitespaceCodepoint(decoded.cp)) break;
+        i = decoded.start;
+    }
+    // Skip non-whitespace
+    while (i > 0) {
+        const decoded = decodeCodepointBefore(first_half, i);
+        if (isWhitespaceCodepoint(decoded.cp)) break;
+        i = decoded.start;
+    }
+    const to_delete = self.buf.cursor - i;
+    self.buf.moveGapLeft(to_delete);
+    self.buf.growGapRight(to_delete);
+}
+
+/// Deletes the word after the cursor using character-class boundaries
+/// (matching readline kill-word / Alt+D).
 pub fn deleteWordAfter(self: *TextField) void {
-    // Store current cursor position. Move one word backward. Delete after the cursor the bytes we
-    // moved
     const second_half = self.buf.secondHalf();
     var i: usize = 0;
-    while (i < second_half.len and second_half[i] == ' ') : (i += 1) {}
-    const idx = std.mem.indexOfScalarPos(u8, second_half, i, ' ') orelse second_half.len;
-    self.buf.growGapRight(idx);
+    // Skip non-word characters
+    while (i < second_half.len) {
+        const decoded = decodeCodepointAt(second_half, i);
+        if (isWordCodepoint(decoded.cp)) break;
+        i += decoded.len;
+    }
+    // Skip word characters
+    while (i < second_half.len) {
+        const decoded = decodeCodepointAt(second_half, i);
+        if (!isWordCodepoint(decoded.cp)) break;
+        i += decoded.len;
+    }
+    self.buf.growGapRight(i);
 }
 
 test "sliceToCursor" {
@@ -591,6 +714,162 @@ test TextField {
 
     try tf_widget.handleEvent(&ctx, .{ .key_press = .{ .codepoint = '_', .text = "_" } });
     try std.testing.expectEqualStrings("Hell_o", foo.text);
+}
+
+test "moveBackwardWordwise stops at word boundary" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("hello-world");
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("hello-", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("world", input.buf.secondHalf());
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("hello-world", input.buf.secondHalf());
+}
+
+test "moveForwardWordwise stops at end of word" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("hello-world");
+    input.buf.moveGapLeft(input.buf.firstHalf().len);
+    input.moveForwardWordwise();
+    // Stops at end of "hello": "hello|-world"
+    try std.testing.expectEqualStrings("hello", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("-world", input.buf.secondHalf());
+    input.moveForwardWordwise();
+    // Skips "-" then stops at end of "world": "hello-world|"
+    try std.testing.expectEqualStrings("hello-world", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("", input.buf.secondHalf());
+}
+
+test "moveBackwardWordwise with path separators" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("/usr/local/bin");
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("/usr/local/", input.buf.firstHalf());
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("/usr/", input.buf.firstHalf());
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("/", input.buf.firstHalf());
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+}
+
+test "deleteWordBefore with hyphens" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("hello-world");
+    input.deleteWordBefore();
+    try std.testing.expectEqualStrings("hello-", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("", input.buf.secondHalf());
+    input.deleteWordBefore();
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+}
+
+test "deleteWordBeforeWhitespace deletes to whitespace" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("hello-world foo.bar");
+    input.deleteWordBeforeWhitespace();
+    try std.testing.expectEqualStrings("hello-world ", input.buf.firstHalf());
+    input.deleteWordBeforeWhitespace();
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+}
+
+test "deleteWordAfter with mixed punctuation" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("foo.bar baz");
+    input.buf.moveGapLeft(input.buf.firstHalf().len);
+    input.deleteWordAfter();
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+    try std.testing.expectEqualStrings(".bar baz", input.buf.secondHalf());
+    input.deleteWordAfter();
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+    try std.testing.expectEqualStrings(" baz", input.buf.secondHalf());
+}
+
+test "moveForwardWordwise with dots" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("foo.bar.baz");
+    input.buf.moveGapLeft(input.buf.firstHalf().len);
+    input.moveForwardWordwise();
+    try std.testing.expectEqualStrings("foo", input.buf.firstHalf());
+    input.moveForwardWordwise();
+    try std.testing.expectEqualStrings("foo.bar", input.buf.firstHalf());
+    input.moveForwardWordwise();
+    try std.testing.expectEqualStrings("foo.bar.baz", input.buf.firstHalf());
+}
+
+test "word motion with underscores treats them as word chars" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("hello_world-test");
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("hello_world-", input.buf.firstHalf());
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+}
+
+test "word motion with non-ASCII text" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("café-latte");
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("café-", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("latte", input.buf.secondHalf());
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+
+    input.moveForwardWordwise();
+    try std.testing.expectEqualStrings("caf\xc3\xa9", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("-latte", input.buf.secondHalf());
+}
+
+test "non-ASCII punctuation acts as a separator" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("hello\u{2014}world");
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("hello\u{2014}", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("world", input.buf.secondHalf());
+
+    input.buf.moveGapLeft(input.buf.firstHalf().len);
+    input.moveForwardWordwise();
+    try std.testing.expectEqualStrings("hello", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("\u{2014}world", input.buf.secondHalf());
+}
+
+test "deleteWordBeforeWhitespace handles unicode whitespace" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("hello\u{3000}world");
+    input.deleteWordBeforeWhitespace();
+    try std.testing.expectEqualStrings("hello\u{3000}", input.buf.firstHalf());
+    try std.testing.expectEqualStrings("", input.buf.secondHalf());
+}
+
+test "deleteWordBefore with non-ASCII text" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("über-cool");
+    input.deleteWordBefore();
+    try std.testing.expectEqualStrings("über-", input.buf.firstHalf());
+    input.deleteWordBefore();
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
+}
+
+test "word motion with spaces" {
+    var input = TextField.init(std.testing.allocator);
+    defer input.deinit();
+    try input.insertSliceAtCursor("hello world");
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("hello ", input.buf.firstHalf());
+    input.moveBackwardWordwise();
+    try std.testing.expectEqualStrings("", input.buf.firstHalf());
 }
 
 test "refAllDecls" {

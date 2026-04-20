@@ -17,10 +17,12 @@ userdata: ?*anyopaque = null,
 
 // Styles
 style: struct {
-    default: vaxis.Style = .{ .reverse = true },
-    mouse_down: vaxis.Style = .{ .fg = .{ .index = 4 }, .reverse = true },
-    hover: vaxis.Style = .{ .fg = .{ .index = 3 }, .reverse = true },
-    focus: vaxis.Style = .{ .fg = .{ .index = 5 }, .reverse = true },
+    // Use explicit fg/bg so terminals that don't render reverse-video on blank cells
+    // still show the full button area.
+    default: vaxis.Style = .{ .fg = .{ .index = 0 }, .bg = .{ .index = 7 } },
+    mouse_down: vaxis.Style = .{ .fg = .{ .index = 15 }, .bg = .{ .index = 4 } },
+    hover: vaxis.Style = .{ .fg = .{ .index = 0 }, .bg = .{ .index = 3 } },
+    focus: vaxis.Style = .{ .fg = .{ .index = 15 }, .bg = .{ .index = 5 } },
 } = .{},
 
 // State

@@ -8,6 +8,7 @@ const Winsize = @import("main.zig").Winsize;
 const Method = @import("gwidth.zig").Method;
 
 const Screen = @This();
+pub const Cursor = struct { row: u16 = 0, col: u16 = 0 };
 
 width: u16 = 0,
 height: u16 = 0,
@@ -17,9 +18,9 @@ height_pix: u16 = 0,
 
 buf: []Cell = &.{},
 
-cursor_row: u16 = 0,
-cursor_col: u16 = 0,
+cursor: Cursor = .{},
 cursor_vis: bool = false,
+cursor_secondary: []Cursor = &.{},
 
 width_method: Method = .wcwidth,
 

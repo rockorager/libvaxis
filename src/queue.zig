@@ -86,7 +86,15 @@ pub fn Queue(
         /// Used to efficiently drain the queue while the lock is externally held
         pub fn drain(self: *Self) ?T {
             if (self.isEmptyLH()) return null;
-            return self.popLH();
+            // Preserve queue push wakeups when draining under external lock.
+            // If the queue was full before this pop, a producer may be blocked
+            // waiting on not_full.
+            const was_full = self.isFullLH();
+            const item = self.popLH();
+            if (was_full) {
+                self.not_full.signal();
+            }
+            return item;
         }
 
         fn isEmptyLH(self: Self) bool {
