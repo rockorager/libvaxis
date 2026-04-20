@@ -66,11 +66,11 @@ pub fn Queue(
         }
 
         /// Poll the queue. This call blocks until events are in the queue
-        pub fn poll(self: *Self) void {
-            self.mutex.lock();
-            defer self.mutex.unlock();
+        pub fn poll(self: *Self, io: std.Io) void {
+            self.mutex.lockUncancelable(io);
+            defer self.mutex.unlock(io);
             while (self.isEmptyLH()) {
-                self.not_empty.wait(&self.mutex);
+                self.not_empty.waitUncancelable(io, &self.mutex);
             }
             std.debug.assert(!self.isEmptyLH());
         }
@@ -84,7 +84,7 @@ pub fn Queue(
         }
 
         /// Used to efficiently drain the queue while the lock is externally held
-        pub fn drain(self: *Self) ?T {
+        pub fn drain(self: *Self, io: std.Io) ?T {
             if (self.isEmptyLH()) return null;
             // Preserve queue push wakeups when draining under external lock.
             // If the queue was full before this pop, a producer may be blocked
@@ -92,7 +92,7 @@ pub fn Queue(
             const was_full = self.isFullLH();
             const item = self.popLH();
             if (was_full) {
-                self.not_full.signal();
+                self.not_full.signal(io);
             }
             return item;
         }

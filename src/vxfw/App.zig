@@ -126,7 +126,7 @@ pub fn run(self: *App, io: std.Io, environ: *std.process.Environ.Map, widget: vx
         {
             loop.queue.lock(io);
             defer loop.queue.unlock(io);
-            while (loop.queue.drain()) |event| {
+            while (loop.queue.drain(io)) |event| {
                 defer {
                     // Reset our context
                     ctx.consume_event = false;
