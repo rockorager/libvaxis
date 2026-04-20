@@ -32,8 +32,6 @@ pub fn main(init: std.process.Init) !void {
 
     const imgs = [_]vaxis.Image{
         try vx.transmitImage(alloc, tty.writer(), &img1, .rgba),
-        // var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, "examples/zig.png");
-        // try vx.loadImage(alloc, tty.writer(), .{ .path = "examples/zig.png" }),
         try vx.loadImage(alloc, tty.writer(), .{ .path = "examples/vaxis.png" }),
     };
     defer vx.freeImage(tty.writer(), imgs[0].id);
@@ -44,7 +42,7 @@ pub fn main(init: std.process.Init) !void {
     var clip_y: u16 = 0;
 
     while (true) {
-        const event = loop.nextEvent();
+        const event = try loop.nextEvent();
         switch (event) {
             .key_press => |key| {
                 if (key.matches('c', .{ .ctrl = true })) {
