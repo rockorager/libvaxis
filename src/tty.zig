@@ -89,7 +89,7 @@ pub const PosixTty = struct {
             std.log.err("couldn't restore terminal: {}", .{err});
         };
         if (builtin.os.tag != .macos) // closing /dev/tty may block indefinitely on macos
-            posix.close(self.fd);
+            std.Io.Threaded.closeFd(self.fd);
     }
 
     /// Resets the signal handler to it's default
@@ -716,8 +716,8 @@ pub const TestTty = struct {
     }
 
     pub fn deinit(self: TestTty) void {
-        std.posix.close(self.pipe_read);
-        std.posix.close(self.pipe_write);
+        std.Io.Threaded.closeFd(self.pipe_read);
+        std.Io.Threaded.closeFd(self.pipe_write);
         self.tty_writer.deinit();
         std.testing.allocator.destroy(self.tty_writer);
     }

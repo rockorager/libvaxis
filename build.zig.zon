@@ -2,15 +2,15 @@
     .name = .vaxis,
     .fingerprint = 0x14fbbb94fc556305,
     .version = "0.5.1",
-    .minimum_zig_version = "0.16.0-dev.2510+bcb5218a2",
+    .minimum_zig_version = "0.16.0",
     .dependencies = .{
         .zigimg = .{
-            .url = "git+https://github.com/neurocyte/zigimg?ref=master#36f77676ce5f4fa445432a1b672d47b51c99b68a",
-            .hash = "zigimg-0.1.0-8_eo2pWKFwCpMKZZhCvRm7u9-W0ay58-Hk1GtHAPuTu9",
+            .url = "git+https://github.com/zigimg/zigimg?ref=master#d695acd97c02e57bb151e8f659d1280f5cd6ca70",
+            .hash = "zigimg-0.1.0-8_eo2oyaFwBZwJpmqPkCfVXWBrHcqbYwmrp1I6bTD3lI",
         },
         .uucode = .{
-            .url = "git+https://github.com/andrewrk/uucode?ref=zig-0.16#b8aa6f513621057eabe3b0e99039fda2cf0d92dd",
-            .hash = "uucode-0.1.0-ZZjBPvtWUACf5dqD_f9I37VGFsN24436CuceC5pTJ25n",
+            .url = "git+https://github.com/jacobsandlund/uucode?ref=main#2826a37a4562284fdacd8fa029d49509cc9bffcd",
+            .hash = "uucode-0.2.0-ZZjBPlK5VADj7fdoq7G8LIHzD5o6FSkcBXXrRWr4jnrA",
         },
     },
     .paths = .{

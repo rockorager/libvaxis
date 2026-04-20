@@ -48,21 +48,21 @@ pub fn Queue(
         /// Push an item into the queue. Returns true when the item
         /// was successfully placed in the queue, false if the queue
         /// was full.
-        pub fn tryPush(self: *Self, item: T) bool {
-            self.mutex.lock();
-            defer self.mutex.unlock();
+        pub fn tryPush(self: *Self, io: std.Io, item: T) bool {
+            self.mutex.lockUncancelable(io);
+            defer self.mutex.unlock(io);
             if (self.isFullLH()) return false;
-            self.pushAndSignalLH(item);
+            self.pushAndSignalLH(io, item);
             return true;
         }
 
         /// Pop an item from the queue. Returns null when no item is
         /// available.
-        pub fn tryPop(self: *Self) ?T {
-            self.mutex.lock();
-            defer self.mutex.unlock();
+        pub fn tryPop(self: *Self, io: std.Io) ?T {
+            self.mutex.lockUncancelable(io);
+            defer self.mutex.unlock(io);
             if (self.isEmptyLH()) return null;
-            return self.popAndSignalLH();
+            return self.popAndSignalLH(io);
         }
 
         /// Poll the queue. This call blocks until events are in the queue
@@ -75,12 +75,12 @@ pub fn Queue(
             std.debug.assert(!self.isEmptyLH());
         }
 
-        pub fn lock(self: *Self) void {
-            self.mutex.lock();
+        pub fn lock(self: *Self, io: std.Io) void {
+            self.mutex.lockUncancelable(io);
         }
 
-        pub fn unlock(self: *Self) void {
-            self.mutex.unlock();
+        pub fn unlock(self: *Self, io: std.Io) void {
+            self.mutex.unlock(io);
         }
 
         /// Used to efficiently drain the queue while the lock is externally held
@@ -160,44 +160,44 @@ const testing = std.testing;
 const cfg = Thread.SpawnConfig{ .allocator = testing.allocator };
 test "Queue: simple push / pop" {
     var queue: Queue(u8, 16) = .{};
-    queue.push(1);
-    queue.push(2);
-    const pop = queue.pop();
+    queue.push(std.testing.io, 1);
+    queue.push(std.testing.io, 2);
+    const pop = queue.pop(std.testing.io);
     try testing.expectEqual(1, pop);
-    try testing.expectEqual(2, queue.pop());
+    try testing.expectEqual(2, queue.pop(std.testing.io));
 }
 
 const Thread = std.Thread;
 fn testPushPop(q: *Queue(u8, 2)) !void {
-    q.push(3);
-    try testing.expectEqual(2, q.pop());
+    q.push(std.testing.io, 3);
+    try testing.expectEqual(2, q.pop(std.testing.io));
 }
 
 test "Fill, wait to push, pop once in another thread" {
     var queue: Queue(u8, 2) = .{};
-    queue.push(1);
-    queue.push(2);
+    queue.push(std.testing.io, 1);
+    queue.push(std.testing.io, 2);
     const t = try Thread.spawn(cfg, testPushPop, .{&queue});
-    try testing.expectEqual(false, queue.tryPush(3));
-    try testing.expectEqual(1, queue.pop());
+    try testing.expectEqual(false, queue.tryPush(std.testing.io, 3));
+    try testing.expectEqual(1, queue.pop(std.testing.io));
     t.join();
-    try testing.expectEqual(3, queue.pop());
-    try testing.expectEqual(null, queue.tryPop());
+    try testing.expectEqual(3, queue.pop(std.testing.io));
+    try testing.expectEqual(null, queue.tryPop(std.testing.io));
 }
 
 fn testPush(q: *Queue(u8, 2)) void {
-    q.push(0);
-    q.push(1);
-    q.push(2);
-    q.push(3);
-    q.push(4);
+    q.push(std.testing.io, 0);
+    q.push(std.testing.io, 1);
+    q.push(std.testing.io, 2);
+    q.push(std.testing.io, 3);
+    q.push(std.testing.io, 4);
 }
 
 test "Try to pop, fill from another thread" {
     var queue: Queue(u8, 2) = .{};
     const thread = try Thread.spawn(cfg, testPush, .{&queue});
     for (0..5) |idx| {
-        try testing.expectEqual(@as(u8, @intCast(idx)), queue.pop());
+        try testing.expectEqual(@as(u8, @intCast(idx)), queue.pop(std.testing.io));
     }
     thread.join();
 }
@@ -209,8 +209,8 @@ fn sleepyPop(io: std.Io, q: *Queue(u8, 2), state: *atomic.Value(u8)) !void {
 
     // Then we spuriously wake it up, because that's a thing that can
     // happen.
-    q.not_full.signal();
-    q.not_empty.signal();
+    q.not_full.signal(std.testing.io);
+    q.not_empty.signal(std.testing.io);
 
     // Then give the other thread a good chance of waking up. It's not
     // clear that yield guarantees the other thread will be scheduled,
@@ -220,7 +220,7 @@ fn sleepyPop(io: std.Io, q: *Queue(u8, 2), state: *atomic.Value(u8)) !void {
     try Thread.yield();
     try io.sleep(std.Io.Duration.fromMilliseconds(10), std.Io.Clock.real);
     // Finally, let that other thread go.
-    try std.testing.expectEqual(1, q.pop());
+    try std.testing.expectEqual(1, q.pop(std.testing.io));
 
     // Wait for the other thread to signal it's ready for second push
     while (state.load(.acquire) < 2)
@@ -230,15 +230,15 @@ fn sleepyPop(io: std.Io, q: *Queue(u8, 2), state: *atomic.Value(u8)) !void {
     try io.sleep(std.Io.Duration.fromMilliseconds(10), std.Io.Clock.real);
 
     // Another spurious wake...
-    q.not_full.signal();
-    q.not_empty.signal();
+    q.not_full.signal(std.testing.io);
+    q.not_empty.signal(std.testing.io);
     // And another chance for the other thread to see that it's
     // spurious and go back to sleep.
     try Thread.yield();
     try io.sleep(std.Io.Duration.fromMilliseconds(10), std.Io.Clock.real);
 
     // Pop that thing and we're done.
-    try std.testing.expectEqual(2, q.pop());
+    try std.testing.expectEqual(2, q.pop(std.testing.io));
 }
 
 test "Fill, block, fill, block" {
@@ -251,12 +251,12 @@ test "Fill, block, fill, block" {
     var queue: Queue(u8, 2) = .{};
     var state = atomic.Value(u8).init(0);
     const thread = try Thread.spawn(cfg, sleepyPop, .{ std.testing.io, &queue, &state });
-    queue.push(1);
-    queue.push(2);
+    queue.push(std.testing.io, 1);
+    queue.push(std.testing.io, 2);
     state.store(1, .release);
-    const now = (try std.Io.Clock.real.now(std.testing.io)).toMilliseconds();
-    queue.push(3); // This one should block.
-    const then = (try std.Io.Clock.real.now(std.testing.io)).toMilliseconds();
+    const now = (std.Io.Clock.real.now(std.testing.io)).toMilliseconds();
+    queue.push(std.testing.io, 3); // This one should block.
+    const then = (std.Io.Clock.real.now(std.testing.io)).toMilliseconds();
 
     // Just to make sure the sleeps are yielding to this thread, make
     // sure it took at least 5ms to do the push.
@@ -264,12 +264,12 @@ test "Fill, block, fill, block" {
 
     state.store(2, .release);
     // This should block again, waiting for the other thread.
-    queue.push(4);
+    queue.push(std.testing.io, 4);
 
     // And once that push has gone through, the other thread's done.
     thread.join();
-    try std.testing.expectEqual(3, queue.pop());
-    try std.testing.expectEqual(4, queue.pop());
+    try std.testing.expectEqual(3, queue.pop(std.testing.io));
+    try std.testing.expectEqual(4, queue.pop(std.testing.io));
 }
 
 fn sleepyPush(io: std.Io, q: *Queue(u8, 1), state: *atomic.Value(u8)) !void {
@@ -278,14 +278,14 @@ fn sleepyPush(io: std.Io, q: *Queue(u8, 1), state: *atomic.Value(u8)) !void {
     try io.sleep(std.Io.Duration.fromMilliseconds(10), std.Io.Clock.real);
 
     // Spurious wake
-    q.not_full.signal();
-    q.not_empty.signal();
+    q.not_full.signal(io);
+    q.not_empty.signal(io);
 
     try Thread.yield();
     try io.sleep(std.Io.Duration.fromMilliseconds(10), std.Io.Clock.real);
 
     // Stick something in the queue so it can be popped.
-    q.push(1);
+    q.push(io, 1);
     // Ensure it's been popped.
     while (state.load(.acquire) < 1)
         try Thread.yield();
@@ -294,10 +294,10 @@ fn sleepyPush(io: std.Io, q: *Queue(u8, 1), state: *atomic.Value(u8)) !void {
     try io.sleep(std.Io.Duration.fromMilliseconds(10), std.Io.Clock.real);
 
     // Spurious wake
-    q.not_full.signal();
-    q.not_empty.signal();
+    q.not_full.signal(io);
+    q.not_empty.signal(io);
 
-    q.push(2);
+    q.push(io, 2);
 }
 
 test "Drain, block, drain, block" {
@@ -308,14 +308,14 @@ test "Drain, block, drain, block" {
     var queue: Queue(u8, 1) = .{};
     var state = atomic.Value(u8).init(0);
     const thread = try Thread.spawn(cfg, sleepyPush, .{ std.testing.io, &queue, &state });
-    try std.testing.expectEqual(1, queue.pop());
+    try std.testing.expectEqual(1, queue.pop(std.testing.io));
     state.store(1, .release);
-    try std.testing.expectEqual(2, queue.pop());
+    try std.testing.expectEqual(2, queue.pop(std.testing.io));
     thread.join();
 }
 
 fn readerThread(q: *Queue(u8, 1)) !void {
-    try testing.expectEqual(1, q.pop());
+    try testing.expectEqual(1, q.pop(std.testing.io));
 }
 
 test "2 readers" {
@@ -325,14 +325,14 @@ test "2 readers" {
     const t2 = try Thread.spawn(cfg, readerThread, .{&queue});
     try Thread.yield();
     try std.testing.io.sleep(std.Io.Duration.fromMilliseconds(10), std.Io.Clock.real);
-    queue.push(1);
-    queue.push(1);
+    queue.push(std.testing.io, 1);
+    queue.push(std.testing.io, 1);
     t1.join();
     t2.join();
 }
 
 fn writerThread(q: *Queue(u8, 1)) !void {
-    q.push(1);
+    q.push(std.testing.io, 1);
 }
 
 test "2 writers" {
@@ -340,8 +340,8 @@ test "2 writers" {
     const t1 = try Thread.spawn(cfg, writerThread, .{&queue});
     const t2 = try Thread.spawn(cfg, writerThread, .{&queue});
 
-    try testing.expectEqual(1, queue.pop());
-    try testing.expectEqual(1, queue.pop());
+    try testing.expectEqual(1, queue.pop(std.testing.io));
+    try testing.expectEqual(1, queue.pop(std.testing.io));
     t1.join();
     t2.join();
 }

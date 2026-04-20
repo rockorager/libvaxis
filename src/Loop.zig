@@ -78,7 +78,7 @@ pub fn Loop(comptime T: type) type {
 
         /// returns an event if one is available, otherwise null. Non-blocking.
         pub fn tryEvent(self: *Self) ?T {
-            return self.queue.tryPop();
+            return self.queue.tryPop(self.io);
         }
 
         /// posts an event into the event queue. Will block if there is not
@@ -393,7 +393,7 @@ test Loop {
     var vx = try vaxis.init(std.testing.allocator, .{});
     defer vx.deinit(std.testing.allocator, tty.writer());
 
-    var loop: vaxis.Loop(Event) = .{ .tty = &tty, .vaxis = &vx };
+    var loop: vaxis.Loop(Event) = .{ .io = std.testing.io, .tty = &tty, .vaxis = &vx };
     try loop.init();
 
     try loop.start();
@@ -402,5 +402,5 @@ test Loop {
     // Optionally enter the alternate screen
     try vx.enterAltScreen(tty.writer());
     var environ: std.process.Environ.Map = .init(std.testing.allocator);
-    try vx.queryTerminal(tty.writer(), &environ, 1 * std.time.ns_per_ms);
+    try vx.queryTerminal(std.testing.io, tty.writer(), &environ, 1 * std.time.ns_per_ms);
 }
