@@ -205,7 +205,7 @@ pub const WindowsTty = struct {
     buf: [4]u8 = undefined,
 
     /// File.Writer for efficient buffered writing
-    tty_writer: std.fs.File.Writer,
+    tty_writer: std.Io.File.Writer,
 
     /// The last mouse button that was pressed. We store the previous state of button presses on each
     /// mouse event so we can detect which button was released
@@ -228,28 +228,28 @@ pub const WindowsTty = struct {
         .ENABLE_LVB_GRID_WORLDWIDE = 1, // enables reverse video and underline
     };
 
-    pub fn init(buffer: []u8) !Tty {
-        const stdin: std.fs.File = .stdin();
-        const stdout: std.fs.File = .stdout();
+    pub fn init(io: std.Io, buffer: []u8) !WindowsTty {
+        const stdin: std.Io.File = .stdin();
+        const stdout: std.Io.File = .stdout();
 
         // get initial modes
-        const initial_output_codepage = windows.kernel32.GetConsoleOutputCP();
+        const initial_output_codepage = GetConsoleOutputCP();
         const initial_input_mode = try getConsoleMode(CONSOLE_MODE_INPUT, stdin.handle);
         const initial_output_mode = try getConsoleMode(CONSOLE_MODE_OUTPUT, stdout.handle);
 
         // set new modes
         try setConsoleMode(stdin.handle, input_raw_mode);
         try setConsoleMode(stdout.handle, output_raw_mode);
-        if (windows.kernel32.SetConsoleOutputCP(utf8_codepage) == 0)
-            return windows.unexpectedError(windows.kernel32.GetLastError());
+        if (SetConsoleOutputCP(utf8_codepage) == .FALSE)
+            return windows.unexpectedError(windows.GetLastError());
 
-        const self: Tty = .{
+        const self: WindowsTty = .{
             .stdin = stdin.handle,
             .stdout = stdout.handle,
             .initial_codepage = initial_output_codepage,
             .initial_input_mode = initial_input_mode,
             .initial_output_mode = initial_output_mode,
-            .tty_writer = .initStreaming(stdout, buffer),
+            .tty_writer = .initStreaming(stdout, io, buffer),
         };
 
         // save a copy of this tty as the global_tty for panic handling
@@ -258,8 +258,8 @@ pub const WindowsTty = struct {
         return self;
     }
 
-    pub fn deinit(self: Tty) void {
-        _ = windows.kernel32.SetConsoleOutputCP(self.initial_codepage);
+    pub fn deinit(self: WindowsTty) void {
+        _ = SetConsoleOutputCP(self.initial_codepage);
         setConsoleMode(self.stdin, self.initial_input_mode) catch {};
         setConsoleMode(self.stdout, self.initial_output_mode) catch {};
         windows.CloseHandle(self.stdin);
@@ -279,6 +279,7 @@ pub const WindowsTty = struct {
         VIRTUAL_TERMINAL_INPUT: u1 = 0,
         _: u22 = 0,
     };
+
     pub const CONSOLE_MODE_OUTPUT = packed struct(u32) {
         PROCESSED_OUTPUT: u1 = 0,
         WRAP_AT_EOL_OUTPUT: u1 = 0,
@@ -290,7 +291,7 @@ pub const WindowsTty = struct {
 
     pub fn getConsoleMode(comptime T: type, handle: windows.HANDLE) !T {
         var mode: u32 = undefined;
-        if (windows.kernel32.GetConsoleMode(handle, &mode) == 0) return switch (windows.kernel32.GetLastError()) {
+        if (GetConsoleMode(handle, &mode) == .FALSE) return switch (windows.GetLastError()) {
             .INVALID_HANDLE => error.InvalidHandle,
             else => |e| windows.unexpectedError(e),
         };
@@ -298,28 +299,28 @@ pub const WindowsTty = struct {
     }
 
     pub fn setConsoleMode(handle: windows.HANDLE, mode: anytype) !void {
-        if (windows.kernel32.SetConsoleMode(handle, @bitCast(mode)) == 0) return switch (windows.kernel32.GetLastError()) {
+        if (SetConsoleMode(handle, @bitCast(mode)) == .FALSE) return switch (windows.GetLastError()) {
             .INVALID_HANDLE => error.InvalidHandle,
             else => |e| windows.unexpectedError(e),
         };
     }
 
-    pub fn writer(self: *Tty) *std.Io.Writer {
+    pub fn writer(self: *WindowsTty) *std.Io.Writer {
         return &self.tty_writer.interface;
     }
 
-    pub fn read(self: *const Tty, buf: []u8) !usize {
+    pub fn read(self: *const WindowsTty, buf: []u8) !usize {
         return posix.read(self.fd, buf);
     }
 
-    pub fn nextEvent(self: *Tty, parser: *Parser, paste_allocator: ?std.mem.Allocator) !Event {
+    pub fn nextEvent(self: *WindowsTty, parser: *Parser, paste_allocator: ?std.mem.Allocator) !Event {
         // We use a loop so we can ignore certain events
         var state: EventState = .{};
         while (true) {
             var event_count: u32 = 0;
             var input_record: INPUT_RECORD = undefined;
-            if (ReadConsoleInputW(self.stdin, &input_record, 1, &event_count) == 0)
-                return windows.unexpectedError(windows.kernel32.GetLastError());
+            if (ReadConsoleInputW(self.stdin, &input_record, 1, &event_count) == .FALSE)
+                return windows.unexpectedError(windows.GetLastError());
 
             if (try self.eventFromRecord(&input_record, &state, parser, paste_allocator)) |ev| {
                 return ev;
@@ -334,7 +335,27 @@ pub const WindowsTty = struct {
         utf16_half: bool = false,
     };
 
-    pub fn eventFromRecord(self: *Tty, record: *const INPUT_RECORD, state: *EventState, parser: *Parser, paste_allocator: ?std.mem.Allocator) !?Event {
+    pub const SMALL_RECT = extern struct {
+        Left: windows.SHORT,
+        Top: windows.SHORT,
+        Right: windows.SHORT,
+        Bottom: windows.SHORT,
+    };
+
+    pub const COORD = extern struct {
+        X: windows.SHORT,
+        Y: windows.SHORT,
+    };
+
+    pub const CONSOLE_SCREEN_BUFFER_INFO = extern struct {
+        dwSize: COORD,
+        dwCursorPosition: COORD,
+        wAttributes: windows.WORD,
+        srWindow: SMALL_RECT,
+        dwMaximumWindowSize: COORD,
+    };
+
+    pub fn eventFromRecord(self: *WindowsTty, record: *const INPUT_RECORD, state: *EventState, parser: *Parser, paste_allocator: ?std.mem.Allocator) !?Event {
         switch (record.EventType) {
             0x0001 => { // Key event
                 const event = record.Event.KeyEvent;
@@ -353,7 +374,7 @@ pub const WindowsTty = struct {
                     };
 
                     switch (event.bKeyDown) {
-                        0 => return .{ .key_release = key },
+                        .FALSE => return .{ .key_release = key },
                         else => return .{ .key_press = key },
                     }
                 }
@@ -499,7 +520,7 @@ pub const WindowsTty = struct {
                 };
 
                 switch (event.bKeyDown) {
-                    0 => return .{ .key_release = key },
+                    .FALSE => return .{ .key_release = key },
                     else => return .{ .key_press = key },
                 }
             },
@@ -594,9 +615,9 @@ pub const WindowsTty = struct {
             0x0004 => { // Screen resize events
                 // NOTE: Even though the event comes with a size, it may not be accurate. We ask for
                 // the size directly when we get this event
-                var console_info: windows.CONSOLE_SCREEN_BUFFER_INFO = undefined;
-                if (windows.kernel32.GetConsoleScreenBufferInfo(self.stdout, &console_info) == 0) {
-                    return windows.unexpectedError(windows.kernel32.GetLastError());
+                var console_info: CONSOLE_SCREEN_BUFFER_INFO = undefined;
+                if (GetConsoleScreenBufferInfo(self.stdout, &console_info) == .FALSE) {
+                    return windows.unexpectedError(windows.GetLastError());
                 }
                 const window_rect = console_info.srWindow;
                 const width = window_rect.Right - window_rect.Left + 1;
@@ -612,7 +633,7 @@ pub const WindowsTty = struct {
             },
             0x0010 => { // Focus events
                 switch (record.Event.FocusEvent.bSetFocus) {
-                    0 => return .focus_out,
+                    .FALSE => return .focus_out,
                     else => return .focus_in,
                 }
             },
@@ -642,6 +663,22 @@ pub const WindowsTty = struct {
         };
     }
 
+    pub fn getWinsize(self: *WindowsTty) !Winsize {
+        var console_info: CONSOLE_SCREEN_BUFFER_INFO = undefined;
+        if (GetConsoleScreenBufferInfo(self.stdout, &console_info) == .FALSE) {
+            return windows.unexpectedError(windows.GetLastError());
+        }
+        const window_rect = console_info.srWindow;
+        const width = window_rect.Right - window_rect.Left + 1;
+        const height = window_rect.Bottom - window_rect.Top + 1;
+        return .{
+            .cols = @intCast(width),
+            .rows = @intCast(height),
+            .x_pixel = 0,
+            .y_pixel = 0,
+        };
+    }
+
     // From gitub.com/ziglibs/zig-windows-console. Thanks :)
     //
     // Events
@@ -649,6 +686,7 @@ pub const WindowsTty = struct {
         UnicodeChar: windows.WCHAR,
         AsciiChar: windows.CHAR,
     };
+
     pub const KEY_EVENT_RECORD = extern struct {
         bKeyDown: windows.BOOL,
         wRepeatCount: windows.WORD,
@@ -657,6 +695,7 @@ pub const WindowsTty = struct {
         uChar: union_unnamed_248,
         dwControlKeyState: windows.DWORD,
     };
+
     pub const PKEY_EVENT_RECORD = *KEY_EVENT_RECORD;
 
     pub const MOUSE_EVENT_RECORD = extern struct {
@@ -665,21 +704,25 @@ pub const WindowsTty = struct {
         dwControlKeyState: windows.DWORD,
         dwEventFlags: windows.DWORD,
     };
+
     pub const PMOUSE_EVENT_RECORD = *MOUSE_EVENT_RECORD;
 
     pub const WINDOW_BUFFER_SIZE_RECORD = extern struct {
         dwSize: windows.COORD,
     };
+
     pub const PWINDOW_BUFFER_SIZE_RECORD = *WINDOW_BUFFER_SIZE_RECORD;
 
     pub const MENU_EVENT_RECORD = extern struct {
         dwCommandId: windows.UINT,
     };
+
     pub const PMENU_EVENT_RECORD = *MENU_EVENT_RECORD;
 
     pub const FOCUS_EVENT_RECORD = extern struct {
         bSetFocus: windows.BOOL,
     };
+
     pub const PFOCUS_EVENT_RECORD = *FOCUS_EVENT_RECORD;
 
     const union_unnamed_249 = extern union {
@@ -689,77 +732,114 @@ pub const WindowsTty = struct {
         MenuEvent: MENU_EVENT_RECORD,
         FocusEvent: FOCUS_EVENT_RECORD,
     };
+
     pub const INPUT_RECORD = extern struct {
         EventType: windows.WORD,
         Event: union_unnamed_249,
     };
+
     pub const PINPUT_RECORD = *INPUT_RECORD;
 
     pub extern "kernel32" fn ReadConsoleInputW(hConsoleInput: windows.HANDLE, lpBuffer: PINPUT_RECORD, nLength: windows.DWORD, lpNumberOfEventsRead: *windows.DWORD) callconv(.winapi) windows.BOOL;
+    pub extern "kernel32" fn GetConsoleOutputCP() callconv(.winapi) windows.UINT;
+    pub extern "kernel32" fn GetConsoleMode(kConsoleHandle: windows.HANDLE, lpMode: *windows.DWORD) callconv(.winapi) windows.BOOL;
+    pub extern "kernel32" fn SetConsoleMode(hConsoleHandle: windows.HANDLE, dwMode: windows.DWORD) callconv(.winapi) windows.BOOL;
+    pub extern "kernel32" fn SetConsoleOutputCP(wCodePageId: windows.UINT) callconv(.winapi) windows.BOOL;
+    pub extern "kernel32" fn GetConsoleScreenBufferInfo(hConsoleOutpur: windows.HANDLE, lpConsoleScreenBufferInfo: *CONSOLE_SCREEN_BUFFER_INFO) callconv(.winapi) windows.BOOL;
 };
 
-pub const TestTty = struct {
-    const linux = std.os.linux;
-    /// Used for API compat
-    fd: posix.fd_t,
-    pipe_read: posix.fd_t,
-    pipe_write: posix.fd_t,
-    tty_writer: *std.Io.Writer.Allocating,
+pub const TestTty = switch (builtin.os.tag) {
+    .linux => struct {
+        const linux = std.os.linux;
+        /// Used for API compat
+        fd: posix.fd_t,
+        pipe_read: posix.fd_t,
+        pipe_write: posix.fd_t,
+        tty_writer: *std.Io.Writer.Allocating,
 
-    /// Initializes a TestTty.
-    pub fn init(_: std.Io, buffer: []u8) !TestTty {
-        _ = buffer;
+        /// Initializes a TestTty.
+        pub fn init(_: std.Io, buffer: []u8) !@This() {
+            _ = buffer;
 
-        if (builtin.os.tag != .linux) return error.SkipZigTest;
-        const list = try std.testing.allocator.create(std.Io.Writer.Allocating);
-        list.* = .init(std.testing.allocator);
-        var fds: [2]i32 = undefined;
-        const rc = linux.pipe(&fds);
-        switch (linux.errno(rc)) {
-            .SUCCESS => {},
-            else => return error.PipeCreateFailed,
+            const list = try std.testing.allocator.create(std.Io.Writer.Allocating);
+            list.* = .init(std.testing.allocator);
+            var fds: [2]i32 = undefined;
+            const rc = linux.pipe(&fds);
+            switch (linux.errno(rc)) {
+                .SUCCESS => {},
+                else => return error.PipeCreateFailed,
+            }
+            return .{
+                .fd = fds[0],
+                .pipe_read = fds[0],
+                .pipe_write = fds[1],
+                .tty_writer = list,
+            };
         }
-        return .{
-            .fd = fds[0],
-            .pipe_read = fds[0],
-            .pipe_write = fds[1],
-            .tty_writer = list,
-        };
-    }
 
-    pub fn deinit(self: TestTty) void {
-        _ = linux.close(self.pipe_read);
-        _ = linux.close(self.pipe_write);
-        self.tty_writer.deinit();
-        std.testing.allocator.destroy(self.tty_writer);
-    }
+        pub fn deinit(self: *@This()) void {
+            _ = linux.close(self.pipe_read);
+            _ = linux.close(self.pipe_write);
+            self.tty_writer.deinit();
+            std.testing.allocator.destroy(self.tty_writer);
+        }
 
-    pub fn writer(self: *TestTty) *std.Io.Writer {
-        return &self.tty_writer.writer;
-    }
+        pub fn writer(self: *@This()) *std.Io.Writer {
+            return &self.tty_writer.writer;
+        }
 
-    pub fn read(self: *const TestTty, buf: []u8) !usize {
-        return posix.read(self.fd, buf);
-    }
+        pub fn read(self: *const @This(), buf: []u8) !usize {
+            return posix.read(self.fd, buf);
+        }
 
-    /// Get the window size from the kernel
-    pub fn getWinsize(_: posix.fd_t) !Winsize {
-        return .{
-            .rows = 40,
-            .cols = 80,
-            .x_pixel = 40 * 8,
-            .y_pixel = 40 * 8 * 2,
-        };
-    }
+        /// Get the window size from the kernel
+        pub fn getWinsize(_: *@This()) !Winsize {
+            return .{
+                .rows = 40,
+                .cols = 80,
+                .x_pixel = 40 * 8,
+                .y_pixel = 40 * 8 * 2,
+            };
+        }
 
-    /// Implemented for the Windows API
-    pub fn nextEvent(_: *Tty, _: *Parser, _: ?std.mem.Allocator) !Event {
-        return error.SkipZigTest;
-    }
+        /// Implemented for the Windows API
+        pub fn nextEvent(_: *@This(), _: *Parser, _: ?std.mem.Allocator) !Event {
+            return error.SkipZigTest;
+        }
 
-    pub fn resetSignalHandler() void {
-        return;
-    }
+        pub fn resetSignalHandler() void {
+            return;
+        }
+    },
+    else => struct {
+        d: std.Io.Writer.Discarding,
+
+        pub fn init(_: std.Io, buf: []u8) !@This() {
+            return .{
+                .d = .init(buf),
+            };
+        }
+
+        pub fn deinit(_: *const @This()) void {}
+
+        pub fn writer(self: *@This()) *std.Io.Writer {
+            return &self.d.writer;
+        }
+
+        pub fn getWinsize(_: *@This()) !Winsize {
+            return .{
+                .rows = 40,
+                .cols = 80,
+                .x_pixel = 40 * 8,
+                .y_pixel = 40 * 8 * 2,
+            };
+        }
+
+        /// Implemented for the Windows API
+        pub fn nextEvent(_: *@This(), _: *Parser, _: ?std.mem.Allocator) !Event {
+            return error.SkipZigTest;
+        }
+    },
 };
 
 test {
