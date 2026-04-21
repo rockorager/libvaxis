@@ -75,8 +75,6 @@ pub const PosixTty = struct {
             handler_installed = true;
         }
 
-        // const file = std.fs.File{ .handle = fd };
-
         const self: PosixTty = .{
             .io = io,
             .fd = f,
