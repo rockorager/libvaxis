@@ -114,6 +114,7 @@ pub fn Loop(comptime T: type) type {
         const TtyRunError = error{
             AccessDenied,
             Canceled,
+            CodepointTooLarge,
             ConnectionResetByPeer,
             EndOfStream,
             InputOutput,
@@ -131,6 +132,7 @@ pub fn Loop(comptime T: type) type {
             SocketUnconnected,
             SystemResources,
             Unexpected,
+            Utf8CannotEncodeSurrogateHalf,
             WouldBlock,
         };
 
@@ -251,7 +253,7 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                     }
                 },
                 .cap_da1 => {
-                    std.Thread.Futex.wake(&vx.query_futex, 10);
+                    std.Io.futexWake(vx.io, std.atomic.Value(u32), &vx.query_futex, 10);
                     vx.queries_done.store(true, .unordered);
                 },
                 .mouse => |mouse| {

@@ -104,5 +104,7 @@ pub fn main(init: std.process.Init) !void {
 }
 
 test {
+    const builtin = @import("builtin");
+    if (builtin.os.tag == .windows) return error.SkipZigTest;
     std.testing.refAllDecls(@This());
 }
