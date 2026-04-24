@@ -13,7 +13,23 @@ const Mouse = vaxis.Mouse;
 const Parser = vaxis.Parser;
 const Winsize = vaxis.Winsize;
 
-/// The target TTY implementation
+// NOTE: Windows support is currently bit-rotted on Zig 0.16. The
+// `WindowsTty` struct below still references `std.fs.File` (moved
+// to `std.Io.File`) and the old `.initStreaming` writer pattern.
+// Porting it is the same mechanical work as PosixTty got in this
+// commit — left undone here because the fork's consumers are
+// darwin/linux only. Reintroduce before shipping to Windows.
+comptime {
+    if (builtin.os.tag == .windows and !builtin.is_test) {
+        @compileError(
+            "vaxis tty.zig: WindowsTty not ported to Zig 0.16 in this " ++
+                "fork. Update the std.fs.File references + pass Io into " ++
+                "init, then remove this gate.",
+        );
+    }
+}
+
+/// The target TTY implementation.
 pub const Tty = if (builtin.is_test)
     TestTty
 else switch (builtin.os.tag) {
@@ -33,8 +49,14 @@ pub const PosixTty = struct {
     /// The file descriptor of the tty
     fd: posix.fd_t,
 
-    /// File.Writer for efficient buffered writing
-    tty_writer: std.fs.File.Writer,
+    /// The Io handle threaded into our Writer. Stashed so writer()
+    /// can re-issue buffered writes without asking the caller.
+    io: std.Io,
+
+    /// File.Writer for efficient buffered writing. In Zig 0.16
+    /// `File` lives under `std.Io` and the Writer needs an Io on
+    /// construction.
+    tty_writer: std.Io.File.Writer,
 
     pub const SignalHandler = struct {
         context: *anyopaque,
@@ -43,7 +65,11 @@ pub const PosixTty = struct {
 
     /// global signal handlers
     var handlers: [8]SignalHandler = undefined;
-    var handler_mutex: std.Thread.Mutex = .{};
+    /// Hand-rolled pthread mutex — std.Thread.Mutex was removed in
+    /// Zig 0.16 and std.Io.Mutex requires an Io handle we can't get
+    /// from a signal handler context. The critical section is a
+    /// handful of slot updates; libc pthread is the right shape.
+    var handler_mutex: std.c.pthread_mutex_t = .{};
     var handler_idx: usize = 0;
 
     var handler_installed: bool = false;
@@ -51,9 +77,11 @@ pub const PosixTty = struct {
     /// initializes a Tty instance by opening /dev/tty and "making it raw". A
     /// signal handler is installed for SIGWINCH. No callbacks are installed, be
     /// sure to register a callback when initializing the event loop
-    pub fn init(buffer: []u8) !PosixTty {
-        // Open our tty
-        const fd = try posix.open("/dev/tty", .{ .ACCMODE = .RDWR }, 0);
+    pub fn init(io: std.Io, buffer: []u8) !PosixTty {
+        // Open our tty. std.posix.open was removed in Zig 0.16; drop
+        // to libc directly. O_RDWR = 2 on every POSIX we care about.
+        const fd = std.c.open("/dev/tty", .{ .ACCMODE = .RDWR }, @as(std.c.mode_t, 0));
+        if (fd < 0) return error.OpenError;
 
         // Set the termios of the tty
         const termios = try makeRaw(fd);
@@ -69,12 +97,13 @@ pub const PosixTty = struct {
         posix.sigaction(posix.SIG.WINCH, &act, null);
         handler_installed = true;
 
-        const file = std.fs.File{ .handle = fd };
+        const file: std.Io.File = .{ .handle = fd, .flags = .{ .nonblocking = false } };
 
         const self: PosixTty = .{
             .fd = fd,
+            .io = io,
             .termios = termios,
-            .tty_writer = .initStreaming(file, buffer),
+            .tty_writer = file.writerStreaming(io, buffer),
         };
 
         global_tty = self;
@@ -117,16 +146,16 @@ pub const PosixTty = struct {
     /// Install a signal handler for winsize. A maximum of 8 handlers may be
     /// installed
     pub fn notifyWinsize(handler: SignalHandler) !void {
-        handler_mutex.lock();
-        defer handler_mutex.unlock();
+        _ = std.c.pthread_mutex_lock(&handler_mutex);
+        defer _ = std.c.pthread_mutex_unlock(&handler_mutex);
         if (handler_idx == handlers.len) return error.OutOfMemory;
         handlers[handler_idx] = handler;
         handler_idx += 1;
     }
 
-    fn handleWinch(_: c_int) callconv(.c) void {
-        handler_mutex.lock();
-        defer handler_mutex.unlock();
+    fn handleWinch(_: std.c.SIG) callconv(.c) void {
+        _ = std.c.pthread_mutex_lock(&handler_mutex);
+        defer _ = std.c.pthread_mutex_unlock(&handler_mutex);
         var i: usize = 0;
         while (i < handler_idx) : (i += 1) {
             const handler = handlers[i];
@@ -705,7 +734,10 @@ pub const TestTty = struct {
         if (builtin.os.tag == .windows) return error.SkipZigTest;
         const list = try std.testing.allocator.create(std.Io.Writer.Allocating);
         list.* = .init(std.testing.allocator);
-        const r, const w = try posix.pipe();
+        var fds: [2]c_int = undefined;
+        if (std.c.pipe(&fds) != 0) return error.PipeFailed;
+        const r = fds[0];
+        const w = fds[1];
         return .{
             .fd = r,
             .pipe_read = r,
@@ -715,8 +747,8 @@ pub const TestTty = struct {
     }
 
     pub fn deinit(self: TestTty) void {
-        std.posix.close(self.pipe_read);
-        std.posix.close(self.pipe_write);
+        _ = std.c.close(self.pipe_read);
+        _ = std.c.close(self.pipe_write);
         self.tty_writer.deinit();
         std.testing.allocator.destroy(self.tty_writer);
     }
