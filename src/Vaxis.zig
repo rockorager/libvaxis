@@ -3,7 +3,7 @@ const builtin = @import("builtin");
 const atomic = std.atomic;
 const base64Encoder = std.base64.standard.Encoder;
 const zigimg = @import("zigimg");
-const IoWriter = std.io.Writer;
+const IoWriter = std.Io.Writer;
 
 /// Zig 0.16 removed std.posix.getenv. Drop to libc directly.
 /// Returns null when the env var is unset; otherwise a borrowed
@@ -1515,11 +1515,11 @@ pub fn setTerminalWorkingDirectory(_: *Vaxis, tty: *IoWriter, path: []const u8) 
 
 test "render: no output when no changes" {
     var vx = try Vaxis.init(std.testing.allocator, .{});
-    var deinit_writer = std.io.Writer.Allocating.init(std.testing.allocator);
+    var deinit_writer = std.Io.Writer.Allocating.init(std.testing.allocator);
     defer deinit_writer.deinit();
     defer vx.deinit(std.testing.allocator, &deinit_writer.writer);
 
-    var render_writer = std.io.Writer.Allocating.init(std.testing.allocator);
+    var render_writer = std.Io.Writer.Allocating.init(std.testing.allocator);
     defer render_writer.deinit();
     try vx.render(&render_writer.writer);
     const output = try render_writer.toOwnedSlice();
