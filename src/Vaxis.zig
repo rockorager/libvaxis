@@ -5,6 +5,15 @@ const base64Encoder = std.base64.standard.Encoder;
 const zigimg = @import("zigimg");
 const IoWriter = std.io.Writer;
 
+/// Zig 0.16 removed std.posix.getenv. Drop to libc directly.
+/// Returns null when the env var is unset; otherwise a borrowed
+/// slice into the process env block.
+fn getEnv(name: [*:0]const u8) ?[]const u8 {
+    const raw = std.c.getenv(name) orelse return null;
+    return std.mem.span(raw);
+}
+
+
 const Cell = @import("Cell.zig");
 const Image = @import("Image.zig");
 const InternalScreen = @import("InternalScreen.zig");
@@ -276,7 +285,7 @@ pub fn queryTerminalSend(vx: *Vaxis, tty: *IoWriter) !void {
     vx.queries_done.store(false, .unordered);
 
     // TODO: re-enable this
-    // const colorterm = std.posix.getenv("COLORTERM") orelse "";
+    // const colorterm = getEnv("COLORTERM") orelse "";
     // if (std.mem.eql(u8, colorterm, "truecolor") or
     //     std.mem.eql(u8, colorterm, "24bit"))
     // {
@@ -331,22 +340,22 @@ pub fn enableDetectedFeatures(self: *Vaxis, tty: *IoWriter) !void {
         },
         else => {
             // Apply any environment variables
-            if (std.posix.getenv("TERMUX_VERSION")) |_|
+            if (getEnv("TERMUX_VERSION")) |_|
                 self.sgr = .legacy;
-            if (std.posix.getenv("VHS_RECORD")) |_| {
+            if (getEnv("VHS_RECORD")) |_| {
                 self.caps.unicode = .wcwidth;
                 self.caps.kitty_keyboard = false;
                 self.sgr = .legacy;
             }
-            if (std.posix.getenv("TERM_PROGRAM")) |prg| {
+            if (getEnv("TERM_PROGRAM")) |prg| {
                 if (std.mem.eql(u8, prg, "vscode"))
                     self.sgr = .legacy;
             }
-            if (std.posix.getenv("VAXIS_FORCE_LEGACY_SGR")) |_|
+            if (getEnv("VAXIS_FORCE_LEGACY_SGR")) |_|
                 self.sgr = .legacy;
-            if (std.posix.getenv("VAXIS_FORCE_WCWIDTH")) |_|
+            if (getEnv("VAXIS_FORCE_WCWIDTH")) |_|
                 self.caps.unicode = .wcwidth;
-            if (std.posix.getenv("VAXIS_FORCE_UNICODE")) |_|
+            if (getEnv("VAXIS_FORCE_UNICODE")) |_|
                 self.caps.unicode = .unicode;
 
             // enable detected features
@@ -1492,7 +1501,7 @@ pub fn setTerminalWorkingDirectory(_: *Vaxis, tty: *IoWriter, path: []const u8) 
         return error.InvalidAbsolutePath;
     const hostname = switch (builtin.os.tag) {
         .windows => null,
-        else => std.posix.getenv("HOSTNAME"),
+        else => getEnv("HOSTNAME"),
     } orelse "localhost";
 
     const uri: std.Uri = .{
