@@ -8,6 +8,12 @@ const assert = std.debug.assert;
 
 const Allocator = std.mem.Allocator;
 
+fn milliTimestamp() i64 {
+    var ts: std.c.timespec = undefined;
+    _ = std.c.clock_gettime(std.c.CLOCK.REALTIME, &ts);
+    return @as(i64, ts.sec) * 1000 + @divTrunc(@as(i64, ts.nsec), 1_000_000);
+}
+
 pub const App = @import("App.zig");
 
 // Widgets
@@ -62,7 +68,7 @@ pub const Tick = struct {
     }
 
     pub fn in(ms: u32, widget: Widget) Command {
-        const now = std.time.milliTimestamp();
+        const now = milliTimestamp();
         return .{ .tick = .{
             .deadline_ms = now + ms,
             .widget = widget,
@@ -541,7 +547,8 @@ test "All widgets have a doctest and refAllDecls test" {
     // it easy to fail CI early, or spot bad tests vs non-existant tests
     const excludes = &[_][]const u8{ "vxfw.zig", "App.zig" };
 
-    var cwd = try std.fs.cwd().openDir("./src/vxfw", .{ .iterate = true });
+    var io = std.Io{};
+    var cwd = try std.Io.Dir.cwd().openDir(&io, "./src/vxfw", .{ .iterate = true });
     var iter = cwd.iterate();
     defer cwd.close();
     outer: while (try iter.next()) |file| {

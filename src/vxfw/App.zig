@@ -97,7 +97,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     defer focus_handler.deinit(self.allocator);
 
     // Timestamp of our next frame
-    var next_frame_ms: u64 = @intCast(std.time.milliTimestamp());
+    var next_frame_ms: u64 = @intCast(vxfw.milliTimestamp());
 
     // Create our event context
     var ctx: vxfw.EventContext = .{
@@ -111,13 +111,13 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     defer ctx.cmds.deinit(self.allocator);
 
     while (true) {
-        const now_ms: u64 = @intCast(std.time.milliTimestamp());
+        const now_ms: u64 = @intCast(vxfw.milliTimestamp());
         if (now_ms >= next_frame_ms) {
             // Deadline exceeded. Schedule the next frame
             next_frame_ms = now_ms + tick_ms;
         } else {
             // Sleep until the deadline
-            std.Thread.sleep((next_frame_ms - now_ms) * std.time.ns_per_ms);
+            std.Thread.sleep((next_frame_ms - now_ms) * 1_000_000);
             next_frame_ms += tick_ms;
         }
 
@@ -296,7 +296,7 @@ fn handleCommand(self: *App, cmds: *vxfw.CommandList) Allocator.Error!void {
 }
 
 fn checkTimers(self: *App, ctx: *vxfw.EventContext) anyerror!void {
-    const now_ms = std.time.milliTimestamp();
+    const now_ms = vxfw.milliTimestamp();
 
     // timers are always sorted descending
     while (self.timers.pop()) |tick| {
