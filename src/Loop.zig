@@ -214,7 +214,10 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                     }
                 },
                 .cap_da1 => {
-                    std.Thread.Futex.wake(&vx.query_futex, 10);
+                    // Formerly std.Thread.Futex.wake(&vx.query_futex, 10).
+                    // Zig 0.16 removed Thread.Futex; Vaxis.queryTerminal
+                    // now does a std.c.nanosleep for the full timeout so
+                    // there's nothing to wake here.
                     vx.queries_done.store(true, .unordered);
                 },
                 .mouse => |mouse| {
@@ -359,7 +362,10 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                     vx.caps.multi_cursor = true;
                 },
                 .cap_da1 => {
-                    std.Thread.Futex.wake(&vx.query_futex, 10);
+                    // Formerly std.Thread.Futex.wake(&vx.query_futex, 10).
+                    // Zig 0.16 removed Thread.Futex; Vaxis.queryTerminal
+                    // now does a std.c.nanosleep for the full timeout so
+                    // there's nothing to wake here.
                     vx.queries_done.store(true, .unordered);
                 },
                 .winsize => |winsize| {

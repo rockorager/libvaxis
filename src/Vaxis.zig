@@ -253,7 +253,18 @@ pub fn exitAltScreen(self: *Vaxis, tty: *IoWriter) !void {
 pub fn queryTerminal(self: *Vaxis, tty: *IoWriter, timeout_ns: u64) !void {
     try self.queryTerminalSend(tty);
     // 1 second timeout
-    std.Thread.Futex.timedWait(&self.query_futex, 0, timeout_ns) catch {};
+    // std.Thread.Futex was removed in Zig 0.16. This call used to be a
+    // best-effort block on incoming terminal capability responses with
+    // an early wakeup from Loop.zig's cap_da1 handler. Without Futex we
+    // fall back to a full-timeout sleep — the cap_da1 path still stores
+    // .queries_done so the loop proceeds correctly, but on a fast
+    // reply we waste the rest of the timeout. TODO: rewire via a
+    // std.Io.Condition or equivalent once one stabilises.
+    const ts: std.c.timespec = .{
+        .sec = @intCast(timeout_ns / std.time.ns_per_s),
+        .nsec = @intCast(timeout_ns % std.time.ns_per_s),
+    };
+    _ = std.c.nanosleep(&ts, null);
     self.queries_done.store(true, .unordered);
     try self.enableDetectedFeatures(tty);
 }

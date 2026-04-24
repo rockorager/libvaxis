@@ -1,7 +1,27 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const assert = std.debug.assert;
 const atomic = std.atomic;
-const Condition = std.Thread.Condition;
+
+// Zig 0.16 removed std.Thread.Mutex / std.Thread.Condition; the
+// std.Io.* replacements demand an Io on every lock/wait, which
+// would force every Queue caller in the vaxis tree to plumb Io.
+// Use libc pthread primitives instead — same wake semantics, no
+// Io dependency in the type.
+//
+// POSIX-only for now. Windows support needs CRITICAL_SECTION +
+// CONDITION_VARIABLE; the hook is straightforward but not wired up
+// in this fork. Fail loudly at compile time instead of link time so
+// the constraint is obvious.
+comptime {
+    if (builtin.os.tag == .windows) {
+        @compileError(
+            "vaxis queue.zig: Windows support dropped during the Zig 0.16 " ++
+                "port. Restore SRWLOCK / CONDITION_VARIABLE shims before " ++
+                "building for Windows.",
+        );
+    }
+}
 
 /// Thread safe. Fixed size. Blocking push and pop.
 pub fn Queue(
@@ -14,21 +34,30 @@ pub fn Queue(
         read_index: usize = 0,
         write_index: usize = 0,
 
-        mutex: std.Thread.Mutex = .{},
-        // blocks when the buffer is full
-        not_full: Condition = .{},
-        // ...or empty
-        not_empty: Condition = .{},
+        mutex: std.c.pthread_mutex_t = .{},
+        not_full: std.c.pthread_cond_t = .{},
+        not_empty: std.c.pthread_cond_t = .{},
 
         const Self = @This();
 
+        fn mLock(self: *Self) void {
+            _ = std.c.pthread_mutex_lock(&self.mutex);
+        }
+        fn mUnlock(self: *Self) void {
+            _ = std.c.pthread_mutex_unlock(&self.mutex);
+        }
+        fn condWait(self: *Self, cond: *std.c.pthread_cond_t) void {
+            _ = std.c.pthread_cond_wait(cond, &self.mutex);
+        }
+        fn condSignal(cond: *std.c.pthread_cond_t) void {
+            _ = std.c.pthread_cond_signal(cond);
+        }
+
         /// Pop an item from the queue. Blocks until an item is available.
         pub fn pop(self: *Self) T {
-            self.mutex.lock();
-            defer self.mutex.unlock();
-            while (self.isEmptyLH()) {
-                self.not_empty.wait(&self.mutex);
-            }
+            self.mLock();
+            defer self.mUnlock();
+            while (self.isEmptyLH()) self.condWait(&self.not_empty);
             std.debug.assert(!self.isEmptyLH());
             return self.popAndSignalLH();
         }
@@ -36,11 +65,9 @@ pub fn Queue(
         /// Push an item into the queue. Blocks until an item has been
         /// put in the queue.
         pub fn push(self: *Self, item: T) void {
-            self.mutex.lock();
-            defer self.mutex.unlock();
-            while (self.isFullLH()) {
-                self.not_full.wait(&self.mutex);
-            }
+            self.mLock();
+            defer self.mUnlock();
+            while (self.isFullLH()) self.condWait(&self.not_full);
             std.debug.assert(!self.isFullLH());
             self.pushAndSignalLH(item);
         }
@@ -49,8 +76,8 @@ pub fn Queue(
         /// was successfully placed in the queue, false if the queue
         /// was full.
         pub fn tryPush(self: *Self, item: T) bool {
-            self.mutex.lock();
-            defer self.mutex.unlock();
+            self.mLock();
+            defer self.mUnlock();
             if (self.isFullLH()) return false;
             self.pushAndSignalLH(item);
             return true;
@@ -59,41 +86,34 @@ pub fn Queue(
         /// Pop an item from the queue. Returns null when no item is
         /// available.
         pub fn tryPop(self: *Self) ?T {
-            self.mutex.lock();
-            defer self.mutex.unlock();
+            self.mLock();
+            defer self.mUnlock();
             if (self.isEmptyLH()) return null;
             return self.popAndSignalLH();
         }
 
         /// Poll the queue. This call blocks until events are in the queue
         pub fn poll(self: *Self) void {
-            self.mutex.lock();
-            defer self.mutex.unlock();
-            while (self.isEmptyLH()) {
-                self.not_empty.wait(&self.mutex);
-            }
+            self.mLock();
+            defer self.mUnlock();
+            while (self.isEmptyLH()) self.condWait(&self.not_empty);
             std.debug.assert(!self.isEmptyLH());
         }
 
         pub fn lock(self: *Self) void {
-            self.mutex.lock();
+            self.mLock();
         }
 
         pub fn unlock(self: *Self) void {
-            self.mutex.unlock();
+            self.mUnlock();
         }
 
         /// Used to efficiently drain the queue while the lock is externally held
         pub fn drain(self: *Self) ?T {
             if (self.isEmptyLH()) return null;
-            // Preserve queue push wakeups when draining under external lock.
-            // If the queue was full before this pop, a producer may be blocked
-            // waiting on not_full.
             const was_full = self.isFullLH();
             const item = self.popLH();
-            if (was_full) {
-                self.not_full.signal();
-            }
+            if (was_full) condSignal(&self.not_full);
             return item;
         }
 
@@ -108,15 +128,15 @@ pub fn Queue(
 
         /// Returns `true` if the queue is empty and `false` otherwise.
         pub fn isEmpty(self: *Self) bool {
-            self.mutex.lock();
-            defer self.mutex.unlock();
+            self.mLock();
+            defer self.mUnlock();
             return self.isEmptyLH();
         }
 
         /// Returns `true` if the queue is full and `false` otherwise.
         pub fn isFull(self: *Self) bool {
-            self.mutex.lock();
-            defer self.mutex.unlock();
+            self.mLock();
+            defer self.mUnlock();
             return self.isFullLH();
         }
 
@@ -142,17 +162,13 @@ pub fn Queue(
             const was_empty = self.isEmptyLH();
             self.buf[self.mask(self.write_index)] = item;
             self.write_index = self.mask2(self.write_index + 1);
-            if (was_empty) {
-                self.not_empty.signal();
-            }
+            if (was_empty) condSignal(&self.not_empty);
         }
 
         fn popAndSignalLH(self: *Self) T {
             const was_full = self.isFullLH();
             const result = self.popLH();
-            if (was_full) {
-                self.not_full.signal();
-            }
+            if (was_full) condSignal(&self.not_full);
             return result;
         }
 
