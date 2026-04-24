@@ -26,10 +26,11 @@ pub const GraphemeIterator = struct {
     }
 
     pub fn next(self: *GraphemeIterator) ?Grapheme {
-        while (self.inner.next()) |res| {
-            // When leaving a break and entering a non-break, set the start of a cluster
+        while (self.inner.nextCodePoint()) |res| {
+            // When leaving a break and entering a non-break, set the start of a cluster.
+            // uucode v0.2.0 renamed `cp` to `code_point` on the result.
             if (self.prev_break and !res.is_break) {
-                const cp_len: usize = std.unicode.utf8CodepointSequenceLength(res.cp) catch 1;
+                const cp_len: usize = std.unicode.utf8CodepointSequenceLength(res.code_point) catch 1;
                 self.start = self.inner.i - cp_len;
             }
 

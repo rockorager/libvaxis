@@ -118,7 +118,7 @@ inline fn parseGround(input: []const u8) !Result {
             var grapheme_len: usize = 0;
             var cp_count: usize = 0;
 
-            while (grapheme_iter.next()) |result| {
+            while (grapheme_iter.nextCodePoint()) |result| {
                 cp_count += 1;
                 if (result.is_break) {
                     // Found the first grapheme boundary

@@ -55,10 +55,11 @@ pub fn gwidth(str: []const u8, method: Method) u16 {
             var grapheme_start: usize = 0;
             var prev_break: bool = true;
 
-            while (grapheme_iter.next()) |result| {
+            while (grapheme_iter.nextCodePoint()) |result| {
                 if (prev_break and !result.is_break) {
-                    // Start of a new grapheme
-                    const cp_len: usize = std.unicode.utf8CodepointSequenceLength(result.cp) catch 1;
+                    // Start of a new grapheme. uucode v0.2.0 renamed
+                    // `cp` to `code_point` on the iterator result.
+                    const cp_len: usize = std.unicode.utf8CodepointSequenceLength(result.code_point) catch 1;
                     grapheme_start = grapheme_iter.i - cp_len;
                 }
 
