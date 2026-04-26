@@ -4,6 +4,7 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const use_llvm = b.option(bool, "llvm", "Use the LLVM backend for compile steps") orelse true;
+    const external_uucode = b.option(bool, "external_uucode", "Use an externally provided uucode module instead of the built-in dependency") orelse false;
     const root_source_file = b.path("src/main.zig");
 
     // Dependencies
@@ -11,16 +12,19 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .target = target,
     });
-    const uucode_dep = b.dependency("uucode", .{
-        .target = target,
-        .optimize = optimize,
-        .fields = @as([]const []const u8, &.{
-            "east_asian_width",
-            "grapheme_break",
-            "general_category",
-            "is_emoji_presentation",
-        }),
-    });
+    const uucode_mod = if (!external_uucode) blk: {
+        const uucode_dep = b.lazyDependency("uucode", .{
+            .target = target,
+            .optimize = optimize,
+            .fields = @as([]const []const u8, &.{
+                "east_asian_width",
+                "grapheme_break",
+                "general_category",
+                "is_emoji_presentation",
+            }),
+        }) orelse break :blk null;
+        break :blk uucode_dep.module("uucode");
+    } else null;
 
     // Module
     const vaxis_mod = b.addModule("vaxis", .{
@@ -29,7 +33,9 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     vaxis_mod.addImport("zigimg", zigimg_dep.module("zigimg"));
-    vaxis_mod.addImport("uucode", uucode_dep.module("uucode"));
+    if (uucode_mod) |mod| {
+        vaxis_mod.addImport("uucode", mod);
+    }
 
     // Examples
     const Example = enum {
@@ -107,10 +113,15 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/main.zig"),
             .target = target,
             .optimize = optimize,
-            .imports = &.{
-                .{ .name = "zigimg", .module = zigimg_dep.module("zigimg") },
-                .{ .name = "uucode", .module = uucode_dep.module("uucode") },
-            },
+            .imports = if (uucode_mod) |mod|
+                &.{
+                    .{ .name = "zigimg", .module = zigimg_dep.module("zigimg") },
+                    .{ .name = "uucode", .module = mod },
+                }
+            else
+                &.{
+                    .{ .name = "zigimg", .module = zigimg_dep.module("zigimg") },
+                },
         }),
     });
 
