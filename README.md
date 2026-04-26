@@ -90,11 +90,12 @@ or for ZLS support
 
 #### Sharing `uucode` with your application
 
-By default, libvaxis pulls in [`uucode`](https://github.com/jacobsandlund/uucode)
-with a fixed set of fields it needs (`east_asian_width`, `grapheme_break`,
-`general_category`, `is_emoji_presentation`). If your application also uses
-`uucode` and needs additional fields, you can build libvaxis against your own
-`uucode` module so that everyone shares one table.
+By default, libvaxis pulls in
+[`uucode`](https://github.com/jacobsandlund/uucode) with a fixed set of fields
+it needs (see [build.zig](./build.zig)). If your application also uses
+`uucode`, you can build libvaxis against your own `uucode` module so that
+everyone shares one table (or set of tables, based on your `uucode`
+configuration).
 
 Pass `.external_uucode = true` to the libvaxis dependency and wire your
 `uucode` module into the `vaxis` module yourself:
