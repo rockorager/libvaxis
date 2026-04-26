@@ -21,6 +21,7 @@ const Border = @This();
 
 child: vxfw.Widget,
 style: vaxis.Style = .{},
+glyphs: vaxis.Window.BorderOptions.Glyphs = .single_rounded,
 labels: []const BorderLabel = &[_]BorderLabel{},
 
 pub fn widget(self: *const Border) vxfw.Widget {
@@ -59,24 +60,37 @@ pub fn draw(self: *const Border, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Sur
 
     var surf = try vxfw.Surface.initWithChildren(ctx.arena, self.widget(), size, children);
 
+    const glyphs = switch (self.glyphs) {
+        .single_rounded => vaxis.Window.BorderOptions.single_rounded,
+        .single_square => vaxis.Window.BorderOptions.single_square,
+        .custom => |custom| custom,
+    };
+
+    const top_left: vaxis.Cell.Character = .{ .grapheme = glyphs[0], .width = 1 };
+    const horizontal: vaxis.Cell.Character = .{ .grapheme = glyphs[1], .width = 1 };
+    const top_right: vaxis.Cell.Character = .{ .grapheme = glyphs[2], .width = 1 };
+    const vertical: vaxis.Cell.Character = .{ .grapheme = glyphs[3], .width = 1 };
+    const bottom_right: vaxis.Cell.Character = .{ .grapheme = glyphs[4], .width = 1 };
+    const bottom_left: vaxis.Cell.Character = .{ .grapheme = glyphs[5], .width = 1 };
+
     // Draw the border
     const right_edge = size.width -| 1;
     const bottom_edge = size.height -| 1;
-    surf.writeCell(0, 0, .{ .char = .{ .grapheme = "╭", .width = 1 }, .style = self.style });
-    surf.writeCell(right_edge, 0, .{ .char = .{ .grapheme = "╮", .width = 1 }, .style = self.style });
-    surf.writeCell(right_edge, bottom_edge, .{ .char = .{ .grapheme = "╯", .width = 1 }, .style = self.style });
-    surf.writeCell(0, bottom_edge, .{ .char = .{ .grapheme = "╰", .width = 1 }, .style = self.style });
+    surf.writeCell(0, 0, .{ .char = top_left, .style = self.style });
+    surf.writeCell(right_edge, 0, .{ .char = top_right, .style = self.style });
+    surf.writeCell(right_edge, bottom_edge, .{ .char = bottom_right, .style = self.style });
+    surf.writeCell(0, bottom_edge, .{ .char = bottom_left, .style = self.style });
 
     var col: u16 = 1;
     while (col < right_edge) : (col += 1) {
-        surf.writeCell(col, 0, .{ .char = .{ .grapheme = "─", .width = 1 }, .style = self.style });
-        surf.writeCell(col, bottom_edge, .{ .char = .{ .grapheme = "─", .width = 1 }, .style = self.style });
+        surf.writeCell(col, 0, .{ .char = horizontal, .style = self.style });
+        surf.writeCell(col, bottom_edge, .{ .char = horizontal, .style = self.style });
     }
 
     var row: u16 = 1;
     while (row < bottom_edge) : (row += 1) {
-        surf.writeCell(0, row, .{ .char = .{ .grapheme = "│", .width = 1 }, .style = self.style });
-        surf.writeCell(right_edge, row, .{ .char = .{ .grapheme = "│", .width = 1 }, .style = self.style });
+        surf.writeCell(0, row, .{ .char = vertical, .style = self.style });
+        surf.writeCell(right_edge, row, .{ .char = vertical, .style = self.style });
     }
 
     // Add border labels
