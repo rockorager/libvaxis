@@ -35,6 +35,11 @@ pub fn build(b: *std.Build) void {
     vaxis_mod.addImport("zigimg", zigimg_dep.module("zigimg"));
     if (uucode_mod) |mod| {
         vaxis_mod.addImport("uucode", mod);
+    } else {
+        // External uucode mode: consumer wires up their own uucode module on
+        // the vaxis module. Skip examples, bench, tests, and docs steps since
+        // they all depend on uucode being available here.
+        return;
     }
 
     // Examples
@@ -113,15 +118,10 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/main.zig"),
             .target = target,
             .optimize = optimize,
-            .imports = if (uucode_mod) |mod|
-                &.{
-                    .{ .name = "zigimg", .module = zigimg_dep.module("zigimg") },
-                    .{ .name = "uucode", .module = mod },
-                }
-            else
-                &.{
-                    .{ .name = "zigimg", .module = zigimg_dep.module("zigimg") },
-                },
+            .imports = &.{
+                .{ .name = "zigimg", .module = zigimg_dep.module("zigimg") },
+                .{ .name = "uucode", .module = uucode_mod.? },
+            },
         }),
     });
 
