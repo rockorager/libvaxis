@@ -88,6 +88,41 @@ or for ZLS support
     // install exe below
 ```
 
+#### Sharing `uucode` with your application
+
+By default, libvaxis pulls in [`uucode`](https://github.com/jacobsandlund/uucode)
+with a fixed set of fields it needs (`east_asian_width`, `grapheme_break`,
+`general_category`, `is_emoji_presentation`). If your application also uses
+`uucode` and needs additional fields, you can build libvaxis against your own
+`uucode` module so that everyone shares one table.
+
+Pass `.external_uucode = true` to the libvaxis dependency and wire your
+`uucode` module into the `vaxis` module yourself:
+
+```zig
+    const uucode = b.dependency("uucode", .{
+        .target = target,
+        .optimize = optimize,
+        .fields = @as([]const []const u8, &.{
+            // Add any fields your application needs, plus the fields libvaxis
+            // requires. The compiler will tell you which fields are missing
+            // (you only need the libvaxis fields for the parts of libvaxis you
+            // actually use). See `build.zig` in libvaxis for the full set it
+            // uses internally.
+        }),
+    });
+
+    const vaxis = b.dependency("vaxis", .{
+        .target = target,
+        .optimize = optimize,
+        .external_uucode = true,
+    });
+    vaxis.module("vaxis").addImport("uucode", uucode.module("uucode"));
+
+    exe.root_module.addImport("vaxis", vaxis.module("vaxis"));
+    exe.root_module.addImport("uucode", uucode.module("uucode"));
+```
+
 ### vxfw (Vaxis framework)
 
 Let's build a simple button counter application. This example can be run using
