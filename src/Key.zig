@@ -101,10 +101,16 @@ pub fn matchShiftedCodepoint(self: Key, cp: u21, mods: Modifiers) bool {
 }
 
 /// matches when the utf8 encoding of the codepoint and relevant mods matches the
-/// text of the key. This function will consume Shift and Caps Lock when matching
+/// text of the key. This function will consume Shift and Caps Lock when matching.
+///
+/// Lifetime: `Key.text`, when set, points into the parser's per-event scratch
+/// buffer and is only valid until the next event is decoded. Callers that
+/// retain a `Key` past that point — for example, queueing events to another
+/// thread — MUST copy the slice before doing so; otherwise both this routine
+/// and any direct read of `text` race with the parser overwriting its buffer.
 pub fn matchText(self: Key, cp: u21, mods: Modifiers) bool {
-    // return early if we have no text
-    if (self.text == null) return false;
+    const text = self.text orelse return false;
+    if (text.len == 0) return false;
 
     var self_mods = self.mods;
     self_mods.num_lock = false;
@@ -126,7 +132,7 @@ pub fn matchText(self: Key, cp: u21, mods: Modifiers) bool {
 
     var buf: [4]u8 = undefined;
     const n = std.unicode.utf8Encode(_cp, &buf) catch return false;
-    return std.mem.eql(u8, self.text.?, buf[0..n]) and std.meta.eql(self_mods, arg_mods);
+    return std.mem.eql(u8, text, buf[0..n]) and std.meta.eql(self_mods, arg_mods);
 }
 
 // The key must exactly match the codepoint and modifiers. caps_lock and
