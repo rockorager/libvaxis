@@ -112,7 +112,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
 
     while (true) {
         const now = std.Io.Timestamp.now(self.io, .real);
-        const duration = next_frame.durationTo(now);
+        const duration = now.durationTo(next_frame);
         if (duration.nanoseconds <= 0) {
             // Deadline exceeded. Schedule the next frame
             next_frame = now.addDuration(tick);
