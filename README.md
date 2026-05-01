@@ -358,7 +358,7 @@ pub fn main(init: std.process.Init) !void {
 
     while (true) {
         // nextEvent blocks until an event is in the queue
-        const event = loop.nextEvent();
+        const event = try loop.nextEvent();
         // exhaustive switching ftw. Vaxis will send events if your Event enum
         // has the fields for those events (ie "key_press", "winsize")
         switch (event) {
