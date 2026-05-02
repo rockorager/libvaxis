@@ -96,7 +96,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     defer focus_handler.deinit(self.allocator);
 
     // Timestamp of our next frame
-    var next_frame = std.Io.Timestamp.now(self.io, .real);
+    var next_frame = std.Io.Timestamp.now(self.io, .awake);
 
     // Create our event context
     var ctx: vxfw.EventContext = .{
@@ -111,14 +111,14 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     defer ctx.cmds.deinit(self.allocator);
 
     while (true) {
-        const now = std.Io.Timestamp.now(self.io, .real);
+        const now = std.Io.Timestamp.now(self.io, .awake);
         const duration = now.durationTo(next_frame);
         if (duration.nanoseconds <= 0) {
             // Deadline exceeded. Schedule the next frame
             next_frame = now.addDuration(tick);
         } else {
             // Sleep until the deadline
-            try self.io.sleep(duration, .real);
+            try self.io.sleep(duration, .awake);
             next_frame = next_frame.addDuration(tick);
         }
 
@@ -297,13 +297,13 @@ fn handleCommand(self: *App, cmds: *vxfw.CommandList) Allocator.Error!void {
 }
 
 fn checkTimers(self: *App, ctx: *vxfw.EventContext) anyerror!void {
-    const now: std.Io.Timestamp = .now(self.io, .real);
+    const now: std.Io.Timestamp = .now(self.io, .awake);
 
     // timers are always sorted descending
     while (self.timers.pop()) |tick| {
         const duration = now.durationTo(tick.deadline);
-        if (duration.nanoseconds < 0) {
-            // re-add the timer
+        if (duration.nanoseconds > 0) {
+            // re-add the timer as no more timers will trigger now
             try self.timers.append(self.allocator, tick);
             break;
         }
