@@ -1490,13 +1490,10 @@ pub fn prettyPrint(self: *Vaxis, tty: *std.Io.Writer) !void {
 }
 
 /// Set the terminal's current working directory
-pub fn setTerminalWorkingDirectory(_: *Vaxis, tty: *std.Io.Writer, path: []const u8) !void {
+pub fn setTerminalWorkingDirectory(_: *Vaxis, tty: *std.Io.Writer, path: []const u8, hostname_: ?[]const u8) !void {
     if (path.len == 0 or path[0] != '/')
         return error.InvalidAbsolutePath;
-    const hostname = switch (builtin.os.tag) {
-        .windows => null,
-        else => std.posix.getenv("HOSTNAME"),
-    } orelse "localhost";
+    const hostname = hostname_ orelse "localhost";
 
     const uri: std.Uri = .{
         .scheme = "file",
