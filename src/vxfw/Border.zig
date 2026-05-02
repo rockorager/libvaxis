@@ -41,6 +41,7 @@ fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) Allocator.Error!vxfw
 pub fn draw(self: *const Border, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surface {
     const max_width: ?u16 = if (ctx.max.width) |width| width -| 2 else null;
     const max_height: ?u16 = if (ctx.max.height) |height| height -| 2 else null;
+    // std.debug.panic("{d} {d}\n", .{ max_width.?, max_height.? });
 
     const child_ctx = ctx.withConstraints(ctx.min, .{
         .width = max_width,
