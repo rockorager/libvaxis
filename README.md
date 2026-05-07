@@ -261,7 +261,7 @@ pub fn main(init: std.process.Init) !void {
     // We heap allocate our model because we will require a stable pointer to it in our Button
     // widget
     const model = try alloc.create(Model);
-    defer allocator.destroy(model);
+    defer alloc.destroy(model);
 
     // Set the initial state of our button
     model.* = .{
