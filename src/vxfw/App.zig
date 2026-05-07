@@ -128,11 +128,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
             try loop.queue.lock();
             defer loop.queue.unlock();
             while (loop.queue.drain()) |event| {
-                defer {
-                    // Reset our context
-                    ctx.consume_event = false;
-                    ctx.phase = .capturing;
-                }
+                defer resetEventState(&ctx);
                 switch (event) {
                     .key_press => {
                         try focus_handler.handleEvent(&ctx, event);
@@ -296,6 +292,11 @@ fn handleCommand(self: *App, cmds: *vxfw.CommandList) Allocator.Error!void {
     }
 }
 
+fn resetEventState(ctx: *vxfw.EventContext) void {
+    ctx.consume_event = false;
+    ctx.phase = .capturing;
+}
+
 fn checkTimers(self: *App, ctx: *vxfw.EventContext) anyerror!void {
     const now: std.Io.Timestamp = .now(self.io, .awake);
 
@@ -307,7 +308,10 @@ fn checkTimers(self: *App, ctx: *vxfw.EventContext) anyerror!void {
             try self.timers.append(self.allocator, tick);
             break;
         }
+        resetEventState(ctx);
+        ctx.phase = .at_target;
         try tick.widget.handleEvent(ctx, .tick);
+        resetEventState(ctx);
     }
     try self.handleCommand(&ctx.cmds);
 }
@@ -604,6 +608,60 @@ const FocusHandler = struct {
         }
     }
 };
+
+test "timer consume does not leak to the next event" {
+    const testing = std.testing;
+
+    const TestWidget = struct {
+        fn handle(_: *anyopaque, ctx: *vxfw.EventContext, event: vxfw.Event) anyerror!void {
+            if (event == .tick) ctx.consumeAndRedraw();
+        }
+
+        fn draw(_: *anyopaque, _: vxfw.DrawContext) Allocator.Error!vxfw.Surface {
+            unreachable;
+        }
+    };
+
+    var app: App = .{
+        .io = testing.io,
+        .allocator = testing.allocator,
+        .tty = undefined,
+        .vx = undefined,
+        .timers = .empty,
+        .wants_focus = null,
+    };
+    defer app.timers.deinit(testing.allocator);
+
+    var userdata: u8 = 0;
+    const widget: vxfw.Widget = .{
+        .userdata = &userdata,
+        .eventHandler = TestWidget.handle,
+        .drawFn = TestWidget.draw,
+    };
+
+    const now: std.Io.Timestamp = .now(testing.io, .awake);
+    try app.timers.append(testing.allocator, .{
+        .deadline = now.addDuration(.fromMilliseconds(-1)),
+        .widget = widget,
+    });
+
+    var ctx: vxfw.EventContext = .{
+        .io = testing.io,
+        .alloc = testing.allocator,
+        .phase = .capturing,
+        .cmds = .empty,
+        .consume_event = false,
+        .redraw = false,
+        .quit = false,
+    };
+    defer ctx.cmds.deinit(testing.allocator);
+
+    try app.checkTimers(&ctx);
+
+    try testing.expect(ctx.redraw);
+    try testing.expect(!ctx.consume_event);
+    try testing.expectEqual(vxfw.EventContext.Phase.capturing, ctx.phase);
+}
 
 test {
     std.testing.refAllDecls(@This());
