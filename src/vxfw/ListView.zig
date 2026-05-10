@@ -212,6 +212,41 @@ pub fn ensureScroll(self: *ListView) void {
     }
 }
 
+fn knownItemCount(self: *ListView) ?u32 {
+    if (self.item_count) |count| return count;
+    switch (self.children) {
+        .slice => |slice| {
+            self.item_count = @intCast(slice.len);
+            return self.item_count;
+        },
+        .builder => return null,
+    }
+}
+
+/// Move the cursor directly to an item and start drawing from that item.
+///
+/// This is useful for large jumps where walking from the current scroll position to the cursor
+/// would require building every child between the two positions. If the item count is known, `idx`
+/// is clamped to the last item.
+pub fn jumpToItem(self: *ListView, idx: u32) void {
+    const cursor = if (self.knownItemCount()) |count|
+        if (count == 0) 0 else @min(idx, count - 1)
+    else
+        idx;
+
+    self.cursor = cursor;
+    self.scroll = .{ .top = cursor };
+}
+
+/// Scroll directly to the bottom when the item count is known.
+///
+/// This preserves the cursor. For builder-backed lists without `item_count`, the bottom is not
+/// known, so this does nothing.
+pub fn scrollToBottom(self: *ListView) void {
+    const count = self.knownItemCount() orelse return;
+    self.scroll = if (count == 0) .{} else .{ .top = count - 1 };
+}
+
 /// Inserts children until add_height is < 0
 fn insertChildren(
     self: *ListView,
@@ -670,6 +705,141 @@ test ListView {
     try std.testing.expectEqual(0, list_view.scroll.offset);
     try std.testing.expectEqual(3, surface.children.len);
     try std.testing.expectEqual(3, list_view.cursor);
+}
+
+test "ListView: jumpToItem avoids walking intermediate children" {
+    const Text = @import("Text.zig");
+    const text: Text = .{ .text = "item" };
+
+    const CountingBuilder = struct {
+        len: usize,
+        widget: vxfw.Widget,
+        calls: *usize,
+
+        fn build(ptr: *const anyopaque, idx: usize, _: usize) ?vxfw.Widget {
+            const self: *const @This() = @ptrCast(@alignCast(ptr));
+            self.calls.* += 1;
+            if (idx >= self.len) return null;
+            return self.widget;
+        }
+    };
+
+    var calls: usize = 0;
+    const builder: CountingBuilder = .{
+        .len = 1000,
+        .widget = text.widget(),
+        .calls = &calls,
+    };
+    var list_view: ListView = .{
+        .item_count = @intCast(builder.len),
+        .children = .{ .builder = .{
+            .userdata = &builder,
+            .buildFn = CountingBuilder.build,
+        } },
+    };
+
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    vxfw.DrawContext.init(.unicode);
+
+    const draw_ctx: vxfw.DrawContext = .{
+        .arena = arena.allocator(),
+        .min = .{},
+        .max = .{ .width = 16, .height = 4 },
+        .cell_size = .{ .width = 10, .height = 20 },
+    };
+
+    list_view.jumpToItem(999);
+    const surface = try list_view.widget().draw(draw_ctx);
+
+    try std.testing.expectEqual(999, list_view.cursor);
+    try std.testing.expectEqual(996, list_view.scroll.top);
+    try std.testing.expectEqual(0, list_view.scroll.offset);
+    try std.testing.expectEqual(4, surface.children.len);
+    try std.testing.expect(calls < 10);
+}
+
+test "ListView: jumpToItem clamps to item count" {
+    var list_view: ListView = .{
+        .item_count = 10,
+        .children = .{ .slice = &.{} },
+    };
+
+    list_view.jumpToItem(100);
+
+    try std.testing.expectEqual(9, list_view.cursor);
+    try std.testing.expectEqual(9, list_view.scroll.top);
+    try std.testing.expectEqual(0, list_view.scroll.offset);
+}
+
+test "ListView: scrollToBottom avoids walking intermediate children" {
+    const Text = @import("Text.zig");
+    const text: Text = .{ .text = "item" };
+
+    const CountingBuilder = struct {
+        len: usize,
+        widget: vxfw.Widget,
+        calls: *usize,
+
+        fn build(ptr: *const anyopaque, idx: usize, _: usize) ?vxfw.Widget {
+            const self: *const @This() = @ptrCast(@alignCast(ptr));
+            self.calls.* += 1;
+            if (idx >= self.len) return null;
+            return self.widget;
+        }
+    };
+
+    var calls: usize = 0;
+    const builder: CountingBuilder = .{
+        .len = 1000,
+        .widget = text.widget(),
+        .calls = &calls,
+    };
+    var list_view: ListView = .{
+        .item_count = @intCast(builder.len),
+        .children = .{ .builder = .{
+            .userdata = &builder,
+            .buildFn = CountingBuilder.build,
+        } },
+    };
+
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    vxfw.DrawContext.init(.unicode);
+
+    const draw_ctx: vxfw.DrawContext = .{
+        .arena = arena.allocator(),
+        .min = .{},
+        .max = .{ .width = 16, .height = 4 },
+        .cell_size = .{ .width = 10, .height = 20 },
+    };
+
+    list_view.scrollToBottom();
+    const surface = try list_view.widget().draw(draw_ctx);
+
+    try std.testing.expectEqual(0, list_view.cursor);
+    try std.testing.expectEqual(996, list_view.scroll.top);
+    try std.testing.expectEqual(0, list_view.scroll.offset);
+    try std.testing.expectEqual(4, surface.children.len);
+    try std.testing.expect(calls < 10);
+}
+
+test "ListView: scrollToBottom gets count from slice" {
+    const Text = @import("Text.zig");
+    const zero: Text = .{ .text = "0" };
+    const one: Text = .{ .text = "1" };
+    const two: Text = .{ .text = "2" };
+
+    var list_view: ListView = .{
+        .children = .{ .slice = &.{ zero.widget(), one.widget(), two.widget() } },
+    };
+
+    list_view.scrollToBottom();
+
+    try std.testing.expectEqual(0, list_view.cursor);
+    try std.testing.expectEqual(2, list_view.scroll.top);
+    try std.testing.expectEqual(0, list_view.scroll.offset);
+    try std.testing.expectEqual(3, list_view.item_count);
 }
 
 // @reykjalin found an issue on mac with ghostty where the scroll up and scroll down were uneven.
