@@ -112,9 +112,15 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
 
     while (true) {
         const now = std.Io.Timestamp.now(self.io, .real);
-        const duration = next_frame.durationTo(now);
+        // `Timestamp.durationTo` returns `to - from`, so
+        // `now.durationTo(next_frame)` is positive while we are still
+        // before the next-frame deadline and zero/negative once it has
+        // arrived. Using `next_frame.durationTo(now)` had the sign
+        // inverted — the loop slept when it was late and busy-spun
+        // when it was early, saturating the renderer and the tty.
+        const duration = timeUntil(now, next_frame);
         if (duration.nanoseconds <= 0) {
-            // Deadline exceeded. Schedule the next frame
+            // Deadline reached or exceeded. Render this frame.
             next_frame = now.addDuration(tick);
         } else {
             // Sleep until the deadline
@@ -299,17 +305,36 @@ fn handleCommand(self: *App, cmds: *vxfw.CommandList) Allocator.Error!void {
 fn checkTimers(self: *App, ctx: *vxfw.EventContext) anyerror!void {
     const now: std.Io.Timestamp = .now(self.io, .real);
 
-    // timers are always sorted descending
+    // `timers` is sorted descending by deadline (latest first), so
+    // `pop()` returns the soonest-due tick. Walk forward firing every
+    // tick whose deadline has already arrived; stop at the first that
+    // is still in the future and put it back to set the next wake-up.
+    //
+    // The previous version computed `now.durationTo(deadline)`
+    // (= deadline - now) and re-queued on the negative branch, which
+    // is exactly backward: timers in the past kept getting re-added
+    // and timers in the future fired immediately.
     while (self.timers.pop()) |tick| {
-        const duration = now.durationTo(tick.deadline);
-        if (duration.nanoseconds < 0) {
-            // re-add the timer
+        if (!isDue(tick.deadline, now)) {
             try self.timers.append(self.allocator, tick);
             break;
         }
         try tick.widget.handleEvent(ctx, .tick);
     }
     try self.handleCommand(&ctx.cmds);
+}
+
+/// Returns true when `now` has reached or passed `deadline`. Equivalent
+/// to `deadline <= now`, expressed through `Timestamp.durationTo` so
+/// the comparison stays explicit about its direction.
+fn isDue(deadline: std.Io.Timestamp, now: std.Io.Timestamp) bool {
+    return deadline.durationTo(now).nanoseconds >= 0;
+}
+
+/// Returns the duration remaining until `target`. Positive while
+/// `target` is in the future; zero or negative once it has arrived.
+fn timeUntil(now: std.Io.Timestamp, target: std.Io.Timestamp) std.Io.Duration {
+    return now.durationTo(target);
 }
 
 const MouseHandler = struct {
@@ -604,6 +629,35 @@ const FocusHandler = struct {
         }
     }
 };
+
+test "isDue: deadline in the future is not yet due" {
+    const now: std.Io.Timestamp = .{ .nanoseconds = 1_000_000_000 };
+    const future: std.Io.Timestamp = .{ .nanoseconds = 2_000_000_000 };
+    try std.testing.expect(!isDue(future, now));
+}
+
+test "isDue: deadline in the past is due" {
+    const now: std.Io.Timestamp = .{ .nanoseconds = 2_000_000_000 };
+    const past: std.Io.Timestamp = .{ .nanoseconds = 1_000_000_000 };
+    try std.testing.expect(isDue(past, now));
+}
+
+test "isDue: deadline equal to now is due (boundary)" {
+    const now: std.Io.Timestamp = .{ .nanoseconds = 1_500_000_000 };
+    try std.testing.expect(isDue(now, now));
+}
+
+test "timeUntil: positive while target is in the future" {
+    const now: std.Io.Timestamp = .{ .nanoseconds = 1_000_000_000 };
+    const future: std.Io.Timestamp = .{ .nanoseconds = 1_500_000_000 };
+    try std.testing.expectEqual(@as(i96, 500_000_000), timeUntil(now, future).nanoseconds);
+}
+
+test "timeUntil: zero or negative once target has arrived" {
+    const now: std.Io.Timestamp = .{ .nanoseconds = 2_000_000_000 };
+    const past: std.Io.Timestamp = .{ .nanoseconds = 1_500_000_000 };
+    try std.testing.expect(timeUntil(now, past).nanoseconds <= 0);
+}
 
 test {
     std.testing.refAllDecls(@This());
