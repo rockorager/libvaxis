@@ -26,7 +26,7 @@ pub fn input(self: *@This(), key: vaxis.Key) void {
 }
 
 pub fn draw(self: *@This(), win: vaxis.Window, buffer: Buffer, opts: DrawOptions) void {
-    const pad_left: usize = if (opts.draw_line_numbers) LineNumbers.numDigits(buffer.rows) +| 1 else 0;
+    const pad_left: u16 = if (opts.draw_line_numbers) LineNumbers.numDigits(buffer.rows) +| 1 else 0;
     self.scroll_view.draw(win, .{
         .cols = buffer.cols + pad_left,
         .rows = buffer.rows,
