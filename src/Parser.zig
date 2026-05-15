@@ -314,6 +314,7 @@ inline fn parseOsc(input: []const u8, paste_allocator: ?std.mem.Allocator) !Resu
                 input[semicolon_idx + 3 .. sequence.len - 2];
             const decoder = std.base64.standard.Decoder;
             const text = try paste_allocator.?.alloc(u8, try decoder.calcSizeForSlice(payload));
+            errdefer paste_allocator.?.free(text);
             try decoder.decode(text, payload);
             log.debug("decoded paste: {s}", .{text});
             return .{
