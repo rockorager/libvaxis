@@ -204,10 +204,6 @@ pub fn main(init: std.process.Init) !u8 {
     const io = init.io;
     const alloc = init.gpa;
 
-    var buffer: [1024]u8 = undefined;
-    var app: vxfw.App = try .init(io, alloc, init.environ_map, &buffer);
-    defer app.deinit();
-
     const model = try Model.init(alloc);
     defer model.deinit(alloc);
 
@@ -224,8 +220,13 @@ pub fn main(init: std.process.Init) !u8 {
         try model.list.append(alloc, .{ .text = line });
     }
 
-    try app.run(model.widget(), .{});
-    app.deinit();
+    {
+        var buffer: [1024]u8 = undefined;
+        var app: vxfw.App = try .init(io, alloc, init.environ_map, &buffer);
+        defer app.deinit();
+
+        try app.run(model.widget(), .{});
+    }
 
     if (model.result.len > 0) {
         var stdout_file: std.Io.File = .stdout();
