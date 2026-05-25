@@ -166,7 +166,7 @@ pub fn handleCapture(self: *ScrollBars, ctx: *vxfw.EventContext, event: vxfw.Eve
 
                     // If the new thumb position is at the top we know we've scrolled to the top of
                     // the scroll view.
-                    if (new_thumb_top == 0) {
+                    if (new_thumb_top <= 0) {
                         self.scroll_view.scroll.top = 0;
                         return ctx.consumeAndRedraw();
                     }
@@ -238,7 +238,7 @@ pub fn handleCapture(self: *ScrollBars, ctx: *vxfw.EventContext, event: vxfw.Eve
 
                     // If the new thumb position is at the horizontal beginning of the current view
                     // we know we've scrolled to the  beginning of the scroll view.
-                    if (new_thumb_col_start == 0) {
+                    if (new_thumb_col_start <= 0) {
                         self.scroll_view.scroll.left = 0;
                         return ctx.consumeAndRedraw();
                     }
