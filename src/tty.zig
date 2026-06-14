@@ -98,6 +98,18 @@ pub const PosixTty = struct {
 
     /// Resets the signal handler to it's default
     pub fn resetSignalHandler() void {
+        if (!handler_installed) {
+            handler_idx = 0;
+            return;
+        }
+
+        handler_mutex.lock(handler_io) catch @panic("unable to lock SIGWINCH handlers");
+        defer handler_mutex.unlock(handler_io);
+        handler_idx = 0;
+        resetSignalHandlerLocked();
+    }
+
+    fn resetSignalHandlerLocked() void {
         if (!handler_installed) return;
         handler_installed = false;
         var act = posix.Sigaction{
@@ -127,6 +139,25 @@ pub const PosixTty = struct {
         if (handler_idx == handlers.len) return error.OutOfMemory;
         handlers[handler_idx] = handler;
         handler_idx += 1;
+    }
+
+    /// Remove a previously installed winsize signal handler
+    pub fn removeWinsize(handler: SignalHandler) void {
+        handler_mutex.lock(handler_io) catch @panic("unable to lock SIGWINCH handlers");
+        defer handler_mutex.unlock(handler_io);
+
+        var i: usize = 0;
+        while (i < handler_idx) : (i += 1) {
+            if (handlers[i].context == handler.context and handlers[i].callback == handler.callback) {
+                handler_idx -= 1;
+                if (i < handler_idx) {
+                    std.mem.copyForwards(SignalHandler, handlers[i..handler_idx], handlers[i + 1 .. handler_idx + 1]);
+                }
+                handlers[handler_idx] = undefined;
+                if (handler_idx == 0) resetSignalHandlerLocked();
+                return;
+            }
+        }
     }
 
     fn handleWinch(_: std.posix.SIG) callconv(.c) void {
@@ -210,6 +241,11 @@ pub const WindowsTty = struct {
     last_mouse_button_press: u16 = 0,
 
     const utf8_codepage: c_uint = 65001;
+
+    pub const SignalHandler = struct {
+        context: *anyopaque,
+        callback: *const fn (context: *anyopaque) void,
+    };
 
     /// The input mode set by init
     pub const input_raw_mode: CONSOLE_MODE_INPUT = .{
@@ -757,6 +793,11 @@ pub const TestTty = switch (builtin.os.tag) {
         pipe_write: posix.fd_t,
         tty_writer: *std.Io.Writer.Allocating,
 
+        pub const SignalHandler = struct {
+            context: *anyopaque,
+            callback: *const fn (context: *anyopaque) void,
+        };
+
         /// Initializes a TestTty.
         pub fn init(_: std.Io, buffer: []u8) !@This() {
             _ = buffer;
@@ -813,6 +854,11 @@ pub const TestTty = switch (builtin.os.tag) {
     },
     else => struct {
         d: std.Io.Writer.Discarding,
+
+        pub const SignalHandler = struct {
+            context: *anyopaque,
+            callback: *const fn (context: *anyopaque) void,
+        };
 
         pub fn init(_: std.Io, buf: []u8) !@This() {
             return .{

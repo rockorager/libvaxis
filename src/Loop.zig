@@ -23,6 +23,7 @@ pub fn Loop(comptime T: type) type {
         queue: Queue(T, 512),
         thread: ?std.Io.Future(void) = null,
         should_quit: bool = false,
+        resize_handler_installed: bool = false,
 
         /// Initialize the event loop. This is an intrusive init so that we have
         /// a stable pointer to register signal callbacks with posix TTYs
@@ -39,15 +40,31 @@ pub fn Loop(comptime T: type) type {
             switch (builtin.os.tag) {
                 .windows => {},
                 else => {
-                    if (!builtin.is_test) {
-                        const handler: Tty.SignalHandler = .{
-                            .context = self,
-                            .callback = Self.winsizeCallback,
-                        };
-                        try Tty.notifyWinsize(handler);
+                    if (!builtin.is_test and !self.resize_handler_installed) {
+                        try Tty.notifyWinsize(self.resizeHandler());
+                        self.resize_handler_installed = true;
                     }
                 },
             }
+        }
+
+        pub fn uninstallResizeHandler(self: *Self) void {
+            switch (builtin.os.tag) {
+                .windows => {},
+                else => {
+                    if (!builtin.is_test and self.resize_handler_installed) {
+                        Tty.removeWinsize(self.resizeHandler());
+                        self.resize_handler_installed = false;
+                    }
+                },
+            }
+        }
+
+        fn resizeHandler(self: *Self) Tty.SignalHandler {
+            return .{
+                .context = self,
+                .callback = Self.winsizeCallback,
+            };
         }
 
         /// spawns the input thread to read input from the tty
