@@ -67,13 +67,13 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     try vx.setBracketedPaste(tty.writer(), true);
     try vx.subscribeToColorSchemeUpdates(tty.writer());
 
-    {
-        // This part deserves a comment. loop.installResizeHandler installs
-        // a signal handler for the tty. We wait to installResizeHandler the
-        // loop until we know if we need this handler. We don't need it if the
-        // terminal supports in-band-resize.
-        if (!vx.state.in_band_resize) try loop.installResizeHandler();
-    }
+    // This part deserves a comment. loop.installResizeHandler installs
+    // a signal handler for the tty. We wait to installResizeHandler the
+    // loop until we know if we need this handler. We don't need it if the
+    // terminal supports in-band-resize.
+    const use_signal_resize = !vx.state.in_band_resize;
+    if (use_signal_resize) try loop.installResizeHandler();
+    defer if (use_signal_resize) loop.uninstallResizeHandler();
 
     // NOTE: We don't use pixel mouse anywhere
     vx.caps.sgr_pixels = false;
