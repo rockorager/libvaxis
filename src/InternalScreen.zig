@@ -50,7 +50,9 @@ mouse_shape: MouseShape = .default,
 /// sets each cell to the default cell
 pub fn init(gpa: std.mem.Allocator, w: u16, h: u16) !InternalScreen {
     const arena = try gpa.create(std.heap.ArenaAllocator);
+    errdefer gpa.destroy(arena);
     arena.* = .init(gpa);
+    errdefer arena.deinit();
     var screen = InternalScreen{
         .arena = arena,
         .buf = try arena.allocator().alloc(InternalCell, @as(usize, @intCast(w)) * h),
