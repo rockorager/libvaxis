@@ -47,6 +47,16 @@ pub const Options = struct {
     /// requests. If not supplied, it won't be possible to request the system
     /// clipboard
     system_clipboard_allocator: ?std.mem.Allocator = null,
+    /// Sets the Kitty graphics quietness (`q`) flag on image transmit,
+    /// placement, and delete commands
+    image_quiet: enum {
+        /// The terminal reports both successes and failures (default)
+        off,
+        /// The terminal suppresses success reports, but still reports failures
+        no_ok,
+        /// The terminal suppresses both success and failure reports
+        silent,
+    } = .off,
 };
 
 io: std.Io,
@@ -437,7 +447,7 @@ pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
             reposition_ptr.* = true;
             // Clear all images
             if (vx.caps.kitty_graphics)
-                try io.writeAll(ctlseqs.kitty_graphics_clear);
+                try io.print("\x1b_Ga=d{s}\x1b\\", .{vx.imageQuietSeq()});
         }
     };
 
@@ -577,6 +587,7 @@ pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
             if (img.options.z_index) |z| {
                 try tty.print(",z={d}", .{z});
             }
+            try tty.writeAll(self.imageQuietSeq());
             try tty.writeAll(ctlseqs.kitty_graphics_closing);
         }
 
@@ -924,6 +935,14 @@ pub fn translateMouse(self: Vaxis, mouse: Mouse) Mouse {
     return result;
 }
 
+fn imageQuietSeq(self: *const Vaxis) []const u8 {
+    return switch (self.opts.image_quiet) {
+        .off => "",
+        .no_ok => ",q=1",
+        .silent => ",q=2",
+    };
+}
+
 /// Transmit an image using the local filesystem. Allocates only for base64 encoding
 pub fn transmitLocalImagePath(
     self: *Vaxis,
@@ -957,20 +976,20 @@ pub fn transmitLocalImagePath(
     switch (format) {
         .rgb => {
             try tty.print(
-                "\x1b_Gf=24,s={d},v={d},i={d},t={c};{s}\x1b\\",
-                .{ width, height, id, medium_char, encoded },
+                "\x1b_Gf=24,s={d},v={d},i={d}{s},t={c};{s}\x1b\\",
+                .{ width, height, id, self.imageQuietSeq(), medium_char, encoded },
             );
         },
         .rgba => {
             try tty.print(
-                "\x1b_Gf=32,s={d},v={d},i={d},t={c};{s}\x1b\\",
-                .{ width, height, id, medium_char, encoded },
+                "\x1b_Gf=32,s={d},v={d},i={d}{s},t={c};{s}\x1b\\",
+                .{ width, height, id, self.imageQuietSeq(), medium_char, encoded },
             );
         },
         .png => {
             try tty.print(
-                "\x1b_Gf=100,i={d},t={c};{s}\x1b\\",
-                .{ id, medium_char, encoded },
+                "\x1b_Gf=100,i={d}{s},t={c};{s}\x1b\\",
+                .{ id, self.imageQuietSeq(), medium_char, encoded },
             );
         },
     }
@@ -1005,12 +1024,13 @@ pub fn transmitPreEncodedImage(
 
     if (bytes.len < 4096) {
         try tty.print(
-            "\x1b_Gf={d},s={d},v={d},i={d};{s}\x1b\\",
+            "\x1b_Gf={d},s={d},v={d},i={d}{s};{s}\x1b\\",
             .{
                 fmt,
                 width,
                 height,
                 id,
+                self.imageQuietSeq(),
                 bytes,
             },
         );
@@ -1018,8 +1038,8 @@ pub fn transmitPreEncodedImage(
         var n: usize = 4096;
 
         try tty.print(
-            "\x1b_Gf={d},s={d},v={d},i={d},m=1;{s}\x1b\\",
-            .{ fmt, width, height, id, bytes[0..n] },
+            "\x1b_Gf={d},s={d},v={d},i={d}{s},m=1;{s}\x1b\\",
+            .{ fmt, width, height, id, self.imageQuietSeq(), bytes[0..n] },
         );
         while (n < bytes.len) : (n += 4096) {
             const end: usize = @min(n + 4096, bytes.len);
@@ -1096,8 +1116,8 @@ pub fn loadImage(
 }
 
 /// deletes an image from the terminal's memory
-pub fn freeImage(_: Vaxis, tty: *std.Io.Writer, id: u32) void {
-    tty.print("\x1b_Ga=d,d=I,i={d};\x1b\\", .{id}) catch |err| {
+pub fn freeImage(self: Vaxis, tty: *std.Io.Writer, id: u32) void {
+    tty.print("\x1b_Ga=d,d=I,i={d}{s};\x1b\\", .{ id, self.imageQuietSeq() }) catch |err| {
         log.err("couldn't delete image {d}: {}", .{ id, err });
         return;
     };
@@ -1320,6 +1340,7 @@ pub fn prettyPrint(self: *Vaxis, tty: *std.Io.Writer) !void {
             if (img.options.z_index) |z| {
                 try tty.print(",z={d}", .{z});
             }
+            try tty.writeAll(self.imageQuietSeq());
             try tty.writeAll(ctlseqs.kitty_graphics_closing);
         }
 
@@ -1522,4 +1543,75 @@ test "render: no output when no changes" {
     const output = try render_writer.toOwnedSlice();
     defer std.testing.allocator.free(output);
     try std.testing.expectEqual(@as(usize, 0), output.len);
+}
+
+test "image_quiet: silent sets q=2 on transmit" {
+    const io = std.testing.io;
+    var env_map = try std.testing.environ.createMap(std.testing.allocator);
+    defer env_map.deinit();
+    var vx = try Vaxis.init(io, std.testing.allocator, &env_map, .{ .image_quiet = .silent });
+    var deinit_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer deinit_writer.deinit();
+    defer vx.deinit(std.testing.allocator, &deinit_writer.writer);
+    vx.caps.kitty_graphics = true;
+
+    var writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer writer.deinit();
+    _ = try vx.transmitPreEncodedImage(&writer.writer, "AAAA", 1, 1, .rgba);
+    const output = try writer.toOwnedSlice();
+    defer std.testing.allocator.free(output);
+    try std.testing.expect(std.mem.indexOf(u8, output, ",q=2") != null);
+}
+
+test "image_quiet: off leaves transmit unchanged" {
+    const io = std.testing.io;
+    var env_map = try std.testing.environ.createMap(std.testing.allocator);
+    defer env_map.deinit();
+    var vx = try Vaxis.init(io, std.testing.allocator, &env_map, .{});
+    var deinit_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer deinit_writer.deinit();
+    defer vx.deinit(std.testing.allocator, &deinit_writer.writer);
+    vx.caps.kitty_graphics = true;
+
+    var writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer writer.deinit();
+    _ = try vx.transmitPreEncodedImage(&writer.writer, "AAAA", 1, 1, .rgba);
+    const output = try writer.toOwnedSlice();
+    defer std.testing.allocator.free(output);
+    try std.testing.expect(std.mem.indexOf(u8, output, "q=") == null);
+}
+
+test "image_quiet: no_ok sets q=1 on transmit" {
+    const io = std.testing.io;
+    var env_map = try std.testing.environ.createMap(std.testing.allocator);
+    defer env_map.deinit();
+    var vx = try Vaxis.init(io, std.testing.allocator, &env_map, .{ .image_quiet = .no_ok });
+    var deinit_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer deinit_writer.deinit();
+    defer vx.deinit(std.testing.allocator, &deinit_writer.writer);
+    vx.caps.kitty_graphics = true;
+
+    var writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer writer.deinit();
+    _ = try vx.transmitPreEncodedImage(&writer.writer, "AAAA", 1, 1, .rgba);
+    const output = try writer.toOwnedSlice();
+    defer std.testing.allocator.free(output);
+    try std.testing.expect(std.mem.indexOf(u8, output, ",q=1") != null);
+}
+
+test "image_quiet: silent sets q=2 on freeImage" {
+    const io = std.testing.io;
+    var env_map = try std.testing.environ.createMap(std.testing.allocator);
+    defer env_map.deinit();
+    var vx = try Vaxis.init(io, std.testing.allocator, &env_map, .{ .image_quiet = .silent });
+    var deinit_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer deinit_writer.deinit();
+    defer vx.deinit(std.testing.allocator, &deinit_writer.writer);
+
+    var writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer writer.deinit();
+    vx.freeImage(&writer.writer, 1);
+    const output = try writer.toOwnedSlice();
+    defer std.testing.allocator.free(output);
+    try std.testing.expect(std.mem.indexOf(u8, output, ",q=2") != null);
 }
