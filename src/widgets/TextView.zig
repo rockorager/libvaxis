@@ -10,21 +10,56 @@ const Grapheme = struct {
 };
 
 pub const BufferWriter = struct {
-    pub const Error = error{OutOfMemory};
-    pub const Writer = std.io.GenericWriter(@This(), Error, write);
+    pub const Writer = std.Io.Writer;
+    pub const Error = Writer.Error;
 
-    allocator: std.mem.Allocator,
-    buffer: *Buffer,
+    const vtable: std.Io.Writer.VTable = .{
+        .drain = drain,
+        .sendFile = std.Io.Writer.unimplementedSendFile,
+        .flush = std.Io.Writer.noopFlush,
+        .rebase = noopRebase,
+    };
 
-    pub fn write(self: @This(), bytes: []const u8) Error!usize {
-        try self.buffer.append(self.allocator, .{
-            .bytes = bytes,
-        });
-        return bytes.len;
+    fn drain(w: *Writer, data: []const []const u8, splat: usize) Error!usize {
+        std.debug.assert(data.len != 0);
+
+        const bw: *BufferWriter = @fieldParentPtr("writer", w);
+        const start_len = bw.writer.end;
+
+        for (data) |bytes| {
+            bw.buffer.append(bw.gpa, .{ .bytes = bytes }) catch return Error.WriteFailed;
+            bw.writer.end += bytes.len;
+        }
+
+        const pattern = data[data.len - 1];
+        if (splat > 1) {
+            for (0..splat - 1) |_| {
+                bw.writer.end += pattern.len;
+                bw.buffer.append(bw.gpa, .{ .bytes = pattern }) catch return Error.WriteFailed;
+            }
+        }
+        return bw.writer.end - start_len;
     }
 
-    pub fn writer(self: @This()) Writer {
-        return .{ .context = self };
+    fn noopRebase(w: *Writer, preserve: usize, minimum_len: usize) Error!void {
+        _ = w;
+        _ = preserve;
+        _ = minimum_len;
+    }
+
+    gpa: std.mem.Allocator,
+    buffer: *Buffer,
+    writer: Writer,
+
+    pub fn init(gpa: std.mem.Allocator, buffer: *Buffer) BufferWriter {
+        return .{
+            .gpa = gpa,
+            .buffer = buffer,
+            .writer = .{
+                .buffer = &.{},
+                .vtable = &vtable,
+            },
+        };
     }
 };
 
@@ -160,14 +195,9 @@ pub const Buffer = struct {
 
     pub fn writer(
         self: *@This(),
-        allocator: std.mem.Allocator,
-    ) BufferWriter.Writer {
-        return .{
-            .context = .{
-                .allocator = allocator,
-                .buffer = self,
-            },
-        };
+        gpa: std.mem.Allocator,
+    ) BufferWriter {
+        return .init(gpa, self);
     }
 };
 
@@ -221,4 +251,24 @@ pub fn draw(self: *@This(), win: vaxis.Window, buffer: Buffer) void {
             .style = style,
         });
     }
+}
+
+const testing = std.testing;
+
+test BufferWriter {
+    const gpa = testing.allocator;
+
+    var buffer: Buffer = .{};
+    defer buffer.deinit(gpa);
+
+    var buffer_writer: BufferWriter = buffer.writer(gpa);
+    const writer = &buffer_writer.writer;
+
+    try writer.print("hello\n", .{});
+    try writer.print("world!\n", .{});
+    try writer.print("{d}\n", .{42});
+
+    try testing.expectEqualStrings("hello\nworld!\n42\n", buffer.content.items);
+    try testing.expectEqual(3, buffer.rows);
+    try testing.expectEqual(6, buffer.cols);
 }
