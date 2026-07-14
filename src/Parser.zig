@@ -257,9 +257,9 @@ inline fn parseOsc(input: []const u8, paste_allocator: ?std.mem.Allocator) !Resu
                     if (i + 1 >= input.len) return .{ .event = null, .n = 0 };
                     if (input[i + 1] == 0x5c) break :blk i + 2;
                     // ESC not followed by \: the OSC was never terminated and a
-                    // new sequence has begun. Treat as incomplete/malformed
-                    // rather than over-consuming the following sequence.
-                    return .{ .event = null, .n = 0 };
+                    // new escape sequence has begun. Consume the malformed OSC
+                    // prefix and leave the ESC for the next parse call.
+                    return .{ .event = null, .n = i };
                 },
                 else => {},
             }
@@ -1376,4 +1376,31 @@ test "parse: bel-terminated osc does not consume the following sequence" {
         .key_press => |key| try testing.expectEqual(Key.up, key.codepoint),
         else => try testing.expect(false),
     }
+}
+
+test "parse: osc interrupted by escape leaves the next sequence intact" {
+    // Per the DEC parser, ESC is an anywhere transition out of OSC. If it is not
+    // the ST sequence (ESC \\), the malformed OSC should be discarded up to the
+    // ESC and the new escape sequence should be parsed next.
+    var parser: Parser = .{};
+    const input = "\x1b]0;title\x1b[A";
+    const result = try parser.parse(input, null);
+    try testing.expectEqual(9, result.n);
+    try testing.expectEqual(@as(?Event, null), result.event);
+
+    const rest = try parser.parse(input[result.n..], null);
+    switch (rest.event.?) {
+        .key_press => |key| try testing.expectEqual(Key.up, key.codepoint),
+        else => try testing.expect(false),
+    }
+}
+
+test "parse: osc ending with escape waits for a possible ST" {
+    // If the buffer ends at ESC, it may still become an ST when more bytes
+    // arrive, so the parser should wait instead of discarding the OSC.
+    var parser: Parser = .{};
+    const input = "\x1b]0;title\x1b";
+    const result = try parser.parse(input, null);
+    try testing.expectEqual(0, result.n);
+    try testing.expectEqual(@as(?Event, null), result.event);
 }
