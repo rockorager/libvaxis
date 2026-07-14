@@ -243,16 +243,29 @@ inline fn parseOsc(input: []const u8, paste_allocator: ?std.mem.Allocator) !Resu
     // end is the index of the terminating byte(s) (either the last byte of an
     // ST or BEL)
     const end: usize = blk: {
-        const esc_result = skipUntilST(input);
-        if (esc_result.n > 0) break :blk esc_result.n;
-
-        // No escape, could be BEL terminated
-        const bel = std.mem.indexOfScalarPos(u8, input, 2, 0x07) orelse return .{
-            .event = null,
-            .n = 0,
-        };
-        bel_terminated = true;
-        break :blk bel + 1;
+        // Find the first terminator: BEL (0x07) or ST (ESC \), whichever comes
+        // first. A bare ESC that is not part of an ST begins a new sequence, so
+        // we must stop rather than consume into it.
+        var i: usize = 2;
+        while (i < input.len) : (i += 1) {
+            switch (input[i]) {
+                0x07 => {
+                    bel_terminated = true;
+                    break :blk i + 1;
+                },
+                0x1b => {
+                    if (i + 1 >= input.len) return .{ .event = null, .n = 0 };
+                    if (input[i + 1] == 0x5c) break :blk i + 2;
+                    // ESC not followed by \: the OSC was never terminated and a
+                    // new sequence has begun. Treat as incomplete/malformed
+                    // rather than over-consuming the following sequence.
+                    return .{ .event = null, .n = 0 };
+                },
+                else => {},
+            }
+        }
+        // No terminator yet: wait for more input.
+        return .{ .event = null, .n = 0 };
     };
 
     // The complete OSC sequence
@@ -1329,4 +1342,38 @@ test "parse: disambiguate shift + space" {
 
 test {
     std.testing.refAllDecls(@This());
+}
+
+test "parse: bel-terminated osc color report followed by da1" {
+    // A BEL-terminated OSC 11 (background color) reply immediately followed by
+    // a DA1 reply, as they can arrive together in one read(). The OSC must stop
+    // at the BEL and must not consume into the following sequence.
+    var parser: Parser = .{};
+    const input = "\x1b]11;rgb:0000/0000/0000\x07\x1b[?1;2c";
+    const result = try parser.parse(input, null);
+    try testing.expectEqual(24, result.n);
+    switch (result.event.?) {
+        .color_report => {},
+        else => try testing.expect(false),
+    }
+    // The DA1 that follows must survive intact.
+    const rest = try parser.parse(input[result.n..], null);
+    switch (rest.event.?) {
+        .cap_da1 => {},
+        else => try testing.expect(false),
+    }
+}
+
+test "parse: bel-terminated osc does not consume the following sequence" {
+    // An OSC (BEL-terminated) directly followed by a CSI cursor-up. The OSC must
+    // stop at the BEL and leave the CSI intact.
+    var parser: Parser = .{};
+    const input = "\x1b]0;title\x07\x1b[A";
+    const result = try parser.parse(input, null);
+    try testing.expectEqual(10, result.n);
+    const rest = try parser.parse(input[result.n..], null);
+    switch (rest.event.?) {
+        .key_press => |key| try testing.expectEqual(Key.up, key.codepoint),
+        else => try testing.expect(false),
+    }
 }
