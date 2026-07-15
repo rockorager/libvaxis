@@ -354,7 +354,15 @@ pub fn drawTable(
                                 }
                             },
                             else => {
-                                break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{item}) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
+                                if (alloc) |_alloc| {
+                                    if (comptime std.meta.hasFn(ItemT, "format")) {
+                                        break :nonStr try fmt.allocPrint(_alloc, "{f}", .{item});
+                                    } else {
+                                        break :nonStr try fmt.allocPrint(_alloc, "{any}", .{item});
+                                    }
+                                } else {
+                                    break :nonStr fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
+                                }
                             },
                         }
                     },
