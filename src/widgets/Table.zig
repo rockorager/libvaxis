@@ -349,20 +349,12 @@ pub fn drawTable(
                                         break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{s}", .{opt_item}) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
                                     },
                                     else => {
-                                        break :nonStr if (alloc) |_alloc| try fmt.allocPrint(_alloc, "{any}", .{opt_item}) else fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
+                                        break :nonStr try formatCellValue(alloc, opt_item, DataT);
                                     },
                                 }
                             },
                             else => {
-                                if (alloc) |_alloc| {
-                                    if (comptime std.meta.hasFn(ItemT, "format")) {
-                                        break :nonStr try fmt.allocPrint(_alloc, "{f}", .{item});
-                                    } else {
-                                        break :nonStr try fmt.allocPrint(_alloc, "{any}", .{item});
-                                    }
-                                } else {
-                                    break :nonStr fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
-                                }
+                                break :nonStr try formatCellValue(alloc, item, DataT);
                             },
                         }
                     },
@@ -392,6 +384,20 @@ pub fn drawTable(
     }
 }
 
+fn formatCellValue(
+    alloc: ?mem.Allocator,
+    item: anytype,
+    comptime DataT: type,
+) ![]const u8 {
+    if (alloc) |_alloc| {
+        if (comptime std.meta.hasFn(@TypeOf(item), "format")) {
+            return try fmt.allocPrint(_alloc, "{f}", .{item});
+        }
+        return try fmt.allocPrint(_alloc, "{any}", .{item});
+    }
+    return fmt.comptimePrint("[unsupported ({s})]", .{@typeName(DataT)});
+}
+
 /// Calculate the Column Width of `col` using the provided Number of Headers (`num_hdrs`), Width Style (`style`), and Table Window (`table_win`).
 pub fn calcColWidth(
     col: u16,
@@ -416,4 +422,29 @@ pub fn calcColWidth(
             break :statInd style.static_individual[col];
         },
     };
+}
+
+const FormatTestValue = struct {
+    value: u8,
+
+    pub fn format(self: FormatTestValue, writer: anytype) !void {
+        try writer.print("formatted:{d}", .{self.value});
+    }
+};
+
+test "formatCellValue uses format method" {
+    var arena: heap.ArenaAllocator = .init(std.testing.allocator);
+    defer arena.deinit();
+
+    const text = try formatCellValue(arena.allocator(), FormatTestValue{ .value = 42 }, struct { value: FormatTestValue });
+    try std.testing.expectEqualStrings("formatted:42", text);
+}
+
+test "formatCellValue uses format method for optional payloads" {
+    var arena: heap.ArenaAllocator = .init(std.testing.allocator);
+    defer arena.deinit();
+
+    const item: ?FormatTestValue = .{ .value = 7 };
+    const text = try formatCellValue(arena.allocator(), item.?, struct { value: ?FormatTestValue });
+    try std.testing.expectEqualStrings("formatted:7", text);
 }
