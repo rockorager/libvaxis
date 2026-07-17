@@ -96,8 +96,8 @@ pub const BorderOptions = struct {
         custom: [6][]const u8,
     };
 
-    const single_rounded: [6][]const u8 = .{ "╭", "─", "╮", "│", "╯", "╰" };
-    const single_square: [6][]const u8 = .{ "┌", "─", "┐", "│", "┘", "└" };
+    pub const single_rounded: [6][]const u8 = .{ "╭", "─", "╮", "│", "╯", "╰" };
+    pub const single_square: [6][]const u8 = .{ "┌", "─", "┐", "│", "┘", "└" };
 };
 
 /// create a child window
