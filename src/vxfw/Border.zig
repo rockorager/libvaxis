@@ -43,6 +43,7 @@ pub fn draw(self: *const Border, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Sur
     const min_height: u16 = ctx.min.height -| 2;
     const max_width: ?u16 = if (ctx.max.width) |width| width -| 2 else null;
     const max_height: ?u16 = if (ctx.max.height) |height| height -| 2 else null;
+    // std.debug.panic("{d} {d}\n", .{ max_width.?, max_height.? });
 
     const child_ctx = ctx.withConstraints(
         .{ .width = min_width, .height = min_height },
