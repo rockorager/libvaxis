@@ -464,7 +464,7 @@ fn drawBuilder(self: *ScrollView, ctx: vxfw.DrawContext, builder: Builder) Alloc
         const cursor_surf = try vxfw.Surface.initWithChildren(
             ctx.arena,
             self.widget(),
-            .{ .width = child_offset, .height = child.surface.size.height },
+            .{ .width = child_offset + child.surface.size.width, .height = child.surface.size.height },
             sub,
         );
         for (0..cursor_surf.size.height) |row| {
