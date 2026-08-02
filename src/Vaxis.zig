@@ -32,6 +32,7 @@ const log = std.log.scoped(.vaxis);
 pub const Capabilities = struct {
     kitty_keyboard: bool = false,
     kitty_graphics: bool = false,
+    no_color: bool = false,
     rgb: bool = false,
     unicode: gwidth.Method = .wcwidth,
     sgr_pixels: bool = false,
@@ -327,6 +328,12 @@ pub fn queryTerminalSend(vx: *Vaxis, tty: *std.Io.Writer) !void {
 /// is only for use with a custom main loop. Call Vaxis.queryTerminal() if
 /// you are using Loop.run()
 pub fn enableDetectedFeatures(self: *Vaxis, tty: *std.Io.Writer) !void {
+    // Apply NO_COLOR before OS-specific feature handling so it works on Windows too.
+    if (self.env_map.get("NO_COLOR")) |nc| {
+        if (nc.len != 0)
+            self.caps.no_color = true;
+    }
+
     switch (builtin.os.tag) {
         .windows => {
             // No feature detection on windows. We just hard enable some knowns for ConPTY
@@ -584,7 +591,7 @@ pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
         // find out what
 
         // foreground
-        if (!Cell.Color.eql(cursor.fg, cell.style.fg)) {
+        if (!self.caps.no_color and !Cell.Color.eql(cursor.fg, cell.style.fg)) {
             switch (cell.style.fg) {
                 .default => try tty.writeAll(ctlseqs.fg_reset),
                 .index => |idx| {
@@ -608,7 +615,7 @@ pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
             }
         }
         // background
-        if (!Cell.Color.eql(cursor.bg, cell.style.bg)) {
+        if (!self.caps.no_color and !Cell.Color.eql(cursor.bg, cell.style.bg)) {
             switch (cell.style.bg) {
                 .default => try tty.writeAll(ctlseqs.bg_reset),
                 .index => |idx| {
@@ -632,7 +639,7 @@ pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
             }
         }
         // underline color
-        if (!Cell.Color.eql(cursor.ul, cell.style.ul)) {
+        if (!self.caps.no_color and !Cell.Color.eql(cursor.ul, cell.style.ul)) {
             switch (cell.style.ul) {
                 .default => try tty.writeAll(ctlseqs.ul_reset),
                 .index => |idx| {
@@ -1327,7 +1334,7 @@ pub fn prettyPrint(self: *Vaxis, tty: *std.Io.Writer) !void {
         // find out what
 
         // foreground
-        if (!Cell.Color.eql(cursor.fg, cell.style.fg)) {
+        if (!self.caps.no_color and !Cell.Color.eql(cursor.fg, cell.style.fg)) {
             switch (cell.style.fg) {
                 .default => try tty.writeAll(ctlseqs.fg_reset),
                 .index => |idx| {
@@ -1351,7 +1358,7 @@ pub fn prettyPrint(self: *Vaxis, tty: *std.Io.Writer) !void {
             }
         }
         // background
-        if (!Cell.Color.eql(cursor.bg, cell.style.bg)) {
+        if (!self.caps.no_color and !Cell.Color.eql(cursor.bg, cell.style.bg)) {
             switch (cell.style.bg) {
                 .default => try tty.writeAll(ctlseqs.bg_reset),
                 .index => |idx| {
@@ -1375,7 +1382,7 @@ pub fn prettyPrint(self: *Vaxis, tty: *std.Io.Writer) !void {
             }
         }
         // underline color
-        if (!Cell.Color.eql(cursor.ul, cell.style.ul)) {
+        if (!self.caps.no_color and !Cell.Color.eql(cursor.ul, cell.style.ul)) {
             switch (cell.style.ul) {
                 .default => try tty.writeAll(ctlseqs.ul_reset),
                 .index => |idx| {
