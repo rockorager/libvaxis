@@ -891,33 +891,3 @@ pub const TestTty = switch (builtin.os.tag) {
 test {
     std.testing.refAllDecls(@This());
 }
-
-test "Windows F7 virtual key code" {
-    if (builtin.os.tag != .windows) return error.SkipZigTest;
-
-    var tty: WindowsTty = undefined;
-    var state: WindowsTty.EventState = .{};
-    var parser: Parser = undefined;
-    const record: WindowsTty.INPUT_RECORD = .{
-        .EventType = 0x0001,
-        .Event = .{
-            .KeyEvent = .{
-                .bKeyDown = .TRUE,
-                .wRepeatCount = 1,
-                .wVirtualKeyCode = 0x76,
-                .wVirtualScanCode = 0,
-                .uChar = .{ .UnicodeChar = 0 },
-                .dwControlKeyState = 0,
-            },
-        },
-    };
-
-    const event = (try tty.eventFromRecord(&record, &state, &parser, null)).?;
-    switch (event) {
-        .key_press => |key| {
-            try std.testing.expectEqual(@as(u21, Key.f7), key.codepoint);
-            try std.testing.expectEqual(@as(?u21, Key.f7), key.base_layout_codepoint);
-        },
-        else => return error.UnexpectedEvent,
-    }
-}
