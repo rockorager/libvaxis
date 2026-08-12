@@ -11,9 +11,7 @@ pub const Event = union(enum) {
     mouse_leave,
     focus_in,
     focus_out,
-    paste_start, // bracketed paste start
-    paste_end, // bracketed paste end
-    paste: []const u8, // osc 52 paste, caller must free
+    paste: []const u8, // osc 52, bracketed paste, caller must free
     color_report: Color.Report, // osc 4, 10, 11, 12 response
     color_scheme: Color.Scheme,
     winsize: Winsize,

@@ -40,9 +40,7 @@ pub const Event = union(enum) {
     mouse: vaxis.Mouse,
     focus_in, // window has gained focus
     focus_out, // window has lost focus
-    paste_start, // bracketed paste start
-    paste_end, // bracketed paste end
-    paste: []const u8, // osc 52 paste, caller must free
+    paste: []const u8, // osc 52, bracketed paste, caller must free
     color_report: vaxis.Color.Report, // osc 4, 10, 11, 12 response
     color_scheme: vaxis.Color.Scheme, // light / dark OS theme changes
     winsize: vaxis.Winsize, // the window size has changed. This event is always sent when the loop is started
