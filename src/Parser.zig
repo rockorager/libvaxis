@@ -439,12 +439,12 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
 
             var key: Key = .{
                 .codepoint = switch (number) {
+                    1, 7 => Key.home,
                     2 => Key.insert,
                     3 => Key.delete,
+                    4, 8 => Key.end,
                     5 => Key.page_up,
                     6 => Key.page_down,
-                    7 => Key.home,
-                    8 => Key.end,
                     11 => Key.f1,
                     12 => Key.f2,
                     13 => Key.f3,
@@ -902,6 +902,23 @@ test "parse: xterm insert" {
 
     try testing.expectEqual(input.len, result.n);
     try testing.expectEqual(expected_event, result.event);
+}
+
+test "parse: VT220 home and end" {
+    const alloc = testing.allocator_instance.allocator();
+    const cases = [_]struct { input: []const u8, codepoint: u21 }{
+        .{ .input = "\x1b[1~", .codepoint = Key.home },
+        .{ .input = "\x1b[4~", .codepoint = Key.end },
+    };
+
+    for (cases) |case| {
+        var parser: Parser = .{};
+        const result = try parser.parse(case.input, alloc);
+        const expected_event: Event = .{ .key_press = .{ .codepoint = case.codepoint } };
+
+        try testing.expectEqual(case.input.len, result.n);
+        try testing.expectEqual(expected_event, result.event);
+    }
 }
 
 test "parse: paste_start" {
