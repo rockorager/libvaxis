@@ -55,6 +55,9 @@ typedef enum VAXIS_ENUM_TYPED {
   /* Reserved: the current parser substitutes invalid UTF-8 rather than
    * reporting it, so this code is not produced today. */
   VAXIS_ERR_INVALID_UTF8 = -3,
+
+  /* Sentinel to pin the enum to int width; never produced. */
+  VAXIS_RESULT_MAX_VALUE = VAXIS_ENUM_MAX_VALUE,
 } vaxis_result;
 
 /* Event types */
