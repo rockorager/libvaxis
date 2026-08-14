@@ -431,6 +431,41 @@ pub fn main(init: std.process.Init) !void {
 }
 ```
 
+## C library
+
+libvaxis can be built as a C library exposing the terminal input parser:
+feed it bytes read from a tty and it produces key, mouse, paste, focus, and
+terminal-capability events.
+
+```sh
+zig build lib
+```
+
+This installs `libvaxis.a`, `libvaxis.so`, and the `vaxis.h` header into
+`zig-out`. The full interface is documented in
+[include/vaxis.h](include/vaxis.h); a complete example lives at
+[examples/c/parse.c](examples/c/parse.c).
+
+Events are opaque handles read through accessor functions, so event
+payloads can grow without breaking the ABI. Event data is owned by the
+parser and valid until the next parse call; nothing is freed by the caller.
+
+```c
+#include <vaxis.h>
+
+vaxis_parser *parser = vaxis_parser_new();
+
+const vaxis_event *event;
+size_t consumed;
+// bytes read from the tty
+const uint8_t input[] = "\x1b[97:65;2u";
+vaxis_parser_parse(parser, input, sizeof(input) - 1, &event, &consumed);
+// vaxis_event_get_type(event) == VAXIS_EVENT_KEY_PRESS
+// vaxis_event_key_matches(event, 'a', VAXIS_MOD_SHIFT) == true
+
+vaxis_parser_free(parser);
+```
+
 ## Contributing
 
 Contributions are welcome. Please submit a PR on Github,
