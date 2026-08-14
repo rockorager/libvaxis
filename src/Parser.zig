@@ -273,19 +273,20 @@ inline fn parseOsc(input: []const u8, paste_allocator: ?std.mem.Allocator) !Resu
 
     const null_event: Result = .{ .event = null, .n = sequence.len };
 
-    const semicolon_idx = std.mem.indexOfScalarPos(u8, input, 2, ';') orelse return null_event;
-    const ps = std.fmt.parseUnsigned(u8, input[2..semicolon_idx], 10) catch return null_event;
+    // the end of the payload, exclusive of the terminator. Searches and
+    // slices must never go past this
+    const payload_end = if (bel_terminated) sequence.len - 1 else sequence.len - 2;
+
+    const semicolon_idx = std.mem.indexOfScalarPos(u8, sequence[0..payload_end], 2, ';') orelse return null_event;
+    const ps = std.fmt.parseUnsigned(u8, sequence[2..semicolon_idx], 10) catch return null_event;
 
     switch (ps) {
         4 => {
-            const color_idx_delim = std.mem.indexOfScalarPos(u8, input, semicolon_idx + 1, ';') orelse return null_event;
-            const ps_idx = std.fmt.parseUnsigned(u8, input[semicolon_idx + 1 .. color_idx_delim], 10) catch return null_event;
-            const color_spec = if (bel_terminated)
-                input[color_idx_delim + 1 .. sequence.len - 1]
-            else
-                input[color_idx_delim + 1 .. sequence.len - 2];
+            const color_idx_delim = std.mem.indexOfScalarPos(u8, sequence[0..payload_end], semicolon_idx + 1, ';') orelse return null_event;
+            const ps_idx = std.fmt.parseUnsigned(u8, sequence[semicolon_idx + 1 .. color_idx_delim], 10) catch return null_event;
+            const color_spec = sequence[color_idx_delim + 1 .. payload_end];
 
-            const color = try Color.rgbFromSpec(color_spec);
+            const color = Color.rgbFromSpec(color_spec) catch return null_event;
             const event: Color.Report = .{
                 .kind = .{ .index = ps_idx },
                 .value = color.rgb,
@@ -299,12 +300,9 @@ inline fn parseOsc(input: []const u8, paste_allocator: ?std.mem.Allocator) !Resu
         11,
         12,
         => {
-            const color_spec = if (bel_terminated)
-                input[semicolon_idx + 1 .. sequence.len - 1]
-            else
-                input[semicolon_idx + 1 .. sequence.len - 2];
+            const color_spec = sequence[semicolon_idx + 1 .. payload_end];
 
-            const color = try Color.rgbFromSpec(color_spec);
+            const color = Color.rgbFromSpec(color_spec) catch return null_event;
             const event: Color.Report = .{
                 .kind = switch (ps) {
                     10 => .fg,
@@ -320,15 +318,18 @@ inline fn parseOsc(input: []const u8, paste_allocator: ?std.mem.Allocator) !Resu
             };
         },
         52 => {
-            if (input[semicolon_idx + 1] != 'c') return null_event;
-            const payload = if (bel_terminated)
-                input[semicolon_idx + 3 .. sequence.len - 1]
-            else
-                input[semicolon_idx + 3 .. sequence.len - 2];
+            const alloc = paste_allocator orelse return null_event;
+            // OSC 52 ; c ; <base64 payload>
+            if (semicolon_idx + 1 >= payload_end or sequence[semicolon_idx + 1] != 'c') return null_event;
+            if (semicolon_idx + 3 > payload_end) return null_event;
+            const payload = sequence[semicolon_idx + 3 .. payload_end];
             const decoder = std.base64.standard.Decoder;
-            const text = try paste_allocator.?.alloc(u8, try decoder.calcSizeForSlice(payload));
-            errdefer paste_allocator.?.free(text);
-            try decoder.decode(text, payload);
+            const size = decoder.calcSizeForSlice(payload) catch return null_event;
+            const text = try alloc.alloc(u8, size);
+            decoder.decode(text, payload) catch {
+                alloc.free(text);
+                return null_event;
+            };
             log.debug("decoded paste: {s}", .{text});
             return .{
                 .event = .{ .paste = text },
@@ -1410,6 +1411,53 @@ test "parse: osc interrupted by escape leaves the next sequence intact" {
         .key_press => |key| try testing.expectEqual(Key.up, key.codepoint),
         else => try testing.expect(false),
     }
+}
+
+test "parse: malformed osc color spec is consumed without event" {
+    var parser: Parser = .{};
+    const input = "\x1b]4;1;rgb:zz/zz/zz\x1b\\";
+    const result = try parser.parse(input, null);
+    try testing.expectEqual(input.len, result.n);
+    try testing.expectEqual(@as(?Event, null), result.event);
+}
+
+test "parse: osc 4 without color spec does not read past the sequence" {
+    var parser: Parser = .{};
+    const input = "\x1b]4;1\x07\x1b]4;2;rgb:0000/0000/0000\x07";
+    const result = try parser.parse(input, null);
+    try testing.expectEqual(6, result.n);
+    try testing.expectEqual(@as(?Event, null), result.event);
+
+    // The complete OSC 4 that follows must survive intact.
+    const rest = try parser.parse(input[result.n..], null);
+    switch (rest.event.?) {
+        .color_report => |report| try testing.expectEqual(2, report.kind.index),
+        else => try testing.expect(false),
+    }
+}
+
+test "parse: truncated osc 52 is consumed without event" {
+    var parser: Parser = .{};
+    const input = "\x1b]52;c\x1b\\";
+    const result = try parser.parse(input, testing.allocator);
+    try testing.expectEqual(input.len, result.n);
+    try testing.expectEqual(@as(?Event, null), result.event);
+}
+
+test "parse: osc 52 with invalid base64 is consumed without event" {
+    var parser: Parser = .{};
+    const input = "\x1b]52;c;!!not base64!!\x1b\\";
+    const result = try parser.parse(input, testing.allocator);
+    try testing.expectEqual(input.len, result.n);
+    try testing.expectEqual(@as(?Event, null), result.event);
+}
+
+test "parse: osc 52 without an allocator is consumed without event" {
+    var parser: Parser = .{};
+    const input = "\x1b]52;c;b3NjNTIgcGFzdGU=\x1b\\";
+    const result = try parser.parse(input, null);
+    try testing.expectEqual(input.len, result.n);
+    try testing.expectEqual(@as(?Event, null), result.event);
 }
 
 test "parse: osc ending with escape waits for a possible ST" {
