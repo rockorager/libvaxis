@@ -1,5 +1,16 @@
 const std = @import("std");
 
+/// The package version, single-sourced from build.zig.zon.
+const version_string = blk: {
+    const zon = @embedFile("build.zig.zon");
+    const marker = ".version = \"";
+    const start = (std.mem.indexOf(u8, zon, marker) orelse
+        @compileError("no version in build.zig.zon")) + marker.len;
+    const end = std.mem.indexOfScalarPos(u8, zon, start, '"') orelse
+        @compileError("unterminated version in build.zig.zon");
+    break :blk zon[start..end];
+};
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -41,6 +52,41 @@ pub fn build(b: *std.Build) void {
         // they all depend on uucode being available here.
         return;
     }
+
+    // Exposes the terminal input parser over a C ABI (see include/vaxis.h),
+    const c_api_options = b.addOptions();
+    c_api_options.addOption([]const u8, "version", version_string);
+    const c_api_mod = b.createModule(.{
+        .root_source_file = b.path("src/c_api.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+        .imports = &.{
+            .{ .name = "vaxis", .module = vaxis_mod },
+            .{ .name = "build_options", .module = c_api_options.createModule() },
+        },
+    });
+    // For the @cImport-based layout test in src/c_api.zig
+    c_api_mod.addIncludePath(b.path("include"));
+
+    const lib_step = b.step("lib", "Build the C library (static and shared)");
+    const static_lib = b.addLibrary(.{
+        // the DLL import library is also named vaxis.lib on Windows
+        .name = if (target.result.os.tag == .windows) "vaxis-static" else "vaxis",
+        .linkage = .static,
+        .root_module = c_api_mod,
+        .use_llvm = use_llvm,
+    });
+    static_lib.installHeadersDirectory(b.path("include"), "", .{});
+    const shared_lib = b.addLibrary(.{
+        .name = "vaxis",
+        .linkage = .dynamic,
+        .root_module = c_api_mod,
+        .use_llvm = use_llvm,
+        .version = std.SemanticVersion.parse(version_string) catch unreachable,
+    });
+    lib_step.dependOn(&b.addInstallArtifact(static_lib, .{}).step);
+    lib_step.dependOn(&b.addInstallArtifact(shared_lib, .{}).step);
 
     // Examples
     const Example = enum {
@@ -140,6 +186,32 @@ pub fn build(b: *std.Build) void {
     const tests_run = b.addRunArtifact(tests);
     b.installArtifact(tests);
     tests_step.dependOn(&tests_run.step);
+
+    // C API tests: Zig unit tests plus a C program linked against the
+    // static library
+    const c_api_tests = b.addTest(.{
+        .use_llvm = use_llvm,
+        .root_module = c_api_mod,
+    });
+    tests_step.dependOn(&b.addRunArtifact(c_api_tests).step);
+
+    const c_test_mod = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    c_test_mod.addCSourceFile(.{
+        .file = b.path("examples/c/parse.c"),
+        .flags = &.{"-std=c99"},
+    });
+    c_test_mod.addIncludePath(b.path("include"));
+    c_test_mod.linkLibrary(static_lib);
+    const c_test = b.addExecutable(.{
+        .name = "example-c-parse",
+        .root_module = c_test_mod,
+        .use_llvm = use_llvm,
+    });
+    tests_step.dependOn(&b.addRunArtifact(c_test).step);
 
     // Docs
     const docs_step = b.step("docs", "Build the vaxis library docs");
