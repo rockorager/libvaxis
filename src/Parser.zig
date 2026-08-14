@@ -321,7 +321,7 @@ inline fn parseOsc(input: []const u8, paste_allocator: ?std.mem.Allocator) !Resu
             const alloc = paste_allocator orelse return null_event;
             // OSC 52 ; c ; <base64 payload>
             if (semicolon_idx + 1 >= payload_end or sequence[semicolon_idx + 1] != 'c') return null_event;
-            if (semicolon_idx + 3 > payload_end) return null_event;
+            if (semicolon_idx + 3 > payload_end or sequence[semicolon_idx + 2] != ';') return null_event;
             const payload = sequence[semicolon_idx + 3 .. payload_end];
             const decoder = std.base64.standard.Decoder;
             const size = decoder.calcSizeForSlice(payload) catch return null_event;
@@ -1447,6 +1447,14 @@ test "parse: truncated osc 52 is consumed without event" {
 test "parse: osc 52 with invalid base64 is consumed without event" {
     var parser: Parser = .{};
     const input = "\x1b]52;c;!!not base64!!\x1b\\";
+    const result = try parser.parse(input, testing.allocator);
+    try testing.expectEqual(input.len, result.n);
+    try testing.expectEqual(@as(?Event, null), result.event);
+}
+
+test "parse: osc 52 without payload separator is consumed without event" {
+    var parser: Parser = .{};
+    const input = "\x1b]52;cXb3NjNTIgcGFzdGU=\x1b\\";
     const result = try parser.parse(input, testing.allocator);
     try testing.expectEqual(input.len, result.n);
     try testing.expectEqual(@as(?Event, null), result.event);
