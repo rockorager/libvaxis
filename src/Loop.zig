@@ -190,7 +190,8 @@ pub fn Loop(comptime T: type) type {
                     var read_start: usize = 0;
                     // read loop
                     read_loop: while (!self.should_quit) {
-                        const n = try self.tty.read(buf[read_start..]);
+                        const bytes_read = try self.tty.read(buf[read_start..]);
+                        const n = read_start + bytes_read;
                         var seq_start: usize = 0;
                         while (seq_start < n) {
                             const result = try parser.parse(buf[seq_start..n], paste_allocator);
@@ -201,7 +202,7 @@ pub fn Loop(comptime T: type) type {
                                 while (seq_start < n) : (seq_start += 1) {
                                     buf[seq_start - initial_start] = buf[seq_start];
                                 }
-                                read_start = seq_start - initial_start + 1;
+                                read_start = seq_start - initial_start;
                                 continue :read_loop;
                             }
                             read_start = 0;
