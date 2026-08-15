@@ -194,6 +194,21 @@ pub fn Loop(comptime T: type) type {
                         const n = read_start + bytes_read;
                         var seq_start: usize = 0;
                         while (seq_start < n) {
+                            if (n - seq_start == 1 and buf[seq_start] == 0x1b) {
+                                // Preserve ESC only when continuation bytes are already queued.
+                                var poll_fds = [1]std.posix.pollfd{.{
+                                    .fd = self.tty.fd.handle,
+                                    .events = std.posix.POLL.IN,
+                                    .revents = 0,
+                                }};
+                                _ = std.posix.poll(&poll_fds, 0) catch 0;
+                                if (poll_fds[0].revents & std.posix.POLL.IN != 0) {
+                                    buf[0] = buf[seq_start];
+                                    read_start = 1;
+                                    continue :read_loop;
+                                }
+                            }
+
                             const result = try parser.parse(buf[seq_start..n], paste_allocator);
                             if (result.n == 0) {
                                 // copy the read to the beginning. We don't use memcpy because
