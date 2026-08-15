@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Zig's package manager rejects a resolv.conf without a trailing newline.
+if [[ -s /etc/resolv.conf ]] && [[ -n "$(tail -c 1 /etc/resolv.conf)" ]]; then
+    printf '\n' | sudo tee -a /etc/resolv.conf >/dev/null
+fi
