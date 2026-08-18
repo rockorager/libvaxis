@@ -84,6 +84,16 @@ width: u16,
 /// height in pixels
 height: u16,
 
+/// Construct an image placement value for an image id already known to the
+/// terminal (used by stable foreign-function interfaces and custom transports).
+pub fn init(id: u32, width: u16, height: u16) Image {
+    return .{ .id = id, .width = width, .height = height };
+}
+
+pub fn imageId(self: Image) u32 {
+    return self.id;
+}
+
 pub fn draw(self: Image, win: Window, opts: DrawOptions) !void {
     var p_opts = opts;
     switch (opts.scale) {

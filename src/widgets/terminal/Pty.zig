@@ -49,7 +49,7 @@ fn openPtyLinux(io: std.Io) !Pty {
     if (posix.system.ioctl(pty.handle, posix.T.IOCSPTLCK, @intFromPtr(&n)) != 0) return error.IoctlError;
 
     // ptsname
-    if (posix.system.ioctl(pty.handle, posix.T.IOCGPTN, @intFromPtr(&n)) != 0) return error.IoctlError;
+    if (posix.system.ioctl(pty.handle, @bitCast(@as(c_uint, posix.T.IOCGPTN)), @intFromPtr(&n)) != 0) return error.IoctlError;
     var buf: [16]u8 = undefined;
     const sname = try std.fmt.bufPrint(&buf, "/dev/pts/{d}", .{n});
     std.log.debug("pts: {s}", .{sname});

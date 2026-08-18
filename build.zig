@@ -213,6 +213,24 @@ pub fn build(b: *std.Build) void {
     });
     tests_step.dependOn(&b.addRunArtifact(c_test).step);
 
+    const c_runtime_mod = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    c_runtime_mod.addCSourceFile(.{
+        .file = b.path("examples/c/runtime.c"),
+        .flags = &.{"-std=c99"},
+    });
+    c_runtime_mod.addIncludePath(b.path("include"));
+    c_runtime_mod.linkLibrary(static_lib);
+    const c_runtime_test = b.addExecutable(.{
+        .name = "example-c-runtime",
+        .root_module = c_runtime_mod,
+        .use_llvm = use_llvm,
+    });
+    tests_step.dependOn(&b.addRunArtifact(c_runtime_test).step);
+
     // Docs
     const docs_step = b.step("docs", "Build the vaxis library docs");
     const docs_obj = b.addObject(.{

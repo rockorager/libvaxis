@@ -87,6 +87,17 @@ pub fn sliceToCursor(self: *TextInput, buf: []u8) []const u8 {
     return buf[0..self.buf.cursor];
 }
 
+/// Copies the complete logical contents without exposing the gap-buffer layout.
+/// The caller owns the returned slice.
+pub fn toOwnedContents(self: *const TextInput, alloc: std.mem.Allocator) std.mem.Allocator.Error![]u8 {
+    const first = self.buf.firstHalf();
+    const second = self.buf.secondHalf();
+    const out = try alloc.alloc(u8, first.len + second.len);
+    @memcpy(out[0..first.len], first);
+    @memcpy(out[first.len..], second);
+    return out;
+}
+
 /// calculates the display width from the draw_offset to the cursor
 pub fn widthToCursor(self: *TextInput, win: Window) u16 {
     var width: u16 = 0;
