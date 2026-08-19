@@ -108,10 +108,20 @@ pub fn init(alloc: std.mem.Allocator, w: u16, h: u16) !Screen {
         .width = w,
         .height = h,
     };
+    var initialized: usize = 0;
+    errdefer {
+        for (screen.buf[0..initialized]) |*cell| {
+            cell.char.deinit(alloc);
+            cell.uri.deinit(alloc);
+            cell.uri_id.deinit(alloc);
+        }
+        alloc.free(screen.buf);
+    }
     for (screen.buf, 0..) |_, i| {
         screen.buf[i] = .{
             .char = try .initCapacity(alloc, 1),
         };
+        initialized += 1;
         try screen.buf[i].char.append(alloc, ' ');
     }
     return screen;
@@ -511,4 +521,17 @@ pub fn scrollDown(self: *Screen, n: usize) !void {
     self.cursor.col = self.scrolling_region.left;
     self.cursor.row = self.scrolling_region.top;
     try self.insertLine(n);
+}
+
+fn testInitAllocationFailures(allocator: std.mem.Allocator) !void {
+    var screen = try Screen.init(allocator, 3, 2);
+    defer screen.deinit(allocator);
+}
+
+test "init cleans up allocation failures" {
+    try std.testing.checkAllAllocationFailures(
+        std.testing.allocator,
+        testInitAllocationFailures,
+        .{},
+    );
 }

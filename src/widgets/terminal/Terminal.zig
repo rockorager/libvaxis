@@ -211,15 +211,21 @@ pub fn resize(self: *Terminal, ws: Winsize) !void {
     try self.back_mutex.lock(self.io);
     defer self.back_mutex.unlock(self.io);
 
-    self.front_screen.deinit(self.allocator);
-    self.front_screen = try Screen.init(self.allocator, ws.cols, ws.rows);
-
-    self.back_screen_pri.deinit(self.allocator);
-    self.back_screen_alt.deinit(self.allocator);
-    self.back_screen_pri = try Screen.init(self.allocator, ws.cols, ws.rows + self.scrollback_size);
-    self.back_screen_alt = try Screen.init(self.allocator, ws.cols, ws.rows);
+    var front_screen = try Screen.init(self.allocator, ws.cols, ws.rows);
+    errdefer front_screen.deinit(self.allocator);
+    var back_screen_pri = try Screen.init(self.allocator, ws.cols, ws.rows + self.scrollback_size);
+    errdefer back_screen_pri.deinit(self.allocator);
+    var back_screen_alt = try Screen.init(self.allocator, ws.cols, ws.rows);
+    errdefer back_screen_alt.deinit(self.allocator);
 
     try self.pty.setSize(ws);
+
+    self.front_screen.deinit(self.allocator);
+    self.back_screen_pri.deinit(self.allocator);
+    self.back_screen_alt.deinit(self.allocator);
+    self.front_screen = front_screen;
+    self.back_screen_pri = back_screen_pri;
+    self.back_screen_alt = back_screen_alt;
 }
 
 pub fn draw(self: *Terminal, allocator: std.mem.Allocator, win: vaxis.Window) !void {
