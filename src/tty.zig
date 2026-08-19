@@ -885,6 +885,10 @@ pub const TestTty = switch (builtin.os.tag) {
         pub fn nextEvent(_: *@This(), _: *Parser, _: ?std.mem.Allocator) !Event {
             return error.SkipZigTest;
         }
+
+        pub fn resetSignalHandler() void {
+            return;
+        }
     },
 };
 
