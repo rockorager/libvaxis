@@ -199,14 +199,22 @@ pub fn resize(
     winsize: Winsize,
 ) !void {
     log.debug("resizing screen: width={d} height={d}", .{ winsize.cols, winsize.rows });
+    const replacements = blk: {
+        var screen = try Screen.init(alloc, winsize);
+        errdefer screen.deinit(alloc);
+        screen.width_method = self.caps.unicode;
+        var screen_last = try InternalScreen.init(alloc, winsize.cols, winsize.rows);
+        errdefer screen_last.deinit(alloc);
+        break :blk .{ .screen = screen, .screen_last = screen_last };
+    };
+
     self.screen.deinit(alloc);
-    self.screen = try Screen.init(alloc, winsize);
-    self.screen.width_method = self.caps.unicode;
+    self.screen_last.deinit(alloc);
+    self.screen = replacements.screen;
+    self.screen_last = replacements.screen_last;
     // try self.screen.int(alloc, winsize.cols, winsize.rows);
     // we only init our current screen. This has the effect of redrawing
     // every cell
-    self.screen_last.deinit(alloc);
-    self.screen_last = try InternalScreen.init(alloc, winsize.cols, winsize.rows);
     if (self.state.alt_screen)
         try tty.writeAll(ctlseqs.home)
     else {
@@ -1529,4 +1537,24 @@ test "render: no output when no changes" {
     const output = try render_writer.toOwnedSlice();
     defer std.testing.allocator.free(output);
     try std.testing.expectEqual(@as(usize, 0), output.len);
+}
+
+fn testResizeAllocationFailures(allocator: std.mem.Allocator) !void {
+    var env_map = try std.testing.environ.createMap(allocator);
+    defer env_map.deinit();
+    var vx = try Vaxis.init(std.testing.io, allocator, &env_map, .{});
+    var writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer writer.deinit();
+    defer vx.deinit(allocator, &writer.writer);
+
+    try vx.resize(allocator, &writer.writer, .{ .rows = 2, .cols = 2, .x_pixel = 0, .y_pixel = 0 });
+    try vx.resize(allocator, &writer.writer, .{ .rows = 3, .cols = 3, .x_pixel = 0, .y_pixel = 0 });
+}
+
+test "resize preserves valid state on allocation failure" {
+    try std.testing.checkAllAllocationFailures(
+        std.testing.allocator,
+        testResizeAllocationFailures,
+        .{},
+    );
 }
