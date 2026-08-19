@@ -11,7 +11,6 @@ const vaxis = @import("../../main.zig");
 const Winsize = vaxis.Winsize;
 const Screen = @import("Screen.zig");
 const Key = vaxis.Key;
-const Queue = vaxis.Queue(Event, 16);
 const key = @import("key.zig");
 
 pub const Event = union(enum) {
@@ -21,6 +20,15 @@ pub const Event = union(enum) {
     title_change: []const u8,
     pwd_change: []const u8,
 };
+
+const QueuedEvent = union(enum) {
+    exited,
+    redraw,
+    bell,
+    title_change: []u8,
+    pwd_change: []u8,
+};
+const Queue = vaxis.Queue(QueuedEvent, 16);
 
 const posix = std.posix;
 
@@ -83,6 +91,7 @@ working_directory: std.ArrayList(u8) = .empty,
 last_printed: []const u8 = "",
 
 event_queue: Queue,
+event_text: ?[]u8 = null,
 
 /// initialize a Terminal. This sets the size of the underlying pty and allocates the sizes of the
 /// screen
@@ -150,6 +159,10 @@ pub fn deinit(self: *Terminal) void {
         self.pty.tty.writeStreamingAll(self.io, EOT) catch {};
         thread.await(self.io);
         self.thread = null;
+    }
+    if (self.event_text) |text| self.allocator.free(text);
+    while (self.event_queue.tryPop() catch null) |event| {
+        self.freeQueuedEvent(event);
     }
     self.pty.deinit(self.io);
     self.front_screen.deinit(self.allocator);
@@ -237,7 +250,31 @@ pub fn draw(self: *Terminal, allocator: std.mem.Allocator, win: vaxis.Window) !v
 }
 
 pub fn tryEvent(self: *Terminal) !?Event {
-    return try self.event_queue.tryPop();
+    if (self.event_text) |text| {
+        self.allocator.free(text);
+        self.event_text = null;
+    }
+    const event = try self.event_queue.tryPop() orelse return null;
+    return switch (event) {
+        .exited => .exited,
+        .redraw => .redraw,
+        .bell => .bell,
+        .title_change => |text| blk: {
+            self.event_text = text;
+            break :blk .{ .title_change = text };
+        },
+        .pwd_change => |text| blk: {
+            self.event_text = text;
+            break :blk .{ .pwd_change = text };
+        },
+    };
+}
+
+fn freeQueuedEvent(self: *Terminal, event: QueuedEvent) void {
+    switch (event) {
+        .title_change, .pwd_change => |text| self.allocator.free(text),
+        else => {},
+    }
 }
 
 pub fn update(self: *Terminal, event: InputEvent) !void {
@@ -682,7 +719,9 @@ fn _run(self: *Terminal) !void {
                     0 => {
                         self.title.clearRetainingCapacity();
                         try self.title.appendSlice(self.allocator, osc[semicolon + 1 ..]);
-                        try self.event_queue.push(.{ .title_change = self.title.items });
+                        const text = try self.allocator.dupe(u8, self.title.items);
+                        errdefer self.allocator.free(text);
+                        try self.event_queue.push(.{ .title_change = text });
                     },
                     7 => {
                         // OSC 7 ; file:// <hostname> <pwd>
@@ -702,7 +741,9 @@ fn _run(self: *Terminal) !void {
                             } else enc[i];
                             try self.working_directory.append(self.allocator, b);
                         }
-                        try self.event_queue.push(.{ .pwd_change = self.working_directory.items });
+                        const text = try self.allocator.dupe(u8, self.working_directory.items);
+                        errdefer self.allocator.free(text);
+                        try self.event_queue.push(.{ .pwd_change = text });
                     },
                     else => log.info("unhandled osc: {s}", .{osc}),
                 }

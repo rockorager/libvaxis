@@ -202,7 +202,7 @@ pub fn build(b: *std.Build) void {
     });
     c_test_mod.addCSourceFile(.{
         .file = b.path("examples/c/parse.c"),
-        .flags = &.{"-std=c99"},
+        .flags = &.{ "-std=c99", "-pedantic-errors" },
     });
     c_test_mod.addIncludePath(b.path("include"));
     c_test_mod.linkLibrary(static_lib);
@@ -220,7 +220,7 @@ pub fn build(b: *std.Build) void {
     });
     c_runtime_mod.addCSourceFile(.{
         .file = b.path("examples/c/runtime.c"),
-        .flags = &.{"-std=c99"},
+        .flags = &.{ "-std=c99", "-pedantic-errors" },
     });
     c_runtime_mod.addIncludePath(b.path("include"));
     c_runtime_mod.linkLibrary(static_lib);

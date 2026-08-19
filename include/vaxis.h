@@ -34,7 +34,7 @@ extern "C" {
 #define VAXIS_ENUM_TYPED : int
 #elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L
 #define VAXIS_ENUM_TYPED : int
-#elif defined(__clang__)
+#elif defined(__clang__) && !defined(__STRICT_ANSI__)
 #if __has_extension(c_fixed_enum)
 #define VAXIS_ENUM_TYPED : int
 #else
@@ -192,6 +192,8 @@ typedef struct {
   uint8_t b;
 } vaxis_rgb;
 
+/* An opaque terminal input parser. Not thread-safe: use one parser per input
+ * stream. Parsed events are owned by the parser. */
 typedef struct vaxis_parser vaxis_parser;
 typedef struct vaxis_event vaxis_event;
 
@@ -311,8 +313,8 @@ typedef struct {
 
 /* Embedded terminal/PTY. argv and options are copied. The handle is confined
  * to its creating thread except for its internal reader worker. Event text is
- * borrowed until the next terminal call. PTYs are currently supported only
- * on Linux; elsewhere new returns VAXIS_ERR_UNSUPPORTED. */
+ * borrowed until the next vaxis_terminal_try_event call. PTYs are currently
+ * supported only on Linux; elsewhere new returns VAXIS_ERR_UNSUPPORTED. */
 vaxis_result vaxis_terminal_new(const vaxis_string *argv, size_t argc,
                                 const vaxis_terminal_options *options,
                                 vaxis_terminal **terminal);
@@ -394,7 +396,10 @@ vaxis_result vaxis_runtime_enter_alt_screen(vaxis_runtime *runtime);
 vaxis_result vaxis_runtime_exit_alt_screen(vaxis_runtime *runtime);
 vaxis_result vaxis_runtime_query_terminal(vaxis_runtime *runtime,
                                           uint64_t timeout_ns);
+/* For a custom event loop, call send, parse and handle all query responses,
+ * then call finish to enable the detected terminal features. */
 vaxis_result vaxis_runtime_query_terminal_send(vaxis_runtime *runtime);
+vaxis_result vaxis_runtime_query_terminal_finish(vaxis_runtime *runtime);
 /* Apply a parsed event to runtime state. Capability events are intercepted in
  * the same way as vaxis.Loop; other events are accepted without mutation. */
 vaxis_result vaxis_runtime_handle_event(vaxis_runtime *runtime,
@@ -421,14 +426,8 @@ vaxis_result vaxis_runtime_transmit_image_base64(vaxis_runtime *runtime,
 void vaxis_runtime_free_transmitted_image(vaxis_runtime *runtime,
                                           uint32_t image_id);
 
-/* An opaque terminal input parser. Not thread-safe: use one parser per
- * input stream. */
-typedef struct vaxis_parser vaxis_parser;
-
 /* An opaque parsed event, owned by the parser that produced it and valid
  * until the next parse call. Read it through the accessors below. */
-typedef struct vaxis_event vaxis_event;
-
 /* Create a parser. Returns NULL on allocation failure. */
 vaxis_parser *vaxis_parser_new(void);
 vaxis_parser *vaxis_parser_new_with_allocator(
