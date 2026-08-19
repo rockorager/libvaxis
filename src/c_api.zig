@@ -647,6 +647,11 @@ fn terminalCreate(custom: ?*const CAllocator, cargv: [*]const CString, argc: usi
     return t;
 }
 
+fn validTerminalSize(size: CWinsize, scrollback_size: u16) bool {
+    return size.rows > 0 and size.cols > 0 and
+        scrollback_size <= std.math.maxInt(u16) - size.rows;
+}
+
 pub fn terminal_new(cargv: ?[*]const CString, argc: usize, opts: ?*const CTerminalOptions, out: ?*?*CTerminal) callconv(.c) Result {
     return terminal_new_with_allocator(null, cargv, argc, opts, out);
 }
@@ -656,6 +661,7 @@ pub fn terminal_new_with_allocator(custom: ?*const CAllocator, cargv: ?[*]const 
     if (builtin.os.tag != .linux) return .err_unsupported;
     if (argc == 0) return .err_invalid;
     const options = opts orelse return .err_invalid;
+    if (!validTerminalSize(options.size, options.scrollback_size)) return .err_range;
     const handle = terminalCreate(custom, cargv orelse return .err_invalid, argc, options.*) catch |err| return switch (err) {
         error.InvalidArgument, error.Invalid => .err_invalid,
         error.OutOfMemory => .err_oom,
@@ -683,6 +689,7 @@ pub fn terminal_resize(terminal: ?*CTerminal, size: CWinsize) callconv(.c) Resul
         return .err_unsupported;
     }
     const t = terminal orelse return .err_invalid;
+    if (!validTerminalSize(size, t.terminal.?.scrollback_size)) return .err_range;
     t.terminal.?.resize(zigWinsize(size)) catch return .err_io;
     return .ok;
 }
@@ -868,6 +875,12 @@ pub fn runtime_query_terminal_send(runtime: ?*CRuntime) callconv(.c) Result {
     r.vx.?.queryTerminalSend(r.tty.tty.?.writer()) catch return .err_io;
     return .ok;
 }
+pub fn runtime_query_terminal_finish(runtime: ?*CRuntime) callconv(.c) Result {
+    const r = runtime orelse return .err_invalid;
+    r.vx.?.queries_done.store(true, .unordered);
+    r.vx.?.enableDetectedFeatures(r.tty.tty.?.writer()) catch return .err_io;
+    return .ok;
+}
 fn applyRuntimeEvent(vx: *Vaxis, e: *const CEvent) void {
     switch (e.type) {
         .key_press => {
@@ -893,6 +906,10 @@ fn applyRuntimeEvent(vx: *Vaxis, e: *const CEvent) void {
         .cap_da1 => {
             std.Io.futexWake(vx.io, std.atomic.Value(u32), &vx.query_futex, 10);
             vx.queries_done.store(true, .unordered);
+        },
+        .winsize => {
+            vx.state.in_band_resize = true;
+            if (comptime builtin.os.tag != .windows) Tty.resetSignalHandler();
         },
         else => {},
     }
@@ -1419,6 +1436,16 @@ test "c api: runtime capability events update Vaxis state" {
     event.type = .cap_unicode;
     applyRuntimeEvent(&vx, &event);
     try testing.expectEqual(vaxis.gwidth.Method.unicode, vx.caps.unicode);
+    event.type = .winsize;
+    applyRuntimeEvent(&vx, &event);
+    try testing.expect(vx.state.in_band_resize);
+}
+
+test "c api: terminal dimensions are validated" {
+    try testing.expect(!validTerminalSize(.{ .rows = 0, .cols = 80, .x_pixel = 0, .y_pixel = 0 }, 0));
+    try testing.expect(!validTerminalSize(.{ .rows = 24, .cols = 0, .x_pixel = 0, .y_pixel = 0 }, 0));
+    try testing.expect(!validTerminalSize(.{ .rows = 65_000, .cols = 80, .x_pixel = 0, .y_pixel = 0 }, 1_000));
+    try testing.expect(validTerminalSize(.{ .rows = 24, .cols = 80, .x_pixel = 0, .y_pixel = 0 }, 500));
 }
 
 test "c api: plain keypress with text" {
