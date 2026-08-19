@@ -112,6 +112,7 @@ pub fn init(
         if (!std.fs.path.isAbsolute(pwd)) return error.InvalidWorkingDirectory;
     }
     const pty = try Pty.init(io);
+    errdefer pty.deinit(io);
     try pty.setSize(opts.winsize);
     const cmd: Command = .{
         .argv = argv,
@@ -120,10 +121,17 @@ pub fn init(
         .working_directory = opts.initial_working_directory,
     };
     var tabs: std.ArrayList(u16) = try .initCapacity(allocator, opts.winsize.cols / 8);
+    errdefer tabs.deinit(allocator);
     var col: u16 = 0;
     while (col < opts.winsize.cols) : (col += 8) {
         try tabs.append(allocator, col);
     }
+    var front_screen = try Screen.init(allocator, opts.winsize.cols, opts.winsize.rows);
+    errdefer front_screen.deinit(allocator);
+    var back_screen_pri = try Screen.init(allocator, opts.winsize.cols, opts.winsize.rows + opts.scrollback_size);
+    errdefer back_screen_pri.deinit(allocator);
+    var back_screen_alt = try Screen.init(allocator, opts.winsize.cols, opts.winsize.rows);
+    errdefer back_screen_alt.deinit(allocator);
     return .{
         .io = io,
         .allocator = allocator,
@@ -131,9 +139,9 @@ pub fn init(
         .pty_writer = pty.pty.writerStreaming(io, write_buf),
         .cmd = cmd,
         .scrollback_size = opts.scrollback_size,
-        .front_screen = try Screen.init(allocator, opts.winsize.cols, opts.winsize.rows),
-        .back_screen_pri = try Screen.init(allocator, opts.winsize.cols, opts.winsize.rows + opts.scrollback_size),
-        .back_screen_alt = try Screen.init(allocator, opts.winsize.cols, opts.winsize.rows),
+        .front_screen = front_screen,
+        .back_screen_pri = back_screen_pri,
+        .back_screen_alt = back_screen_alt,
         .tab_stops = tabs,
         .event_queue = .init(io),
     };
@@ -773,6 +781,30 @@ inline fn handleC0(self: *Terminal, b: ansi.C0) !void {
         .SI => {}, // TODO: Charset shift in
         else => log.warn("unhandled C0: 0x{x}", .{@intFromEnum(b)}),
     }
+}
+
+fn testInitAllocationFailures(allocator: std.mem.Allocator) !void {
+    var env: std.process.Environ.Map = .init(allocator);
+    defer env.deinit();
+    var write_buf: [4096]u8 = undefined;
+    var terminal = try Terminal.init(
+        std.testing.io,
+        allocator,
+        &.{"/bin/true"},
+        &env,
+        .{ .winsize = .{ .rows = 2, .cols = 8, .x_pixel = 0, .y_pixel = 0 } },
+        &write_buf,
+    );
+    defer terminal.deinit();
+}
+
+test "init cleans up allocation failures" {
+    if (comptime builtin.os.tag != .linux) return error.SkipZigTest;
+    try std.testing.checkAllAllocationFailures(
+        std.testing.allocator,
+        testInitAllocationFailures,
+        .{},
+    );
 }
 
 pub fn setMode(self: *Terminal, mode: u16, val: bool) void {
