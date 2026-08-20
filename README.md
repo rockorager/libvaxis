@@ -446,6 +446,10 @@ This installs `libvaxis.a`, `libvaxis.so`, and the `vaxis.h` header into
 [include/vaxis.h](include/vaxis.h); a complete example lives at
 [examples/c/parse.c](examples/c/parse.c).
 
+When only one linkage is needed, use `zig build lib-static` or
+`zig build lib-shared`. The combined `lib` step compiles the C API once and
+reuses that object code for both library formats.
+
 Events are opaque handles read through accessor functions, so event
 payloads can grow without breaking the ABI. Event data is owned by the
 parser and valid until the next parse call; nothing is freed by the caller.

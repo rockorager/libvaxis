@@ -60,6 +60,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/c_api.zig"),
         .target = target,
         .optimize = optimize,
+        .pic = true,
         .link_libc = true,
         .imports = &.{
             .{ .name = "vaxis", .module = vaxis_mod },
@@ -69,24 +70,59 @@ pub fn build(b: *std.Build) void {
     // For the @cImport-based layout test in src/c_api.zig
     c_api_mod.addIncludePath(b.path("include"));
 
-    const lib_step = b.step("lib", "Build the C library (static and shared)");
+    // Compile the C API once as PIC, then use the resulting object for both
+    // library formats. Building two libraries directly from c_api_mod would
+    // run Zig's frontend and code generator once per linkage.
+    const c_api_object = b.addObject(.{
+        .name = "vaxis-c-api",
+        .root_module = c_api_mod,
+        .use_llvm = use_llvm,
+    });
+
+    const static_mod = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    static_mod.addObject(c_api_object);
     const static_lib = b.addLibrary(.{
         // the DLL import library is also named vaxis.lib on Windows
         .name = if (target.result.os.tag == .windows) "vaxis-static" else "vaxis",
         .linkage = .static,
-        .root_module = c_api_mod,
+        .root_module = static_mod,
         .use_llvm = use_llvm,
     });
-    static_lib.installHeadersDirectory(b.path("include"), "", .{});
+
+    const shared_mod = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    shared_mod.addObject(c_api_object);
     const shared_lib = b.addLibrary(.{
         .name = "vaxis",
         .linkage = .dynamic,
-        .root_module = c_api_mod,
+        .root_module = shared_mod,
         .use_llvm = use_llvm,
         .version = std.SemanticVersion.parse(version_string) catch unreachable,
     });
-    lib_step.dependOn(&b.addInstallArtifact(static_lib, .{}).step);
-    lib_step.dependOn(&b.addInstallArtifact(shared_lib, .{}).step);
+
+    const install_static = b.addInstallArtifact(static_lib, .{});
+    const install_shared = b.addInstallArtifact(shared_lib, .{});
+    const install_headers = b.addInstallDirectory(.{
+        .source_dir = b.path("include"),
+        .install_dir = .header,
+        .install_subdir = "",
+    });
+    const lib_static_step = b.step("lib-static", "Build the static C library");
+    lib_static_step.dependOn(&install_static.step);
+    lib_static_step.dependOn(&install_headers.step);
+    const lib_shared_step = b.step("lib-shared", "Build the shared C library");
+    lib_shared_step.dependOn(&install_shared.step);
+    lib_shared_step.dependOn(&install_headers.step);
+    const lib_step = b.step("lib", "Build the C library (static and shared)");
+    lib_step.dependOn(lib_static_step);
+    lib_step.dependOn(lib_shared_step);
 
     // Examples
     const Example = enum {
