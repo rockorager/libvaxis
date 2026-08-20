@@ -10,7 +10,8 @@
  * parser; the caller never frees anything. Copy what you need longer.
  *
  * Build with `zig build lib`, which produces libvaxis.a / libvaxis.so and
- * installs this header.
+ * installs this header. Use `zig build lib-static` or `zig build lib-shared`
+ * when only one linkage is needed.
  */
 
 #ifndef VAXIS_H
