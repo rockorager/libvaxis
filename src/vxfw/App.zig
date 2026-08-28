@@ -598,7 +598,7 @@ const FocusHandler = struct {
 
         // Target phase. This is only sent to the target
         ctx.phase = .at_target;
-        const target = self.path_to_focused.getLast();
+        const target = self.path_to_focused.last().?;
         try target.handleEvent(ctx, event);
         if (ctx.consume_event) return;
 

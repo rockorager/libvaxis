@@ -26,7 +26,7 @@ pub fn spawn(self: *Command, io: std.Io, allocator: std.mem.Allocator) !void {
 
     // Keep fork->exec child path allocation-free, following std/Io/Threaded.zig:posixExecv
     const argv_block = try arena.allocSentinel(?[*:0]const u8, self.argv.len, null);
-    for (self.argv, 0..) |arg, i| argv_block[i] = (try arena.dupeZ(u8, arg)).ptr;
+    for (self.argv, 0..) |arg, i| argv_block[i] = (try arena.dupeSentinel(u8, arg, 0)).ptr;
     const env_block = try self.env_map.createPosixBlock(arena, .{});
     const path = self.env_map.get("PATH") orelse std.Io.Threaded.default_PATH;
 
@@ -101,7 +101,7 @@ pub fn spawn(self: *Command, io: std.Io, allocator: std.mem.Allocator) !void {
 }
 
 fn handleSigChild(_: posix.SIG) callconv(.c) void {
-    var status: u32 = undefined;
+    var status: i32 = undefined;
     const rc = linux.waitpid(-1, &status, 0);
     const pid: i32 = switch (linux.errno(rc)) {
         .SUCCESS => @intCast(rc),
