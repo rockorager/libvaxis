@@ -49,6 +49,11 @@ pub const PosixTty = struct {
     var handler_mutex: std.Io.Mutex = .init;
     var handler_idx: usize = 0;
 
+    var signal_pipe: [2]std.Io.File = undefined;
+    var signal_thread: std.Io.Future(void) = undefined;
+    var signal_thread_running = false;
+    var signal_thread_quit: std.atomic.Value(bool) = .init(false);
+
     var handler_installed: bool = false;
 
     /// initializes a Tty instance by opening /dev/tty and "making it raw". A
@@ -60,8 +65,13 @@ pub const PosixTty = struct {
 
         // Set the termios of the tty
         const termios = try makeRaw(f.handle);
+        errdefer {
+            posix.tcsetattr(f.handle, .FLUSH, termios) catch {};
+            f.close(io);
+        }
 
         if (!handler_installed) {
+            try startSignalThread(io);
             var act = posix.Sigaction{
                 .handler = .{ .handler = PosixTty.handleWinch },
                 .mask = switch (builtin.os.tag) {
@@ -89,6 +99,8 @@ pub const PosixTty = struct {
 
     /// release resources associated with the Tty return it to its original state
     pub fn deinit(self: PosixTty) void {
+        resetSignalHandler();
+        stopSignalThread();
         posix.tcsetattr(self.fd.handle, .FLUSH, self.termios) catch |err| {
             std.log.err("couldn't restore terminal: {}", .{err});
         };
@@ -161,12 +173,75 @@ pub const PosixTty = struct {
     }
 
     fn handleWinch(_: std.posix.SIG) callconv(.c) void {
-        handler_mutex.lock(handler_io) catch @panic("unable to lock SIGWINCH handlers");
-        defer handler_mutex.unlock(handler_io);
-        var i: usize = 0;
-        while (i < handler_idx) : (i += 1) {
-            const handler = handlers[i];
-            handler.callback(handler.context);
+        // write(2) is async-signal-safe. All other work is deferred to a
+        // normal thread, where taking locks and posting events is safe.
+        const byte = [1]u8{0};
+        _ = posix.system.write(signal_pipe[1].handle, &byte, byte.len);
+    }
+
+    fn startSignalThread(io: std.Io) !void {
+        if (signal_thread_running) return;
+
+        var fds: [2]posix.fd_t = undefined;
+        switch (posix.errno(posix.system.pipe(&fds))) {
+            .SUCCESS => {},
+            .NFILE => return error.SystemFdQuotaExceeded,
+            .MFILE => return error.ProcessFdQuotaExceeded,
+            else => |err| return posix.unexpectedErrno(err),
+        }
+        errdefer {
+            _ = posix.system.close(fds[0]);
+            _ = posix.system.close(fds[1]);
+        }
+
+        for (fds) |fd| {
+            switch (posix.errno(posix.system.fcntl(fd, posix.F.SETFD, @as(u32, posix.FD_CLOEXEC)))) {
+                .SUCCESS => {},
+                else => |err| return posix.unexpectedErrno(err),
+            }
+        }
+
+        const nonblocking: u32 = @bitCast(posix.O{ .NONBLOCK = true });
+        switch (posix.errno(posix.system.fcntl(fds[1], posix.F.SETFL, nonblocking))) {
+            .SUCCESS => {},
+            else => |err| return posix.unexpectedErrno(err),
+        }
+
+        signal_pipe = .{
+            .{ .handle = fds[0], .flags = .{ .nonblocking = false } },
+            .{ .handle = fds[1], .flags = .{ .nonblocking = true } },
+        };
+        signal_thread_quit.store(false, .release);
+        signal_thread = try io.concurrent(runSignalThread, .{io});
+        signal_thread_running = true;
+    }
+
+    fn stopSignalThread() void {
+        if (!signal_thread_running) return;
+        signal_thread_quit.store(true, .release);
+        const byte = [1]u8{0};
+        _ = posix.system.write(signal_pipe[1].handle, &byte, byte.len);
+        signal_thread.await(handler_io);
+        signal_pipe[0].close(handler_io);
+        signal_pipe[1].close(handler_io);
+        signal_thread_running = false;
+    }
+
+    fn runSignalThread(io: std.Io) void {
+        var buf: [64]u8 = undefined;
+        while (true) {
+            _ = signal_pipe[0].readStreaming(io, &.{&buf}) catch return;
+            if (signal_thread_quit.load(.acquire)) return;
+
+            {
+                handler_mutex.lock(io) catch return;
+                defer handler_mutex.unlock(io);
+                var i: usize = 0;
+                while (i < handler_idx) : (i += 1) {
+                    const handler = handlers[i];
+                    handler.callback(handler.context);
+                }
+            }
         }
     }
 

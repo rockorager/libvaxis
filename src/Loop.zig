@@ -124,7 +124,8 @@ pub fn Loop(comptime T: type) type {
 
             const winsize = self.tty.getWinsize() catch return;
             if (@hasField(Event, "winsize")) {
-                self.postEvent(.{ .winsize = winsize }) catch {};
+                // Resize notifications may be coalesced when the queue is full.
+                _ = self.tryPostEvent(.{ .winsize = winsize }) catch {};
             }
         }
 
