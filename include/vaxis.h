@@ -376,6 +376,28 @@ vaxis_result vaxis_tty_new_with_allocator(const vaxis_allocator *allocator,
                                           vaxis_tty **tty);
 void vaxis_tty_free(vaxis_tty *tty);
 vaxis_result vaxis_tty_winsize(vaxis_tty *tty, vaxis_winsize *size);
+/* POSIX SIGWINCH fallback for terminals without in-band resize events.
+ * The callback runs on the TTY's dispatch thread, not in a signal handler.
+ * Use it to wake your event loop; query tty_winsize and resize/render there.
+ * Callbacks must not register/remove handlers or free the TTY (these wait for
+ * callback dispatch). Synchronize any data shared with your event loop.
+ *
+ * The callback must be non-NULL; context may be NULL. Keep context alive until
+ * all its registrations are removed or tty_free returns. Serialize
+ * registration/removal/free calls for a TTY. A NULL TTY or callback returns
+ * VAXIS_ERR_INVALID. At most 8 registrations share the POSIX dispatcher;
+ * exhaustion returns VAXIS_ERR_OOM. Duplicate registrations are allowed;
+ * removal removes the first matching (callback, context) pair, or does nothing
+ * if absent. tty_free clears all registrations and waits for dispatch to stop.
+ * Both functions return VAXIS_ERR_UNSUPPORTED on Windows, where resize events
+ * are delivered by tty_next_event instead. */
+typedef void (*vaxis_winsize_callback)(void *context);
+vaxis_result vaxis_tty_notify_winsize(vaxis_tty *tty,
+                                      vaxis_winsize_callback callback,
+                                      void *context);
+vaxis_result vaxis_tty_remove_winsize_notify(vaxis_tty *tty,
+                                             vaxis_winsize_callback callback,
+                                             void *context);
 vaxis_result vaxis_tty_read(vaxis_tty *tty, uint8_t *buffer,
                             size_t capacity, size_t *length);
 /* Windows console input is record-based rather than a byte stream. On

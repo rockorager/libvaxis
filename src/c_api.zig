@@ -260,7 +260,23 @@ const CTerminal = if (builtin.os.tag == .linux) struct {
     write_buf: [4096]u8,
     terminal: ?Terminal,
 } else opaque {};
-const CTty = struct { allocator: AllocatorState, threaded: std.Io.Threaded, buffer: [4096]u8, tty: ?Tty };
+const CWinsizeCallback = *const fn (?*anyopaque) callconv(.c) void;
+const CWinsizeHandler = struct {
+    callback: CWinsizeCallback,
+    context: ?*anyopaque,
+
+    fn notify(context: *anyopaque) void {
+        const self: *const CWinsizeHandler = @ptrCast(@alignCast(context));
+        self.callback(self.context);
+    }
+};
+const CTty = struct {
+    allocator: AllocatorState,
+    threaded: std.Io.Threaded,
+    buffer: [4096]u8,
+    tty: ?Tty,
+    winsize_handlers: [8]?CWinsizeHandler,
+};
 const CRuntime = struct { allocator: AllocatorState, tty: *CTty, env: std.process.Environ.Map, strings: GraphemeStore, vx: ?Vaxis };
 
 fn sliceFrom(ptr: ?[*]const u8, len: usize) ?[]const u8 {
@@ -755,6 +771,7 @@ pub fn tty_new_with_allocator(custom: ?*const CAllocator, out: ?*?*CTty) callcon
     const allocator = t.allocator.get();
     t.threaded = std.Io.Threaded.init(allocator, .{});
     t.tty = null;
+    t.winsize_handlers = @splat(null);
     t.tty = Tty.init(t.threaded.io(), &t.buffer) catch {
         t.threaded.deinit();
         allocator.destroy(t);
@@ -775,6 +792,35 @@ pub fn tty_winsize(tty: ?*CTty, out: ?*CWinsize) callconv(.c) Result {
     const o = out orelse return .err_invalid;
     const ws = t.tty.?.getWinsize() catch return .err_io;
     o.* = .{ .rows = ws.rows, .cols = ws.cols, .x_pixel = ws.x_pixel, .y_pixel = ws.y_pixel };
+    return .ok;
+}
+pub fn tty_notify_winsize(tty: ?*CTty, callback: ?CWinsizeCallback, context: ?*anyopaque) callconv(.c) Result {
+    if (comptime builtin.os.tag == .windows) return .err_unsupported;
+    const t = tty orelse return .err_invalid;
+    const cb = callback orelse return .err_invalid;
+    for (&t.winsize_handlers) |*slot| {
+        if (slot.* != null) continue;
+        slot.* = .{ .callback = cb, .context = context };
+        vaxis.tty.PosixTty.notifyWinsize(.{ .context = &slot.*.?, .callback = CWinsizeHandler.notify }) catch |err| {
+            slot.* = null;
+            return if (err == error.OutOfMemory) .err_oom else .err_io;
+        };
+        return .ok;
+    }
+    return .err_oom;
+}
+pub fn tty_remove_winsize_notify(tty: ?*CTty, callback: ?CWinsizeCallback, context: ?*anyopaque) callconv(.c) Result {
+    if (comptime builtin.os.tag == .windows) return .err_unsupported;
+    const t = tty orelse return .err_invalid;
+    const cb = callback orelse return .err_invalid;
+    for (&t.winsize_handlers) |*slot| {
+        if (slot.*) |*handler| {
+            if (handler.callback != cb or handler.context != context) continue;
+            vaxis.tty.PosixTty.removeWinsize(.{ .context = handler, .callback = CWinsizeHandler.notify });
+            slot.* = null;
+            return .ok;
+        }
+    }
     return .ok;
 }
 pub fn tty_read(tty: ?*CTty, buf: ?[*]u8, capacity: usize, length: ?*usize) callconv(.c) Result {

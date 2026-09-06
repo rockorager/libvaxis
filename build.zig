@@ -267,6 +267,24 @@ pub fn build(b: *std.Build) void {
     });
     tests_step.dependOn(&b.addRunArtifact(c_runtime_test).step);
 
+    const c_tty_mod = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    c_tty_mod.addCSourceFile(.{
+        .file = b.path("examples/c/tty.c"),
+        .flags = &.{ "-std=c99", "-pedantic-errors" },
+    });
+    c_tty_mod.addIncludePath(b.path("include"));
+    c_tty_mod.linkLibrary(static_lib);
+    const c_tty_test = b.addExecutable(.{
+        .name = "example-c-tty",
+        .root_module = c_tty_mod,
+        .use_llvm = use_llvm,
+    });
+    tests_step.dependOn(&b.addRunArtifact(c_tty_test).step);
+
     // Docs
     const docs_step = b.step("docs", "Build the vaxis library docs");
     const docs_obj = b.addObject(.{

@@ -72,17 +72,8 @@ pub const PosixTty = struct {
 
         if (!handler_installed) {
             try startSignalThread(io);
-            var act = posix.Sigaction{
-                .handler = .{ .handler = PosixTty.handleWinch },
-                .mask = switch (builtin.os.tag) {
-                    .macos => 0,
-                    else => posix.sigemptyset(),
-                },
-                .flags = 0,
-            };
-            posix.sigaction(posix.SIG.WINCH, &act, null);
             handler_io = io;
-            handler_installed = true;
+            installSignalHandler();
         }
 
         const self: PosixTty = .{
@@ -121,6 +112,19 @@ pub const PosixTty = struct {
         resetSignalHandlerLocked();
     }
 
+    fn installSignalHandler() void {
+        var act = posix.Sigaction{
+            .handler = .{ .handler = PosixTty.handleWinch },
+            .mask = switch (builtin.os.tag) {
+                .macos => 0,
+                else => posix.sigemptyset(),
+            },
+            .flags = 0,
+        };
+        posix.sigaction(posix.SIG.WINCH, &act, null);
+        handler_installed = true;
+    }
+
     fn resetSignalHandlerLocked() void {
         if (!handler_installed) return;
         handler_installed = false;
@@ -149,6 +153,9 @@ pub const PosixTty = struct {
         try handler_mutex.lock(handler_io);
         defer handler_mutex.unlock(handler_io);
         if (handler_idx == handlers.len) return error.OutOfMemory;
+        // Removing the last subscriber restores SIG_DFL, but leaves the
+        // dispatch thread alive until deinit. Re-arm it for a new subscriber.
+        if (!handler_installed) installSignalHandler();
         handlers[handler_idx] = handler;
         handler_idx += 1;
     }
