@@ -1,5 +1,45 @@
 # Usage
 
+## Querying the Cursor Position
+
+Add `cursor_position: vaxis.Screen.Cursor` to your event union, then request a
+report after terminal capability discovery has completed:
+
+```zig
+try vx.queryCursorPosition(tty.writer());
+
+// In your event switch:
+// .cursor_position => |position| { ... }
+```
+
+The event contains zero-based `row` and `col`. Each request increments a shared
+counter; each valid report decrements it. Multiple requests can be outstanding.
+Incomplete or malformed reports do not consume a request, and legacy F3 parsing
+resumes when the counter reaches zero.
+
+Pending requests expire **one second after the last request**, using a monotonic
+clock. Expiry is checked lazily when sending a query or parsing a possible report;
+there is no timer and no timeout event. New requests extend the idle deadline for
+the whole pending batch; responses do not. A query after expiry starts a fresh
+batch. Continuous queries can therefore keep the window open.
+
+A legacy F3 sequence identical to a report cannot be distinguished while a
+request is pending. Likewise, a late reply after expiry can be interpreted as F3
+or consume a newer request; the protocol has no request IDs.
+
+Cursor queries return `error.TerminalQueriesPending` during capability discovery.
+Conversely, capability discovery returns `error.CursorPositionQueriesPending`
+while cursor queries are outstanding, because both use the same report sequence.
+
+`vaxis.Loop` connects the parser to the counter automatically. For a custom event
+loop, initialize the parser with a pointer to your stable Vaxis instance:
+
+```zig
+var parser: vaxis.Parser = .{
+    .cursor_position_requests = &vx.cursor_position_requests,
+};
+```
+
 ## Custom Event Loops
 
 Vaxis provides an abstract enough API to allow the usage of a custom event loop.

@@ -168,10 +168,10 @@ pub fn Loop(comptime T: type) type {
 
             // initialize a grapheme cache
             var cache: GraphemeCache = .{};
+            var parser: Parser = .{ .cursor_position_requests = &self.vaxis.cursor_position_requests };
 
             switch (builtin.os.tag) {
                 .windows => {
-                    var parser: Parser = .{};
                     while (!self.should_quit) {
                         const event = try self.tty.nextEvent(&parser, paste_allocator);
                         try handleEventGeneric(self, self.vaxis, &cache, Event, event, null);
@@ -183,8 +183,6 @@ pub fn Loop(comptime T: type) type {
                     if (@hasField(Event, "winsize")) {
                         try self.postEvent(.{ .winsize = winsize });
                     }
-
-                    var parser: Parser = .{};
 
                     // initialize the read buffer
                     var buf: [1024]u8 = undefined;
@@ -236,6 +234,12 @@ pub fn Loop(comptime T: type) type {
 
 // Use return on the self.postEvent's so it can either return error union or void
 pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Event: type, event: anytype, paste_allocator: ?std.mem.Allocator) !void {
+    if (event == .cursor_position) {
+        if (@hasField(Event, "cursor_position")) {
+            return self.postEvent(.{ .cursor_position = event.cursor_position });
+        }
+        return;
+    }
     switch (builtin.os.tag) {
         .windows => {
             switch (event) {
@@ -395,6 +399,7 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                         return self.postEvent(.{ .color_report = report });
                     }
                 },
+                .cursor_position => unreachable, // handled above on all platforms
                 .color_scheme => |scheme| {
                     if (@hasField(Event, "color_scheme")) {
                         return self.postEvent(.{ .color_scheme = scheme });
@@ -477,6 +482,66 @@ test Loop {
     // Optionally enter the alternate screen
     try vx.enterAltScreen(tty.writer());
     try vx.queryTerminal(tty.writer(), .fromSeconds(1));
+}
+
+test "cursor queries deliver reports without interfering with capability probes" {
+    const testing = std.testing;
+    var env = try testing.environ.createMap(testing.allocator);
+    defer env.deinit();
+    var tty = try Tty.init(testing.io, &.{});
+    defer tty.deinit();
+    var vx = try vaxis.init(testing.io, testing.allocator, &env, .{});
+    defer vx.deinit(testing.allocator, tty.writer());
+    const Event = union(enum) {
+        cursor_position: vaxis.Screen.Cursor,
+        key_press: vaxis.Key,
+    };
+    var loop: Loop(Event) = .init(testing.io, &tty, &vx);
+    var parser: Parser = .{ .cursor_position_requests = &vx.cursor_position_requests };
+    var cache: GraphemeCache = .{};
+
+    try vx.queryTerminalSend(tty.writer());
+    try testing.expectError(error.TerminalQueriesPending, vx.queryCursorPosition(tty.writer()));
+    for ([_][]const u8{ "\x1b[1;2R", "\x1b[1;3R", "\x1b[?c" }) |input| {
+        const result = try parser.parse(input, null);
+        try handleEventGeneric(&loop, &vx, &cache, Event, result.event.?, null);
+    }
+    try testing.expect(vx.caps.explicit_width);
+    try testing.expect(vx.caps.scaled_text);
+    try testing.expectEqual(@as(usize, 0), vx.cursor_position_requests.pending());
+    try testing.expectEqual(@as(?Event, null), try loop.tryEvent());
+
+    var writer: std.Io.Writer.Allocating = .init(testing.allocator);
+    defer writer.deinit();
+    try vx.queryCursorPosition(&writer.writer);
+    try vx.queryCursorPosition(&writer.writer);
+    try testing.expectEqualStrings("\x1b[6n\x1b[6n", writer.written());
+    try testing.expectEqual(@as(usize, 2), vx.cursor_position_requests.pending());
+    try testing.expectError(error.CursorPositionQueriesPending, vx.queryTerminalSend(tty.writer()));
+
+    for (0..2) |_| {
+        const result = try parser.parse("\x1b[12;34R", null);
+        try handleEventGeneric(&loop, &vx, &cache, Event, result.event.?, null);
+        const report = (try loop.tryEvent()).?.cursor_position;
+        try testing.expectEqual(@as(u16, 11), report.row);
+        try testing.expectEqual(@as(u16, 33), report.col);
+    }
+    try testing.expectEqual(@as(usize, 0), vx.cursor_position_requests.pending());
+
+    // Consumers that don't opt into cursor reports silently discard them.
+    const KeyEvent = union(enum) { key_press: vaxis.Key };
+    var key_loop: Loop(KeyEvent) = .init(testing.io, &tty, &vx);
+    try vx.queryCursorPosition(&writer.writer);
+    const result = try parser.parse("\x1b[1;1R", null);
+    try handleEventGeneric(&key_loop, &vx, &cache, KeyEvent, result.event.?, null);
+    try testing.expectEqual(@as(?KeyEvent, null), try key_loop.tryEvent());
+    try testing.expectEqual(@as(usize, 0), vx.cursor_position_requests.pending());
+
+    // Expired cursor queries must not block capability discovery indefinitely.
+    try vx.queryCursorPosition(&writer.writer);
+    vx.cursor_position_requests.last_request_at = vx.cursor_position_requests.last_request_at.subDuration(.fromSeconds(2));
+    try vx.queryTerminalSend(tty.writer());
+    try testing.expectEqual(@as(usize, 0), vx.cursor_position_requests.pending());
 }
 
 test {

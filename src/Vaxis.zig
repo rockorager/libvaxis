@@ -75,6 +75,10 @@ query_futex: atomic.Value(u32) = atomic.Value(u32).init(0),
 /// key encoding. This can be used as a flag to determine how we should evaluate this sequence
 queries_done: atomic.Value(bool) = atomic.Value(bool).init(true),
 
+/// Outstanding application cursor position queries and their idle deadline.
+/// Shared with the input parser.
+cursor_position_requests: @import("Parser.zig").CursorPositionRequests,
+
 // images
 next_img_id: u32 = 1,
 
@@ -113,6 +117,7 @@ pub fn init(io: std.Io, alloc: std.mem.Allocator, env_map: *std.process.Environ.
         .opts = opts,
         .screen = .{},
         .screen_last = try .init(alloc, 0, 0),
+        .cursor_position_requests = .{ .io = io },
     };
 }
 
@@ -285,6 +290,9 @@ pub fn queryTerminal(self: *Vaxis, tty: *std.Io.Writer, timeout: std.Io.Duration
 /// is only for use with a custom main loop. Call Vaxis.queryTerminal() if
 /// you are using Loop.run()
 pub fn queryTerminalSend(vx: *Vaxis, tty: *std.Io.Writer) !void {
+    // Capability probes use CPR too, so they must not overlap application queries.
+    if (vx.cursor_position_requests.pending() != 0)
+        return error.CursorPositionQueriesPending;
     vx.queries_done.store(false, .unordered);
 
     // TODO: re-enable this
@@ -1196,6 +1204,23 @@ pub fn addTerminalSecondaryCursor(self: *Vaxis, alloc: std.mem.Allocator, y: u16
     self.screen.cursor_secondary = try cursors.toOwnedSlice(alloc);
 }
 
+/// Request the terminal cursor position. Add `cursor_position: vaxis.Screen.Cursor`
+/// to your Event union to receive the zero-based row and column asynchronously.
+/// Multiple requests may be outstanding. Complete terminal capability queries first.
+/// Pending requests expire lazily one second after the last request. No timer is
+/// started. While a request is pending, legacy F3 sequences that look like reports
+/// are ambiguous; late replies cannot be distinguished from keys or newer replies.
+pub fn queryCursorPosition(self: *Vaxis, tty: *std.Io.Writer) !void {
+    if (!self.queries_done.load(.unordered)) return error.TerminalQueriesPending;
+    self.cursor_position_requests.request();
+    tty.writeAll(ctlseqs.cursor_position_request) catch |err| {
+        _ = self.cursor_position_requests.consume();
+        return err;
+    };
+    // Once buffered, the request may reach the terminal even if flushing fails.
+    try tty.flush();
+}
+
 /// Request a color report from the terminal. Note: not all terminals support
 /// reporting colors. It is always safe to try, but you may not receive a
 /// response.
@@ -1520,6 +1545,23 @@ pub fn setTerminalWorkingDirectory(_: *Vaxis, tty: *std.Io.Writer, path: []const
     };
     try tty.print(ctlseqs.osc7, .{uri.fmt(.{ .scheme = true, .authority = true, .path = true })});
     try tty.flush();
+}
+
+test "queryCursorPosition: failed write does not leave a pending request" {
+    var env = try std.testing.environ.createMap(std.testing.allocator);
+    defer env.deinit();
+    var vx = try Vaxis.init(std.testing.io, std.testing.allocator, &env, .{});
+    var writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer writer.deinit();
+    defer vx.deinit(std.testing.allocator, &writer.writer);
+
+    var failing: std.Io.Writer = .failing;
+    try std.testing.expectError(error.WriteFailed, vx.queryCursorPosition(&failing));
+    try std.testing.expectEqual(@as(usize, 0), vx.cursor_position_requests.pending());
+
+    try vx.queryCursorPosition(&writer.writer);
+    try std.testing.expectError(error.WriteFailed, vx.queryCursorPosition(&failing));
+    try std.testing.expectEqual(@as(usize, 1), vx.cursor_position_requests.pending());
 }
 
 test "render: no output when no changes" {

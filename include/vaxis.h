@@ -91,6 +91,8 @@ typedef enum VAXIS_ENUM_TYPED {
   VAXIS_EVENT_CAP_COLOR_SCHEME_UPDATES = 19,
   VAXIS_EVENT_CAP_MULTI_CURSOR = 20,
 
+  VAXIS_EVENT_CURSOR_POSITION = 21,
+
   /* Sentinel to pin the enum to int width; never produced. */
   VAXIS_EVENT_TYPE_MAX_VALUE = VAXIS_ENUM_MAX_VALUE,
 } vaxis_event_type;
@@ -524,6 +526,10 @@ uint16_t vaxis_event_winsize_rows(const vaxis_event *event);
 uint16_t vaxis_event_winsize_cols(const vaxis_event *event);
 uint16_t vaxis_event_winsize_x_pixel(const vaxis_event *event);
 uint16_t vaxis_event_winsize_y_pixel(const vaxis_event *event);
+
+/* Cursor position accessors (VAXIS_EVENT_CURSOR_POSITION), zero-based. */
+uint16_t vaxis_event_cursor_position_row(const vaxis_event *event);
+uint16_t vaxis_event_cursor_position_col(const vaxis_event *event);
 
 /* Look up a key codepoint by name ("enter", "f1", "kp_0", ...). Returns 0
  * for unknown names. */

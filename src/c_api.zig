@@ -131,6 +131,7 @@ pub const EventType = enum(c_int) {
     cap_da1 = 18,
     cap_color_scheme_updates = 19,
     cap_multi_cursor = 20,
+    cursor_position = 21,
 };
 
 comptime {
@@ -1058,6 +1059,7 @@ const CEvent = struct {
     color_report: Color.Report = .{ .kind = .fg, .value = .{ 0, 0, 0 } },
     color_scheme: Color.Scheme = .dark,
     winsize: Winsize = .{ .rows = 0, .cols = 0, .x_pixel = 0, .y_pixel = 0 },
+    cursor_position: Screen.Cursor = .{},
 };
 
 /// vaxis_parser. Owns the current event and everything it points at
@@ -1270,6 +1272,18 @@ pub fn event_winsize_y_pixel(event: ?*const CEvent) callconv(.c) u16 {
     return e.winsize.y_pixel;
 }
 
+pub fn event_cursor_position_row(event: ?*const CEvent) callconv(.c) u16 {
+    const e = event orelse return 0;
+    if (e.type != .cursor_position) return 0;
+    return e.cursor_position.row;
+}
+
+pub fn event_cursor_position_col(event: ?*const CEvent) callconv(.c) u16 {
+    const e = event orelse return 0;
+    if (e.type != .cursor_position) return 0;
+    return e.cursor_position.col;
+}
+
 pub fn key_from_name(name: ?[*]const u8, name_len: usize) callconv(.c) u32 {
     const n = name orelse return 0;
     return Key.name_map.get(n[0..name_len]) orelse 0;
@@ -1296,6 +1310,7 @@ fn convertEvent(p: *CParser, event: vaxis.Event) void {
         .color_report => |report| p.event.color_report = report,
         .color_scheme => |scheme| p.event.color_scheme = scheme,
         .winsize => |winsize| p.event.winsize = winsize,
+        .cursor_position => |position| p.event.cursor_position = position,
         else => {},
     }
 }
@@ -1587,6 +1602,27 @@ test "c api: in-band resize" {
     try testing.expectEqual(@as(u16, 80), event_winsize_cols(event));
     try testing.expectEqual(@as(u16, 1440), event_winsize_x_pixel(event));
     try testing.expectEqual(@as(u16, 480), event_winsize_y_pixel(event));
+}
+
+test "c api: cursor position event accessors" {
+    const parser = parser_new() orelse return error.OutOfMemory;
+    defer parser_free(parser);
+    var pending: Parser.CursorPositionRequests = .{ .io = testing.io };
+    pending.request();
+    parser.parser.cursor_position_requests = &pending;
+
+    var event: ?*const CEvent = null;
+    var n: usize = 0;
+    try testing.expectEqual(.ok, parseBytes(parser, "\x1b[12;34R", &event, &n));
+    try testing.expectEqual(EventType.cursor_position, event_get_type(event));
+    try testing.expectEqual(@as(u16, 11), event_cursor_position_row(event));
+    try testing.expectEqual(@as(u16, 33), event_cursor_position_col(event));
+    try testing.expectEqual(@as(u16, 0), event_cursor_position_row(null));
+    try testing.expectEqual(@as(u16, 0), event_cursor_position_col(null));
+
+    try testing.expectEqual(.ok, parseBytes(parser, "x", &event, &n));
+    try testing.expectEqual(@as(u16, 0), event_cursor_position_row(event));
+    try testing.expectEqual(@as(u16, 0), event_cursor_position_col(event));
 }
 
 test "c api: color report" {

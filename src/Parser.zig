@@ -18,6 +18,46 @@ pub const Result = struct {
     n: usize,
 };
 
+/// Shared cursor query state. The count and idle deadline are updated together
+/// because requests and responses are handled on different threads.
+pub const CursorPositionRequests = struct {
+    io: std.Io,
+    mutex: std.Io.Mutex = .init,
+    count: usize = 0,
+    last_request_at: std.Io.Timestamp = .zero,
+
+    pub fn request(self: *CursorPositionRequests) void {
+        self.mutex.lockUncancelable(self.io);
+        defer self.mutex.unlock(self.io);
+        const now = std.Io.Timestamp.now(self.io, .awake);
+        self.expire(now);
+        self.count += 1;
+        self.last_request_at = now;
+    }
+
+    /// Consume a report, or cancel a request whose write failed.
+    pub fn consume(self: *CursorPositionRequests) bool {
+        self.mutex.lockUncancelable(self.io);
+        defer self.mutex.unlock(self.io);
+        self.expire(std.Io.Timestamp.now(self.io, .awake));
+        if (self.count == 0) return false;
+        self.count -= 1;
+        return true;
+    }
+
+    pub fn pending(self: *CursorPositionRequests) usize {
+        self.mutex.lockUncancelable(self.io);
+        defer self.mutex.unlock(self.io);
+        self.expire(std.Io.Timestamp.now(self.io, .awake));
+        return self.count;
+    }
+
+    fn expire(self: *CursorPositionRequests, now: std.Io.Timestamp) void {
+        if (self.last_request_at.durationTo(now).toNanoseconds() >= std.time.ns_per_s)
+            self.count = 0;
+    }
+};
+
 const mouse_bits = struct {
     const motion: u8 = 0b00100000;
     const buttons: u8 = 0b11000011;
@@ -45,6 +85,10 @@ const State = enum {
 // text-as-codepoints
 buf: [128]u8 = undefined,
 
+/// Share Vaxis.cursor_position_requests when using a custom event loop.
+/// Without pending requests, CSI R sequences retain their F3 key meaning.
+cursor_position_requests: ?*CursorPositionRequests = null,
+
 /// Parse the first event from the input buffer. If a completion event is not
 /// present, Result.event will be null and Result.n will be 0
 ///
@@ -59,7 +103,7 @@ pub fn parse(self: *Parser, input: []const u8, paste_allocator: ?std.mem.Allocat
             0x4F => return parseSs3(input),
             0x50 => return skipUntilST(input), // DCS
             0x58 => return skipUntilST(input), // SOS
-            0x5B => return parseCsi(input, &self.buf), // CSI
+            0x5B => return parseCsi(input, &self.buf, self.cursor_position_requests), // CSI
             0x5D => return parseOsc(input, paste_allocator),
             0x5E => return skipUntilST(input), // PM
             0x5F => return parseApc(input),
@@ -340,7 +384,7 @@ inline fn parseOsc(input: []const u8, paste_allocator: ?std.mem.Allocator) !Resu
     }
 }
 
-inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
+inline fn parseCsi(input: []const u8, text_buf: []u8, cursor_position_requests: ?*CursorPositionRequests) Result {
     if (input.len < 3) {
         return .{
             .event = null,
@@ -357,6 +401,25 @@ inline fn parseCsi(input: []const u8, text_buf: []u8) Result {
     const null_event: Result = .{ .event = null, .n = sequence.len };
 
     const final = sequence[sequence.len - 1];
+    if (final == 'R') report: {
+        const pending = cursor_position_requests orelse break :report;
+        if (pending.pending() == 0) break :report;
+        var fields = std.mem.splitScalar(u8, sequence[2 .. sequence.len - 1], ';');
+        const row_buf = fields.next().?;
+        const col_buf = fields.next() orelse break :report;
+        if (fields.next() != null) break :report;
+        // Only a complete pair of positive decimal coordinates is a report.
+        // Otherwise, preserve ordinary key parsing (e.g. CSI R or CSI 1;2:3R).
+        for (row_buf) |b| if (!std.ascii.isDigit(b)) break :report;
+        for (col_buf) |b| if (!std.ascii.isDigit(b)) break :report;
+        const row = std.fmt.parseInt(u16, row_buf, 10) catch break :report;
+        const col = std.fmt.parseInt(u16, col_buf, 10) catch break :report;
+        if (row == 0 or col == 0) break :report;
+        if (pending.consume()) return .{
+            .event = .{ .cursor_position = .{ .row = row - 1, .col = col - 1 } },
+            .n = sequence.len,
+        };
+    }
     switch (final) {
         'A', 'B', 'C', 'D', 'E', 'F', 'H', 'P', 'Q', 'R', 'S' => {
             // Legacy keys
@@ -1182,11 +1245,116 @@ test "parse: keycap sequence" {
     try testing.expectEqual(expected_event, result.event);
 }
 
+test "parse: cursor position requests are counted" {
+    var pending: CursorPositionRequests = .{ .io = testing.io };
+    pending.request();
+    pending.request();
+    var parser: Parser = .{ .cursor_position_requests = &pending };
+    const input = "\x1b[12;300R";
+
+    // Every incomplete prefix leaves the request outstanding.
+    for (2..input.len) |len| {
+        const result = try parser.parse(input[0..len], null);
+        try testing.expectEqual(@as(usize, 0), result.n);
+        try testing.expectEqual(@as(?Event, null), result.event);
+        try testing.expectEqual(@as(usize, 2), pending.pending());
+    }
+
+    const first = try parser.parse(input ++ "x", null);
+    try testing.expectEqual(input.len, first.n);
+    try testing.expectEqual(@as(u16, 11), first.event.?.cursor_position.row);
+    try testing.expectEqual(@as(u16, 299), first.event.?.cursor_position.col);
+    try testing.expectEqual(@as(usize, 1), pending.pending());
+
+    const key = try parser.parse("x", null);
+    try testing.expectEqual(@as(u21, 'x'), key.event.?.key_press.codepoint);
+    try testing.expectEqual(@as(usize, 1), pending.pending());
+
+    const plain_f3 = try parser.parse("\x1b[R", null);
+    try testing.expectEqual(Key.f3, plain_f3.event.?.key_press.codepoint);
+    const release = try parser.parse("\x1b[1;2:3R", null);
+    try testing.expectEqual(Key.f3, release.event.?.key_release.codepoint);
+    try testing.expect(release.event.?.key_release.mods.shift);
+    try testing.expectEqual(@as(usize, 1), pending.pending());
+
+    const second = try parser.parse("\x1b[1;1R", null);
+    try testing.expectEqual(@as(u16, 0), second.event.?.cursor_position.row);
+    try testing.expectEqual(@as(u16, 0), second.event.?.cursor_position.col);
+    try testing.expectEqual(@as(usize, 0), pending.pending());
+
+    // With no outstanding query, the same bytes are once again a legacy key.
+    const f3 = try parser.parse("\x1b[1;2R", null);
+    try testing.expectEqual(Key.f3, f3.event.?.key_press.codepoint);
+    try testing.expect(f3.event.?.key_press.mods.shift);
+    try testing.expectEqual(@as(usize, 0), pending.pending());
+}
+
+test "parse: invalid cursor position reports do not consume requests" {
+    var pending: CursorPositionRequests = .{ .io = testing.io };
+    pending.request();
+    var parser: Parser = .{ .cursor_position_requests = &pending };
+    const invalid = [_][]const u8{
+        "\x1b[0;1R",   "\x1b[1;0R",     "\x1b[;1R",      "\x1b[1;R",
+        "\x1b[1R",     "\x1b[1;2;3R",   "\x1b[-1;1R",    "\x1b[+1;1R",
+        "\x1b[1;2:3R", "\x1b[65536;1R", "\x1b[1;65536R", "\x1b[?1;1R",
+    };
+    for (invalid) |input| {
+        const result = try parser.parse(input, null);
+        try testing.expectEqual(input.len, result.n);
+        if (result.event) |event| try testing.expect(event != .cursor_position);
+        try testing.expectEqual(@as(usize, 1), pending.pending());
+    }
+    const result = try parser.parse("\x1b[65535;65535R", null);
+    try testing.expectEqual(@as(u16, 65534), result.event.?.cursor_position.row);
+    try testing.expectEqual(@as(u16, 65534), result.event.?.cursor_position.col);
+    try testing.expectEqual(@as(usize, 0), pending.pending());
+}
+
+test "cursor requests: idle deadline follows the last request, not reports" {
+    var pending: CursorPositionRequests = .{ .io = testing.io };
+    pending.request();
+    pending.last_request_at = pending.last_request_at.subDuration(.fromMilliseconds(500));
+    const previous = pending.last_request_at;
+    pending.request();
+    try testing.expectEqual(@as(usize, 2), pending.pending());
+    try testing.expect(pending.last_request_at.nanoseconds > previous.nanoseconds);
+
+    const last_request = pending.last_request_at;
+    try testing.expect(pending.consume());
+    try testing.expectEqual(last_request, pending.last_request_at);
+    pending.expire(last_request.addDuration(.fromNanoseconds(std.time.ns_per_s - 1)));
+    try testing.expectEqual(@as(usize, 1), pending.count);
+    pending.expire(last_request.addDuration(.fromSeconds(1)));
+    try testing.expectEqual(@as(usize, 0), pending.count);
+}
+
+test "parse: expired cursor requests restore F3 and new requests start fresh" {
+    var pending: CursorPositionRequests = .{ .io = testing.io };
+    var parser: Parser = .{ .cursor_position_requests = &pending };
+    pending.request();
+    pending.request();
+    pending.last_request_at = pending.last_request_at.subDuration(.fromSeconds(2));
+
+    const f3 = try parser.parse("\x1b[1;2R", null);
+    try testing.expectEqual(Key.f3, f3.event.?.key_press.codepoint);
+    try testing.expect(f3.event.?.key_press.mods.shift);
+    try testing.expectEqual(@as(usize, 0), pending.count);
+
+    pending.request();
+    pending.request();
+    pending.last_request_at = pending.last_request_at.subDuration(.fromSeconds(2));
+    pending.request();
+    try testing.expectEqual(@as(usize, 1), pending.pending());
+    const report = try parser.parse("\x1b[1;2R", null);
+    try testing.expectEqual(@as(u16, 1), report.event.?.cursor_position.col);
+    try testing.expectEqual(@as(usize, 0), pending.pending());
+}
+
 test "parse(csi): kitty multi cursor" {
     var buf: [1]u8 = undefined;
     {
         const input = "\x1b[>1;2;3;29;30;40;100;101 q";
-        const result = parseCsi(input, &buf);
+        const result = parseCsi(input, &buf, null);
         const expected: Result = .{
             .event = .cap_multi_cursor,
             .n = input.len,
@@ -1197,7 +1365,7 @@ test "parse(csi): kitty multi cursor" {
     }
     {
         const input = "\x1b[> q";
-        const result = parseCsi(input, &buf);
+        const result = parseCsi(input, &buf, null);
         const expected: Result = .{
             .event = null,
             .n = input.len,
@@ -1212,7 +1380,7 @@ test "parse(csi): decrpm" {
     var buf: [1]u8 = undefined;
     {
         const input = "\x1b[?1016;1$y";
-        const result = parseCsi(input, &buf);
+        const result = parseCsi(input, &buf, null);
         const expected: Result = .{
             .event = .cap_sgr_pixels,
             .n = input.len,
@@ -1223,7 +1391,7 @@ test "parse(csi): decrpm" {
     }
     {
         const input = "\x1b[?1016;0$y";
-        const result = parseCsi(input, &buf);
+        const result = parseCsi(input, &buf, null);
         const expected: Result = .{
             .event = null,
             .n = input.len,
@@ -1237,7 +1405,7 @@ test "parse(csi): decrpm" {
 test "parse(csi): primary da" {
     var buf: [1]u8 = undefined;
     const input = "\x1b[?c";
-    const result = parseCsi(input, &buf);
+    const result = parseCsi(input, &buf, null);
     const expected: Result = .{
         .event = .cap_da1,
         .n = input.len,
@@ -1251,7 +1419,7 @@ test "parse(csi): dsr" {
     var buf: [1]u8 = undefined;
     {
         const input = "\x1b[?997;1n";
-        const result = parseCsi(input, &buf);
+        const result = parseCsi(input, &buf, null);
         const expected: Result = .{
             .event = .{ .color_scheme = .dark },
             .n = input.len,
@@ -1262,7 +1430,7 @@ test "parse(csi): dsr" {
     }
     {
         const input = "\x1b[?997;2n";
-        const result = parseCsi(input, &buf);
+        const result = parseCsi(input, &buf, null);
         const expected: Result = .{
             .event = .{ .color_scheme = .light },
             .n = input.len,
@@ -1273,7 +1441,7 @@ test "parse(csi): dsr" {
     }
     {
         const input = "\x1b[0n";
-        const result = parseCsi(input, &buf);
+        const result = parseCsi(input, &buf, null);
         const expected: Result = .{
             .event = null,
             .n = input.len,
@@ -1287,7 +1455,7 @@ test "parse(csi): dsr" {
 test "parse(csi): mouse" {
     var buf: [1]u8 = undefined;
     const input = "\x1b[<35;1;1m";
-    const result = parseCsi(input, &buf);
+    const result = parseCsi(input, &buf, null);
     const expected: Result = .{
         .event = .{ .mouse = .{
             .col = 0,
@@ -1306,7 +1474,7 @@ test "parse(csi): mouse" {
 test "parse(csi): mouse (negative)" {
     var buf: [1]u8 = undefined;
     const input = "\x1b[<35;-50;-100m";
-    const result = parseCsi(input, &buf);
+    const result = parseCsi(input, &buf, null);
     const expected: Result = .{
         .event = .{ .mouse = .{
             .col = -51,
@@ -1325,7 +1493,7 @@ test "parse(csi): mouse (negative)" {
 test "parse(csi): xterm mouse" {
     var buf: [1]u8 = undefined;
     const input = "\x1b[M\x20\x21\x21";
-    const result = parseCsi(input, &buf);
+    const result = parseCsi(input, &buf, null);
     const expected: Result = .{
         .event = .{ .mouse = .{
             .col = 0,

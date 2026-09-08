@@ -17,6 +17,8 @@ pub const Event = union(enum) {
     color_report: Color.Report, // osc 4, 10, 11, 12 response
     color_scheme: Color.Scheme,
     winsize: Winsize,
+    /// Cursor position report, with zero-based row and column.
+    cursor_position: @import("Screen.zig").Cursor,
 
     // these are delivered as discovered terminal capabilities
     cap_kitty_keyboard,
