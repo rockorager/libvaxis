@@ -559,7 +559,7 @@ test "All widgets have a doctest and refAllDecls test" {
             continue;
         const data = try cwd.readFileAllocOptions(io, file.name, std.testing.allocator, .limited(10_000_000), .of(u8), 0x00);
         defer std.testing.allocator.free(data);
-        var ast = try std.zig.Ast.parse(std.testing.allocator, data, .zig);
+        var ast = try std.zig.Ast.parse(std.testing.allocator, data, .{ .mode = .zig });
         defer ast.deinit(std.testing.allocator);
 
         var has_doctest: bool = false;
