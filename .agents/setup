@@ -5,3 +5,15 @@ set -euo pipefail
 if [[ -s /etc/resolv.conf ]] && [[ -n "$(tail -c 1 /etc/resolv.conf)" ]]; then
     printf '\n' | sudo tee -a /etc/resolv.conf >/dev/null
 fi
+
+# Match the Zig version used by CI.
+zig_version=0.16.0
+zig_dir="/opt/zig-x86_64-linux-$zig_version"
+if [[ ! -x "$zig_dir/zig" ]]; then
+    archive="$(mktemp)"
+    trap 'rm -f "$archive"' EXIT
+    curl -fsSL "https://ziglang.org/download/$zig_version/zig-x86_64-linux-$zig_version.tar.xz" -o "$archive"
+    echo "70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00  $archive" | sha256sum -c -
+    sudo tar -xJf "$archive" -C /opt
+fi
+sudo ln -sfn "$zig_dir/zig" /usr/local/bin/zig
