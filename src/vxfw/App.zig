@@ -540,9 +540,14 @@ const FocusHandler = struct {
         self.path_to_focused.clearAndFree(allocator);
 
         // Find the path to the focused widget. This builds a list that has the first element as the
-        // focused widget, and walks backward to the root. It's possible our focused widget is *not*
-        // in this tree. If this is the case, we refocus to the root widget
-        _ = try self.childHasFocus(allocator, surface);
+        // focused widget, and walks backward to the root.
+        if (!try self.childHasFocus(allocator, surface)) {
+            // Silently fall back to the root. The missing widget may already be destroyed, so
+            // do not send it focus_out or retain it as the focused widget.
+            try self.path_to_focused.append(allocator, self.root);
+            self.focused_widget = self.root;
+            return;
+        }
 
         if (!self.root.eql(surface.widget)) {
             // If the root of surface is not the initial widget, we append the initial widget
@@ -612,6 +617,116 @@ const FocusHandler = struct {
         }
     }
 };
+
+test "FocusHandler: removed focus falls back to root without calling the removed widget" {
+    const testing = std.testing;
+    const Record = struct {
+        id: u8,
+        phase: vxfw.EventContext.Phase,
+        event: std.meta.Tag(vxfw.Event),
+    };
+    const TestWidget = struct {
+        id: u8,
+        events: *std.ArrayList(Record),
+
+        fn widget(self: *@This()) Widget {
+            return .{
+                .userdata = self,
+                .captureHandler = handle,
+                .eventHandler = handle,
+                .drawFn = draw,
+            };
+        }
+
+        fn handle(userdata: *anyopaque, ctx: *vxfw.EventContext, event: vxfw.Event) anyerror!void {
+            const self: *@This() = @ptrCast(@alignCast(userdata));
+            try self.events.append(ctx.alloc, .{
+                .id = self.id,
+                .phase = ctx.phase,
+                .event = std.meta.activeTag(event),
+            });
+        }
+
+        fn draw(_: *anyopaque, _: vxfw.DrawContext) Allocator.Error!vxfw.Surface {
+            unreachable;
+        }
+    };
+
+    for ([_]bool{ false, true }) |different_surface_root| {
+        var events: std.ArrayList(Record) = .empty;
+        defer events.deinit(testing.allocator);
+        var root: TestWidget = .{ .id = 0, .events = &events };
+        var branch: TestWidget = .{ .id = 1, .events = &events };
+        var leaf: TestWidget = .{ .id = 2, .events = &events };
+        var sibling: TestWidget = .{ .id = 3, .events = &events };
+        var children = [_]vxfw.SubSurface{
+            .{ .origin = .{ .row = 0, .col = 0 }, .surface = .empty(sibling.widget()) },
+            .{ .origin = .{ .row = 1, .col = 0 }, .surface = .empty(leaf.widget()) },
+        };
+        var surface: vxfw.Surface = .empty(if (different_surface_root) branch.widget() else root.widget());
+        surface.children = &children;
+        var handler = FocusHandler.init(testing.allocator, root.widget());
+        defer handler.deinit(testing.allocator);
+        var ctx: vxfw.EventContext = .{
+            .io = testing.io,
+            .alloc = testing.allocator,
+            .phase = .capturing,
+            .cmds = .empty,
+            .consume_event = false,
+            .redraw = false,
+            .quit = false,
+        };
+        defer ctx.cmds.deinit(testing.allocator);
+
+        try handler.focusWidget(&ctx, leaf.widget());
+        events.clearRetainingCapacity();
+        try handler.update(testing.allocator, surface);
+        try testing.expectEqual(0, events.items.len);
+        try testing.expect(handler.focused_widget.eql(leaf.widget()));
+
+        // A present target retains capture/target/bubble order, including an implicit root.
+        const key: vxfw.Event = .{ .key_press = .{ .codepoint = 'x' } };
+        try handler.handleEvent(&ctx, key);
+        const expected: []const Record = if (different_surface_root) &.{
+            .{ .id = 0, .phase = .capturing, .event = .key_press },
+            .{ .id = 1, .phase = .capturing, .event = .key_press },
+            .{ .id = 2, .phase = .capturing, .event = .key_press },
+            .{ .id = 2, .phase = .at_target, .event = .key_press },
+            .{ .id = 1, .phase = .bubbling, .event = .key_press },
+            .{ .id = 0, .phase = .bubbling, .event = .key_press },
+        } else &.{
+            .{ .id = 0, .phase = .capturing, .event = .key_press },
+            .{ .id = 2, .phase = .capturing, .event = .key_press },
+            .{ .id = 2, .phase = .at_target, .event = .key_press },
+            .{ .id = 0, .phase = .bubbling, .event = .key_press },
+        };
+        try testing.expectEqualDeep(expected, @as([]const Record, events.items));
+        events.clearRetainingCapacity();
+
+        // Remove the focused leaf but keep its sibling. Reconciliation must be silent.
+        surface.children = children[0..1];
+        try handler.update(testing.allocator, surface);
+        try testing.expectEqual(0, events.items.len);
+        try testing.expectEqual(1, handler.path_to_focused.items.len);
+        try testing.expect(handler.path_to_focused.items[0].eql(root.widget()));
+        try testing.expect(handler.focused_widget.eql(root.widget()));
+
+        try handler.handleEvent(&ctx, key);
+        try testing.expectEqualDeep(@as([]const Record, &.{
+            .{ .id = 0, .phase = .capturing, .event = .key_press },
+            .{ .id = 0, .phase = .at_target, .event = .key_press },
+        }), @as([]const Record, events.items));
+        events.clearRetainingCapacity();
+
+        // A later focus request must not send focus_out to the removed leaf.
+        try handler.focusWidget(&ctx, sibling.widget());
+        try testing.expect(handler.focused_widget.eql(sibling.widget()));
+        try testing.expectEqualDeep(@as([]const Record, &.{
+            .{ .id = 0, .phase = .at_target, .event = .focus_out },
+            .{ .id = 3, .phase = .at_target, .event = .focus_in },
+        }), @as([]const Record, events.items));
+    }
+}
 
 test "timer consume does not leak to the next event" {
     const testing = std.testing;
