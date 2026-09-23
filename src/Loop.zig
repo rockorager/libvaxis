@@ -174,7 +174,7 @@ pub fn Loop(comptime T: type) type {
                 .windows => {
                     while (!self.should_quit) {
                         const event = try self.tty.nextEvent(&parser, paste_allocator);
-                        try handleEventGeneric(self, self.vaxis, &cache, Event, event, null);
+                        try handleEventGeneric(self, self.vaxis, &cache, Event, event, paste_allocator);
                     }
                 },
                 else => {
@@ -234,11 +234,29 @@ pub fn Loop(comptime T: type) type {
 
 // Use return on the self.postEvent's so it can either return error union or void
 pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Event: type, event: anytype, paste_allocator: ?std.mem.Allocator) !void {
-    if (event == .cursor_position) {
-        if (@hasField(Event, "cursor_position")) {
-            return self.postEvent(.{ .cursor_position = event.cursor_position });
-        }
-        return;
+    switch (event) {
+        .cursor_position => {
+            if (@hasField(Event, "cursor_position")) {
+                return self.postEvent(.{ .cursor_position = event.cursor_position });
+            }
+            return;
+        },
+        .paste_start => {
+            if (@hasField(Event, "paste_start")) return self.postEvent(.paste_start);
+            return;
+        },
+        .paste_end => {
+            if (@hasField(Event, "paste_end")) return self.postEvent(.paste_end);
+            return;
+        },
+        .paste => |text| {
+            if (@hasField(Event, "paste")) {
+                return self.postEvent(.{ .paste = text });
+            }
+            if (paste_allocator) |allocator| allocator.free(text);
+            return;
+        },
+        else => {},
     }
     switch (builtin.os.tag) {
         .windows => {
@@ -376,30 +394,12 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                         return self.postEvent(.focus_out);
                     }
                 },
-                .paste_start => {
-                    if (@hasField(Event, "paste_start")) {
-                        return self.postEvent(.paste_start);
-                    }
-                },
-                .paste_end => {
-                    if (@hasField(Event, "paste_end")) {
-                        return self.postEvent(.paste_end);
-                    }
-                },
-                .paste => |text| {
-                    if (@hasField(Event, "paste")) {
-                        return self.postEvent(.{ .paste = text });
-                    } else {
-                        if (paste_allocator) |_|
-                            paste_allocator.?.free(text);
-                    }
-                },
                 .color_report => |report| {
                     if (@hasField(Event, "color_report")) {
                         return self.postEvent(.{ .color_report = report });
                     }
                 },
-                .cursor_position => unreachable, // handled above on all platforms
+                .cursor_position, .paste_start, .paste_end, .paste => unreachable, // handled above on all platforms
                 .color_scheme => |scheme| {
                     if (@hasField(Event, "color_scheme")) {
                         return self.postEvent(.{ .color_scheme = scheme });
@@ -542,6 +542,42 @@ test "cursor queries deliver reports without interfering with capability probes"
     vx.cursor_position_requests.last_request_at = vx.cursor_position_requests.last_request_at.subDuration(.fromSeconds(2));
     try vx.queryTerminalSend(tty.writer());
     try testing.expectEqual(@as(usize, 0), vx.cursor_position_requests.pending());
+}
+
+test "paste dispatch preserves boundaries and transfers or frees clipboard text" {
+    const testing = std.testing;
+    var env = try testing.environ.createMap(testing.allocator);
+    defer env.deinit();
+    var tty = try Tty.init(testing.io, &.{});
+    defer tty.deinit();
+    var vx = try vaxis.init(testing.io, testing.allocator, &env, .{});
+    defer vx.deinit(testing.allocator, tty.writer());
+    var loop: Loop(vaxis.Event) = .init(testing.io, &tty, &vx);
+    var cache: GraphemeCache = .{};
+
+    const events = [_]vaxis.Event{
+        .{ .key_press = .{ .codepoint = vaxis.Key.enter } },
+        .paste_start,
+        .{ .key_press = .{ .codepoint = vaxis.Key.enter } },
+        .paste_end,
+        .{ .key_press = .{ .codepoint = vaxis.Key.enter } },
+    };
+    for (events) |event| try handleEventGeneric(&loop, &vx, &cache, vaxis.Event, event, testing.allocator);
+    for (events) |event| try testing.expectEqualDeep(event, (try loop.tryEvent()).?);
+    try testing.expectEqual(@as(?vaxis.Event, null), try loop.tryEvent());
+
+    const text = try testing.allocator.dupe(u8, "clipboard\ntext");
+    try handleEventGeneric(&loop, &vx, &cache, vaxis.Event, @as(vaxis.Event, .{ .paste = text }), testing.allocator);
+    const pasted = (try loop.tryEvent()).?.paste;
+    defer testing.allocator.free(pasted);
+    try testing.expectEqualStrings("clipboard\ntext", pasted);
+
+    const KeyEvent = union(enum) { key_press: vaxis.Key };
+    var keys: Loop(KeyEvent) = .init(testing.io, &tty, &vx);
+    for ([_]vaxis.Event{ .paste_start, .paste_end, .{ .paste = try testing.allocator.dupe(u8, "ignored") } }) |event| {
+        try handleEventGeneric(&keys, &vx, &cache, KeyEvent, event, testing.allocator);
+    }
+    try testing.expectEqual(@as(?KeyEvent, null), try keys.tryEvent());
 }
 
 test {

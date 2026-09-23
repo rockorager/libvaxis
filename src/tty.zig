@@ -315,6 +315,8 @@ pub const WindowsTty = struct {
     // a buffer to write key text into
     buf: [4]u8 = undefined,
 
+    event_state: EventState = .{},
+
     /// File.Writer for efficient buffered writing
     tty_writer: std.Io.File.Writer,
 
@@ -334,6 +336,7 @@ pub const WindowsTty = struct {
         .WINDOW_INPUT = 1, // resize events
         .MOUSE_INPUT = 1,
         .EXTENDED_FLAGS = 1, // allow mouse events
+        .VIRTUAL_TERMINAL_INPUT = 1, // preserve bracketed paste delimiters
     };
 
     /// The output mode set by init
@@ -355,11 +358,14 @@ pub const WindowsTty = struct {
 
         // set new modes
         try setConsoleMode(stdin.handle, input_raw_mode);
+        errdefer setConsoleMode(stdin.handle, initial_input_mode) catch {};
         try setConsoleMode(stdout.handle, output_raw_mode);
+        errdefer setConsoleMode(stdout.handle, initial_output_mode) catch {};
         if (SetConsoleOutputCP(utf8_codepage) == .FALSE)
             return windows.unexpectedError(windows.GetLastError());
+        errdefer _ = SetConsoleOutputCP(initial_output_codepage);
 
-        const self: WindowsTty = .{
+        var self: WindowsTty = .{
             .stdin = stdin.handle,
             .stdout = stdout.handle,
             .initial_codepage = initial_output_codepage,
@@ -368,6 +374,11 @@ pub const WindowsTty = struct {
             .tty_writer = .initStreaming(stdout, io, buffer),
         };
 
+        // VT input alone loses key releases and modifier keys. Win32-input-mode
+        // carries the original KEY_EVENT_RECORD fields in CSI ... _ sequences.
+        try self.writer().writeAll("\x1b[?9001h");
+        try self.writer().flush();
+
         // save a copy of this tty as the global_tty for panic handling
         global_tty = self;
 
@@ -375,6 +386,8 @@ pub const WindowsTty = struct {
     }
 
     pub fn deinit(self: WindowsTty) void {
+        var output: std.Io.File.Writer = .initStreaming(self.tty_writer.file, self.tty_writer.io, &.{});
+        output.interface.writeAll("\x1b[?9001l") catch {};
         _ = SetConsoleOutputCP(self.initial_codepage);
         setConsoleMode(self.stdin, self.initial_input_mode) catch {};
         setConsoleMode(self.stdout, self.initial_output_mode) catch {};
@@ -431,25 +444,53 @@ pub const WindowsTty = struct {
 
     pub fn nextEvent(self: *WindowsTty, parser: *Parser, paste_allocator: ?std.mem.Allocator) !Event {
         // We use a loop so we can ignore certain events
-        var state: EventState = .{};
         while (true) {
             var event_count: u32 = 0;
             var input_record: INPUT_RECORD = undefined;
             if (ReadConsoleInputW(self.stdin, &input_record, 1, &event_count) == .FALSE)
                 return windows.unexpectedError(windows.GetLastError());
 
-            if (try self.eventFromRecord(&input_record, &state, parser, paste_allocator)) |ev| {
+            if (try self.eventFromRecord(&input_record, &self.event_state, parser, paste_allocator)) |ev| {
                 return ev;
             }
         }
     }
 
     pub const EventState = struct {
+        // Outer VT transport, including win32-input-mode keyboard records.
+        vt_buf: [128]u8 = undefined,
+        vt_idx: usize = 0,
+        // Some console versions also wrap pasted VT bytes in win32 records.
         ansi_buf: [128]u8 = undefined,
         ansi_idx: usize = 0,
+        ansi_key_up: ?u16 = null,
         utf16_buf: [2]u16 = undefined,
         utf16_half: bool = false,
     };
+
+    // https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md
+    fn parseWin32Input(sequence: []const u8) ?KEY_EVENT_RECORD {
+        var params: [6]u32 = .{ 0, 0, 0, 0, 0, 1 };
+        var fields = std.mem.splitScalar(u8, sequence[2 .. sequence.len - 1], ';');
+        var i: usize = 0;
+        while (fields.next()) |field| : (i += 1) {
+            if (i == params.len) return null;
+            if (field.len > 0)
+                params[i] = std.fmt.parseInt(u32, field, 10) catch return null;
+        }
+        return .{
+            .wVirtualKeyCode = std.math.cast(u16, params[0]) orelse return null,
+            .wVirtualScanCode = std.math.cast(u16, params[1]) orelse return null,
+            .uChar = .{ .UnicodeChar = std.math.cast(u16, params[2]) orelse return null },
+            .bKeyDown = switch (params[3]) {
+                0 => .FALSE,
+                1 => .TRUE,
+                else => return null,
+            },
+            .dwControlKeyState = params[4],
+            .wRepeatCount = std.math.cast(u16, params[5]) orelse return null,
+        };
+    }
 
     pub const SMALL_RECT = extern struct {
         Left: windows.SHORT,
@@ -474,7 +515,39 @@ pub const WindowsTty = struct {
     pub fn eventFromRecord(self: *WindowsTty, record: *const INPUT_RECORD, state: *EventState, parser: *Parser, paste_allocator: ?std.mem.Allocator) !?Event {
         switch (record.EventType) {
             0x0001 => { // Key event
-                const event = record.Event.KeyEvent;
+                var event = record.Event.KeyEvent;
+
+                if (event.wVirtualKeyCode == 0) {
+                    if (event.bKeyDown == .FALSE) return null;
+                    if (state.vt_idx > 0 or event.uChar.UnicodeChar == 27) {
+                        if (state.vt_idx == state.vt_buf.len or event.uChar.UnicodeChar > 127) {
+                            state.vt_idx = 0;
+                            return null;
+                        }
+                        state.vt_buf[state.vt_idx] = @intCast(event.uChar.UnicodeChar);
+                        state.vt_idx += 1;
+                        if (state.vt_idx <= 2) return null;
+                        const sequence = state.vt_buf[0..state.vt_idx];
+                        if (std.mem.startsWith(u8, sequence, "\x1b[") and sequence[sequence.len - 1] == '_') {
+                            state.vt_idx = 0;
+                            event = parseWin32Input(sequence) orelse return null;
+                        } else {
+                            const result = try parser.parse(sequence, paste_allocator);
+                            if (result.n > 0) state.vt_idx = 0;
+                            return result.event;
+                        }
+                    }
+                }
+
+                // Encoded paste records may contain key-up duplicates. Only
+                // key-down text belongs to the inner escape-sequence stream.
+                if (event.wVirtualKeyCode == 0 and event.bKeyDown == .FALSE and
+                    state.ansi_key_up == event.uChar.UnicodeChar)
+                {
+                    state.ansi_key_up = null;
+                    return null;
+                }
+                state.ansi_key_up = null;
 
                 if (state.utf16_half) half: {
                     state.utf16_half = false;
@@ -497,9 +570,14 @@ pub const WindowsTty = struct {
 
                 const base_layout: u16 = switch (event.wVirtualKeyCode) {
                     0x00 => blk: { // delivered when we get an escape sequence or a unicode codepoint
-                        if (state.ansi_idx == 0 and event.uChar.AsciiChar != 27)
+                        if (state.ansi_idx == 0 and event.uChar.UnicodeChar != 27)
                             break :blk event.uChar.UnicodeChar;
-                        state.ansi_buf[state.ansi_idx] = event.uChar.AsciiChar;
+                        if (state.ansi_idx == state.ansi_buf.len or event.uChar.UnicodeChar > 127) {
+                            state.ansi_idx = 0;
+                            return null;
+                        }
+                        state.ansi_key_up = event.uChar.UnicodeChar;
+                        state.ansi_buf[state.ansi_idx] = @intCast(event.uChar.UnicodeChar);
                         state.ansi_idx += 1;
                         if (state.ansi_idx <= 2) return null;
                         const result = try parser.parse(state.ansi_buf[0..state.ansi_idx], paste_allocator);
@@ -973,6 +1051,106 @@ pub const TestTty = switch (builtin.os.tag) {
         }
     },
 };
+
+test "Windows win32-input-mode fields and defaults" {
+    const record = WindowsTty.parseWin32Input("\x1b[65;30;65;1;16;3_").?;
+    try std.testing.expectEqual(@as(u16, 65), record.wVirtualKeyCode);
+    try std.testing.expectEqual(@as(u16, 30), record.wVirtualScanCode);
+    try std.testing.expectEqual(@as(u16, 65), record.uChar.UnicodeChar);
+    try std.testing.expectEqual(windows.BOOL.TRUE, record.bKeyDown);
+    try std.testing.expectEqual(@as(u32, 16), record.dwControlKeyState);
+    try std.testing.expectEqual(@as(u16, 3), record.wRepeatCount);
+    const defaults = WindowsTty.parseWin32Input("\x1b[65;;97;1_").?;
+    try std.testing.expectEqual(@as(u16, 0), defaults.wVirtualScanCode);
+    try std.testing.expectEqual(@as(u32, 0), defaults.dwControlKeyState);
+    try std.testing.expectEqual(@as(u16, 1), defaults.wRepeatCount);
+    for ([_][]const u8{
+        "\x1b[65536;0;0;1;0;1_",
+        "\x1b[0;0;65536;1;0;1_",
+        "\x1b[0;0;0;2;0;1_",
+        "\x1b[0;0;0;1;4294967296;1_",
+        "\x1b[0;0;0;1;0;65536_",
+        "\x1b[0;0;0;1;0;1;0_",
+    }) |sequence| try std.testing.expect(WindowsTty.parseWin32Input(sequence) == null);
+}
+
+const WindowsInputTest = struct {
+    tty: WindowsTty = .{
+        .stdin = undefined,
+        .stdout = undefined,
+        .initial_codepage = 0,
+        .initial_input_mode = .{},
+        .initial_output_mode = .{},
+        .tty_writer = undefined,
+    },
+    parser: Parser = .{},
+
+    fn expectSequence(self: *@This(), input: []const u16, expected: ?Event) !void {
+        for (input, 0..) |unit, i| {
+            const record: WindowsTty.INPUT_RECORD = .{
+                .EventType = 0x0001,
+                .Event = .{ .KeyEvent = .{
+                    .bKeyDown = .TRUE,
+                    .wRepeatCount = 1,
+                    .wVirtualKeyCode = 0,
+                    .wVirtualScanCode = 0,
+                    .uChar = .{ .UnicodeChar = unit },
+                    .dwControlKeyState = 0,
+                } },
+            };
+            const event = try self.tty.eventFromRecord(&record, &self.tty.event_state, &self.parser, null);
+            try std.testing.expectEqualDeep(if (i == input.len - 1) expected else null, event);
+        }
+    }
+};
+
+test "Windows paste boundaries, Unicode, and ordinary keyboard events" {
+    if (builtin.os.tag != .windows) return error.SkipZigTest;
+    const utf16 = std.unicode.utf8ToUtf16LeStringLiteral;
+    var input: WindowsInputTest = .{};
+    try std.testing.expectEqual(@as(u1, 1), WindowsTty.input_raw_mode.VIRTUAL_TERMINAL_INPUT);
+    try input.expectSequence(utf16("\x1b[200~"), .paste_start);
+    try input.expectSequence(utf16("a"), .{ .key_press = .{ .codepoint = 'a', .base_layout_codepoint = 'a', .text = "a" } });
+    try input.expectSequence(utf16("\r"), .{ .key_press = .{ .codepoint = Key.enter, .base_layout_codepoint = Key.enter } });
+    // U+011B has ESC as its low byte; it must not start a control sequence.
+    try input.expectSequence(utf16("ě"), .{ .key_press = .{ .codepoint = 'ě', .base_layout_codepoint = 'ě', .text = "ě" } });
+    try input.expectSequence(utf16("😀"), .{ .key_press = .{ .codepoint = '😀', .base_layout_codepoint = '😀', .text = "😀" } });
+    try input.expectSequence(utf16("\r"), .{ .key_press = .{ .codepoint = Key.enter, .base_layout_codepoint = Key.enter } });
+    try input.expectSequence(utf16("z"), .{ .key_press = .{ .codepoint = 'z', .base_layout_codepoint = 'z', .text = "z" } });
+    try input.expectSequence(utf16("\x1b[201~"), .paste_end);
+
+    // Physical keys arrive as win32-input-mode, including releases and Escape.
+    try input.expectSequence(utf16("\x1b[13;28;13;1;0;1_"), .{ .key_press = .{ .codepoint = Key.enter, .base_layout_codepoint = Key.enter } });
+    try input.expectSequence(utf16("\x1b[13;28;13;0;0;1_"), .{ .key_release = .{ .codepoint = Key.enter, .base_layout_codepoint = Key.enter } });
+    try input.expectSequence(utf16("\x1b[27;1;27;1;0;1_"), .{ .key_press = .{ .codepoint = Key.escape, .base_layout_codepoint = Key.escape } });
+    try input.expectSequence(utf16("\x1b[65;30;65;1;16;1_"), .{ .key_press = .{ .codepoint = 'A', .base_layout_codepoint = 'a', .mods = .{ .shift = true }, .text = "A" } });
+    try input.expectSequence(utf16("\x1b[65;30;65;0;16;1_"), .{ .key_release = .{ .codepoint = 'A', .base_layout_codepoint = 'a', .mods = .{ .shift = true }, .text = "A" } });
+    try input.expectSequence(utf16("\x1b[67;46;3;1;8;1_"), .{ .key_press = .{ .codepoint = 'c', .base_layout_codepoint = 'c', .mods = .{ .ctrl = true } } });
+    try input.expectSequence(utf16("\x1b[81;16;64;1;9;1_"), .{ .key_press = .{ .codepoint = '@', .base_layout_codepoint = 'q', .text = "@" } });
+    try input.expectSequence(utf16("\x1b[16;42;0;0;0;1_"), .{ .key_release = .{ .codepoint = Key.left_shift, .base_layout_codepoint = Key.left_shift } });
+    try input.expectSequence(utf16("\x1b[0;0;283;1;0;1_"), .{ .key_press = .{ .codepoint = 'ě', .base_layout_codepoint = 'ě', .text = "ě" } });
+    try input.expectSequence(utf16("\x1b[0;0;283;0;0;1_"), .{ .key_release = .{ .codepoint = 'ě', .base_layout_codepoint = 'ě', .text = "ě" } });
+}
+
+test "Windows paste delimiters wrapped in win32-input-mode" {
+    if (builtin.os.tag != .windows) return error.SkipZigTest;
+    var input: WindowsInputTest = .{};
+    for ([_][]const u8{ "\x1b[200~", "\x1b[201~" }, 0..) |marker, m| {
+        for (marker, 0..) |byte, i| {
+            for ([_]u1{ 1, 0 }) |down| {
+                var buffer: [64]u8 = undefined;
+                const sequence = try std.fmt.bufPrint(&buffer, "\x1b[0;0;{d};{d};0;1_", .{ byte, down });
+                var units: [64]u16 = undefined;
+                for (sequence, 0..) |b, j| units[j] = b;
+                const expected: ?Event = if (down == 1 and i == marker.len - 1)
+                    (if (m == 0) .paste_start else .paste_end)
+                else
+                    null;
+                try input.expectSequence(units[0..sequence.len], expected);
+            }
+        }
+    }
+}
 
 test {
     std.testing.refAllDecls(@This());
