@@ -22,7 +22,8 @@ pub fn Loop(comptime T: type) type {
 
         queue: Queue(T, 512),
         thread: ?std.Io.Future(void) = null,
-        should_quit: bool = false,
+        // Queued key text must outlive the input task, including on failure.
+        cache: GraphemeCache = .{},
         resize_handler_installed: bool = false,
 
         /// Initialize the event loop. This is an intrusive init so that we have
@@ -70,6 +71,9 @@ pub fn Loop(comptime T: type) type {
         /// spawns the input thread to read input from the tty
         pub fn start(self: *Self) !void {
             if (self.thread) |_| return;
+            if (builtin.os.tag == .windows and !builtin.is_test) try self.tty.resetInput();
+            self.queue.reopen();
+            errdefer self.queue.close(error.Closed);
             self.thread = try self.io.concurrent(Self.ttyRun, .{
                 self,
                 self.vaxis.opts.system_clipboard_allocator,
@@ -80,18 +84,19 @@ pub fn Loop(comptime T: type) type {
         pub fn stop(self: *Self) void {
             // If we don't have a thread, we have nothing to stop
             if (self.thread == null) return;
-            self.should_quit = true;
-            // trigger a read
-            self.vaxis.deviceStatusReport(self.tty.writer()) catch {};
+            self.queue.close(error.Closed);
+            if (builtin.os.tag == .windows and !builtin.is_test) self.tty.interruptInput();
 
             if (self.thread) |*thread| {
-                thread.await(self.io);
+                // Interrupt POSIX reads, retry sleeps, and queue waits as well as
+                // joining. Native Windows console waits use input_stop above.
+                thread.cancel(self.io);
                 self.thread = null;
-                self.should_quit = false;
             }
         }
 
-        /// returns the next available event, blocking until one is available
+        /// Returns the next event, blocking until available. After buffered events
+        /// are drained, returns Closed on stop or the input task's failure.
         pub fn nextEvent(self: *Self) !T {
             return try self.queue.pop();
         }
@@ -129,54 +134,43 @@ pub fn Loop(comptime T: type) type {
             }
         }
 
-        const TtyRunError = error{
-            AccessDenied,
-            Canceled,
-            CodepointTooLarge,
-            ConnectionResetByPeer,
-            EndOfStream,
-            InputOutput,
-            InvalidCharacter,
-            InvalidColorSpec,
-            InvalidPadding,
-            InvalidUTF8,
-            IoctlError,
-            IsDir,
-            LockViolation,
-            NoSpaceLeft,
-            NotOpenForReading,
-            OutOfMemory,
-            Overflow,
-            SocketUnconnected,
-            SystemResources,
-            Unexpected,
-            Utf8CannotEncodeSurrogateHalf,
-            WouldBlock,
-        };
-
         /// read input from the tty. This is run in a separate thread
         fn ttyRun(self: *Self, paste_allocator: ?std.mem.Allocator) void {
-            self._ttyRun(paste_allocator) catch {};
+            self._ttyRun(paste_allocator) catch |err| self.inputFailed(err);
+        }
+
+        fn inputFailed(self: *Self, err: anyerror) void {
+            if (err != error.Canceled and err != error.Closed)
+                log.warn("input stopped: {s}", .{@errorName(err)});
+            self.queue.close(if (err == error.Canceled) error.Closed else err);
+        }
+
+        fn runWindows(self: *Self, reader: anytype, paste_allocator: ?std.mem.Allocator) !void {
+            var parser: Parser = .{ .cursor_position_requests = &self.vaxis.cursor_position_requests };
+            var retry: ReadRetry = .{};
+            while (true) {
+                try self.io.checkCancel();
+                const event = reader.nextEvent(&parser, paste_allocator) catch |err| {
+                    if (malformedInput(err)) continue;
+                    try retry.wait(self.io, err);
+                    continue;
+                };
+                retry = .{};
+                try handleEventGeneric(self, self.vaxis, &self.cache, Event, event, paste_allocator);
+            }
         }
 
         fn _ttyRun(
             self: *Self,
             paste_allocator: ?std.mem.Allocator,
-        ) TtyRunError!void {
+        ) !void {
             // Return early if we're in test mode to avoid infinite loops
             if (builtin.is_test) return;
 
-            // initialize a grapheme cache
-            var cache: GraphemeCache = .{};
             var parser: Parser = .{ .cursor_position_requests = &self.vaxis.cursor_position_requests };
 
             switch (builtin.os.tag) {
-                .windows => {
-                    while (!self.should_quit) {
-                        const event = try self.tty.nextEvent(&parser, paste_allocator);
-                        try handleEventGeneric(self, self.vaxis, &cache, Event, event, paste_allocator);
-                    }
-                },
+                .windows => try self.runWindows(self.tty, paste_allocator),
                 else => {
                     // get our initial winsize
                     const winsize = try self.tty.getWinsize();
@@ -187,9 +181,16 @@ pub fn Loop(comptime T: type) type {
                     // initialize the read buffer
                     var buf: [1024]u8 = undefined;
                     var read_start: usize = 0;
+                    var retry: ReadRetry = .{};
                     // read loop
-                    read_loop: while (!self.should_quit) {
-                        const bytes_read = try self.tty.read(buf[read_start..]);
+                    read_loop: while (true) {
+                        try self.io.checkCancel();
+                        const bytes_read = self.tty.read(buf[read_start..]) catch |err| {
+                            try retry.wait(self.io, err);
+                            continue;
+                        };
+                        if (bytes_read == 0) return error.EndOfStream;
+                        retry = .{};
                         const n = read_start + bytes_read;
                         var seq_start: usize = 0;
                         while (seq_start < n) {
@@ -208,7 +209,13 @@ pub fn Loop(comptime T: type) type {
                                 }
                             }
 
-                            const result = try parser.parse(buf[seq_start..n], paste_allocator);
+                            const result = parser.parse(buf[seq_start..n], paste_allocator) catch |err| {
+                                if (!malformedInput(err)) return err;
+                                // There is no consumed length on parse errors. Discard
+                                // this batch rather than retrying the same bad bytes.
+                                read_start = 0;
+                                continue :read_loop;
+                            };
                             if (result.n == 0) {
                                 // copy the read to the beginning. We don't use memcpy because
                                 // this could be overlapping, and it's also rare
@@ -223,12 +230,47 @@ pub fn Loop(comptime T: type) type {
                             seq_start += result.n;
 
                             const event = result.event orelse continue;
-                            try handleEventGeneric(self, self.vaxis, &cache, Event, event, paste_allocator);
+                            try handleEventGeneric(self, self.vaxis, &self.cache, Event, event, paste_allocator);
                         }
                     }
                 },
             }
         }
+    };
+}
+
+const ReadRetry = struct {
+    attempts: u8 = 0,
+
+    fn delay(self: *ReadRetry, err: anyerror) !std.Io.Duration {
+        switch (err) {
+            error.InputInterrupted, error.WouldBlock, error.InputOutput, error.SystemResources => {},
+            else => return err,
+        }
+        if (self.attempts == 8) return err;
+        const ms = @min(@as(u32, 10) << @intCast(self.attempts), 250);
+        self.attempts += 1;
+        return .fromMilliseconds(ms);
+    }
+
+    fn wait(self: *ReadRetry, io: std.Io, err: anyerror) !void {
+        const duration = try self.delay(err);
+        if (self.attempts == 1) log.warn("input read failed: {s}; retrying", .{@errorName(err)});
+        try io.sleep(duration, .awake);
+    }
+};
+
+fn malformedInput(err: anyerror) bool {
+    return switch (err) {
+        error.InvalidCharacter,
+        error.InvalidColorSpec,
+        error.InvalidPadding,
+        error.InvalidUTF8,
+        error.Utf8CannotEncodeSurrogateHalf,
+        error.CodepointTooLarge,
+        error.Overflow,
+        => true,
+        else => false,
     };
 }
 
@@ -251,6 +293,7 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
         },
         .paste => |text| {
             if (@hasField(Event, "paste")) {
+                errdefer if (paste_allocator) |allocator| allocator.free(text);
                 return self.postEvent(.{ .paste = text });
             }
             if (paste_allocator) |allocator| allocator.free(text);
@@ -578,6 +621,143 @@ test "paste dispatch preserves boundaries and transfers or frees clipboard text"
         try handleEventGeneric(&keys, &vx, &cache, KeyEvent, event, testing.allocator);
     }
     try testing.expectEqual(@as(?KeyEvent, null), try keys.tryEvent());
+}
+
+test "read retries back off, cap attempts, and reject permanent errors" {
+    const testing = std.testing;
+    var retry: ReadRetry = .{};
+    for ([_]i64{ 10, 20, 40, 80, 160, 250, 250, 250 }) |ms| {
+        const duration = try retry.delay(error.InputInterrupted);
+        try testing.expectEqual(ms, duration.toMilliseconds());
+    }
+    try testing.expectError(error.InputInterrupted, retry.delay(error.InputInterrupted));
+    retry = .{};
+    for ([_]anyerror{ error.Canceled, error.AccessDenied, error.InvalidHandle, error.OutOfMemory, error.EndOfStream }) |err| {
+        try testing.expectError(err, retry.delay(err));
+    }
+    try testing.expectEqual(0, retry.attempts);
+}
+
+test "Windows reader recovers, resets retries, and reports failure after queued keys" {
+    const testing = std.testing;
+    const Event = union(enum) { key_press: vaxis.Key };
+    const Reader = struct {
+        calls: usize = 0,
+
+        fn nextEvent(self: *@This(), _: *Parser, _: ?std.mem.Allocator) !vaxis.Event {
+            defer self.calls += 1;
+            return switch (self.calls) {
+                0...7, 9 => error.InputInterrupted,
+                8 => .{ .key_press = .{ .codepoint = 'a', .text = "abc" } },
+                10 => error.InvalidUTF8,
+                11 => .{ .key_press = .{ .codepoint = 'z', .text = "zy" } },
+                else => error.AccessDenied,
+            };
+        }
+
+        fn run(self: *@This(), loop: *Loop(Event)) void {
+            loop.runWindows(self, null) catch |err| loop.inputFailed(err);
+        }
+    };
+    var vx: Vaxis = undefined;
+    var loop: Loop(Event) = .init(testing.io, undefined, &vx);
+    var reader: Reader = .{};
+    var task = try testing.io.concurrent(Reader.run, .{ &reader, &loop });
+    task.await(testing.io);
+    try testing.expectEqual(13, reader.calls);
+    const first = (try loop.nextEvent()).key_press;
+    const second = (try loop.nextEvent()).key_press;
+    try testing.expectEqual('a', first.codepoint);
+    try testing.expectEqual('z', second.codepoint);
+    try testing.expectEqualStrings("abc", first.text.?);
+    try testing.expectEqualStrings("zy", second.text.?);
+    try testing.expect(first.text.?.ptr == loop.cache.buf[0..].ptr);
+    try testing.expectError(error.AccessDenied, loop.nextEvent());
+    try testing.expectError(error.AccessDenied, loop.tryEvent());
+    try testing.expectError(error.AccessDenied, loop.pollEvent());
+}
+
+test "stop interrupts a reader posting to a full queue" {
+    const testing = std.testing;
+    const Event = union(enum) { focus_in };
+    const Reader = struct {
+        ready: std.Io.Event = .unset,
+        calls: usize = 0,
+
+        fn nextEvent(self: *@This(), _: *Parser, _: ?std.mem.Allocator) !vaxis.Event {
+            self.calls += 1;
+            self.ready.set(testing.io);
+            return .focus_in;
+        }
+
+        fn run(self: *@This(), loop: *Loop(Event)) void {
+            loop.runWindows(self, null) catch |err| loop.inputFailed(err);
+        }
+    };
+    var vx: Vaxis = undefined;
+    var loop: Loop(Event) = .init(testing.io, undefined, &vx);
+    for (0..512) |_| try loop.postEvent(.focus_in);
+    var reader: Reader = .{};
+    loop.thread = try testing.io.concurrent(Reader.run, .{ &reader, &loop });
+    defer loop.stop();
+    try reader.ready.wait(testing.io);
+    try testing.io.sleep(.fromMilliseconds(10), .awake);
+    loop.stop();
+    try testing.expectEqual(1, reader.calls);
+    try testing.expect(loop.thread == null);
+    for (0..512) |_| try testing.expectEqual(Event.focus_in, try loop.nextEvent());
+    try testing.expectError(error.Closed, loop.nextEvent());
+}
+
+test "stop cancels an idle POSIX read without a terminal response" {
+    if (builtin.os.tag != .linux) return error.SkipZigTest;
+    const testing = std.testing;
+    const Event = union(enum) { focus_in };
+    var tty = try Tty.init(testing.io, &.{});
+    defer tty.deinit();
+    const Reader = struct {
+        tty: @import("tty.zig").PosixTty,
+        ready: std.Io.Event = .unset,
+        result: anyerror!usize = undefined,
+
+        fn run(self: *@This(), loop: *Loop(Event)) void {
+            var buf: [16]u8 = undefined;
+            self.ready.set(testing.io);
+            self.result = self.tty.read(&buf);
+            _ = self.result catch |err| {
+                loop.inputFailed(err);
+                return;
+            };
+        }
+    };
+    var reader: Reader = .{ .tty = undefined };
+    reader.tty.io = testing.io;
+    reader.tty.fd = .{ .handle = tty.pipe_read, .flags = .{ .nonblocking = false } };
+    var vx: Vaxis = undefined;
+    var loop: Loop(Event) = .init(testing.io, &tty, &vx);
+    loop.thread = try testing.io.concurrent(Reader.run, .{ &reader, &loop });
+    defer loop.stop();
+    try reader.ready.wait(testing.io);
+    try testing.io.sleep(.fromMilliseconds(10), .awake);
+    loop.stop();
+    try testing.expectError(error.Canceled, reader.result);
+    try testing.expectError(error.Closed, loop.tryEvent());
+}
+
+test "failed paste enqueue frees its allocation" {
+    const Event = union(enum) { paste: []const u8 };
+    var vx: Vaxis = undefined;
+    var loop: Loop(Event) = .init(std.testing.io, undefined, &vx);
+    loop.queue.close(error.Closed);
+    const text = try std.testing.allocator.dupe(u8, "owned paste");
+    try std.testing.expectError(error.Closed, handleEventGeneric(
+        &loop,
+        &vx,
+        &loop.cache,
+        Event,
+        @as(vaxis.Event, .{ .paste = text }),
+        std.testing.allocator,
+    ));
 }
 
 test {

@@ -123,38 +123,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
         }
 
         try self.checkTimers(&ctx);
-
-        {
-            try loop.queue.lock();
-            defer loop.queue.unlock();
-            while (loop.queue.drain()) |event| {
-                defer resetEventState(&ctx);
-                switch (event) {
-                    .key_press => {
-                        try focus_handler.handleEvent(&ctx, event);
-                        try self.handleCommand(&ctx.cmds);
-                    },
-                    .focus_out => {
-                        try mouse_handler.mouseExit(self, &ctx);
-                        try focus_handler.handleEvent(&ctx, .focus_out);
-                        try self.handleCommand(&ctx.cmds);
-                    },
-                    .focus_in => {
-                        try focus_handler.handleEvent(&ctx, .focus_in);
-                        try self.handleCommand(&ctx.cmds);
-                    },
-                    .mouse => |mouse| try mouse_handler.handleMouse(self, &ctx, mouse),
-                    .winsize => |ws| {
-                        try vx.resize(self.allocator, tty.writer(), ws);
-                        ctx.redraw = true;
-                    },
-                    else => {
-                        try focus_handler.handleEvent(&ctx, event);
-                        try self.handleCommand(&ctx.cmds);
-                    },
-                }
-            }
-        }
+        try self.dispatchEvents(&loop, &ctx, &mouse_handler, &focus_handler);
 
         // If we have a focus change, handle that event before we layout
         if (self.wants_focus) |wants_focus| {
@@ -198,6 +167,46 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
         // Update the focus handler list
         try focus_handler.update(self.allocator, surface);
         try self.render(surface, focus_handler.focused_widget);
+    }
+}
+
+fn dispatchEvents(
+    self: *App,
+    loop: *EventLoop,
+    ctx: *vxfw.EventContext,
+    mouse_handler: *MouseHandler,
+    focus_handler: *FocusHandler,
+) !void {
+    // Bound the batch so continuously arriving input cannot starve frames
+    // or timers. tryEvent releases the queue mutex before handlers run.
+    for (0..loop.queue.buf.len) |_| {
+        const event = try loop.tryEvent() orelse break;
+        defer resetEventState(ctx);
+        switch (event) {
+            .key_press => {
+                try focus_handler.handleEvent(ctx, event);
+                try self.handleCommand(&ctx.cmds);
+            },
+            .focus_out => {
+                try mouse_handler.mouseExit(self, ctx);
+                try focus_handler.handleEvent(ctx, .focus_out);
+                try self.handleCommand(&ctx.cmds);
+            },
+            .focus_in => {
+                try focus_handler.handleEvent(ctx, .focus_in);
+                try self.handleCommand(&ctx.cmds);
+            },
+            .mouse => |mouse| try mouse_handler.handleMouse(self, ctx, mouse),
+            .winsize => |ws| {
+                try self.vx.resize(self.allocator, self.tty.writer(), ws);
+                ctx.redraw = true;
+            },
+            else => {
+                try focus_handler.handleEvent(ctx, event);
+                try self.handleCommand(&ctx.cmds);
+            },
+        }
+        if (ctx.quit) return;
     }
 }
 
@@ -726,6 +735,78 @@ test "FocusHandler: removed focus falls back to root without calling the removed
             .{ .id = 3, .phase = .at_target, .event = .focus_in },
         }), @as([]const Record, events.items));
     }
+}
+
+test "event dispatch unlocks before handlers and yields a continuously replenished queue" {
+    const testing = std.testing;
+    const TestWidget = struct {
+        loop: *EventLoop,
+        keys: usize = 0,
+        ticks: usize = 0,
+
+        fn handle(userdata: *anyopaque, ctx: *vxfw.EventContext, event: vxfw.Event) anyerror!void {
+            const self: *@This() = @ptrCast(@alignCast(userdata));
+            switch (event) {
+                .key_press => {
+                    // Fail rather than deadlock if dispatch still holds the lock.
+                    try testing.expect(self.loop.queue.mutex.tryLock());
+                    self.loop.queue.mutex.unlock(testing.io);
+                    self.keys += 1;
+                    if (self.keys > 512) return error.UnboundedBatch;
+                    try self.loop.postEvent(event);
+                    ctx.redraw = true;
+                },
+                .tick => self.ticks += 1,
+                else => {},
+            }
+        }
+
+        fn draw(_: *anyopaque, _: vxfw.DrawContext) Allocator.Error!vxfw.Surface {
+            unreachable;
+        }
+    };
+    var app: App = .{
+        .io = testing.io,
+        .allocator = testing.allocator,
+        .tty = undefined,
+        .vx = undefined,
+        .timers = .empty,
+        .wants_focus = null,
+    };
+    defer app.timers.deinit(testing.allocator);
+    var loop: EventLoop = .init(testing.io, &app.tty, &app.vx);
+    var test_widget: TestWidget = .{ .loop = &loop };
+    const widget: Widget = .{
+        .userdata = &test_widget,
+        .eventHandler = TestWidget.handle,
+        .drawFn = TestWidget.draw,
+    };
+    var mouse = MouseHandler.init(widget);
+    defer mouse.deinit(testing.allocator);
+    var focus = FocusHandler.init(testing.allocator, widget);
+    defer focus.deinit(testing.allocator);
+    try focus.path_to_focused.append(testing.allocator, widget);
+    var ctx: vxfw.EventContext = .{
+        .io = testing.io,
+        .alloc = testing.allocator,
+        .phase = .capturing,
+        .cmds = .empty,
+        .consume_event = false,
+        .redraw = false,
+        .quit = false,
+    };
+    defer ctx.cmds.deinit(testing.allocator);
+    try loop.postEvent(.{ .key_press = .{ .codepoint = 'x' } });
+    try app.dispatchEvents(&loop, &ctx, &mouse, &focus);
+    try testing.expectEqual(512, test_widget.keys);
+    try testing.expect(ctx.redraw);
+    try testing.expectEqual('x', (try loop.tryEvent()).?.key_press.codepoint);
+    try app.timers.append(testing.allocator, .{
+        .deadline = std.Io.Timestamp.now(testing.io, .awake).addDuration(.fromMilliseconds(-1)),
+        .widget = widget,
+    });
+    try app.checkTimers(&ctx);
+    try testing.expectEqual(1, test_widget.ticks);
 }
 
 test "timer consume does not leak to the next event" {

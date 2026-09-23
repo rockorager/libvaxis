@@ -307,6 +307,7 @@ pub const PosixTty = struct {
 pub const WindowsTty = struct {
     stdin: windows.HANDLE,
     stdout: windows.HANDLE,
+    input_stop: windows.HANDLE,
 
     initial_codepage: c_uint,
     initial_input_mode: CONSOLE_MODE_INPUT,
@@ -350,6 +351,9 @@ pub const WindowsTty = struct {
     pub fn init(io: std.Io, buffer: []u8) !WindowsTty {
         const stdin: std.Io.File = .stdin();
         const stdout: std.Io.File = .stdout();
+        const input_stop = CreateEventW(null, .TRUE, .FALSE, null) orelse
+            return windows.unexpectedError(windows.GetLastError());
+        errdefer windows.CloseHandle(input_stop);
 
         // get initial modes
         const initial_output_codepage = GetConsoleOutputCP();
@@ -368,6 +372,7 @@ pub const WindowsTty = struct {
         var self: WindowsTty = .{
             .stdin = stdin.handle,
             .stdout = stdout.handle,
+            .input_stop = input_stop,
             .initial_codepage = initial_output_codepage,
             .initial_input_mode = initial_input_mode,
             .initial_output_mode = initial_output_mode,
@@ -391,6 +396,7 @@ pub const WindowsTty = struct {
         _ = SetConsoleOutputCP(self.initial_codepage);
         setConsoleMode(self.stdin, self.initial_input_mode) catch {};
         setConsoleMode(self.stdout, self.initial_output_mode) catch {};
+        windows.CloseHandle(self.input_stop);
         windows.CloseHandle(self.stdin);
         windows.CloseHandle(self.stdout);
     }
@@ -442,15 +448,53 @@ pub const WindowsTty = struct {
         return posix.read(self.fd, buf);
     }
 
+    pub fn resetInput(self: *WindowsTty) !void {
+        if (ResetEvent(self.input_stop) == .FALSE)
+            return windows.unexpectedError(windows.GetLastError());
+        self.event_state = .{};
+    }
+
+    pub fn interruptInput(self: *WindowsTty) void {
+        // The handle is owned by this Tty and remains open until deinit.
+        if (SetEvent(self.input_stop) == .FALSE) @panic("invalid console stop event");
+    }
+
+    fn inputError(code: windows.Win32Error) anyerror {
+        return switch (code) {
+            .INVALID_HANDLE => error.InvalidHandle,
+            .ACCESS_DENIED => error.AccessDenied,
+            .OPERATION_ABORTED => error.InputInterrupted,
+            .NOT_READY, .BUSY, .RETRY => error.WouldBlock,
+            .NOT_ENOUGH_MEMORY, .NO_SYSTEM_RESOURCES => error.SystemResources,
+            else => {
+                std.log.scoped(.vaxis).warn("console input failed: Win32 error {d}", .{@intFromEnum(code)});
+                return error.Unexpected;
+            },
+        };
+    }
+
     pub fn nextEvent(self: *WindowsTty, parser: *Parser, paste_allocator: ?std.mem.Allocator) !Event {
-        // We use a loop so we can ignore certain events
+        // Keep partial ANSI and UTF-16 input across transient console read errors.
         while (true) {
+            // A console handle is signaled while input is available. Put the stop
+            // event first so shutdown wins even during a continuous input stream.
+            // This Tty must be the sole reader of the console input buffer.
+            const handles = [_]windows.HANDLE{ self.input_stop, self.stdin };
+            switch (WaitForMultipleObjects(handles.len, &handles, .FALSE, 0xffffffff)) {
+                0 => return error.Canceled,
+                1 => {},
+                else => return inputError(windows.GetLastError()),
+            }
             var event_count: u32 = 0;
             var input_record: INPUT_RECORD = undefined;
             if (ReadConsoleInputW(self.stdin, &input_record, 1, &event_count) == .FALSE)
-                return windows.unexpectedError(windows.GetLastError());
+                return inputError(windows.GetLastError());
 
-            if (try self.eventFromRecord(&input_record, &self.event_state, parser, paste_allocator)) |ev| {
+            const event = self.eventFromRecord(&input_record, &self.event_state, parser, paste_allocator) catch |err| {
+                self.event_state = .{};
+                return err;
+            };
+            if (event) |ev| {
                 return ev;
             }
         }
@@ -811,7 +855,7 @@ pub const WindowsTty = struct {
                 // the size directly when we get this event
                 var console_info: CONSOLE_SCREEN_BUFFER_INFO = undefined;
                 if (GetConsoleScreenBufferInfo(self.stdout, &console_info) == .FALSE) {
-                    return windows.unexpectedError(windows.GetLastError());
+                    return inputError(windows.GetLastError());
                 }
                 const window_rect = console_info.srWindow;
                 const width = window_rect.Right - window_rect.Left + 1;
@@ -936,6 +980,10 @@ pub const WindowsTty = struct {
 
     pub const PINPUT_RECORD = *INPUT_RECORD;
 
+    extern "kernel32" fn CreateEventW(?*windows.SECURITY_ATTRIBUTES, windows.BOOL, windows.BOOL, ?windows.LPCWSTR) callconv(.winapi) ?windows.HANDLE;
+    extern "kernel32" fn SetEvent(windows.HANDLE) callconv(.winapi) windows.BOOL;
+    extern "kernel32" fn ResetEvent(windows.HANDLE) callconv(.winapi) windows.BOOL;
+    extern "kernel32" fn WaitForMultipleObjects(windows.DWORD, [*]const windows.HANDLE, windows.BOOL, windows.DWORD) callconv(.winapi) windows.DWORD;
     pub extern "kernel32" fn ReadConsoleInputW(hConsoleInput: windows.HANDLE, lpBuffer: PINPUT_RECORD, nLength: windows.DWORD, lpNumberOfEventsRead: *windows.DWORD) callconv(.winapi) windows.BOOL;
     pub extern "kernel32" fn GetConsoleOutputCP() callconv(.winapi) windows.UINT;
     pub extern "kernel32" fn GetConsoleMode(kConsoleHandle: windows.HANDLE, lpMode: *windows.DWORD) callconv(.winapi) windows.BOOL;
@@ -1078,6 +1126,7 @@ const WindowsInputTest = struct {
     tty: WindowsTty = .{
         .stdin = undefined,
         .stdout = undefined,
+        .input_stop = undefined,
         .initial_codepage = 0,
         .initial_input_mode = .{},
         .initial_output_mode = .{},
@@ -1150,6 +1199,52 @@ test "Windows paste delimiters wrapped in win32-input-mode" {
             }
         }
     }
+}
+
+test "console errors distinguish interruption from permanent failures" {
+    try std.testing.expectEqual(error.InputInterrupted, WindowsTty.inputError(.OPERATION_ABORTED));
+    try std.testing.expectEqual(error.InvalidHandle, WindowsTty.inputError(.INVALID_HANDLE));
+    try std.testing.expectEqual(error.AccessDenied, WindowsTty.inputError(.ACCESS_DENIED));
+    try std.testing.expectEqual(error.SystemResources, WindowsTty.inputError(.NO_SYSTEM_RESOURCES));
+}
+
+test "Windows input wait is interruptible without a console response" {
+    if (builtin.os.tag != .windows) return error.SkipZigTest;
+    const io = std.testing.io;
+    // An unsignaled event stands in for an idle console handle. Cancellation
+    // must return without ever reaching ReadConsoleInputW.
+    const input = WindowsTty.CreateEventW(null, .TRUE, .FALSE, null) orelse return error.Unexpected;
+    defer windows.CloseHandle(input);
+    const stop = WindowsTty.CreateEventW(null, .TRUE, .FALSE, null) orelse return error.Unexpected;
+    defer windows.CloseHandle(stop);
+    var tty: WindowsTty = undefined;
+    tty.stdin = input;
+    tty.input_stop = stop;
+    const Reader = struct {
+        fn run(t: *WindowsTty, ready: *std.Io.Event) !void {
+            var parser: Parser = .{};
+            ready.set(std.testing.io);
+            try std.testing.expectError(error.Canceled, t.nextEvent(&parser, null));
+        }
+    };
+    var ready: std.Io.Event = .unset;
+    var task = try io.concurrent(Reader.run, .{ &tty, &ready });
+    defer {
+        tty.interruptInput();
+        task.cancel(io) catch {};
+    }
+    try ready.wait(io);
+    try io.sleep(.fromMilliseconds(10), .awake);
+    tty.interruptInput();
+    try task.await(io);
+
+    try tty.resetInput();
+    try std.testing.expectEqual(@as(u32, 258), WindowsTty.WaitForMultipleObjects(1, &.{stop}, .FALSE, 0));
+    // Shutdown also wins if input and stop are both already signaled.
+    try std.testing.expect(WindowsTty.SetEvent(input) != .FALSE);
+    tty.interruptInput();
+    var parser: Parser = .{};
+    try std.testing.expectError(error.Canceled, tty.nextEvent(&parser, null));
 }
 
 test {

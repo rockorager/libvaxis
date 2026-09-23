@@ -12,6 +12,7 @@ pub fn Queue(
 
         read_index: usize = 0,
         write_index: usize = 0,
+        closed: ?anyerror = null,
 
         io: std.Io,
         mutex: std.Io.Mutex = .init,
@@ -26,11 +27,30 @@ pub fn Queue(
             return .{ .io = io };
         }
 
+        /// Reject further writes and wake all waiters. Buffered items remain readable;
+        /// once drained, readers receive the first close reason.
+        pub fn close(self: *Self, reason: anyerror) void {
+            self.mutex.lockUncancelable(self.io);
+            defer self.mutex.unlock(self.io);
+            if (self.closed != null) return;
+            self.closed = reason;
+            self.not_full.broadcast(self.io);
+            self.not_empty.broadcast(self.io);
+        }
+
+        /// Reopen after the previous producer has stopped. Retains buffered items.
+        pub fn reopen(self: *Self) void {
+            self.mutex.lockUncancelable(self.io);
+            defer self.mutex.unlock(self.io);
+            self.closed = null;
+        }
+
         /// Pop an item from the queue. Blocks until an item is available.
         pub fn pop(self: *Self) !T {
             try self.mutex.lock(self.io);
             defer self.mutex.unlock(self.io);
             while (self.isEmptyLH()) {
+                if (self.closed) |err| return err;
                 try self.not_empty.wait(self.io, &self.mutex);
             }
             std.debug.assert(!self.isEmptyLH());
@@ -43,8 +63,10 @@ pub fn Queue(
             try self.mutex.lock(self.io);
             defer self.mutex.unlock(self.io);
             while (self.isFullLH()) {
+                if (self.closed) |err| return err;
                 try self.not_full.wait(self.io, &self.mutex);
             }
+            if (self.closed) |err| return err;
             std.debug.assert(!self.isFullLH());
             self.pushAndSignalLH(item);
         }
@@ -55,6 +77,7 @@ pub fn Queue(
         pub fn tryPush(self: *Self, item: T) !bool {
             try self.mutex.lock(self.io);
             defer self.mutex.unlock(self.io);
+            if (self.closed) |err| return err;
             if (self.isFullLH()) return false;
             self.pushAndSignalLH(item);
             return true;
@@ -65,7 +88,7 @@ pub fn Queue(
         pub fn tryPop(self: *Self) !?T {
             try self.mutex.lock(self.io);
             defer self.mutex.unlock(self.io);
-            if (self.isEmptyLH()) return null;
+            if (self.isEmptyLH()) return if (self.closed) |err| err else null;
             return self.popAndSignalLH();
         }
 
@@ -74,6 +97,7 @@ pub fn Queue(
             try self.mutex.lock(self.io);
             defer self.mutex.unlock(self.io);
             while (self.isEmptyLH()) {
+                if (self.closed) |err| return err;
                 try self.not_empty.wait(self.io, &self.mutex);
             }
             std.debug.assert(!self.isEmptyLH());
@@ -369,6 +393,72 @@ test "2 writers" {
     try testing.expectEqual(1, try queue.pop());
     try t1.await(io);
     try t2.await(io);
+}
+
+test "close preserves buffered items and the first failure" {
+    var q: Queue(u8, 2) = .init(testing.io);
+    try q.push(17);
+    try q.push(29);
+    q.close(error.InputOutput);
+    q.close(error.Closed);
+    try testing.expectError(error.InputOutput, q.push(31));
+    try testing.expectError(error.InputOutput, q.tryPush(31));
+    try q.poll();
+    try testing.expectEqual(17, try q.pop());
+    try testing.expectEqual(29, (try q.tryPop()).?);
+    try testing.expectError(error.InputOutput, q.pop());
+    try testing.expectError(error.InputOutput, q.tryPop());
+    try testing.expectError(error.InputOutput, q.poll());
+    // A closed queue rejects writes even when it has free capacity.
+    try testing.expectError(error.InputOutput, q.push(31));
+    try testing.expectError(error.InputOutput, q.tryPush(31));
+    q.reopen();
+    try testing.expectEqual(null, try q.tryPop());
+    try q.push(31);
+    try testing.expectEqual(31, try q.pop());
+}
+
+test "close wakes all blocked writers and readers" {
+    const Waiter = struct {
+        ready: std.Io.Event = .unset,
+
+        fn write(self: *@This(), q: *Queue(u8, 1)) !void {
+            self.ready.set(q.io);
+            try testing.expectError(error.Closed, q.push(99));
+        }
+
+        fn read(self: *@This(), q: *Queue(u8, 1)) !void {
+            self.ready.set(q.io);
+            try testing.expectError(error.Closed, q.pop());
+        }
+
+        fn poll(self: *@This(), q: *Queue(u8, 1)) !void {
+            self.ready.set(q.io);
+            try testing.expectError(error.Closed, q.poll());
+        }
+    };
+    const io = testing.io;
+    var full: Queue(u8, 1) = .init(io);
+    var empty: Queue(u8, 1) = .init(io);
+    try full.push(7);
+    var waiters: [4]Waiter = @splat(.{});
+    var a = try io.concurrent(Waiter.write, .{ &waiters[0], &full });
+    defer a.cancel(io) catch {};
+    var b = try io.concurrent(Waiter.write, .{ &waiters[1], &full });
+    defer b.cancel(io) catch {};
+    var c = try io.concurrent(Waiter.read, .{ &waiters[2], &empty });
+    defer c.cancel(io) catch {};
+    var d = try io.concurrent(Waiter.poll, .{ &waiters[3], &empty });
+    defer d.cancel(io) catch {};
+    for (&waiters) |*waiter| try waiter.ready.wait(io);
+    try io.sleep(.fromMilliseconds(10), .awake);
+    full.close(error.Closed);
+    empty.close(error.Closed);
+    try a.await(io);
+    try b.await(io);
+    try c.await(io);
+    try d.await(io);
+    try testing.expectEqual(7, try full.pop());
 }
 
 test {
