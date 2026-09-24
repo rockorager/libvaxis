@@ -2,7 +2,7 @@
     .name = .vaxis,
     .fingerprint = 0x14fbbb94fc556305,
     .version = "0.6.0",
-    .minimum_zig_version = "0.16.0",
+    .minimum_zig_version = "0.17.0-dev.1859+dcceb318e",
     .dependencies = .{
         .zigimg = .{
             .url = "git+https://github.com/zigimg/zigimg#d695acd97c02e57bb151e8f659d1280f5cd6ca70",

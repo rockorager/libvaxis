@@ -6,6 +6,18 @@ const meta = std.meta;
 
 const vaxis = @import("../main.zig");
 
+const FieldInfo = struct { name: [:0]const u8, type: type };
+fn fieldsOf(comptime T: type) []const FieldInfo {
+    return comptime blk: {
+        const info = @typeInfo(T).@"struct";
+        var result: [info.field_names.len]FieldInfo = undefined;
+        for (info.field_names, info.field_types, 0..) |name, ty, i| {
+            result[i] = .{ .name = name, .type = ty };
+        }
+        break :blk &result;
+    };
+}
+
 /// Table Context for maintaining state and drawing Tables with `drawTable()`.
 pub const TableContext = struct {
     /// Current active Row of the Table.
@@ -138,9 +150,9 @@ pub fn drawTable(
                 break :getData data_list;
             },
             .@"struct" => {
-                const di_fields = meta.fields(DataListT);
-                const al_fields = meta.fields(std.ArrayList([]const u8));
-                const mal_fields = meta.fields(std.MultiArrayList(struct { a: u8 = 0, b: u32 = 0 }));
+                const di_fields = comptime fieldsOf(DataListT);
+                const al_fields = comptime fieldsOf(std.ArrayList([]const u8));
+                const mal_fields = comptime fieldsOf(std.MultiArrayList(struct { a: u8 = 0, b: u32 = 0 }));
                 // Probably an ArrayList
                 const is_al = comptime if (mem.indexOf(u8, @typeName(DataListT), "MultiArrayList") == null and
                     mem.indexOf(u8, @typeName(DataListT), "ArrayList") != null and
@@ -181,7 +193,7 @@ pub fn drawTable(
     };
     defer if (di_is_mal) alloc.?.free(data_items);
     const DataT = @TypeOf(data_items[0]);
-    const fields = meta.fields(DataT);
+    const fields = comptime fieldsOf(DataT);
     const field_indexes = switch (table_ctx.col_indexes) {
         .all => comptime allIdx: {
             var indexes_buf: [fields.len]usize = undefined;
@@ -305,7 +317,7 @@ pub fn drawTable(
             table_ctx.active_y_off = if (table_ctx.active_content_fn) |content| try content(&row_win, table_ctx.active_ctx) else 0;
         }
         col_start = 0;
-        const item_fields = meta.fields(DataT);
+        const item_fields = comptime fieldsOf(DataT);
         var col_idx: usize = 0;
         for (field_indexes) |f_idx| {
             inline for (item_fields[0..], 0..) |item_field, item_idx| contFields: {
