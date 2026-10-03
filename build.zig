@@ -67,8 +67,6 @@ pub fn build(b: *std.Build) void {
             .{ .name = "build_options", .module = c_api_options.createModule() },
         },
     });
-    // For the @cImport-based layout test in src/c_api.zig
-    c_api_mod.addIncludePath(b.path("include"));
 
     // Compile the C API once as PIC, then use the resulting object for both
     // library formats. Building two libraries directly from c_api_mod would
@@ -142,8 +140,7 @@ pub fn build(b: *std.Build) void {
         vt,
     };
     var examples: std.EnumMap(Example, *std.Build.Module) = .init(.{});
-    inline for (std.meta.fields(Example)) |field| {
-        const example: Example = @enumFromInt(field.value);
+    inline for (comptime std.enums.values(Example)) |example| {
         examples.put(
             example,
             b.createModule(.{
@@ -186,9 +183,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
     const bench_run = b.addRunArtifact(bench);
-    if (b.args) |args| {
-        bench_run.addArgs(args);
-    }
+    bench_run.addPassthruArgs();
     bench_step.dependOn(&bench_run.step);
 
     // Tests
@@ -225,9 +220,26 @@ pub fn build(b: *std.Build) void {
 
     // C API tests: Zig unit tests plus a C program linked against the
     // static library
+    // The tests also import include/vaxis.h, translated to Zig, to check
+    // that the header matches the ABI
+    const vaxis_h = b.addTranslateC(.{
+        .root_source_file = b.path("include/vaxis.h"),
+        .target = target,
+        .optimize = optimize,
+    });
     const c_api_tests = b.addTest(.{
         .use_llvm = use_llvm,
-        .root_module = c_api_mod,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/c_api.zig"),
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+            .imports = &.{
+                .{ .name = "vaxis", .module = vaxis_mod },
+                .{ .name = "build_options", .module = c_api_options.createModule() },
+                .{ .name = "vaxis_h", .module = vaxis_h.createModule() },
+            },
+        }),
     });
     tests_step.dependOn(&b.addRunArtifact(c_api_tests).step);
 

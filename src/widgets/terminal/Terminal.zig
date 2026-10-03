@@ -675,7 +675,7 @@ fn _run(self: *Terminal) !void {
                                 ' ' => {
                                     var iter = seq.iterator(u8);
                                     const shape = iter.next() orelse 0;
-                                    self.back_screen.cursor.shape = @enumFromInt(shape);
+                                    self.back_screen.cursor.shape = @fromBackingInt(@intCast(shape));
                                 },
                                 else => {},
                             }
@@ -779,7 +779,7 @@ inline fn handleC0(self: *Terminal, b: ansi.C0) !void {
         .CR => self.carriageReturn(),
         .SO => {}, // TODO: Charset shift out
         .SI => {}, // TODO: Charset shift in
-        else => log.warn("unhandled C0: 0x{x}", .{@intFromEnum(b)}),
+        else => log.warn("unhandled C0: 0x{x}", .{@backingInt(b)}),
     }
 }
 

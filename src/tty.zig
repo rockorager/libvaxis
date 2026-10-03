@@ -277,8 +277,8 @@ pub const PosixTty = struct {
         raw.cflag.CSIZE = .CS8;
         raw.cflag.PARENB = false;
 
-        raw.cc[@intFromEnum(posix.V.MIN)] = 1;
-        raw.cc[@intFromEnum(posix.V.TIME)] = 0;
+        raw.cc[@backingInt(posix.V.MIN)] = 1;
+        raw.cc[@backingInt(posix.V.TIME)] = 0;
         try posix.tcsetattr(fd, .FLUSH, raw);
         return state;
     }
@@ -467,7 +467,7 @@ pub const WindowsTty = struct {
             .NOT_READY, .BUSY, .RETRY => error.WouldBlock,
             .NOT_ENOUGH_MEMORY, .NO_SYSTEM_RESOURCES => error.SystemResources,
             else => {
-                std.log.scoped(.vaxis).warn("console input failed: Win32 error {d}", .{@intFromEnum(code)});
+                std.log.scoped(.vaxis).warn("console input failed: Win32 error {d}", .{@backingInt(code)});
                 return error.Unexpected;
             },
         };

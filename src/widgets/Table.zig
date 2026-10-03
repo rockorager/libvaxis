@@ -2,7 +2,6 @@ const std = @import("std");
 const fmt = std.fmt;
 const heap = std.heap;
 const mem = std.mem;
-const meta = std.meta;
 
 const vaxis = @import("../main.zig");
 
@@ -138,9 +137,9 @@ pub fn drawTable(
                 break :getData data_list;
             },
             .@"struct" => {
-                const di_fields = meta.fields(DataListT);
-                const al_fields = meta.fields(std.ArrayList([]const u8));
-                const mal_fields = meta.fields(std.MultiArrayList(struct { a: u8 = 0, b: u32 = 0 }));
+                const di_fields = @typeInfo(DataListT).@"struct".field_names;
+                const al_fields = @typeInfo(std.ArrayList([]const u8)).@"struct".field_names;
+                const mal_fields = @typeInfo(std.MultiArrayList(struct { a: u8 = 0, b: u32 = 0 })).@"struct".field_names;
                 // Probably an ArrayList
                 const is_al = comptime if (mem.indexOf(u8, @typeName(DataListT), "MultiArrayList") == null and
                     mem.indexOf(u8, @typeName(DataListT), "ArrayList") != null and
@@ -148,7 +147,7 @@ pub fn drawTable(
                 isAL: {
                     var is = true;
                     for (al_fields, di_fields) |al_field, di_field|
-                        is = is and mem.eql(u8, al_field.name, di_field.name);
+                        is = is and mem.eql(u8, al_field, di_field);
                     break :isAL is;
                 } else false;
                 if (is_al) break :getData data_list.items;
@@ -159,7 +158,7 @@ pub fn drawTable(
                 isMAL: {
                     var is = true;
                     inline for (mal_fields, di_fields) |mal_field, di_field|
-                        is = is and mem.eql(u8, mal_field.name, di_field.name);
+                        is = is and mem.eql(u8, mal_field, di_field);
                     break :isMAL is;
                 } else false;
                 if (!is_mal) return error.UnsupportedTableDataType;
@@ -181,7 +180,7 @@ pub fn drawTable(
     };
     defer if (di_is_mal) alloc.?.free(data_items);
     const DataT = @TypeOf(data_items[0]);
-    const fields = meta.fields(DataT);
+    const fields = @typeInfo(DataT).@"struct".field_names;
     const field_indexes = switch (table_ctx.col_indexes) {
         .all => comptime allIdx: {
             var indexes_buf: [fields.len]usize = undefined;
@@ -200,7 +199,7 @@ pub fn drawTable(
                 for (field_indexes) |f_idx| {
                     inline for (fields, 0..) |field, idx| {
                         if (f_idx == idx)
-                            hdrs_buf[idx] = field.name;
+                            hdrs_buf[idx] = field;
                     }
                 }
                 break :hdrs hdrs_buf[0..];
@@ -305,7 +304,7 @@ pub fn drawTable(
             table_ctx.active_y_off = if (table_ctx.active_content_fn) |content| try content(&row_win, table_ctx.active_ctx) else 0;
         }
         col_start = 0;
-        const item_fields = meta.fields(DataT);
+        const item_fields = @typeInfo(DataT).@"struct".field_names;
         var col_idx: usize = 0;
         for (field_indexes) |f_idx| {
             inline for (item_fields[0..], 0..) |item_field, item_idx| contFields: {
@@ -323,7 +322,7 @@ pub fn drawTable(
                     table_win,
                 );
                 defer col_start += col_width;
-                const item = @field(data, item_field.name);
+                const item = @field(data, item_field);
                 const ItemT = @TypeOf(item);
                 const item_win = row_win.child(.{
                     .x_off = col_start,
