@@ -247,7 +247,7 @@ pub fn sgr(self: *Screen, seq: ansi.CSI) void {
             3 => self.cursor.style.italic = true,
             4 => {
                 const kind: vaxis.Style.Underline = if (iter.next_is_sub)
-                    @enumFromInt(iter.next() orelse 1)
+                    @fromBackingInt(@intCast(iter.next() orelse 1))
                 else
                     .single;
                 self.cursor.style.ul_style = kind;

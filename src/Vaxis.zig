@@ -147,7 +147,7 @@ pub fn resetState(self: *Vaxis, tty: *std.Io.Writer) !void {
     if (self.screen.cursor_shape != .default) {
         // In many terminals, `.default` will set to the configured cursor shape. Others, it will
         // change to a blinking block.
-        tty.print(ctlseqs.cursor_shape, .{@intFromEnum(Cell.CursorShape.default)}) catch {};
+        tty.print(ctlseqs.cursor_shape, .{@backingInt(Cell.CursorShape.default)}) catch {};
     }
     if (self.state.kitty_keyboard) {
         try tty.writeAll(ctlseqs.csi_u_pop);
@@ -274,9 +274,9 @@ pub fn queryTerminal(self: *Vaxis, tty: *std.Io.Writer, timeout: std.Io.Duration
     try self.queryTerminalSend(tty);
     try std.Io.futexWaitTimeout(
         self.io,
-        atomic.Value(u32),
-        &self.query_futex,
-        .init(0),
+        u32,
+        &self.query_futex.raw,
+        0,
         .{
             .duration = .{
                 .clock = .real,
@@ -788,7 +788,7 @@ pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
                             w,
                             scale.numerator,
                             scale.denominator,
-                            @intFromEnum(scale.vertical_alignment),
+                            @backingInt(scale.vertical_alignment),
                             cell.char.grapheme,
                         },
                     );
@@ -860,7 +860,7 @@ pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
     if (self.screen.cursor_shape != self.screen_last.cursor_shape) {
         try tty.print(
             ctlseqs.cursor_shape,
-            .{@intFromEnum(self.screen.cursor_shape)},
+            .{@backingInt(self.screen.cursor_shape)},
         );
         self.screen_last.cursor_shape = self.screen.cursor_shape;
     }
@@ -1748,6 +1748,12 @@ fn testProgramStatusText(buf: []u8, report: []const u8, comptime key: []const u8
     return buf[0..len];
 }
 
+/// `s` repeated `n` times, in place of the `s ** n` removed in zig 0.17
+inline fn testRepeat(comptime s: []const u8, comptime n: usize) *const [s.len * n]u8 {
+    const repeated: [n][s.len]u8 = @splat(s[0..s.len].*);
+    return comptime std.mem.asBytes(&repeated);
+}
+
 test "reportProgramStatus: writes reports" {
     var env = try std.testing.environ.createMap(std.testing.allocator);
     defer env.deinit();
@@ -1809,8 +1815,8 @@ test "reportProgramStatus: sanitizes and truncates text" {
     // Truncation happens on a codepoint boundary: a two byte codepoint that
     // would end at byte 193 of the title, and a four byte codepoint that
     // would end at byte 2050 of the message, are dropped
-    const title = "a" ** 191 ++ "\u{e9}";
-    const msg = "a" ** 2046 ++ "\u{1F600}";
+    const title = testRepeat("a", 191) ++ "\u{e9}";
+    const msg = testRepeat("a", 2046) ++ "\u{1F600}";
     writer.clearRetainingCapacity();
     try vx.reportProgramStatus(&writer.writer, .{ .state = .done, .title = title, .msg = msg });
     try std.testing.expectEqualStrings(title[0..191], try testProgramStatusText(&buf, writer.written(), "title"));
@@ -1818,8 +1824,8 @@ test "reportProgramStatus: sanitizes and truncates text" {
 
     // Text that fits exactly is kept whole, and removed control characters
     // do not count against the limit
-    const exact_title = "\u{e9}" ** 96;
-    const exact_msg = "\u{1F600}" ** 512 ++ "\n";
+    const exact_title = testRepeat("\u{e9}", 96);
+    const exact_msg = testRepeat("\u{1F600}", 512) ++ "\n";
     writer.clearRetainingCapacity();
     try vx.reportProgramStatus(&writer.writer, .{ .state = .done, .title = exact_title, .msg = exact_msg });
     try std.testing.expectEqualStrings(exact_title, try testProgramStatusText(&buf, writer.written(), "title"));
@@ -1834,14 +1840,14 @@ test "reportProgramStatus: validates id and app" {
     defer writer.deinit();
     defer vx.deinit(std.testing.allocator, &writer.writer);
 
-    const segment32 = "A" ** 32;
+    const segment32 = testRepeat("A", 32);
     const valid_ids = [_][]const u8{
         "a",
         "Az09_.+-",
         segment32,
         "a/b/c/d/e/f/g/h",
         // 128 bytes
-        segment32 ++ "/" ++ segment32 ++ "/" ++ segment32 ++ "/" ++ "A" ** 29,
+        segment32 ++ "/" ++ segment32 ++ "/" ++ segment32 ++ "/" ++ testRepeat("A", 29),
     };
     for (valid_ids) |id| {
         writer.clearRetainingCapacity();
@@ -1863,7 +1869,7 @@ test "reportProgramStatus: validates id and app" {
         segment32 ++ "A",
         "a/b/c/d/e/f/g/h/i",
         // 129 bytes
-        segment32 ++ "/" ++ segment32 ++ "/" ++ segment32 ++ "/" ++ "A" ** 30,
+        segment32 ++ "/" ++ segment32 ++ "/" ++ segment32 ++ "/" ++ testRepeat("A", 30),
     };
     for (invalid_ids) |id| {
         writer.clearRetainingCapacity();
