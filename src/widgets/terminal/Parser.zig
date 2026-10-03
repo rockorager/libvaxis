@@ -53,7 +53,7 @@ pub fn parseReader(self: *Parser, reader: *Reader) !Event {
             // C0 control
             0x00...0x1a,
             0x1c...0x1f,
-            => return .{ .c0 = @enumFromInt(b) },
+            => return .{ .c0 = @fromBackingInt(@intCast(b)) },
             else => {
                 try self.buf.append(b);
                 return self.parseGround(reader);

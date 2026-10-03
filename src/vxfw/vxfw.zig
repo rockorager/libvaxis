@@ -559,13 +559,13 @@ test "All widgets have a doctest and refAllDecls test" {
             continue;
         const data = try cwd.readFileAllocOptions(io, file.name, std.testing.allocator, .limited(10_000_000), .of(u8), 0x00);
         defer std.testing.allocator.free(data);
-        var ast = try std.zig.Ast.parse(std.testing.allocator, data, .zig);
+        var ast = try std.zig.Ast.parse(std.testing.allocator, data, .{});
         defer ast.deinit(std.testing.allocator);
 
         var has_doctest: bool = false;
         var has_refAllDecls: bool = false;
         for (ast.rootDecls()) |root_decl| {
-            const decl = ast.nodes.get(@intFromEnum(root_decl));
+            const decl = ast.nodes.get(@backingInt(root_decl));
             switch (decl.tag) {
                 .test_decl => {
                     const test_name = ast.tokenSlice(decl.main_token + 1);

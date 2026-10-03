@@ -26,7 +26,7 @@ pub fn spawn(self: *Command, io: std.Io, allocator: std.mem.Allocator) !void {
 
     // Keep fork->exec child path allocation-free, following std/Io/Threaded.zig:posixExecv
     const argv_block = try arena.allocSentinel(?[*:0]const u8, self.argv.len, null);
-    for (self.argv, 0..) |arg, i| argv_block[i] = (try arena.dupeZ(u8, arg)).ptr;
+    for (self.argv, 0..) |arg, i| argv_block[i] = (try arena.dupeSentinel(u8, arg, 0)).ptr;
     const env_block = try self.env_map.createPosixBlock(arena, .{});
     const path = self.env_map.get("PATH") orelse std.Io.Threaded.default_PATH;
 
@@ -101,7 +101,7 @@ pub fn spawn(self: *Command, io: std.Io, allocator: std.mem.Allocator) !void {
 }
 
 fn handleSigChild(_: posix.SIG) callconv(.c) void {
-    var status: u32 = undefined;
+    var status: i32 = undefined;
     const rc = linux.waitpid(-1, &status, 0);
     const pid: i32 = switch (linux.errno(rc)) {
         .SUCCESS => @intCast(rc),
@@ -129,10 +129,10 @@ fn execvpeLinux(
     path: []const u8,
 ) !noreturn {
     // This implementation is largely copied from std/Io/Threaded.zig
-    // (`spawnPosix` + `posixExecv`/`posixExecvPath`) and adapted for this PTY fork path.
+    // (`spawnPosix` + `posixExecv`/`posixExecveat`) and adapted for this PTY fork path.
     if (std.mem.indexOfScalar(u8, arg0, '/') != null) {
         const path_z = try posix.toPosixPath(arg0);
-        return std.Io.Threaded.posixExecvPath(&path_z, argv, env_block);
+        return std.Io.Threaded.posixExecveat(posix.AT.FDCWD, &path_z, argv, env_block);
     }
 
     var it = std.mem.tokenizeScalar(u8, path, std.fs.path.delimiter);
@@ -148,7 +148,7 @@ fn execvpeLinux(
         @memcpy(path_buf[dir.len + 1 ..][0..arg0.len], arg0);
         path_buf[path_len] = 0;
         const full_path = path_buf[0..path_len :0].ptr;
-        err = std.Io.Threaded.posixExecvPath(full_path, argv, env_block);
+        err = std.Io.Threaded.posixExecveat(posix.AT.FDCWD, full_path, argv, env_block);
         switch (err) {
             error.AccessDenied => seen_eacces = true,
             error.FileNotFound, error.NotDir => {},

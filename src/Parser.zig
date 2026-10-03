@@ -789,7 +789,7 @@ inline fn parseMouse(input: []const u8, full_input: []const u8) Result {
     if (button_mask & mouse_bits.leave > 0)
         return .{ .event = .mouse_leave, .n = if (xterm) 6 else input.len };
 
-    const button: Mouse.Button = @enumFromInt(button_mask & mouse_bits.buttons);
+    const button: Mouse.Button = @fromBackingInt(@intCast(button_mask & mouse_bits.buttons));
     const motion = button_mask & mouse_bits.motion > 0;
     const shift = button_mask & mouse_bits.shift > 0;
     const alt = button_mask & mouse_bits.alt > 0;

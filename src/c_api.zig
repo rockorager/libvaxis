@@ -87,10 +87,10 @@ comptime {
     // Export every public function as vaxis_<name>, but only when building
     // the C library, not when imported as a Zig module.
     if (@import("root") == @This()) {
-        for (@typeInfo(@This()).@"struct".decls) |decl| {
-            const field = @field(@This(), decl.name);
+        for (@typeInfo(@This()).@"struct".decl_names) |name| {
+            const field = @field(@This(), name);
             if (@typeInfo(@TypeOf(field)) == .@"fn") {
-                @export(&field, .{ .name = "vaxis_" ++ decl.name });
+                @export(&field, .{ .name = "vaxis_" ++ name });
             }
         }
     }
@@ -136,14 +136,14 @@ pub const EventType = enum(c_int) {
 
 comptime {
     // EventType and vaxis.Event must stay in sync in both directions
-    for (@typeInfo(vaxis.Event).@"union".fields) |field| {
-        if (!@hasField(EventType, field.name))
-            @compileError("vaxis.Event variant missing from EventType: " ++ field.name);
+    for (@typeInfo(vaxis.Event).@"union".field_names) |name| {
+        if (!@hasField(EventType, name))
+            @compileError("vaxis.Event variant missing from EventType: " ++ name);
     }
-    for (@typeInfo(EventType).@"enum".fields) |field| {
-        if (std.mem.eql(u8, field.name, "none")) continue;
-        if (!@hasField(vaxis.Event, field.name))
-            @compileError("EventType tag is not a vaxis.Event variant: " ++ field.name);
+    for (@typeInfo(EventType).@"enum".field_names) |name| {
+        if (std.mem.eql(u8, name, "none")) continue;
+        if (!@hasField(vaxis.Event, name))
+            @compileError("EventType tag is not a vaxis.Event variant: " ++ name);
     }
 }
 
@@ -325,7 +325,7 @@ fn zigStyle(style: CStyle) ?Cell.Style {
         .fg = zigColor(style.fg) orelse return null,
         .bg = zigColor(style.bg) orelse return null,
         .ul = zigColor(style.ul) orelse return null,
-        .ul_style = @enumFromInt(style.underline),
+        .ul_style = @fromBackingInt(@intCast(style.underline)),
         .bold = style.attrs & 1 != 0,
         .dim = style.attrs & 2 != 0,
         .italic = style.attrs & 4 != 0,
@@ -345,7 +345,7 @@ fn cStyle(style: Cell.Style) CStyle {
     if (style.reverse) attrs |= 16;
     if (style.invisible) attrs |= 32;
     if (style.strikethrough) attrs |= 64;
-    return .{ .fg = cColor(style.fg), .bg = cColor(style.bg), .ul = cColor(style.ul), .underline = @intFromEnum(style.ul_style), .attrs = attrs };
+    return .{ .fg = cColor(style.fg), .bg = cColor(style.bg), .ul = cColor(style.ul), .underline = @backingInt(style.ul_style), .attrs = attrs };
 }
 
 fn copyCell(strings: *GraphemeStore, cell: CCell) error{ Invalid, OutOfMemory }!Cell {
@@ -462,7 +462,7 @@ pub fn window_show_cursor(window: ?*CWindow, col: u16, row: u16) callconv(.c) vo
     if (window) |w| w.window.showCursor(col, row);
 }
 pub fn window_set_cursor_shape(window: ?*CWindow, shape: u8) callconv(.c) void {
-    if (window) |w| if (shape <= 6) w.window.setCursorShape(@enumFromInt(shape));
+    if (window) |w| if (shape <= 6) w.window.setCursorShape(@fromBackingInt(@intCast(shape)));
 }
 pub fn window_scroll(window: ?*CWindow, rows: u16) callconv(.c) void {
     if (window) |w| w.window.scroll(rows);
@@ -486,7 +486,7 @@ pub fn window_print(window: ?*CWindow, segments: ?[*]const CSegment, count: usiz
         const owned = w.strings.dupe(text) catch return .err_oom;
         zs[i] = .{ .text = owned, .style = zigStyle(cs.style) orelse return .err_invalid };
     }
-    const r = w.window.print(zs, .{ .row_offset = opts.row_offset, .col_offset = opts.col_offset, .wrap = @enumFromInt(opts.wrap), .commit = opts.commit });
+    const r = w.window.print(zs, .{ .row_offset = opts.row_offset, .col_offset = opts.col_offset, .wrap = @fromBackingInt(@intCast(opts.wrap)), .commit = opts.commit });
     w.strings.compactIfNeeded(w.window.screen) catch return .err_oom;
     result.* = .{ .col = r.col, .row = r.row, .overflow = r.overflow };
     return .ok;
@@ -593,7 +593,7 @@ pub fn image_draw(image: ?*const CImage, window: ?*CWindow, opts: CImageDrawOpti
     const i = image orelse return .err_invalid;
     const w = window orelse return .err_invalid;
     if (opts.scale < 0 or opts.scale > 3) return .err_invalid;
-    i.image.draw(w.window, .{ .scale = @enumFromInt(opts.scale), .z_index = if (opts.has_z_index) opts.z_index else null }) catch return .err_range;
+    i.image.draw(w.window, .{ .scale = @fromBackingInt(@intCast(opts.scale)), .z_index = if (opts.has_z_index) opts.z_index else null }) catch return .err_range;
     return .ok;
 }
 pub fn image_cell_size(image: ?*const CImage, window: ?*const CWindow, cols: ?*u16, rows: ?*u16) callconv(.c) Result {
@@ -1023,7 +1023,7 @@ pub fn runtime_transmit_image_path(runtime: ?*CRuntime, path: ?[*]const u8, len:
     if (medium < 0 or medium > 2 or format < 0 or format > 2) return .err_invalid;
     const allocator = r.allocator.get();
     const handle = prepareImage(r, out) catch |err| return if (err == error.OutOfMemory) .err_oom else .err_invalid;
-    const img = r.vx.?.transmitLocalImagePath(allocator, r.tty.tty.?.writer(), p, width, height, @enumFromInt(medium), @enumFromInt(format)) catch {
+    const img = r.vx.?.transmitLocalImagePath(allocator, r.tty.tty.?.writer(), p, width, height, @fromBackingInt(@intCast(medium)), @fromBackingInt(@intCast(format))) catch {
         allocator.destroy(handle);
         return .err_io;
     };
@@ -1037,7 +1037,7 @@ pub fn runtime_transmit_image_base64(runtime: ?*CRuntime, data: ?[*]const u8, le
     if (format < 0 or format > 2) return .err_invalid;
     const allocator = r.allocator.get();
     const handle = prepareImage(r, out) catch |err| return if (err == error.OutOfMemory) .err_oom else .err_invalid;
-    const img = r.vx.?.transmitPreEncodedImage(r.tty.tty.?.writer(), b, width, height, @enumFromInt(format)) catch {
+    const img = r.vx.?.transmitPreEncodedImage(r.tty.tty.?.writer(), b, width, height, @fromBackingInt(@intCast(format))) catch {
         allocator.destroy(handle);
         return .err_io;
     };
@@ -1200,7 +1200,7 @@ pub fn event_mouse_row(event: ?*const CEvent) callconv(.c) i16 {
 
 pub fn event_mouse_button(event: ?*const CEvent) callconv(.c) u8 {
     const mouse = mouseOf(event) orelse return 0;
-    return @intFromEnum(mouse.button);
+    return @backingInt(mouse.button);
 }
 
 pub fn event_mouse_mods(event: ?*const CEvent) callconv(.c) u8 {
@@ -1210,7 +1210,7 @@ pub fn event_mouse_mods(event: ?*const CEvent) callconv(.c) u8 {
 
 pub fn event_mouse_type(event: ?*const CEvent) callconv(.c) u8 {
     const mouse = mouseOf(event) orelse return 0;
-    return @intFromEnum(mouse.type);
+    return @backingInt(mouse.type);
 }
 
 pub fn event_paste_text(event: ?*const CEvent) callconv(.c) CString {
@@ -1222,7 +1222,7 @@ pub fn event_paste_text(event: ?*const CEvent) callconv(.c) CString {
 pub fn event_color_report_kind(event: ?*const CEvent) callconv(.c) u8 {
     const e = event orelse return 0;
     if (e.type != .color_report) return 0;
-    return @intFromEnum(std.meta.activeTag(e.color_report.kind));
+    return @backingInt(std.meta.activeTag(e.color_report.kind));
 }
 
 pub fn event_color_report_index(event: ?*const CEvent) callconv(.c) u8 {
@@ -1245,7 +1245,7 @@ pub fn event_color_report_rgb(event: ?*const CEvent) callconv(.c) CRgb {
 pub fn event_color_scheme(event: ?*const CEvent) callconv(.c) u8 {
     const e = event orelse return 0;
     if (e.type != .color_scheme) return 0;
-    return @intFromEnum(e.color_scheme);
+    return @backingInt(e.color_scheme);
 }
 
 pub fn event_winsize_rows(event: ?*const CEvent) callconv(.c) u16 {
@@ -1346,14 +1346,14 @@ fn comptimeUpper(comptime name: []const u8) []const u8 {
 
 fn asInt(value: anytype) c_int {
     return switch (@typeInfo(@TypeOf(value))) {
-        .@"enum" => @intFromEnum(value),
+        .@"enum" => @backingInt(value),
         else => @intCast(value),
     };
 }
 
 test "c api: conformance with vaxis.h" {
     @setEvalBranchQuota(100_000);
-    const c = @cImport(@cInclude("vaxis.h"));
+    const c = @import("vaxis_h");
 
     // the only transparent structs in the ABI
     try testing.expectEqual(@sizeOf(c.vaxis_string), @sizeOf(CString));
@@ -1379,69 +1379,69 @@ test "c api: conformance with vaxis.h" {
     }
 
     // every event type has a matching VAXIS_EVENT_* value
-    inline for (@typeInfo(EventType).@"enum".fields) |field| {
+    inline for (@typeInfo(EventType).@"enum".field_names, @typeInfo(EventType).@"enum".field_values) |name, value| {
         try testing.expectEqual(
-            asInt(@field(c, "VAXIS_EVENT_" ++ comptimeUpper(field.name))),
-            field.value,
+            asInt(@field(c, "VAXIS_EVENT_" ++ comptimeUpper(name))),
+            value,
         );
     }
 
     // result codes: ok is VAXIS_OK, errors are VAXIS_ERR_*
-    inline for (@typeInfo(Result).@"enum".fields) |field| {
-        const c_name = comptime if (std.mem.eql(u8, field.name, "ok"))
+    inline for (@typeInfo(Result).@"enum".field_names, @typeInfo(Result).@"enum".field_values) |name, value| {
+        const c_name = comptime if (std.mem.eql(u8, name, "ok"))
             "VAXIS_OK"
         else
-            "VAXIS_" ++ comptimeUpper(field.name);
-        try testing.expectEqual(asInt(@field(c, c_name)), field.value);
+            "VAXIS_" ++ comptimeUpper(name);
+        try testing.expectEqual(asInt(@field(c, c_name)), value);
     }
 
     // every u21 key constant has a matching VAXIS_KEY_* define
-    inline for (@typeInfo(Key).@"struct".decls) |decl| {
-        if (@TypeOf(@field(Key, decl.name)) == u21) {
+    inline for (@typeInfo(Key).@"struct".decl_names) |name| {
+        if (@TypeOf(@field(Key, name)) == u21) {
             try testing.expectEqual(
-                asInt(@field(c, "VAXIS_KEY_" ++ comptimeUpper(decl.name))),
-                @field(Key, decl.name),
+                asInt(@field(c, "VAXIS_KEY_" ++ comptimeUpper(name))),
+                @field(Key, name),
             );
         }
     }
 
     // modifier bits are the packed struct bit positions
-    inline for (@typeInfo(Key.Modifiers).@"struct".fields, 0..) |field, i| {
+    inline for (@typeInfo(Key.Modifiers).@"struct".field_names, 0..) |name, i| {
         try testing.expectEqual(
-            asInt(@field(c, "VAXIS_MOD_" ++ comptimeUpper(field.name))),
+            asInt(@field(c, "VAXIS_MOD_" ++ comptimeUpper(name))),
             @as(u8, 1) << i,
         );
     }
-    inline for (@typeInfo(Mouse.Modifiers).@"struct".fields, 0..) |field, i| {
+    inline for (@typeInfo(Mouse.Modifiers).@"struct".field_names, 0..) |name, i| {
         try testing.expectEqual(
-            asInt(@field(c, "VAXIS_MOUSE_MOD_" ++ comptimeUpper(field.name))),
+            asInt(@field(c, "VAXIS_MOUSE_MOD_" ++ comptimeUpper(name))),
             @as(u8, 1) << i,
         );
     }
 
     // mouse buttons, mouse event types, color kinds, and color schemes
-    inline for (@typeInfo(Mouse.Button).@"enum".fields) |field| {
+    inline for (@typeInfo(Mouse.Button).@"enum".field_names, @typeInfo(Mouse.Button).@"enum".field_values) |name, value| {
         try testing.expectEqual(
-            asInt(@field(c, "VAXIS_MOUSE_" ++ comptimeUpper(field.name))),
-            field.value,
+            asInt(@field(c, "VAXIS_MOUSE_" ++ comptimeUpper(name))),
+            value,
         );
     }
-    inline for (@typeInfo(Mouse.Type).@"enum".fields) |field| {
+    inline for (@typeInfo(Mouse.Type).@"enum".field_names, @typeInfo(Mouse.Type).@"enum".field_values) |name, value| {
         try testing.expectEqual(
-            asInt(@field(c, "VAXIS_MOUSE_" ++ comptimeUpper(field.name))),
-            field.value,
+            asInt(@field(c, "VAXIS_MOUSE_" ++ comptimeUpper(name))),
+            value,
         );
     }
-    inline for (@typeInfo(std.meta.Tag(Color.Kind)).@"enum".fields) |field| {
+    inline for (@typeInfo(std.meta.Tag(Color.Kind)).@"enum".field_names, @typeInfo(std.meta.Tag(Color.Kind)).@"enum".field_values) |name, value| {
         try testing.expectEqual(
-            asInt(@field(c, "VAXIS_COLOR_" ++ comptimeUpper(field.name))),
-            field.value,
+            asInt(@field(c, "VAXIS_COLOR_" ++ comptimeUpper(name))),
+            value,
         );
     }
-    inline for (@typeInfo(Color.Scheme).@"enum".fields) |field| {
+    inline for (@typeInfo(Color.Scheme).@"enum".field_names, @typeInfo(Color.Scheme).@"enum".field_values) |name, value| {
         try testing.expectEqual(
-            asInt(@field(c, "VAXIS_COLOR_SCHEME_" ++ comptimeUpper(field.name))),
-            field.value,
+            asInt(@field(c, "VAXIS_COLOR_SCHEME_" ++ comptimeUpper(name))),
+            value,
         );
     }
 }
@@ -1658,7 +1658,8 @@ test "c api: oversized grapheme text is truncated at a utf8 boundary" {
     defer parser_free(parser);
 
     // one grapheme cluster larger than the 256 byte text buffer
-    const input = ("\xE2\x98\xBA\xE2\x80\x8D" ** 60) ++ "\xE2\x98\xBA";
+    const repeated: [60][6]u8 = @splat("\xE2\x98\xBA\xE2\x80\x8D".*);
+    const input = std.mem.asBytes(&repeated) ++ "\xE2\x98\xBA";
     var event: ?*const CEvent = null;
     var n: usize = 0;
     try testing.expectEqual(.ok, parseBytes(parser, input, &event, &n));
