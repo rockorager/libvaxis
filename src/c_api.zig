@@ -132,6 +132,7 @@ pub const EventType = enum(c_int) {
     cap_color_scheme_updates = 19,
     cap_multi_cursor = 20,
     cursor_position = 21,
+    cap_program_status = 22,
 };
 
 comptime {
@@ -186,6 +187,7 @@ pub const CCapabilities = extern struct {
     scaled_text: bool,
     multi_cursor: bool,
     unicode_width: u8,
+    program_status: bool,
 };
 
 const GraphemeStore = struct {
@@ -469,7 +471,7 @@ pub fn window_scroll(window: ?*CWindow, rows: u16) callconv(.c) void {
 }
 
 pub fn capabilities_default() callconv(.c) CCapabilities {
-    return .{ .kitty_keyboard = false, .kitty_graphics = false, .no_color = false, .rgb = false, .sgr_pixels = false, .color_scheme_updates = false, .explicit_width = false, .scaled_text = false, .multi_cursor = false, .unicode_width = 0 };
+    return .{ .kitty_keyboard = false, .kitty_graphics = false, .no_color = false, .rgb = false, .sgr_pixels = false, .color_scheme_updates = false, .explicit_width = false, .scaled_text = false, .multi_cursor = false, .unicode_width = 0, .program_status = false };
 }
 
 pub fn window_print(window: ?*CWindow, segments: ?[*]const CSegment, count: usize, opts: CPrintOptions, out: ?*CPrintResult) callconv(.c) Result {
@@ -950,6 +952,7 @@ fn applyRuntimeEvent(vx: *Vaxis, e: *const CEvent) void {
         },
         .cap_color_scheme_updates => vx.caps.color_scheme_updates = true,
         .cap_multi_cursor => vx.caps.multi_cursor = true,
+        .cap_program_status => vx.caps.program_status = true,
         .cap_da1 => {
             std.Io.futexWake(vx.io, std.atomic.Value(u32), &vx.query_futex, 10);
             vx.queries_done.store(true, .unordered);
@@ -978,7 +981,7 @@ fn caps(c: Vaxis.Capabilities) CCapabilities {
         .wcwidth => 0,
         .unicode => 1,
         .no_zwj => 2,
-    } };
+    }, .program_status = c.program_status };
 }
 pub fn runtime_capabilities(runtime: ?*const CRuntime) callconv(.c) CCapabilities {
     return if (runtime) |r| caps(r.vx.?.caps) else capabilities_default();

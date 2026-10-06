@@ -29,6 +29,7 @@ pub const Event = union(enum) {
     cap_da1,
     cap_color_scheme_updates,
     cap_multi_cursor,
+    cap_program_status,
 };
 
 test {

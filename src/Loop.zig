@@ -479,6 +479,10 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                     log.info("multi cursor capability detected", .{});
                     vx.caps.multi_cursor = true;
                 },
+                .cap_program_status => {
+                    log.info("program status capability detected", .{});
+                    vx.caps.program_status = true;
+                },
                 .cap_da1 => {
                     std.Io.futexWake(vx.io, std.atomic.Value(u32), &vx.query_futex, 10);
                     vx.queries_done.store(true, .unordered);
@@ -585,6 +589,26 @@ test "cursor queries deliver reports without interfering with capability probes"
     vx.cursor_position_requests.last_request_at = vx.cursor_position_requests.last_request_at.subDuration(.fromSeconds(2));
     try vx.queryTerminalSend(tty.writer());
     try testing.expectEqual(@as(usize, 0), vx.cursor_position_requests.pending());
+}
+
+test "program status reply sets the capability" {
+    if (builtin.os.tag == .windows) return error.SkipZigTest;
+    const testing = std.testing;
+    var env = try testing.environ.createMap(testing.allocator);
+    defer env.deinit();
+    var tty = try Tty.init(testing.io, &.{});
+    defer tty.deinit();
+    var vx = try vaxis.init(testing.io, testing.allocator, &env, .{});
+    defer vx.deinit(testing.allocator, tty.writer());
+    var loop: Loop(vaxis.Event) = .init(testing.io, &tty, &vx);
+    var parser: Parser = .{};
+    var cache: GraphemeCache = .{};
+
+    try testing.expect(!vx.caps.program_status);
+    const result = try parser.parse("\x1b]7501;?\x1b\\", null);
+    try handleEventGeneric(&loop, &vx, &cache, vaxis.Event, result.event.?, null);
+    try testing.expect(vx.caps.program_status);
+    try testing.expectEqual(@as(?vaxis.Event, null), try loop.tryEvent());
 }
 
 test "paste dispatch preserves boundaries and transfers or frees clipboard text" {

@@ -25,6 +25,7 @@ Unix-likes.
 - System Clipboard (OSC 52)
 - System Notifications (OSC 9)
 - System Notifications (OSC 777)
+- [Program Status](https://www.superlogical.com/rex/docs/build/program-status) (OSC 7501)
 - Synchronized Output (Mode 2026)
 - [Unicode Core](https://github.com/contour-terminal/terminal-unicode-core) (Mode 2027)
 - Color Mode Updates (Mode 2031)

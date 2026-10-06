@@ -322,7 +322,7 @@ inline fn parseOsc(input: []const u8, paste_allocator: ?std.mem.Allocator) !Resu
     const payload_end = if (bel_terminated) sequence.len - 1 else sequence.len - 2;
 
     const semicolon_idx = std.mem.indexOfScalarPos(u8, sequence[0..payload_end], 2, ';') orelse return null_event;
-    const ps = std.fmt.parseUnsigned(u8, sequence[2..semicolon_idx], 10) catch return null_event;
+    const ps = std.fmt.parseUnsigned(u16, sequence[2..semicolon_idx], 10) catch return null_event;
 
     switch (ps) {
         4 => {
@@ -377,6 +377,16 @@ inline fn parseOsc(input: []const u8, paste_allocator: ?std.mem.Allocator) !Resu
             log.debug("decoded paste: {s}", .{text});
             return .{
                 .event = .{ .paste = text },
+                .n = sequence.len,
+            };
+        },
+        7501 => {
+            // Program status feature detection reply: OSC 7501 ; ? ST. Later
+            // revisions may append pairs after the '?', which we ignore.
+            const body = sequence[semicolon_idx + 1 .. payload_end];
+            if (!std.mem.startsWith(u8, body, "?")) return null_event;
+            return .{
+                .event = .cap_program_status,
                 .n = sequence.len,
             };
         },
@@ -1644,4 +1654,40 @@ test "parse: osc ending with escape waits for a possible ST" {
     const result = try parser.parse(input, null);
     try testing.expectEqual(0, result.n);
     try testing.expectEqual(@as(?Event, null), result.event);
+}
+
+test "parse: osc 7501 program status feature detection reply" {
+    var parser: Parser = .{};
+    for ([_][]const u8{
+        "\x1b]7501;?\x1b\\",
+        "\x1b]7501;?\x07",
+        // Programs must ignore anything a future revision adds after the '?'
+        "\x1b]7501;?v=2:extra=1\x1b\\",
+    }) |input| {
+        const result = try parser.parse(input, null);
+        try testing.expectEqual(input.len, result.n);
+        try testing.expectEqual(@as(?Event, .cap_program_status), result.event);
+    }
+
+    // Anything that is not a feature detection reply is consumed silently
+    for ([_][]const u8{
+        "\x1b]7501;state=idle\x1b\\",
+        "\x1b]7501;\x1b\\",
+        "\x1b]7500;?\x1b\\",
+        "\x1b]75011;?\x1b\\",
+    }) |input| {
+        const result = try parser.parse(input, null);
+        try testing.expectEqual(input.len, result.n);
+        try testing.expectEqual(@as(?Event, null), result.event);
+    }
+}
+
+test "parse: osc 7501 reply followed by da1" {
+    var parser: Parser = .{};
+    const input = "\x1b]7501;?\x1b\\\x1b[?62;22c";
+    const result = try parser.parse(input, null);
+    try testing.expectEqual(10, result.n);
+    try testing.expectEqual(@as(?Event, .cap_program_status), result.event);
+    const rest = try parser.parse(input[result.n..], null);
+    try testing.expectEqual(@as(?Event, .cap_da1), rest.event);
 }

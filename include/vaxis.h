@@ -92,6 +92,7 @@ typedef enum VAXIS_ENUM_TYPED {
   VAXIS_EVENT_CAP_MULTI_CURSOR = 20,
 
   VAXIS_EVENT_CURSOR_POSITION = 21,
+  VAXIS_EVENT_CAP_PROGRAM_STATUS = 22, /* OSC 7501 program status */
 
   /* Sentinel to pin the enum to int width; never produced. */
   VAXIS_EVENT_TYPE_MAX_VALUE = VAXIS_ENUM_MAX_VALUE,
@@ -231,6 +232,7 @@ typedef struct {
   bool kitty_keyboard, kitty_graphics, no_color, rgb, sgr_pixels;
   bool color_scheme_updates, explicit_width, scaled_text, multi_cursor;
   uint8_t unicode_width; /* 0=wcwidth, 1=unicode, 2=no_zwj */
+  bool program_status; /* OSC 7501 program status */
 } vaxis_capabilities;
 
 typedef struct vaxis_screen vaxis_screen;

@@ -15,6 +15,7 @@ pub const cursor_position_request = "\x1b[6n";
 pub const explicit_width_query = "\x1b]66;w=1; \x1b\\";
 pub const scaled_text_query = "\x1b]66;s=2; \x1b\\";
 pub const multi_cursor_query = "\x1b[> q";
+pub const program_status_query = "\x1b]7501;?\x1b\\";
 
 // mouse. We try for button motion and any motion. terminals will enable the
 // last one we tried (any motion). This was added because zellij doesn't
@@ -133,6 +134,7 @@ pub const osc8 = "\x1b]8;{s};{s}\x1b\\";
 pub const osc8_clear = "\x1b]8;;\x1b\\";
 pub const osc9_notify = "\x1b]9;{s}\x1b\\";
 pub const osc777_notify = "\x1b]777;notify;{s};{s}\x1b\\";
+pub const osc7501_program_status = "\x1b]7501;state={s}"; // followed by :key=value pairs and ST
 pub const osc22_mouse_shape = "\x1b]22;{s}\x1b\\";
 pub const osc52_clipboard_copy = "\x1b]52;c;{s}\x1b\\";
 pub const osc52_clipboard_request = "\x1b]52;c;?\x1b\\";

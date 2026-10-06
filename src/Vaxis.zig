@@ -40,6 +40,8 @@ pub const Capabilities = struct {
     explicit_width: bool = false,
     scaled_text: bool = false,
     multi_cursor: bool = false,
+    /// The terminal answered the Program Status Protocol (OSC 7501) query
+    program_status: bool = false,
 };
 
 pub const Options = struct {
@@ -335,6 +337,8 @@ pub fn queryTerminalSend(vx: *Vaxis, tty: *std.Io.Writer) !void {
         ctlseqs.xtversion ++
         ctlseqs.csi_u_query ++
         ctlseqs.kitty_graphics_query ++
+        // Must precede DA1: a DA1 reply arriving first means no support
+        ctlseqs.program_status_query ++
         ctlseqs.primary_device_attrs);
 
     try tty.flush();
@@ -885,6 +889,123 @@ pub fn notify(_: *Vaxis, tty: *std.Io.Writer, title: ?[]const u8, body: []const 
 /// sets the window title
 pub fn setTitle(_: *Vaxis, tty: *std.Io.Writer, title: []const u8) !void {
     try tty.print(ctlseqs.osc2_set_title, .{title});
+    try tty.flush();
+}
+
+/// A Program Status Protocol (OSC 7501) report, telling the terminal what
+/// the program is doing. Each report replaces its record completely, so send
+/// every field the record should keep (such as `app` and `title`) each time.
+/// See https://www.superlogical.com/rex/docs/build/program-status
+pub const ProgramStatus = struct {
+    pub const State = enum { idle, working, done, blocked, @"error" };
+    pub const Kind = enum { permission, question, auth };
+
+    state: State,
+    /// Record id: `/`-separated segments of `[A-Za-z0-9_.+-]{1,32}`, at most
+    /// 8 levels deep and 128 bytes long. Null addresses the root record.
+    id: ?[]const u8 = null,
+    /// What the user must do. Only sent with `.blocked`.
+    kind: ?Kind = null,
+    /// Percent complete, clamped to 100. Only sent with `.working` and
+    /// `.blocked`. Null means unknown.
+    progress: ?u8 = null,
+    /// Stable machine-readable program name, `[A-Za-z0-9_.+-]{1,32}`.
+    app: ?[]const u8 = null,
+    /// Short human-readable label. Control characters are removed and the
+    /// text is truncated to 192 bytes.
+    title: ?[]const u8 = null,
+    /// One human-readable line. Control characters are removed and the text
+    /// is truncated to 2048 bytes.
+    msg: ?[]const u8 = null,
+
+    const max_id_len = 128;
+    const max_id_depth = 8;
+    const max_name_len = 32;
+    const max_title_len = 192;
+    const max_msg_len = 2048;
+
+    /// Matches `[A-Za-z0-9_.+-]{1,32}`, the grammar of id segments and app
+    fn isName(name: []const u8) bool {
+        if (name.len == 0 or name.len > max_name_len) return false;
+        for (name) |b| switch (b) {
+            'A'...'Z', 'a'...'z', '0'...'9', '_', '.', '+', '-' => {},
+            else => return false,
+        };
+        return true;
+    }
+
+    fn validateId(id: []const u8) error{InvalidProgramStatusId}!void {
+        if (id.len > max_id_len) return error.InvalidProgramStatusId;
+        var depth: usize = 0;
+        var segments = std.mem.splitScalar(u8, id, '/');
+        while (segments.next()) |segment| {
+            depth += 1;
+            if (depth > max_id_depth or !isName(segment)) return error.InvalidProgramStatusId;
+        }
+    }
+
+    /// Copies text into buf as valid UTF-8 without control characters,
+    /// stopping at the last whole codepoint that fits. Invalid UTF-8 becomes
+    /// U+FFFD.
+    fn sanitizeText(buf: []u8, text: []const u8) []const u8 {
+        const replacement = &std.unicode.replacement_character_utf8;
+        var n: usize = 0;
+        var i: usize = 0;
+        while (i < text.len) {
+            var bytes: []const u8 = replacement;
+            var cp_len: usize = 1;
+            if (std.unicode.utf8ByteSequenceLength(text[i])) |len| {
+                if (i + len <= text.len) {
+                    if (std.unicode.utf8Decode(text[i..][0..len])) |cp| {
+                        cp_len = len;
+                        bytes = text[i..][0..len];
+                        if (cp < 0x20 or (cp >= 0x7f and cp <= 0x9f)) bytes = "";
+                    } else |_| {}
+                }
+            } else |_| {}
+            i += cp_len;
+            if (n + bytes.len > buf.len) break;
+            @memcpy(buf[n..][0..bytes.len], bytes);
+            n += bytes.len;
+        }
+        return buf[0..n];
+    }
+
+    fn writeText(tty: *std.Io.Writer, comptime key: []const u8, comptime max_len: usize, text: []const u8) !void {
+        var buf: [max_len]u8 = undefined;
+        const clean = sanitizeText(&buf, text);
+        if (clean.len == 0) return;
+        try tty.writeAll(":" ++ key ++ "=");
+        try base64Encoder.encodeWriter(tty, clean);
+    }
+};
+
+/// Sends a Program Status Protocol (OSC 7501) report. Terminals that support
+/// the protocol set caps.program_status in response to queryTerminal.
+/// Returns an error, without writing anything, if `id` or `app` is invalid.
+pub fn reportProgramStatus(_: *Vaxis, tty: *std.Io.Writer, status: ProgramStatus) !void {
+    if (status.id) |id| try ProgramStatus.validateId(id);
+    if (status.app) |app| if (!ProgramStatus.isName(app)) return error.InvalidProgramStatusApp;
+
+    try tty.print(ctlseqs.osc7501_program_status, .{@tagName(status.state)});
+    if (status.id) |id| try tty.print(":id={s}", .{id});
+    if (status.state == .blocked) if (status.kind) |kind| try tty.print(":kind={s}", .{@tagName(kind)});
+    if (status.state == .working or status.state == .blocked) if (status.progress) |progress|
+        try tty.print(":progress={d}", .{@min(progress, 100)});
+    if (status.app) |app| try tty.print(":app={s}", .{app});
+    if (status.title) |title| try ProgramStatus.writeText(tty, "title", ProgramStatus.max_title_len, title);
+    if (status.msg) |msg| try ProgramStatus.writeText(tty, "msg", ProgramStatus.max_msg_len, msg);
+    try tty.writeAll("\x1b\\");
+    try tty.flush();
+}
+
+/// Removes a Program Status Protocol (OSC 7501) record and every record
+/// beneath it. A null id removes every record on the terminal.
+pub fn clearProgramStatus(_: *Vaxis, tty: *std.Io.Writer, id: ?[]const u8) !void {
+    if (id) |i| try ProgramStatus.validateId(i);
+    try tty.print(ctlseqs.osc7501_program_status, .{"clear"});
+    if (id) |i| try tty.print(":id={s}", .{i});
+    try tty.writeAll("\x1b\\");
     try tty.flush();
 }
 
@@ -1599,4 +1720,179 @@ test "resize preserves valid state on allocation failure" {
         testResizeAllocationFailures,
         .{},
     );
+}
+
+test "queryTerminalSend: program status query precedes DA1" {
+    var env = try std.testing.environ.createMap(std.testing.allocator);
+    defer env.deinit();
+    var vx = try Vaxis.init(std.testing.io, std.testing.allocator, &env, .{});
+    var writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer writer.deinit();
+    defer vx.deinit(std.testing.allocator, &writer.writer);
+
+    try vx.queryTerminalSend(&writer.writer);
+    try std.testing.expect(std.mem.endsWith(
+        u8,
+        writer.written(),
+        ctlseqs.program_status_query ++ ctlseqs.primary_device_attrs,
+    ));
+}
+
+/// Decodes the base64 value of `key` from a single OSC 7501 report
+fn testProgramStatusText(buf: []u8, report: []const u8, comptime key: []const u8) ![]const u8 {
+    const start = (std.mem.indexOf(u8, report, ":" ++ key ++ "=") orelse return error.MissingKey) + key.len + 2;
+    const end = std.mem.indexOfAnyPos(u8, report, start, ":\x1b").?;
+    const decoder = std.base64.standard.Decoder;
+    const len = try decoder.calcSizeForSlice(report[start..end]);
+    try decoder.decode(buf[0..len], report[start..end]);
+    return buf[0..len];
+}
+
+test "reportProgramStatus: writes reports" {
+    var env = try std.testing.environ.createMap(std.testing.allocator);
+    defer env.deinit();
+    var vx = try Vaxis.init(std.testing.io, std.testing.allocator, &env, .{});
+    var writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer writer.deinit();
+    defer vx.deinit(std.testing.allocator, &writer.writer);
+
+    const cases = [_]struct { ProgramStatus, []const u8 }{
+        // The example from the specification
+        .{
+            .{ .state = .blocked, .kind = .permission, .app = "terraform", .msg = "Apply 3 to add, 1 to change, 0 to destroy?" },
+            "\x1b]7501;state=blocked:kind=permission:app=terraform:msg=QXBwbHkgMyB0byBhZGQsIDEgdG8gY2hhbmdlLCAwIHRvIGRlc3Ryb3k/\x1b\\",
+        },
+        .{ .{ .state = .idle }, "\x1b]7501;state=idle\x1b\\" },
+        .{ .{ .state = .@"error" }, "\x1b]7501;state=error\x1b\\" },
+        .{
+            .{ .state = .working, .id = "us-east", .title = "US East", .progress = 40, .msg = "Pushing image" },
+            "\x1b]7501;state=working:id=us-east:progress=40:title=VVMgRWFzdA==:msg=UHVzaGluZyBpbWFnZQ==\x1b\\",
+        },
+        .{
+            .{ .state = .blocked, .id = "build/test", .kind = .auth, .progress = 0, .app = "cargo" },
+            "\x1b]7501;state=blocked:id=build/test:kind=auth:progress=0:app=cargo\x1b\\",
+        },
+        // progress is clamped to 100
+        .{ .{ .state = .working, .progress = 255 }, "\x1b]7501;state=working:progress=100\x1b\\" },
+        // kind is only sent with blocked, progress only with working and blocked
+        .{ .{ .state = .working, .kind = .question, .progress = 100 }, "\x1b]7501;state=working:progress=100\x1b\\" },
+        .{ .{ .state = .done, .kind = .question, .progress = 50 }, "\x1b]7501;state=done\x1b\\" },
+        .{ .{ .state = .idle, .progress = 50 }, "\x1b]7501;state=idle\x1b\\" },
+        // empty text, or text that is empty without control characters, is omitted
+        .{ .{ .state = .done, .title = "", .msg = "\x1b\r\n\x7f\u{9b}" }, "\x1b]7501;state=done\x1b\\" },
+    };
+    for (cases) |case| {
+        writer.clearRetainingCapacity();
+        try vx.reportProgramStatus(&writer.writer, case[0]);
+        try std.testing.expectEqualStrings(case[1], writer.written());
+    }
+}
+
+test "reportProgramStatus: sanitizes and truncates text" {
+    var env = try std.testing.environ.createMap(std.testing.allocator);
+    defer env.deinit();
+    var vx = try Vaxis.init(std.testing.io, std.testing.allocator, &env, .{});
+    var writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer writer.deinit();
+    defer vx.deinit(std.testing.allocator, &writer.writer);
+    var buf: [4096]u8 = undefined;
+
+    // Control characters (C0, DEL, C1) are removed and invalid UTF-8 is replaced
+    try vx.reportProgramStatus(&writer.writer, .{
+        .state = .done,
+        .title = "a\x00b\tc\x1b[31m\u{85}d",
+        .msg = "ok \xff caf\xc3 \u{1F600}\x7f!",
+    });
+    try std.testing.expectEqualStrings("abc[31md", try testProgramStatusText(&buf, writer.written(), "title"));
+    try std.testing.expectEqualStrings("ok \u{FFFD} caf\u{FFFD} \u{1F600}!", try testProgramStatusText(&buf, writer.written(), "msg"));
+
+    // Truncation happens on a codepoint boundary: a two byte codepoint that
+    // would end at byte 193 of the title, and a four byte codepoint that
+    // would end at byte 2050 of the message, are dropped
+    const title = "a" ** 191 ++ "\u{e9}";
+    const msg = "a" ** 2046 ++ "\u{1F600}";
+    writer.clearRetainingCapacity();
+    try vx.reportProgramStatus(&writer.writer, .{ .state = .done, .title = title, .msg = msg });
+    try std.testing.expectEqualStrings(title[0..191], try testProgramStatusText(&buf, writer.written(), "title"));
+    try std.testing.expectEqualStrings(msg[0..2046], try testProgramStatusText(&buf, writer.written(), "msg"));
+
+    // Text that fits exactly is kept whole, and removed control characters
+    // do not count against the limit
+    const exact_title = "\u{e9}" ** 96;
+    const exact_msg = "\u{1F600}" ** 512 ++ "\n";
+    writer.clearRetainingCapacity();
+    try vx.reportProgramStatus(&writer.writer, .{ .state = .done, .title = exact_title, .msg = exact_msg });
+    try std.testing.expectEqualStrings(exact_title, try testProgramStatusText(&buf, writer.written(), "title"));
+    try std.testing.expectEqualStrings(exact_msg[0 .. exact_msg.len - 1], try testProgramStatusText(&buf, writer.written(), "msg"));
+}
+
+test "reportProgramStatus: validates id and app" {
+    var env = try std.testing.environ.createMap(std.testing.allocator);
+    defer env.deinit();
+    var vx = try Vaxis.init(std.testing.io, std.testing.allocator, &env, .{});
+    var writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer writer.deinit();
+    defer vx.deinit(std.testing.allocator, &writer.writer);
+
+    const segment32 = "A" ** 32;
+    const valid_ids = [_][]const u8{
+        "a",
+        "Az09_.+-",
+        segment32,
+        "a/b/c/d/e/f/g/h",
+        // 128 bytes
+        segment32 ++ "/" ++ segment32 ++ "/" ++ segment32 ++ "/" ++ "A" ** 29,
+    };
+    for (valid_ids) |id| {
+        writer.clearRetainingCapacity();
+        try vx.reportProgramStatus(&writer.writer, .{ .state = .idle, .id = id });
+        try vx.clearProgramStatus(&writer.writer, id);
+    }
+
+    const invalid_ids = [_][]const u8{
+        "",
+        "/",
+        "/a",
+        "a/",
+        "a//b",
+        "a b",
+        "a:b",
+        "a;b",
+        "a=b",
+        "caf\u{e9}",
+        segment32 ++ "A",
+        "a/b/c/d/e/f/g/h/i",
+        // 129 bytes
+        segment32 ++ "/" ++ segment32 ++ "/" ++ segment32 ++ "/" ++ "A" ** 30,
+    };
+    for (invalid_ids) |id| {
+        writer.clearRetainingCapacity();
+        try std.testing.expectError(error.InvalidProgramStatusId, vx.reportProgramStatus(&writer.writer, .{ .state = .idle, .id = id }));
+        try std.testing.expectError(error.InvalidProgramStatusId, vx.clearProgramStatus(&writer.writer, id));
+        try std.testing.expectEqual(@as(usize, 0), writer.written().len);
+    }
+
+    for ([_][]const u8{ "a", "claude-code", "Az09_.+-", segment32 }) |app| {
+        try vx.reportProgramStatus(&writer.writer, .{ .state = .idle, .app = app });
+    }
+    for ([_][]const u8{ "", "a/b", "a b", "a:b", segment32 ++ "A" }) |app| {
+        writer.clearRetainingCapacity();
+        try std.testing.expectError(error.InvalidProgramStatusApp, vx.reportProgramStatus(&writer.writer, .{ .state = .idle, .app = app }));
+        try std.testing.expectEqual(@as(usize, 0), writer.written().len);
+    }
+}
+
+test "clearProgramStatus: clears one record tree or every record" {
+    var env = try std.testing.environ.createMap(std.testing.allocator);
+    defer env.deinit();
+    var vx = try Vaxis.init(std.testing.io, std.testing.allocator, &env, .{});
+    var writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer writer.deinit();
+    defer vx.deinit(std.testing.allocator, &writer.writer);
+
+    try vx.clearProgramStatus(&writer.writer, null);
+    try std.testing.expectEqualStrings("\x1b]7501;state=clear\x1b\\", writer.written());
+    writer.clearRetainingCapacity();
+    try vx.clearProgramStatus(&writer.writer, "deploy/us-east");
+    try std.testing.expectEqualStrings("\x1b]7501;state=clear:id=deploy/us-east\x1b\\", writer.written());
 }
