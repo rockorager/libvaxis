@@ -98,6 +98,16 @@ int main(void) {
       (vaxis_image_draw_options){VAXIS_IMAGE_SCALE_CONTAIN, 0, false}) == VAXIS_OK);
   vaxis_image_free(image);
 
+  /* Program status calls validate their arguments on every platform. */
+  vaxis_program_status status = {
+      VAXIS_PROGRAM_STATUS_DONE, VAXIS_PROGRAM_STATUS_KIND_NONE,
+      {NULL, 0}, {NULL, 0}, {NULL, 0}, {NULL, 0}, 0, false};
+  assert(vaxis_runtime_report_program_status(NULL, &status) ==
+         VAXIS_ERR_INVALID);
+  assert(vaxis_runtime_clear_program_status(NULL, NULL, 0) ==
+         VAXIS_ERR_INVALID);
+  assert(!vaxis_capabilities_default().program_status);
+
   vaxis_text_input_free(input);
   vaxis_window_free(child);
   vaxis_window_free(root);

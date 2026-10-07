@@ -437,6 +437,54 @@ vaxis_result vaxis_runtime_set_mouse_mode(vaxis_runtime *runtime, bool enabled);
 vaxis_result vaxis_runtime_set_bracketed_paste(vaxis_runtime *runtime, bool enabled);
 vaxis_result vaxis_runtime_set_title(vaxis_runtime *runtime,
                                      const uint8_t *title, size_t length);
+
+/* Program Status Protocol (OSC 7501): tell the terminal what the program is
+ * doing. See https://www.superlogical.com/rex/docs/build/program-status
+ * Terminals that support it set vaxis_capabilities.program_status after the
+ * terminal query. */
+typedef enum VAXIS_ENUM_TYPED {
+  VAXIS_PROGRAM_STATUS_IDLE = 0, VAXIS_PROGRAM_STATUS_WORKING = 1,
+  VAXIS_PROGRAM_STATUS_DONE = 2, VAXIS_PROGRAM_STATUS_BLOCKED = 3,
+  VAXIS_PROGRAM_STATUS_ERROR = 4,
+  VAXIS_PROGRAM_STATUS_STATE_MAX_VALUE = VAXIS_ENUM_MAX_VALUE,
+} vaxis_program_status_state;
+typedef enum VAXIS_ENUM_TYPED {
+  VAXIS_PROGRAM_STATUS_KIND_NONE = 0, VAXIS_PROGRAM_STATUS_KIND_PERMISSION = 1,
+  VAXIS_PROGRAM_STATUS_KIND_QUESTION = 2, VAXIS_PROGRAM_STATUS_KIND_AUTH = 3,
+  VAXIS_PROGRAM_STATUS_KIND_MAX_VALUE = VAXIS_ENUM_MAX_VALUE,
+} vaxis_program_status_kind;
+/* A report replaces its record completely, so include every field the record
+ * should keep each time. A string whose ptr is NULL (with len 0) is absent; a
+ * non-NULL ptr with len 0 is an empty string, which is invalid for id and app.
+ *
+ * id:    record id, '/'-separated segments of [A-Za-z0-9_.+-]{1,32}, at most
+ *        8 levels and 128 bytes. Absent addresses the root record.
+ * kind:  only sent with VAXIS_PROGRAM_STATUS_BLOCKED.
+ * app:   stable program name, [A-Za-z0-9_.+-]{1,32}.
+ * title, msg: UTF-8 text. Control characters are removed, invalid UTF-8 is
+ *        replaced with U+FFFD, and the text is truncated on a codepoint
+ *        boundary to 192 (title) and 2048 (msg) bytes. Empty text is omitted.
+ * progress: percent complete, clamped to 100, used only when has_progress is
+ *        set and only sent with WORKING or BLOCKED. */
+typedef struct {
+  int32_t state; /* vaxis_program_status_state */
+  int32_t kind; /* vaxis_program_status_kind */
+  vaxis_string id;
+  vaxis_string app;
+  vaxis_string title;
+  vaxis_string msg;
+  uint8_t progress;
+  bool has_progress;
+} vaxis_program_status;
+/* Send a report. Returns VAXIS_ERR_INVALID without writing anything for an
+ * unknown state or kind, or an invalid id or app. */
+vaxis_result vaxis_runtime_report_program_status(
+    vaxis_runtime *runtime, const vaxis_program_status *status);
+/* Remove the record `id` and every record beneath it. A NULL id with length 0
+ * removes every record; an id that is empty or invalid is VAXIS_ERR_INVALID. */
+vaxis_result vaxis_runtime_clear_program_status(vaxis_runtime *runtime,
+                                                const uint8_t *id,
+                                                size_t length);
 vaxis_result vaxis_runtime_load_image_memory(vaxis_runtime *runtime,
                                              const uint8_t *data, size_t length,
                                              vaxis_image **image);

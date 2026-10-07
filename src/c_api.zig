@@ -254,6 +254,17 @@ pub const CTerminalOptions = extern struct {
 };
 pub const CRuntimeOptions = extern struct { environment: ?[*]const CEnvVar, environment_count: usize };
 pub const CTerminalEvent = extern struct { type: c_int, text: CString };
+/// C: vaxis_program_status. Strings with a NULL ptr are absent.
+pub const CProgramStatus = extern struct {
+    state: c_int,
+    kind: c_int,
+    id: CString,
+    app: CString,
+    title: CString,
+    msg: CString,
+    progress: u8,
+    has_progress: bool,
+};
 const CTerminal = if (builtin.os.tag == .linux) struct {
     allocator: AllocatorState,
     threaded: std.Io.Threaded,
@@ -1002,6 +1013,49 @@ pub fn runtime_set_title(runtime: ?*CRuntime, title: ?[*]const u8, len: usize) c
     r.vx.?.setTitle(r.tty.tty.?.writer(), s) catch return .err_io;
     return .ok;
 }
+/// A NULL ptr means absent; a non-NULL ptr is a string, even when empty
+fn optionalSlice(s: CString) error{Invalid}!?[]const u8 {
+    const ptr = s.ptr orelse return if (s.len == 0) null else error.Invalid;
+    return ptr[0..s.len];
+}
+fn programStatusFrom(c: CProgramStatus) error{Invalid}!Vaxis.ProgramStatus {
+    const ProgramStatus = Vaxis.ProgramStatus;
+    return .{
+        .state = std.enums.fromInt(ProgramStatus.State, c.state) orelse return error.Invalid,
+        // VAXIS_PROGRAM_STATUS_KIND_NONE is 0; the kinds follow in order
+        .kind = if (c.kind == 0) null else std.enums.fromInt(ProgramStatus.Kind, c.kind - 1) orelse return error.Invalid,
+        .id = try optionalSlice(c.id),
+        .app = try optionalSlice(c.app),
+        .title = try optionalSlice(c.title),
+        .msg = try optionalSlice(c.msg),
+        .progress = if (c.has_progress) c.progress else null,
+    };
+}
+fn reportProgramStatus(vx: *Vaxis, writer: *std.Io.Writer, status: ?*const CProgramStatus) Result {
+    const s = status orelse return .err_invalid;
+    const report = programStatusFrom(s.*) catch return .err_invalid;
+    vx.reportProgramStatus(writer, report) catch |err| return switch (err) {
+        error.InvalidProgramStatusId, error.InvalidProgramStatusApp => .err_invalid,
+        else => .err_io,
+    };
+    return .ok;
+}
+fn clearProgramStatus(vx: *Vaxis, writer: *std.Io.Writer, id: ?[*]const u8, len: usize) Result {
+    const record = optionalSlice(.{ .ptr = id, .len = len }) catch return .err_invalid;
+    vx.clearProgramStatus(writer, record) catch |err| return switch (err) {
+        error.InvalidProgramStatusId => .err_invalid,
+        else => .err_io,
+    };
+    return .ok;
+}
+pub fn runtime_report_program_status(runtime: ?*CRuntime, status: ?*const CProgramStatus) callconv(.c) Result {
+    const r = runtime orelse return .err_invalid;
+    return reportProgramStatus(&r.vx.?, r.tty.tty.?.writer(), status);
+}
+pub fn runtime_clear_program_status(runtime: ?*CRuntime, id: ?[*]const u8, len: usize) callconv(.c) Result {
+    const r = runtime orelse return .err_invalid;
+    return clearProgramStatus(&r.vx.?, r.tty.tty.?.writer(), id, len);
+}
 fn prepareImage(r: *CRuntime, out: ?*?*CImage) error{ Invalid, OutOfMemory }!*CImage {
     const o = out orelse return error.Invalid;
     o.* = null;
@@ -1376,6 +1430,7 @@ test "c api: conformance with vaxis.h" {
         .{ c.vaxis_capabilities, CCapabilities },        .{ c.vaxis_image_draw_options, CImageDrawOptions },
         .{ c.vaxis_env_var, CEnvVar },                   .{ c.vaxis_runtime_options, CRuntimeOptions },
         .{ c.vaxis_terminal_options, CTerminalOptions }, .{ c.vaxis_terminal_event, CTerminalEvent },
+        .{ c.vaxis_program_status, CProgramStatus },
     }) |pair| {
         try testing.expectEqual(@sizeOf(pair[0]), @sizeOf(pair[1]));
         try testing.expectEqual(@alignOf(pair[0]), @alignOf(pair[1]));
@@ -1447,6 +1502,24 @@ test "c api: conformance with vaxis.h" {
             field.value,
         );
     }
+
+    // program status fields, states, and kinds (offset by KIND_NONE = 0)
+    inline for (@typeInfo(CProgramStatus).@"struct".fields) |field| {
+        try testing.expectEqual(@offsetOf(c.vaxis_program_status, field.name), @offsetOf(CProgramStatus, field.name));
+    }
+    inline for (@typeInfo(Vaxis.ProgramStatus.State).@"enum".fields) |field| {
+        try testing.expectEqual(
+            asInt(@field(c, "VAXIS_PROGRAM_STATUS_" ++ comptimeUpper(field.name))),
+            field.value,
+        );
+    }
+    try testing.expectEqual(0, asInt(c.VAXIS_PROGRAM_STATUS_KIND_NONE));
+    inline for (@typeInfo(Vaxis.ProgramStatus.Kind).@"enum".fields) |field| {
+        try testing.expectEqual(
+            asInt(@field(c, "VAXIS_PROGRAM_STATUS_KIND_" ++ comptimeUpper(field.name))),
+            field.value + 1,
+        );
+    }
 }
 
 test "c api: screen owns input strings and bounds overwritten storage" {
@@ -1500,9 +1573,84 @@ test "c api: runtime capability events update Vaxis state" {
     event.type = .cap_unicode;
     applyRuntimeEvent(&vx, &event);
     try testing.expectEqual(vaxis.gwidth.Method.unicode, vx.caps.unicode);
+    event.type = .cap_program_status;
+    applyRuntimeEvent(&vx, &event);
+    try testing.expect(vx.caps.program_status);
+    try testing.expect(caps(vx.caps).program_status);
+    try testing.expect(!capabilities_default().program_status);
     event.type = .winsize;
     applyRuntimeEvent(&vx, &event);
     try testing.expect(vx.state.in_band_resize);
+}
+
+test "c api: program status reports and clears" {
+    var env = std.process.Environ.Map.init(testing.allocator);
+    defer env.deinit();
+    var vx = try Vaxis.init(std.testing.io, testing.allocator, &env, .{});
+    var writer: std.Io.Writer.Allocating = .init(testing.allocator);
+    defer writer.deinit();
+    defer vx.deinit(testing.allocator, &writer.writer);
+
+    const blocked: CProgramStatus = .{
+        .state = 3,
+        .kind = 1,
+        .id = .init("deploy/eu-west"),
+        .app = .init("deploy"),
+        .title = .init("EU West"),
+        .msg = .init("Approve?\n"),
+        .progress = 150,
+        .has_progress = true,
+    };
+    try testing.expectEqual(.ok, reportProgramStatus(&vx, &writer.writer, &blocked));
+    try testing.expectEqualStrings(
+        "\x1b]7501;state=blocked:id=deploy/eu-west:kind=permission:progress=100:app=deploy:title=RVUgV2VzdA==:msg=QXBwcm92ZT8=\x1b\\",
+        writer.written(),
+    );
+
+    // NULL strings, KIND_NONE, and has_progress = false are absent
+    var status: CProgramStatus = .{ .state = 1, .kind = 0, .id = .empty, .app = .empty, .title = .empty, .msg = .empty, .progress = 50, .has_progress = false };
+    writer.clearRetainingCapacity();
+    try testing.expectEqual(.ok, reportProgramStatus(&vx, &writer.writer, &status));
+    try testing.expectEqualStrings("\x1b]7501;state=working\x1b\\", writer.written());
+    // a non-NULL empty title or msg is accepted and omitted
+    status.title = .{ .ptr = "x", .len = 0 };
+    status.msg = .{ .ptr = "x", .len = 0 };
+    writer.clearRetainingCapacity();
+    try testing.expectEqual(.ok, reportProgramStatus(&vx, &writer.writer, &status));
+    try testing.expectEqualStrings("\x1b]7501;state=working\x1b\\", writer.written());
+
+    // invalid input is rejected without writing anything
+    writer.clearRetainingCapacity();
+    const empty: CString = .{ .ptr = "x", .len = 0 };
+    const dangling: CString = .{ .ptr = null, .len = 1 };
+    const invalid = [_]CProgramStatus{
+        .{ .state = 5, .kind = 0, .id = .empty, .app = .empty, .title = .empty, .msg = .empty, .progress = 0, .has_progress = false },
+        .{ .state = -1, .kind = 0, .id = .empty, .app = .empty, .title = .empty, .msg = .empty, .progress = 0, .has_progress = false },
+        .{ .state = 3, .kind = 4, .id = .empty, .app = .empty, .title = .empty, .msg = .empty, .progress = 0, .has_progress = false },
+        .{ .state = 3, .kind = -1, .id = .empty, .app = .empty, .title = .empty, .msg = .empty, .progress = 0, .has_progress = false },
+        .{ .state = 0, .kind = 0, .id = empty, .app = .empty, .title = .empty, .msg = .empty, .progress = 0, .has_progress = false },
+        .{ .state = 0, .kind = 0, .id = .init("a//b"), .app = .empty, .title = .empty, .msg = .empty, .progress = 0, .has_progress = false },
+        .{ .state = 0, .kind = 0, .id = .empty, .app = empty, .title = .empty, .msg = .empty, .progress = 0, .has_progress = false },
+        .{ .state = 0, .kind = 0, .id = .empty, .app = .init("a b"), .title = .empty, .msg = .empty, .progress = 0, .has_progress = false },
+        .{ .state = 0, .kind = 0, .id = dangling, .app = .empty, .title = .empty, .msg = .empty, .progress = 0, .has_progress = false },
+        .{ .state = 0, .kind = 0, .id = .empty, .app = .empty, .title = .empty, .msg = dangling, .progress = 0, .has_progress = false },
+    };
+    for (&invalid) |*bad| try testing.expectEqual(.err_invalid, reportProgramStatus(&vx, &writer.writer, bad));
+    try testing.expectEqual(.err_invalid, reportProgramStatus(&vx, &writer.writer, null));
+    try testing.expectEqual(.err_invalid, clearProgramStatus(&vx, &writer.writer, "x", 0));
+    try testing.expectEqual(.err_invalid, clearProgramStatus(&vx, &writer.writer, null, 1));
+    try testing.expectEqual(.err_invalid, clearProgramStatus(&vx, &writer.writer, "a/", 2));
+    try testing.expectEqual(@as(usize, 0), writer.written().len);
+    try testing.expectEqual(.err_invalid, runtime_report_program_status(null, &blocked));
+    try testing.expectEqual(.err_invalid, runtime_clear_program_status(null, null, 0));
+
+    try testing.expectEqual(.ok, clearProgramStatus(&vx, &writer.writer, null, 0));
+    try testing.expectEqual(.ok, clearProgramStatus(&vx, &writer.writer, "deploy", 6));
+    try testing.expectEqualStrings("\x1b]7501;state=clear\x1b\\\x1b]7501;state=clear:id=deploy\x1b\\", writer.written());
+
+    var failing: std.Io.Writer = .failing;
+    try testing.expectEqual(.err_io, reportProgramStatus(&vx, &failing, &blocked));
+    try testing.expectEqual(.err_io, clearProgramStatus(&vx, &failing, null, 0));
 }
 
 test "c api: terminal dimensions are validated" {
