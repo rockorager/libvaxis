@@ -160,18 +160,25 @@ int main(void) {
     close(slave);
     _exit(0);
   }
-  int status;
-  assert(waitpid(child, &status, 0) == child);
-  assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
-
+  /* Read the child's output while it runs. Some systems (macOS) block a
+   * writer draining the terminal, e.g. in tcsetattr(TCSAFLUSH) or on exit,
+   * until the master has read everything. */
+  alarm(30);
   char output[4096];
   size_t len = 0;
   assert(fcntl(master, F_SETFL, fcntl(master, F_GETFL) | O_NONBLOCK) == 0);
-  for (;;) {
-    ssize_t n = read(master, output + len, sizeof(output) - len);
-    if (n <= 0) break;
-    len += (size_t)n;
+  int status;
+  for (bool exited = false; !exited;) {
+    exited = waitpid(child, &status, WNOHANG) == child;
+    struct pollfd pfd = {master, POLLIN, 0};
+    if (!exited && poll(&pfd, 1, 50) <= 0) continue;
+    for (;;) {
+      ssize_t n = read(master, output + len, sizeof(output) - len);
+      if (n <= 0) break;
+      len += (size_t)n;
+    }
   }
+  assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
   close(parent_slave);
   close(master);
   assert(contains(output, len,
