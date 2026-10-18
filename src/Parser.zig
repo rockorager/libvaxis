@@ -236,6 +236,12 @@ inline fn parseApc(input: []const u8) Result {
         .event = null,
         .n = 0,
     };
+    if (input.len < end + 1 + 1) {
+        return .{
+            .event = null,
+            .n = 0,
+        };
+    }
     const sequence = input[0 .. end + 1 + 1];
 
     switch (input[2]) {
@@ -1690,4 +1696,15 @@ test "parse: osc 7501 reply followed by da1" {
     try testing.expectEqual(@as(?Event, .cap_program_status), result.event);
     const rest = try parser.parse(input[result.n..], null);
     try testing.expectEqual(@as(?Event, .cap_da1), rest.event);
+}
+
+test "parse: apc split before the backslash of the terminator" {
+    var parser: Parser = .{};
+    const input = "\x1b_Gi=1;OK\x1b\\";
+    const partial = try parser.parse(input[0 .. input.len - 1], null);
+    try testing.expectEqual(0, partial.n);
+    try testing.expectEqual(@as(?Event, null), partial.event);
+    const result = try parser.parse(input, null);
+    try testing.expectEqual(input.len, result.n);
+    try testing.expectEqual(@as(?Event, .cap_kitty_graphics), result.event);
 }
