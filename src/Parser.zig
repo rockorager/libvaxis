@@ -486,6 +486,8 @@ inline fn parseCsi(input: []const u8, text_buf: []u8, cursor_position_requests: 
                 var total: usize = 0;
                 while (param_iter.next()) |cp_buf| {
                     const cp = parseParam(u21, cp_buf, null) orelse return null_event;
+                    const len = std.unicode.utf8CodepointSequenceLength(cp) catch return null_event;
+                    if (total + len > text_buf.len) return null_event;
                     total += std.unicode.utf8Encode(cp, text_buf[total..]) catch return null_event;
                 }
                 key.text = text_buf[0..total];
@@ -565,6 +567,8 @@ inline fn parseCsi(input: []const u8, text_buf: []u8, cursor_position_requests: 
                 var total: usize = 0;
                 while (param_iter.next()) |cp_buf| {
                     const cp = parseParam(u21, cp_buf, null) orelse return null_event;
+                    const len = std.unicode.utf8CodepointSequenceLength(cp) catch return null_event;
+                    if (total + len > text_buf.len) return null_event;
                     total += std.unicode.utf8Encode(cp, text_buf[total..]) catch return null_event;
                 }
                 key.text = text_buf[0..total];
@@ -699,6 +703,8 @@ inline fn parseCsi(input: []const u8, text_buf: []u8, cursor_position_requests: 
                 var total: usize = 0;
                 while (param_iter.next()) |cp_buf| {
                     const cp = parseParam(u21, cp_buf, null) orelse return null_event;
+                    const len = std.unicode.utf8CodepointSequenceLength(cp) catch return null_event;
+                    if (total + len > text_buf.len) return null_event;
                     total += std.unicode.utf8Encode(cp, text_buf[total..]) catch return null_event;
                 }
                 key.text = text_buf[0..total];
@@ -1707,4 +1713,27 @@ test "parse: apc split before the backslash of the terminator" {
     const result = try parser.parse(input, null);
     try testing.expectEqual(input.len, result.n);
     try testing.expectEqual(@as(?Event, .cap_kitty_graphics), result.event);
+}
+
+fn codepointsInput(comptime count: usize) []const u8 {
+    comptime var text: []const u8 = "\x1b[97;1;128512";
+    inline for (1..count) |_| text = text ++ ":128512";
+    return text ++ "u";
+}
+
+test "parse: kitty: text as codepoints that fill the text buffer" {
+    var parser: Parser = .{};
+    // 32 four-byte codepoints fill the 128-byte text buffer exactly
+    const input = codepointsInput(32);
+    const result = try parser.parse(input, null);
+    try testing.expectEqual(input.len, result.n);
+    try testing.expectEqual(128, result.event.?.key_press.text.?.len);
+}
+
+test "parse: kitty: text as codepoints longer than the text buffer" {
+    var parser: Parser = .{};
+    // 40 four-byte codepoints do not fit
+    const input = codepointsInput(40);
+    const result = try parser.parse(input, null);
+    try testing.expectEqual(input.len, result.n);
 }
