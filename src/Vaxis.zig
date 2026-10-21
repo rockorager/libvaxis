@@ -197,8 +197,8 @@ pub fn resetState(self: *Vaxis, tty: *std.Io.Writer) !void {
 
 /// resize allocates a slice of cells equal to the number of cells
 /// required to display the screen (ie width x height). Any previous screen is
-/// freed when resizing. The cursor will be sent to it's home position and a
-/// hardware clear-below-cursor will be sent
+/// freed when resizing. The cursor will be sent to it's home position, a
+/// hardware clear-below-cursor will be sent, and the cursor will be hidden
 pub fn resize(
     self: *Vaxis,
     alloc: std.mem.Allocator,
@@ -232,7 +232,7 @@ pub fn resize(
     }
     self.state.cursor.row = 0;
     self.state.cursor.col = 0;
-    try tty.writeAll(ctlseqs.sgr_reset ++ ctlseqs.erase_below_cursor);
+    try tty.writeAll(ctlseqs.sgr_reset ++ ctlseqs.erase_below_cursor ++ ctlseqs.hide_cursor);
     try tty.flush();
 }
 
@@ -1700,6 +1700,27 @@ test "render: no output when no changes" {
     const output = try render_writer.toOwnedSlice();
     defer std.testing.allocator.free(output);
     try std.testing.expectEqual(@as(usize, 0), output.len);
+}
+
+test "resize: hides the cursor when the frame is left empty" {
+    var env_map = try std.testing.environ.createMap(std.testing.allocator);
+    defer env_map.deinit();
+    var vx = try Vaxis.init(std.testing.io, std.testing.allocator, &env_map, .{});
+    var writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer writer.deinit();
+    defer vx.deinit(std.testing.allocator, &writer.writer);
+
+    try vx.enterAltScreen(&writer.writer);
+    try vx.resize(std.testing.allocator, &writer.writer, .{ .rows = 3, .cols = 3, .x_pixel = 0, .y_pixel = 0 });
+    const win = vx.window();
+    win.clear();
+    win.hideCursor();
+    try vx.render(&writer.writer);
+
+    const output = writer.written();
+    const hide = std.mem.lastIndexOf(u8, output, ctlseqs.hide_cursor) orelse return error.TestUnexpectedResult;
+    if (std.mem.lastIndexOf(u8, output, ctlseqs.show_cursor)) |show|
+        try std.testing.expect(show < hide);
 }
 
 fn testResizeAllocationFailures(allocator: std.mem.Allocator) !void {
