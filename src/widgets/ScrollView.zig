@@ -12,7 +12,7 @@ pub const Scroll = struct {
 };
 
 pub const VerticalScrollbar = struct {
-    character: vaxis.Cell.Character = .{ .grapheme = "▐", .width = 1 },
+    character: vaxis.Cell.Character = .FromSlice("▐", 1),
     fg: vaxis.Style = .{},
     bg: vaxis.Style = .{ .fg = .{ .index = 8 } },
 };

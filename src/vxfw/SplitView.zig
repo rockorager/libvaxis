@@ -142,7 +142,7 @@ fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) Allocator.Error!vxfw
             );
             for (0..max.height) |row| {
                 surface.writeCell(self.width, @intCast(row), .{
-                    .char = .{ .grapheme = "│", .width = 1 },
+                    .char = .FromSlice("│", 1),
                     .style = self.style,
                 });
             }
@@ -173,7 +173,7 @@ fn typeErasedDrawFn(ptr: *anyopaque, ctx: vxfw.DrawContext) Allocator.Error!vxfw
             );
             for (0..max.height) |row| {
                 surface.writeCell(max.width -| self.width -| 1, @intCast(row), .{
-                    .char = .{ .grapheme = "│", .width = 1 },
+                    .char = .FromSlice("│", 1),
                     .style = self.style,
                 });
             }

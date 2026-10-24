@@ -13,7 +13,7 @@ const Event = union(enum) {
     key_press: Key,
 };
 
-const ellipsis: Cell.Character = .{ .grapheme = "…", .width = 1 };
+const ellipsis: Cell.Character = .FromSlice("…", 1);
 
 // Index of our cursor
 buf: Buffer,
@@ -181,10 +181,10 @@ pub fn drawWithStyle(self: *TextInput, win: Window, style: Cell.Style) void {
             break;
         }
         win.writeCell(col, 0, .{
-            .char = .{
-                .grapheme = g,
-                .width = @intCast(w),
-            },
+            .char = .FromSlice(
+                g,
+                @intCast(w),
+            ),
             .style = style,
         });
         col += w;
@@ -208,10 +208,10 @@ pub fn drawWithStyle(self: *TextInput, win: Window, style: Cell.Style) void {
             break;
         }
         win.writeCell(col, 0, .{
-            .char = .{
-                .grapheme = g,
-                .width = @intCast(w),
-            },
+            .char = .FromSlice(
+                g,
+                @intCast(w),
+            ),
             .style = style,
         });
         col += w;

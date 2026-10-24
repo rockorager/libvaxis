@@ -215,7 +215,8 @@ typedef struct {
   uint8_t attrs; /* bit 0 bold, 1 dim, 2 italic, 3 blink, 4 reverse,
                     5 invisible, 6 strikethrough */
 } vaxis_style;
-typedef struct { vaxis_string grapheme; uint8_t width; vaxis_style style; } vaxis_cell;
+typedef struct { size_t ptr; uint32_t long_len; uint16_t padding; uint8_t width, short_len; } vaxis_character;
+typedef struct { vaxis_character character; vaxis_style style; } vaxis_cell;
 typedef struct { vaxis_string text; vaxis_style style; } vaxis_segment;
 typedef struct { uint16_t col, row; bool overflow; } vaxis_print_result;
 typedef enum VAXIS_ENUM_TYPED {

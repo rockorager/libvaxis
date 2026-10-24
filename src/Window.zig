@@ -110,12 +110,12 @@ pub fn child(self: Window, opts: ChildOptions) Window {
         .custom => |custom| custom,
     };
 
-    const top_left: Cell.Character = .{ .grapheme = glyphs[0], .width = 1 };
-    const horizontal: Cell.Character = .{ .grapheme = glyphs[1], .width = 1 };
-    const top_right: Cell.Character = .{ .grapheme = glyphs[2], .width = 1 };
-    const vertical: Cell.Character = .{ .grapheme = glyphs[3], .width = 1 };
-    const bottom_right: Cell.Character = .{ .grapheme = glyphs[4], .width = 1 };
-    const bottom_left: Cell.Character = .{ .grapheme = glyphs[5], .width = 1 };
+    const top_left: Cell.Character = .FromSlice(glyphs[0], 1);
+    const horizontal: Cell.Character = .FromSlice(glyphs[1], 1);
+    const top_right: Cell.Character = .FromSlice(glyphs[2], 1);
+    const vertical: Cell.Character = .FromSlice(glyphs[3], 1);
+    const bottom_right: Cell.Character = .FromSlice(glyphs[4], 1);
+    const bottom_left: Cell.Character = .FromSlice(glyphs[5], 1);
     const style = opts.border.style;
 
     const h = result.height;
@@ -309,10 +309,10 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
                     const w = self.gwidth(s);
                     if (w == 0) continue;
                     if (opts.commit) self.writeCell(col, row, .{
-                        .char = .{
-                            .grapheme = s,
-                            .width = @intCast(w),
-                        },
+                        .char = .FromSlice(
+                            s,
+                            @intCast(w),
+                        ),
                         .style = segment.style,
                         .link = segment.link,
                         .wrapped = col + w >= self.width,
@@ -358,10 +358,10 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
                                     }
                                     if (opts.commit) {
                                         self.writeCell(col, row, .{
-                                            .char = .{
-                                                .grapheme = " ",
-                                                .width = 1,
-                                            },
+                                            .char = .FromSlice(
+                                                " ",
+                                                1,
+                                            ),
                                             .style = segment.style,
                                             .link = segment.link,
                                         });
@@ -386,10 +386,10 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
                                     const s = grapheme.bytes(word);
                                     const w = self.gwidth(s);
                                     if (opts.commit) self.writeCell(col, row, .{
-                                        .char = .{
-                                            .grapheme = s,
-                                            .width = @intCast(w),
-                                        },
+                                        .char = .FromSlice(
+                                            s,
+                                            @intCast(w),
+                                        ),
                                         .style = segment.style,
                                         .link = segment.link,
                                     });
@@ -423,10 +423,10 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
                     const w = self.gwidth(s);
                     if (w == 0) continue;
                     if (opts.commit) self.writeCell(col, row, .{
-                        .char = .{
-                            .grapheme = s,
-                            .width = @intCast(w),
-                        },
+                        .char = .FromSlice(
+                            s,
+                            @intCast(w),
+                        ),
                         .style = segment.style,
                         .link = segment.link,
                     });

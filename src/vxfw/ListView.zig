@@ -48,7 +48,7 @@ const Scroll = struct {
     }
 };
 
-const cursor_indicator: vaxis.Cell = .{ .char = .{ .grapheme = "▐", .width = 1 } };
+const cursor_indicator: vaxis.Cell = .{ .char = .FromSlice("▐", 1) };
 
 children: Source,
 cursor: u32 = 0,

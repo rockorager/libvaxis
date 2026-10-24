@@ -14,7 +14,7 @@ const unicode = vaxis.unicode;
 
 const TextField = @This();
 
-const ellipsis: Cell.Character = .{ .grapheme = "…", .width = 1 };
+const ellipsis: Cell.Character = .FromSlice("…", 1);
 
 // Index of our cursor
 buf: Buffer,
@@ -249,10 +249,10 @@ pub fn draw(self: *TextField, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfac
             break;
         }
         surface.writeCell(@intCast(col), 0, .{
-            .char = .{
-                .grapheme = g,
-                .width = w,
-            },
+            .char = .FromSlice(
+                g,
+                w,
+            ),
             .style = style,
         });
         col += w;
@@ -276,10 +276,10 @@ pub fn draw(self: *TextField, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfac
             break;
         }
         surface.writeCell(@intCast(col), 0, .{
-            .char = .{
-                .grapheme = g,
-                .width = w,
-            },
+            .char = .FromSlice(
+                g,
+                w,
+            ),
             .style = style,
         });
         col += w;

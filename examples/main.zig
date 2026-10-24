@@ -87,7 +87,7 @@ pub fn main(init: std.process.Init) !void {
                 // codepoint. This allows Vaxis to handle emoji properly,
                 // particularly with terminals that the Unicode Core extension
                 // (IE Mode 2027)
-                .char = .{ .grapheme = msg[i .. i + 1] },
+                .char = .FromSlice(msg[i .. i + 1], 1),
                 .style = .{
                     .fg = .{ .index = color_idx },
                 },
@@ -96,7 +96,7 @@ pub fn main(init: std.process.Init) !void {
                 },
             };
             const second_cell: Cell = .{
-                .char = .{ .grapheme = msg[i .. i + 1] },
+                .char = .FromSlice(msg[i .. i + 1], 1),
                 .style = .{
                     .fg = .{ .index = color_idx },
                 },

@@ -86,7 +86,7 @@ pub fn draw(self: *const RichText, ctx: vxfw.DrawContext) Allocator.Error!vxfw.S
                     self.overflow == .ellipsis)
                 {
                     surface.writeCell(col, row, .{
-                        .char = .{ .grapheme = "…", .width = 1 },
+                        .char = .FromSlice("…", 1),
                         .style = cell.style,
                     });
                     col = container_size.width;
@@ -170,7 +170,7 @@ pub const SoftwrapIterator = struct {
                 const char = grapheme.bytes(span.text);
                 if (std.mem.eql(u8, char, "\t")) {
                     const cell: vaxis.Cell = .{
-                        .char = .{ .grapheme = " ", .width = 1 },
+                        .char = .FromSlice(" ", 1),
                         .style = span.style,
                         .link = span.link,
                     };
@@ -181,7 +181,7 @@ pub const SoftwrapIterator = struct {
                 }
                 const width = ctx.stringWidth(char);
                 const cell: vaxis.Cell = .{
-                    .char = .{ .grapheme = char, .width = @intCast(width) },
+                    .char = .FromSlice(char, @intCast(width)),
                     .style = span.style,
                     .link = span.link,
                 };
@@ -212,10 +212,10 @@ pub const SoftwrapIterator = struct {
         var saw_cr: bool = false;
         while (self.hard_index < self.text.len) : (self.hard_index += 1) {
             const cell = self.text[self.hard_index];
-            if (std.mem.eql(u8, cell.char.grapheme, "\r")) {
+            if (std.mem.eql(u8, cell.char.Grapheme(), "\r")) {
                 saw_cr = true;
             }
-            if (std.mem.eql(u8, cell.char.grapheme, "\n")) {
+            if (std.mem.eql(u8, cell.char.Grapheme(), "\n")) {
                 self.hard_index += 1;
                 if (saw_cr) {
                     return self.text[start .. self.hard_index - 2];
@@ -234,8 +234,8 @@ pub const SoftwrapIterator = struct {
         // trim linear whitespace
         var i: usize = text.len;
         while (i > 0) : (i -= 1) {
-            if (std.mem.eql(u8, text[i - 1].char.grapheme, " ") or
-                std.mem.eql(u8, text[i - 1].char.grapheme, "\t"))
+            if (std.mem.eql(u8, text[i - 1].char.Grapheme(), " ") or
+                std.mem.eql(u8, text[i - 1].char.Grapheme(), "\t"))
             {
                 continue;
             }
@@ -248,8 +248,8 @@ pub const SoftwrapIterator = struct {
         // trim linear whitespace
         var i: usize = 0;
         while (i < text.len) : (i += 1) {
-            if (std.mem.eql(u8, text[i].char.grapheme, " ") or
-                std.mem.eql(u8, text[i].char.grapheme, "\t"))
+            if (std.mem.eql(u8, text[i].char.Grapheme(), " ") or
+                std.mem.eql(u8, text[i].char.Grapheme(), "\t"))
             {
                 continue;
             }
@@ -329,8 +329,8 @@ pub const SoftwrapIterator = struct {
 
         // Find the first non-whitespace character
         while (i < self.line.len) : (i += 1) {
-            if (std.mem.eql(u8, self.line[i].char.grapheme, " ") or
-                std.mem.eql(u8, self.line[i].char.grapheme, "\t"))
+            if (std.mem.eql(u8, self.line[i].char.Grapheme(), " ") or
+                std.mem.eql(u8, self.line[i].char.Grapheme(), "\t"))
             {
                 continue;
             }
@@ -339,8 +339,8 @@ pub const SoftwrapIterator = struct {
 
         // Now find the first whitespace
         while (i < self.line.len) : (i += 1) {
-            if (std.mem.eql(u8, self.line[i].char.grapheme, " ") or
-                std.mem.eql(u8, self.line[i].char.grapheme, "\t"))
+            if (std.mem.eql(u8, self.line[i].char.Grapheme(), " ") or
+                std.mem.eql(u8, self.line[i].char.Grapheme(), "\t"))
             {
                 return i;
             }
@@ -387,7 +387,7 @@ test RichText {
         const surface = try rich_widget.draw(ctx);
         try std.testing.expectEqual(@as(vxfw.Size, .{ .width = 7, .height = 1 }), surface.size);
         // The last character will be an ellipsis
-        try std.testing.expectEqualStrings("…", surface.buffer[surface.buffer.len - 1].char.grapheme);
+        try std.testing.expectEqualStrings("…", surface.buffer[surface.buffer.len - 1].char.Grapheme());
     }
 }
 
