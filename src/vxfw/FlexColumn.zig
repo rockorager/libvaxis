@@ -57,14 +57,14 @@ pub fn draw(self: *const FlexColumn, ctx: vxfw.DrawContext) Allocator.Error!vxfw
     // Draw again, but with distributed heights
     var second_pass_height: u16 = 0;
     var max_width: u16 = 0;
-    const remaining_space = ctx.max.height.? - first_pass_height;
+    const remaining_space = ctx.max.height.? -| first_pass_height;
     for (self.children, 1..) |child, i| {
         const inherent_height = size_list[i - 1];
         const child_height = if (child.flex == 0)
             inherent_height
         else if (i == self.children.len)
             // If we are the last one, we just get the remainder
-            ctx.max.height.? - second_pass_height
+            ctx.max.height.? -| second_pass_height
         else
             inherent_height + (remaining_space * child.flex) / total_flex;
 
