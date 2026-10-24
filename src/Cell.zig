@@ -18,15 +18,20 @@ pub const Segment = struct {
     link: Hyperlink = .{},
 };
 
+/// Character stores a unicode grapheme and its width
+/// A grapheme less than 14 bytes (or 10 bytes for 32-bit) will be stored within.
+/// Otherwise it stores a fat ptr, and caller must ensure the buffer outlive rendering.
+/// Assume that maxlen is less than 2^32.
+/// Use .FromSlice() to initialize.
 pub const Character = extern struct {
     ptr: [*]const u8,
     long: u32,
     pad: u16 = undefined,
-    width: u8 = 1,
     /// width should only be provided when the application is sure the terminal
     /// will measure the same width. This can be ensure by using the gwidth method
     /// included in libvaxis. If width is 0, libvaxis will measure the glyph at
     /// render time
+    width: u8 = 1,
     p: packed struct(u8) {
         short: u7,
         heap: bool,
