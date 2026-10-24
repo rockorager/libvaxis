@@ -38,26 +38,26 @@ estimated_content_height: ?u32 = null,
 estimated_content_width: ?u32 = null,
 /// The cell drawn for the vertical scroll thumb. Replace this to customize the scroll thumb. Must
 /// have a 1 column width.
-vertical_scrollbar_thumb: vaxis.Cell = .{ .char = .{ .grapheme = "▐", .width = 1 } },
+vertical_scrollbar_thumb: vaxis.Cell = .{ .char = .FromSlice("▐", 1) },
 /// The cell drawn for the vertical scroll thumb while it's being hovered. Replace this to customize
 /// the scroll thumb. Must have a 1 column width.
-vertical_scrollbar_hover_thumb: vaxis.Cell = .{ .char = .{ .grapheme = "█", .width = 1 } },
+vertical_scrollbar_hover_thumb: vaxis.Cell = .{ .char = .FromSlice("█", 1) },
 /// The cell drawn for the vertical scroll thumb while it's being dragged by the mouse. Replace this
 /// to customize the scroll thumb. Must have a 1 column width.
 vertical_scrollbar_drag_thumb: vaxis.Cell = .{
-    .char = .{ .grapheme = "█", .width = 1 },
+    .char = .FromSlice("█", 1),
     .style = .{ .fg = .{ .index = 4 } },
 },
 /// The cell drawn for the vertical scroll thumb. Replace this to customize the scroll thumb. Must
 /// have a 1 column width.
-horizontal_scrollbar_thumb: vaxis.Cell = .{ .char = .{ .grapheme = "▃", .width = 1 } },
+horizontal_scrollbar_thumb: vaxis.Cell = .{ .char = .FromSlice("▃", 1) },
 /// The cell drawn for the horizontal scroll thumb while it's being hovered. Replace this to
 /// customize the scroll thumb. Must have a 1 column width.
-horizontal_scrollbar_hover_thumb: vaxis.Cell = .{ .char = .{ .grapheme = "█", .width = 1 } },
+horizontal_scrollbar_hover_thumb: vaxis.Cell = .{ .char = .FromSlice("█", 1) },
 /// The cell drawn for the horizontal scroll thumb while it's being dragged by the mouse. Replace
 /// this to customize the scroll thumb. Must have a 1 column width.
 horizontal_scrollbar_drag_thumb: vaxis.Cell = .{
-    .char = .{ .grapheme = "█", .width = 1 },
+    .char = .FromSlice("█", 1),
     .style = .{ .fg = .{ .index = 4 } },
 },
 

@@ -29,7 +29,7 @@ pub const InternalCell = struct {
         // fastpath when both cells are default
         if (self.default and cell.default) return true;
 
-        return std.mem.eql(u8, self.char.items, cell.char.grapheme) and
+        return std.mem.eql(u8, self.char.items, cell.char.Grapheme()) and
             Style.eql(self.style, cell.style) and
             std.mem.eql(u8, self.uri.items, cell.link.uri) and
             std.mem.eql(u8, self.uri_id.items, cell.link.params);
@@ -94,7 +94,7 @@ pub fn writeCell(
     const i = (@as(usize, @intCast(row)) * self.width) + col;
     assert(i < self.buf.len);
     self.buf[i].char.clearRetainingCapacity();
-    self.buf[i].char.appendSlice(self.arena.allocator(), cell.char.grapheme) catch |err| {
+    self.buf[i].char.appendSlice(self.arena.allocator(), cell.char.Grapheme()) catch |err| {
         log.warn("couldn't write grapheme: {t}", .{err});
     };
     self.buf[i].uri.clearRetainingCapacity();
@@ -122,7 +122,7 @@ pub fn readCell(self: *InternalScreen, col: u16, row: u16) ?Cell {
     assert(i < self.buf.len);
     const cell = self.buf[i];
     return .{
-        .char = .{ .grapheme = cell.char.items },
+        .char = .FromSlice(cell.char.items, 1),
         .style = cell.style,
         .link = .{
             .uri = cell.uri.items,
@@ -136,13 +136,13 @@ test "InternalScreen: out-of-bounds read/write are ignored" {
     var screen = try InternalScreen.init(std.testing.allocator, 2, 2);
     defer screen.deinit(std.testing.allocator);
 
-    const sentinel: Cell = .{ .char = .{ .grapheme = "A", .width = 1 } };
+    const sentinel: Cell = .{ .char = .FromSlice("A", 1) };
     screen.writeCell(0, 1, sentinel);
 
-    const oob_cell: Cell = .{ .char = .{ .grapheme = "X", .width = 1 } };
+    const oob_cell: Cell = .{ .char = .FromSlice("X", 1) };
     screen.writeCell(2, 0, oob_cell);
     const read_back = screen.readCell(0, 1) orelse return error.TestUnexpectedResult;
-    try std.testing.expect(std.mem.eql(u8, read_back.char.grapheme, "A"));
+    try std.testing.expect(std.mem.eql(u8, read_back.char.Grapheme(), "A"));
     try std.testing.expect(screen.readCell(2, 0) == null);
 }
 

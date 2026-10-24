@@ -1,7 +1,7 @@
 const std = @import("std");
 const Image = @import("Image.zig");
 
-char: Character = .{},
+char: Character = .FromSlice(" ", 1),
 style: Style = .{},
 link: Hyperlink = .{},
 image: ?Image.Placement = null,
@@ -18,13 +18,54 @@ pub const Segment = struct {
     link: Hyperlink = .{},
 };
 
-pub const Character = struct {
-    grapheme: []const u8 = " ",
+/// Character stores a unicode grapheme and its width
+/// A grapheme less than 14 bytes (or 10 bytes for 32-bit) will be stored within.
+/// Otherwise it stores a fat ptr, and caller must ensure the buffer outlive rendering.
+/// Assume that maxlen is less than 2^32.
+/// Use .FromSlice() to initialize.
+pub const Character = extern struct {
+    ptr: [*]const u8,
+    long: u32,
+    pad: u16 = undefined,
     /// width should only be provided when the application is sure the terminal
     /// will measure the same width. This can be ensure by using the gwidth method
     /// included in libvaxis. If width is 0, libvaxis will measure the glyph at
     /// render time
     width: u8 = 1,
+    p: packed struct(u8) {
+        short: u7,
+        heap: bool,
+    },
+    const capacity = @sizeOf(usize) + 6;
+    pub fn Grapheme(self: *const @This()) []const u8 {
+        if (self.p.heap) {
+            return self.ptr[0..self.long];
+        }
+        return std.mem.asBytes(self)[0..self.p.short];
+    }
+    pub fn InHeap(self: @This()) bool {
+        return self.p.heap;
+    }
+    pub fn FromSlice(slice: []const u8, width: u8) @This() {
+        std.debug.assert(slice.len < 2 ^ 32);
+        if (slice.len <= capacity) {
+            var rc: @This() = undefined;
+            rc.p.heap = false;
+            rc.p.short = @truncate(slice.len);
+            rc.width = width;
+            @memcpy(std.mem.asBytes(&rc)[0..slice.len], slice);
+            return rc;
+        }
+        return .{
+            .width = width,
+            .ptr = slice.ptr,
+            .long = @truncate(slice.len),
+            .p = .{
+                .heap = true,
+                .short = undefined,
+            },
+        };
+    }
 };
 
 pub const CursorShape = enum {

@@ -484,7 +484,7 @@ pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
             if (cell.char.width != 0) break :blk cell.char.width;
 
             const method: gwidth.Method = self.caps.unicode;
-            const width: u16 = @intCast(gwidth.gwidth(cell.char.grapheme, method));
+            const width: u16 = @intCast(gwidth.gwidth(cell.char.Grapheme(), method));
             break :blk @max(1, width);
         };
         defer {
@@ -775,7 +775,7 @@ pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
                     // no fractional scaling, just a straight scale factor
                     try tty.print(
                         ctlseqs.scaled_text,
-                        .{ scale.scale, w, cell.char.grapheme },
+                        .{ scale.scale, w, cell.char.Grapheme() },
                     );
                 },
                 else => {
@@ -789,7 +789,7 @@ pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
                             scale.numerator,
                             scale.denominator,
                             @backingInt(scale.vertical_alignment),
-                            cell.char.grapheme,
+                            cell.char.Grapheme(),
                         },
                     );
                 },
@@ -801,9 +801,9 @@ pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
 
         // If we have explicit width and our width is greater than 1, let's use it
         if (self.caps.explicit_width and w > 1) {
-            try tty.print(ctlseqs.explicit_width, .{ w, cell.char.grapheme });
+            try tty.print(ctlseqs.explicit_width, .{ w, cell.char.Grapheme() });
         } else {
-            try tty.writeAll(cell.char.grapheme);
+            try tty.writeAll(cell.char.Grapheme());
         }
         cursor_pos.col = col + w;
         cursor_pos.row = row;
@@ -1402,7 +1402,7 @@ pub fn prettyPrint(self: *Vaxis, tty: *std.Io.Writer) !void {
             if (cell.char.width != 0) break :blk cell.char.width;
 
             const method: gwidth.Method = self.caps.unicode;
-            const width = gwidth.gwidth(cell.char.grapheme, method);
+            const width = gwidth.gwidth(cell.char.Grapheme(), method);
             break :blk @max(1, width);
         };
         defer {
@@ -1642,7 +1642,7 @@ pub fn prettyPrint(self: *Vaxis, tty: *std.Io.Writer) !void {
             }
             try tty.print(ctlseqs.osc8, .{ ps, cell.link.uri });
         }
-        try tty.writeAll(cell.char.grapheme);
+        try tty.writeAll(cell.char.Grapheme());
         cursor_pos.col = col + w;
         cursor_pos.row = row;
     }

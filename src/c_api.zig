@@ -160,6 +160,8 @@ pub const CString = extern struct {
         return .{ .ptr = bytes.ptr, .len = bytes.len };
     }
 };
+/// C: vaxis_grapheme. Small string optimized
+pub const CCharacter = Cell.Character;
 
 /// C: vaxis_rgb
 pub const CRgb = extern struct {
@@ -171,7 +173,7 @@ pub const CRgb = extern struct {
 pub const CWinsize = extern struct { rows: u16, cols: u16, x_pixel: u16, y_pixel: u16 };
 pub const CColor = extern struct { type: c_int, index: u8, r: u8, g: u8, b: u8 };
 pub const CStyle = extern struct { fg: CColor, bg: CColor, ul: CColor, underline: u8, attrs: u8 };
-pub const CCell = extern struct { grapheme: CString, width: u8, style: CStyle };
+pub const CCell = extern struct { char: CCharacter, style: CStyle };
 pub const CSegment = extern struct { text: CString, style: CStyle };
 pub const CPrintResult = extern struct { col: u16, row: u16, overflow: bool };
 pub const CPrintOptions = extern struct { row_offset: u16, col_offset: u16, wrap: c_int, commit: bool };
@@ -224,10 +226,12 @@ const GraphemeStore = struct {
         const copies = try allocator.alloc([]const u8, screen.buf.len);
         defer allocator.free(copies);
         for (screen.buf, copies) |cell, *copy| {
-            copy.* = try next.dupe(cell.char.grapheme);
+            if (cell.char.InHeap())
+                copy.* = try next.dupe(cell.char.Grapheme());
         }
         for (screen.buf, copies) |*cell, copy| {
-            cell.char.grapheme = copy;
+            if (cell.char.InHeap())
+                cell.char = .FromSlice(copy, 1);
         }
         self.deinit();
         self.* = next;
@@ -362,13 +366,13 @@ fn cStyle(style: Cell.Style) CStyle {
 }
 
 fn copyCell(strings: *GraphemeStore, cell: CCell) error{ Invalid, OutOfMemory }!Cell {
-    const text = sliceFrom(cell.grapheme.ptr, cell.grapheme.len) orelse return error.Invalid;
+    const text = sliceFrom(cell.char.Grapheme().ptr, cell.char.Grapheme().len) orelse return error.Invalid;
     const grapheme = strings.dupe(text) catch return error.OutOfMemory;
-    return .{ .char = .{ .grapheme = grapheme, .width = cell.width }, .style = zigStyle(cell.style) orelse return error.Invalid };
+    return .{ .char = .FromSlice(grapheme, cell.char.width), .style = zigStyle(cell.style) orelse return error.Invalid };
 }
 
 fn exportCell(cell: Cell) CCell {
-    return .{ .grapheme = .init(cell.char.grapheme), .width = cell.char.width, .style = cStyle(cell.style) };
+    return .{ .char = cell.char, .style = cStyle(cell.style) };
 }
 
 pub fn screen_new(size: CWinsize, out: ?*?*CScreen) callconv(.c) Result {
@@ -1531,15 +1535,14 @@ test "c api: screen owns input strings and bounds overwritten storage" {
 
     var input = [_]u8{'a'};
     const cell: CCell = .{
-        .grapheme = .init(&input),
-        .width = 1,
+        .char = .FromSlice(&input, 1),
         .style = cStyle(.{}),
     };
     try testing.expectEqual(.ok, window_write_cell(window, 7, 1, &cell));
     input[0] = 'z';
     var actual: CCell = undefined;
     try testing.expectEqual(.ok, window_read_cell(window, 7, 1, &actual));
-    try testing.expectEqualStrings("a", actual.grapheme.ptr.?[0..actual.grapheme.len]);
+    try testing.expectEqualStrings("a", actual.char.Grapheme().ptr[0..actual.char.Grapheme().len]);
 
     for (0..70_000) |i| {
         input[0] = @intCast('a' + i % 26);

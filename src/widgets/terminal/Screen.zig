@@ -164,7 +164,7 @@ pub fn readCell(self: *Screen, col: usize, row: usize) ?vaxis.Cell {
     assert(i < self.buf.len);
     const cell = self.buf[i];
     return .{
-        .char = .{ .grapheme = cell.char.items, .width = cell.width },
+        .char = .FromSlice(cell.char.items, cell.width),
         .style = cell.style,
     };
 }

@@ -70,7 +70,7 @@ last_height: u8 = 0,
 draw_cursor: bool = false,
 /// The cell that will be drawn to represent the scroll view's cursor. Replace this to customize the
 /// cursor indicator. Must have a 1 column width.
-cursor_indicator: vaxis.Cell = .{ .char = .{ .grapheme = "▐", .width = 1 } },
+cursor_indicator: vaxis.Cell = .{ .char = .FromSlice("▐", 1) },
 /// Lines to scroll for a mouse wheel
 wheel_scroll: u8 = 3,
 /// Set this if the exact item count is known.

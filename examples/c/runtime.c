@@ -60,16 +60,16 @@ int main(void) {
                             &printed) == VAXIS_OK);
   vaxis_cell cell;
   assert(vaxis_window_read_cell(root, 0, 0, &cell) == VAXIS_OK);
-  assert(cell.grapheme.len == 1 && cell.grapheme.ptr[0] == 'h');
+  assert(cell.character.short_len == 1 && (cell.character.ptr&0xff) == 'h');
 
   /* Input bytes are copied, and repeated overwrites exercise bounded string
    * compaction rather than retaining every historical value. */
   uint8_t changing[] = "a";
-  vaxis_cell changing_cell = {{changing, 1}, 1, style};
+  vaxis_cell changing_cell = {{changing[0], 0, 0, 1, 1}, style};
   assert(vaxis_window_write_cell(root, 7, 1, &changing_cell) == VAXIS_OK);
   changing[0] = 'z';
   assert(vaxis_window_read_cell(root, 7, 1, &cell) == VAXIS_OK);
-  assert(cell.grapheme.ptr[0] == 'a');
+  assert((cell.character.ptr&0xff) == 'a');
   for (size_t i = 0; i < 70000; ++i) {
     changing[0] = (uint8_t)('a' + (i % 26));
     assert(vaxis_window_write_cell(root, 7, 1, &changing_cell) == VAXIS_OK);
