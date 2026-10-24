@@ -92,10 +92,10 @@ pub fn draw(self: *Spinner, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surface 
     if (self.count.load(.unordered) == 0) return surface;
 
     surface.writeCell(0, 0, .{
-        .char = .{
-            .grapheme = frames[self.frame],
-            .width = 1,
-        },
+        .char = .FromSlice(
+            frames[self.frame],
+            1,
+        ),
         .style = self.style,
     });
     return surface;

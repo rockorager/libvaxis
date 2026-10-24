@@ -68,7 +68,7 @@ pub fn draw(self: *const Text, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfa
                 if (std.mem.eql(u8, grapheme, "\t")) {
                     for (0..8) |i| {
                         surface.writeCell(@intCast(col + i), row, .{
-                            .char = .{ .grapheme = " ", .width = 1 },
+                            .char = .FromSlice(" ", 1),
                             .style = self.style,
                         });
                     }
@@ -77,7 +77,7 @@ pub fn draw(self: *const Text, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfa
                 }
                 const grapheme_width: u8 = @intCast(ctx.stringWidth(grapheme));
                 surface.writeCell(col, row, .{
-                    .char = .{ .grapheme = grapheme, .width = grapheme_width },
+                    .char = .FromSlice(grapheme, grapheme_width),
                     .style = self.style,
                 });
                 col += grapheme_width;
@@ -107,13 +107,13 @@ pub fn draw(self: *const Text, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surfa
                     self.overflow == .ellipsis)
                 {
                     surface.writeCell(col, row, .{
-                        .char = .{ .grapheme = "…", .width = 1 },
+                        .char = .FromSlice("…", 1),
                         .style = self.style,
                     });
                     col = container_size.width;
                 } else {
                     surface.writeCell(col, row, .{
-                        .char = .{ .grapheme = grapheme, .width = grapheme_width },
+                        .char = .FromSlice(grapheme, grapheme_width),
                         .style = self.style,
                     });
                     col += @intCast(grapheme_width);
@@ -499,7 +499,7 @@ test Text {
         const surface = try text_widget.draw(ctx);
         try std.testing.expectEqual(@as(vxfw.Size, .{ .width = 7, .height = 1 }), surface.size);
         // The last character will be an ellipsis
-        try std.testing.expectEqualStrings("…", surface.buffer[surface.buffer.len - 1].char.grapheme);
+        try std.testing.expectEqualStrings("…", surface.buffer[surface.buffer.len - 1].char.Grapheme());
     }
 }
 

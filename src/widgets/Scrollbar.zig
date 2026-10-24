@@ -4,7 +4,7 @@ const vaxis = @import("../main.zig");
 const Scrollbar = @This();
 
 /// character to use for the scrollbar
-character: vaxis.Cell.Character = .{ .grapheme = "▐", .width = 1 },
+character: vaxis.Cell.Character = .FromSlice("▐", 1),
 
 /// style to draw the bar character with
 style: vaxis.Style = .{},
