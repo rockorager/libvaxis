@@ -45,7 +45,7 @@ pub const Buffer = struct {
     pub const Error = error{OutOfMemory};
 
     grapheme: std.MultiArrayList(Grapheme) = .empty,
-    content: std.ArrayListUnmanaged(u8) = .empty,
+    content: std.ArrayList(u8) = .empty,
     style_list: StyleList = .empty,
     style_map: StyleMap = .empty,
     rows: usize = 0,
