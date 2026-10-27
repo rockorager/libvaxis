@@ -15,47 +15,17 @@ pub const Grapheme = struct {
 pub const GraphemeIterator = struct {
     str: []const u8,
     inner: uucode.grapheme.Iterator(uucode.utf8.Iterator),
-    start: usize = 0,
-    prev_break: bool = true,
 
     pub fn init(str: []const u8) GraphemeIterator {
         return .{
             .str = str,
-            .inner = uucode.grapheme.Iterator(uucode.utf8.Iterator).init(.init(str)),
+            .inner = uucode.grapheme.utf8Iterator(str),
         };
     }
 
     pub fn next(self: *GraphemeIterator) ?Grapheme {
-        while (self.inner.nextCodePoint()) |res| {
-
-            // When leaving a break and entering a non-break, set the start of a cluster
-            if (self.prev_break and !res.is_break) {
-                const cp_len: usize = std.unicode.utf8CodepointSequenceLength(res.code_point) catch 1;
-                self.start = self.inner.i - cp_len;
-            }
-
-            // A break marks the end of the current grapheme
-            if (res.is_break) {
-                const end = self.inner.i;
-                const s = self.start;
-                self.start = end;
-                self.prev_break = true;
-                return .{ .start = s, .len = end - s };
-            }
-
-            self.prev_break = false;
-        }
-
-        // Flush the last grapheme if we ended mid-cluster
-        if (!self.prev_break and self.start < self.str.len) {
-            const s = self.start;
-            const len = self.str.len - s;
-            self.start = self.str.len;
-            self.prev_break = true;
-            return .{ .start = s, .len = len };
-        }
-
-        return null;
+        const g = self.inner.nextGrapheme() orelse return null;
+        return .{ .start = g.start, .len = g.end - g.start };
     }
 };
 
