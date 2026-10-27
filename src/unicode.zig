@@ -37,3 +37,16 @@ pub fn graphemeIterator(str: []const u8) GraphemeIterator {
 test {
     std.testing.refAllDecls(@This());
 }
+
+test "grapheme iterator: invalid utf8 + combining mark" {
+    // An invalid byte decodes to U+FFFD but consumes only one byte
+    var it = graphemeIterator("ab\xff\xcc\x81");
+    try std.testing.expectEqual(Grapheme{ .start = 0, .len = 1 }, it.next().?);
+    try std.testing.expectEqual(Grapheme{ .start = 1, .len = 1 }, it.next().?);
+    try std.testing.expectEqual(Grapheme{ .start = 2, .len = 3 }, it.next().?);
+    try std.testing.expectEqual(null, it.next());
+
+    it = graphemeIterator("\xff\xcc\x81");
+    try std.testing.expectEqual(Grapheme{ .start = 0, .len = 3 }, it.next().?);
+    try std.testing.expectEqual(null, it.next());
+}
