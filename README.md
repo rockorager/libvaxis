@@ -9,7 +9,8 @@ It begins with them, but ends with me. Their son, Vaxis
 Libvaxis _does not use terminfo_. Support for vt features is detected through
 terminal queries.
 
-Vaxis uses zig `0.17.0`.
+Vaxis uses zig `0.17.0`. Support for zig master (`0.18.0-dev`) is tracked on
+the [`zig-0.18`](https://github.com/rockorager/libvaxis/tree/zig-0.18) branch.
 
 ## Features
 
