@@ -10,3 +10,7 @@ pub const CodeView = @import("widgets/CodeView.zig");
 pub const Terminal = @import("widgets/terminal/Terminal.zig");
 pub const TextInput = @import("widgets/TextInput.zig");
 pub const View = @import("widgets/View.zig");
+
+test {
+    _ = Table;
+}

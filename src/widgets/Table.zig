@@ -141,10 +141,7 @@ pub fn drawTable(
                 const al_fields = @typeInfo(std.ArrayList([]const u8)).@"struct".field_names;
                 const mal_fields = @typeInfo(std.MultiArrayList(struct { a: u8 = 0, b: u32 = 0 })).@"struct".field_names;
                 // Probably an ArrayList
-                const is_al = comptime if (mem.indexOf(u8, @typeName(DataListT), "MultiArrayList") == null and
-                    mem.indexOf(u8, @typeName(DataListT), "ArrayList") != null and
-                    al_fields.len == di_fields.len)
-                isAL: {
+                const is_al = comptime if (al_fields.len == di_fields.len) isAL: {
                     var is = true;
                     for (al_fields, di_fields) |al_field, di_field|
                         is = is and mem.eql(u8, al_field, di_field);
@@ -157,7 +154,7 @@ pub fn drawTable(
                     mal_fields.len == di_fields.len)
                 isMAL: {
                     var is = true;
-                    inline for (mal_fields, di_fields) |mal_field, di_field|
+                    for (mal_fields, di_fields) |mal_field, di_field|
                         is = is and mem.eql(u8, mal_field, di_field);
                     break :isMAL is;
                 } else false;
@@ -446,4 +443,34 @@ test "formatCellValue uses format method for optional payloads" {
     const item: ?FormatTestValue = .{ .value = 7 };
     const text = try formatCellValue(arena.allocator(), item.?, struct { value: ?FormatTestValue });
     try std.testing.expectEqualStrings("formatted:7", text);
+}
+
+test "drawTable draws list items" {
+    const alloc = std.testing.allocator;
+    const Row = struct { name: []const u8 };
+
+    var screen = try vaxis.Screen.init(alloc, .{ .rows = 4, .cols = 20, .x_pixel = 0, .y_pixel = 0 });
+    defer screen.deinit(alloc);
+    const win: vaxis.Window = .{
+        .x_off = 0,
+        .y_off = 0,
+        .parent_x_off = 0,
+        .parent_y_off = 0,
+        .width = screen.width,
+        .height = screen.height,
+        .screen = &screen,
+    };
+
+    var rows: std.ArrayList(Row) = .empty;
+    defer rows.deinit(alloc);
+    try rows.append(alloc, .{ .name = "alice" });
+
+    var ctx: TableContext = .{ .selected_bg = .default, .active_bg = .default };
+    try drawTable(null, win, rows, &ctx);
+
+    var text: [20]u8 = undefined;
+    for (&text, 0..) |*c, col| c.* = screen.readCell(@intCast(col), 1).?.char.grapheme[0];
+    try std.testing.expect(mem.indexOf(u8, &text, "alice") != null);
+
+    try std.testing.expectError(error.UnsupportedTableDataType, drawTable(null, win, Row{ .name = "bob" }, &ctx));
 }
