@@ -485,6 +485,8 @@ vaxis_result vaxis_runtime_report_program_status(
 vaxis_result vaxis_runtime_clear_program_status(vaxis_runtime *runtime,
                                                 const uint8_t *id,
                                                 size_t length);
+/* Transmit a PNG file; the terminal decodes it. Anything else, or a PNG wider
+ * or taller than 65535 pixels, is VAXIS_ERR_INVALID. */
 vaxis_result vaxis_runtime_load_image_memory(vaxis_runtime *runtime,
                                              const uint8_t *data, size_t length,
                                              vaxis_image **image);

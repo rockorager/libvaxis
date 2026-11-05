@@ -1068,7 +1068,11 @@ pub fn runtime_load_image_memory(runtime: ?*CRuntime, data: ?[*]const u8, len: u
     const handle = prepareImage(r, out) catch |err| return if (err == error.OutOfMemory) .err_oom else .err_invalid;
     const img = r.vx.?.loadImage(allocator, r.tty.tty.?.writer(), .{ .mem = b }) catch |e| {
         allocator.destroy(handle);
-        return if (e == error.OutOfMemory) .err_oom else .err_io;
+        return switch (e) {
+            error.OutOfMemory => .err_oom,
+            error.UnsupportedImageFormat, error.ImageTooLarge => .err_invalid,
+            else => .err_io,
+        };
     };
     handle.* = .{ .allocator = r.allocator, .image = img };
     out.?.* = handle;

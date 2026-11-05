@@ -8,8 +8,6 @@ pub const Vaxis = @import("Vaxis.zig");
 pub const loop = @import("Loop.zig");
 pub const Loop = loop.Loop;
 
-pub const zigimg = @import("zigimg");
-
 pub const Queue = @import("queue.zig").Queue;
 pub const Key = @import("Key.zig");
 pub const Cell = @import("Cell.zig");

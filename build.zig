@@ -19,10 +19,6 @@ pub fn build(b: *std.Build) void {
     const root_source_file = b.path("src/main.zig");
 
     // Dependencies
-    const zigimg_dep = b.dependency("zigimg", .{
-        .optimize = optimize,
-        .target = target,
-    });
     const uucode_mod = if (!external_uucode) blk: {
         const uucode_dep = b.lazyDependency("uucode", .{
             .target = target,
@@ -43,7 +39,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    vaxis_mod.addImport("zigimg", zigimg_dep.module("zigimg"));
     if (uucode_mod) |mod| {
         vaxis_mod.addImport("uucode", mod);
     } else {
@@ -196,7 +191,6 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "zigimg", .module = zigimg_dep.module("zigimg") },
                 .{ .name = "uucode", .module = uucode_mod.? },
             },
         }),

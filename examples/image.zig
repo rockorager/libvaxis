@@ -26,12 +26,19 @@ pub fn main(init: std.process.Init) !void {
     try vx.enterAltScreen(tty.writer());
     try vx.queryTerminal(tty.writer(), .fromSeconds(1));
 
-    var read_buffer: [1024 * 1024]u8 = undefined; // 1MB buffer
-    var img1 = try vaxis.zigimg.Image.fromFilePath(alloc, io, "examples/zig.png", &read_buffer);
-    defer img1.deinit(alloc);
+    // Pixels from anywhere, such as an image library or, here, a gradient.
+    const w = 256;
+    const h = 128;
+    var gradient: [w * h * 4]u8 = undefined;
+    for (0..h) |y| {
+        for (0..w) |x| {
+            const px = gradient[(y * w + x) * 4 ..][0..4];
+            px.* = .{ @intCast(x), @intCast(y * 2), 255 - @as(u8, @intCast(x)), 255 };
+        }
+    }
 
     const imgs = [_]vaxis.Image{
-        try vx.transmitImage(alloc, tty.writer(), &img1, .rgba),
+        try vx.transmitImage(alloc, tty.writer(), &gradient, w, h, .rgba),
         try vx.loadImage(alloc, tty.writer(), .{ .path = "examples/vaxis.png" }),
     };
     defer vx.freeImage(tty.writer(), imgs[0].id);

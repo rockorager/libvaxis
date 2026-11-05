@@ -2,7 +2,6 @@ const std = @import("std");
 const builtin = @import("builtin");
 const atomic = std.atomic;
 const base64Encoder = std.base64.standard.Encoder;
-const zigimg = @import("zigimg");
 
 const Cell = @import("Cell.zig");
 const Image = @import("Image.zig");
@@ -1186,42 +1185,38 @@ pub fn transmitPreEncodedImage(
     };
 }
 
+/// Transmit an image: for `.png`, `bytes` is a PNG file, and for `.rgb` and
+/// `.rgba` it is `width` by `height` pixels with no padding between rows.
+/// The terminal decodes the image; vaxis does not.
 pub fn transmitImage(
     self: *Vaxis,
     alloc: std.mem.Allocator,
     tty: *std.Io.Writer,
-    img: *const zigimg.Image,
+    bytes: []const u8,
+    width: u16,
+    height: u16,
     format: Image.TransmitFormat,
 ) !Image {
     if (!self.caps.kitty_graphics) return error.NoGraphicsCapability;
 
-    var arena = std.heap.ArenaAllocator.init(alloc);
-    defer arena.deinit();
-
-    var img_modifiable = img.*;
-
-    const buf = switch (format) {
-        .png => png: {
-            const png_buf = try arena.allocator().alloc(u8, img.imageByteSize());
-            const png = try img.writeToMemory(arena.allocator(), png_buf, .{ .png = .{} });
-            break :png png;
+    switch (format) {
+        .rgb, .rgba => {
+            const bytes_per_pixel: usize = if (format == .rgb) 3 else 4;
+            if (bytes.len != @as(usize, width) * height * bytes_per_pixel) return error.InvalidImageSize;
         },
-        .rgb => rgb: {
-            try img_modifiable.convertNoFree(arena.allocator(), .rgb24);
-            break :rgb img_modifiable.rawBytes();
-        },
-        .rgba => rgba: {
-            try img_modifiable.convertNoFree(arena.allocator(), .rgba32);
-            break :rgba img_modifiable.rawBytes();
-        },
-    };
+        .png => {},
+    }
 
-    const b64_buf = try arena.allocator().alloc(u8, base64Encoder.calcSize(buf.len));
-    const encoded = base64Encoder.encode(b64_buf, buf);
+    const encoded = try alloc.alloc(u8, base64Encoder.calcSize(bytes.len));
+    defer alloc.free(encoded);
+    _ = base64Encoder.encode(encoded, bytes);
 
-    return self.transmitPreEncodedImage(tty, encoded, @intCast(img.width), @intCast(img.height), format);
+    return self.transmitPreEncodedImage(tty, encoded, width, height, format);
 }
 
+/// Transmit a PNG file. The terminal decodes it; vaxis reads only its size
+/// from the header. Other formats are `error.UnsupportedImageFormat`: decode
+/// them with an image library and transmit the pixels with `transmitImage`.
 pub fn loadImage(
     self: *Vaxis,
     alloc: std.mem.Allocator,
@@ -1230,13 +1225,23 @@ pub fn loadImage(
 ) !Image {
     if (!self.caps.kitty_graphics) return error.NoGraphicsCapability;
 
-    var read_buffer: [1024 * 1024]u8 = undefined; // 1MB buffer
-    var img = switch (src) {
-        .path => |path| try zigimg.Image.fromFilePath(alloc, self.io, path, &read_buffer),
-        .mem => |bytes| try zigimg.Image.fromMemory(alloc, bytes),
+    const bytes = switch (src) {
+        .path => |path| try std.Io.Dir.cwd().readFileAlloc(self.io, path, alloc, .unlimited),
+        .mem => |bytes| bytes,
     };
-    defer img.deinit(alloc);
-    return self.transmitImage(alloc, tty, &img, .png);
+    defer if (src == .path) alloc.free(bytes);
+
+    // A PNG starts with its signature and then the IHDR chunk, whose data
+    // begins with the width and height as big-endian u32s.
+    if (bytes.len < 24 or
+        !std.mem.eql(u8, bytes[0..8], "\x89PNG\r\n\x1a\n") or
+        !std.mem.eql(u8, bytes[12..16], "IHDR"))
+        return error.UnsupportedImageFormat;
+    const width = std.mem.readInt(u32, bytes[16..20], .big);
+    const height = std.mem.readInt(u32, bytes[20..24], .big);
+    if (width > std.math.maxInt(u16) or height > std.math.maxInt(u16)) return error.ImageTooLarge;
+
+    return self.transmitImage(alloc, tty, bytes, @intCast(width), @intCast(height), .png);
 }
 
 /// deletes an image from the terminal's memory
@@ -1721,6 +1726,36 @@ test "resize: hides the cursor when the frame is left empty" {
     const hide = std.mem.lastIndexOf(u8, output, ctlseqs.hide_cursor) orelse return error.TestUnexpectedResult;
     if (std.mem.lastIndexOf(u8, output, ctlseqs.show_cursor)) |show|
         try std.testing.expect(show < hide);
+}
+
+test "loadImage: sends a PNG as it is, sized from its header" {
+    const alloc = std.testing.allocator;
+    var env_map = try std.testing.environ.createMap(alloc);
+    defer env_map.deinit();
+    var vx = try Vaxis.init(std.testing.io, alloc, &env_map, .{});
+    var writer: std.Io.Writer.Allocating = .init(alloc);
+    defer writer.deinit();
+    defer vx.deinit(alloc, &writer.writer);
+    vx.caps.kitty_graphics = true;
+
+    // A 3 by 2 RGBA PNG.
+    const png = "\x89\x50\x4e\x47\x0d\x0a\x1a\x0a\x00\x00\x00\x0d\x49\x48\x44\x52\x00\x00\x00\x03\x00\x00\x00\x02" ++
+        "\x08\x06\x00\x00\x00\x9d\x74\x66\x1a\x00\x00\x00\x22\x49\x44\x41\x54\x78\x9c\x63\x60\x60\x64\x62\x66" ++
+        "\x61\x65\x63\xe7\xe0\xe4\xe2\x66\xe0\xe1\xe5\xe3\x17\x10\x14\x12\x16\x11\x15\x13\x07\x00\x09\x58\x01" ++
+        "\x15\x31\xeb\x63\x99\x00\x00\x00\x00\x49\x45\x4e\x44\xae\x42\x60\x82";
+    const img = try vx.loadImage(alloc, &writer.writer, .{ .mem = png });
+    try std.testing.expectEqual(3, img.width);
+    try std.testing.expectEqual(2, img.height);
+
+    const expected = comptime blk: {
+        var b64: [base64Encoder.calcSize(png.len)]u8 = undefined;
+        _ = base64Encoder.encode(&b64, png);
+        const encoded = b64;
+        break :blk "\x1b_Gf=100,s=3,v=2,i=1;" ++ encoded ++ "\x1b\\";
+    };
+    try std.testing.expectEqualStrings(expected, writer.written());
+
+    try std.testing.expectError(error.UnsupportedImageFormat, vx.loadImage(alloc, &writer.writer, .{ .mem = "GIF89a" ++ @as([18]u8, @splat(0)) }));
 }
 
 fn testResizeAllocationFailures(allocator: std.mem.Allocator) !void {

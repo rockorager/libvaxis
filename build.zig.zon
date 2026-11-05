@@ -4,10 +4,6 @@
     .version = "0.6.0",
     .minimum_zig_version = "0.17.0",
     .dependencies = .{
-        .zigimg = .{
-            .url = "git+https://github.com/zigimg/zigimg#734fa919fb15b7917d4eb124f53600348f4ffa30",
-            .hash = "zigimg-0.1.0-8_eo2sBLGACBebrhQZUwRliZNSUyDn6szp99eip_6-Rw",
-        },
         .uucode = .{
             .url = "git+https://github.com/jacobsandlund/uucode#1fb73433bba5d93366c57f23ff2e9d7939746500",
             .hash = "uucode-0.2.0-ZZjBPm6FVgBcY-79AHV8ckQj86z0JwOyVyj89VeZrEiv",
