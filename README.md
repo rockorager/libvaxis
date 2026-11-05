@@ -433,6 +433,28 @@ pub fn main(init: std.process.Init) !void {
 }
 ```
 
+### Images
+
+Vaxis does not decode images; the terminal does. `loadImage` sends a PNG as
+it is, and `transmitImage` sends raw RGB or RGBA pixels. For any other format,
+decode it with an image library and transmit the pixels. We recommend
+[baskingspot/image](https://github.com/baskingspot/image): it reads PNG, JPEG,
+GIF, WebP, TIFF, JPEG XL, and more, in pure Zig.
+
+```zig
+var reader: std.Io.Reader = .fixed(bytes);
+var decoder: image.Decoder = try .initDetect(&reader, .{});
+const config = try decoder.decodeConfig();
+const pixels = try alloc.alloc(u8, image.PixelBuffer.len(.rgba8, config.width, config.height).?);
+defer alloc.free(pixels);
+const work = try alloc.alloc(u8, config.work_len);
+defer alloc.free(work);
+const dst = try image.PixelBuffer.init(pixels, .rgba8, config.width, config.height);
+_ = try decoder.decodeFrame(dst, work) orelse return error.NoFrames;
+
+const img = try vx.transmitImage(alloc, tty.writer(), pixels, @intCast(config.width), @intCast(config.height), .rgba);
+```
+
 ## C library
 
 libvaxis can be built as a C library exposing the terminal input parser:
