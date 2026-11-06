@@ -992,6 +992,7 @@ fn caps(c: Vaxis.Capabilities) CCapabilities {
         .wcwidth => 0,
         .unicode => 1,
         .no_zwj => 2,
+        .wcwidth_wide => 3,
     }, .program_status = c.program_status };
 }
 pub fn runtime_capabilities(runtime: ?*const CRuntime) callconv(.c) CCapabilities {

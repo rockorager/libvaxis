@@ -52,6 +52,10 @@ pub const Buffer = struct {
     cols: usize = 0,
     // used when appending to a buffer
     last_cols: usize = 0,
+    /// Method used to measure a cluster. Set this to the same value as the
+    /// screen's width method when the terminal widens East Asian Ambiguous
+    /// characters, otherwise wrapping disagrees with the renderer.
+    width_method: vaxis.gwidth.Method = .unicode,
 
     pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
         self.style_map.deinit(allocator);
@@ -63,8 +67,12 @@ pub const Buffer = struct {
 
     /// Clears all buffer data.
     pub fn clear(self: *@This(), allocator: std.mem.Allocator) void {
+        // Keep the measuring method: it is configuration, not content, and
+        // update() clears before it measures the new content.
+        const width_method = self.width_method;
         self.deinit(allocator);
         self.* = .{};
+        self.width_method = width_method;
     }
 
     /// Replaces contents of the buffer, all previous buffer data is lost.
@@ -91,7 +99,7 @@ pub const Buffer = struct {
                 cols = 0;
             } else {
                 // Calculate width using gwidth
-                const w = vaxis.gwidth.gwidth(cluster, .unicode);
+                const w = vaxis.gwidth.gwidth(cluster, self.width_method);
                 cols +|= w;
             }
         }

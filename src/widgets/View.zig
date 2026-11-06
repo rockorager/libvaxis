@@ -22,18 +22,23 @@ screen: Screen,
 pub const Config = struct {
     width: u16,
     height: u16,
+    /// Measurement method for the off-screen screen. Set this to the same value
+    /// as the screen it is blitted to, or wide clusters disagree.
+    width_method: gw.Method = .wcwidth,
 };
 
 /// Initialize a new View
 pub fn init(alloc: mem.Allocator, config: Config) mem.Allocator.Error!View {
+    var screen = try Screen.init(alloc, .{
+        .cols = config.width,
+        .rows = config.height,
+        .x_pixel = 0,
+        .y_pixel = 0,
+    });
+    screen.width_method = config.width_method;
     return .{
         .alloc = alloc,
-        .screen = try Screen.init(alloc, .{
-            .cols = config.width,
-            .rows = config.height,
-            .x_pixel = 0,
-            .y_pixel = 0,
-        }),
+        .screen = screen,
     };
 }
 

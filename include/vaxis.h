@@ -231,7 +231,8 @@ typedef struct {
 typedef struct {
   bool kitty_keyboard, kitty_graphics, no_color, rgb, sgr_pixels;
   bool color_scheme_updates, explicit_width, scaled_text, multi_cursor;
-  uint8_t unicode_width; /* 0=wcwidth, 1=unicode, 2=no_zwj */
+  /* 0=wcwidth, 1=unicode, 2=no_zwj, 3=wcwidth with East Asian Ambiguous as 2 */
+  uint8_t unicode_width;
   bool program_status; /* OSC 7501 program status */
 } vaxis_capabilities;
 

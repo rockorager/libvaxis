@@ -79,7 +79,9 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
     vx.caps.sgr_pixels = false;
     try vx.setMouseMode(tty.writer(), true);
 
-    vxfw.DrawContext.init(vx.screen.width_method);
+    // caps is authoritative: the screen is created by resize, which may not have
+    // run yet, and caps already carries the locale's ambiguous width choice.
+    vxfw.DrawContext.init(vx.caps.unicode);
 
     // Calculate tick rate
     const framerate: u64 = if (opts.framerate > 0) opts.framerate else 60;

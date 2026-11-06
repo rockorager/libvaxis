@@ -112,14 +112,48 @@ state: struct {
 
 /// Initialize Vaxis with runtime options
 pub fn init(io: std.Io, alloc: std.mem.Allocator, env_map: *std.process.Environ.Map, opts: Options) !Vaxis {
+    var caps: Capabilities = .{};
+    // wcwidth implementations give East Asian Ambiguous characters two columns
+    // when the locale is Japanese, Korean or Chinese. Follow the locale here, but
+    // only until the terminal answers the Unicode Core query: a terminal that
+    // implements mode 2027 has declared that it uses the Unicode definition,
+    // where those characters are one column, and that answer overrides this.
+    if (localeWidensAmbiguous(env_map)) caps.unicode = .wcwidth_wide;
     return .{
         .io = io,
         .env_map = env_map,
         .opts = opts,
+        .caps = caps,
         .screen = .{},
         .screen_last = try .init(alloc, 0, 0),
         .cursor_position_requests = .{ .io = io },
     };
+}
+
+/// True when the locale asks for East Asian Ambiguous characters to occupy two
+/// columns. POSIX precedence applies: LC_ALL, then LC_CTYPE, then LANG; the first
+/// one that is set decides, and the language is the part before the first `_`,
+/// `.` or `@`.
+fn localeWidensAmbiguous(env_map: *const std.process.Environ.Map) bool {
+    const names = [_][]const u8{ "LC_ALL", "LC_CTYPE", "LANG" };
+    for (names) |name| {
+        const value = env_map.get(name) orelse continue;
+        // An empty value is the same as unset: the next variable applies.
+        if (value.len == 0) continue;
+        // The language is everything before the first '_', '.' or '@', so
+        // "zh_Hant_TW", "ja_JP.UTF-8", "C" and "POSIX" all extract correctly.
+        var end: usize = 0;
+        while (end < value.len and
+            value[end] != '_' and value[end] != '.' and value[end] != '@') : (end += 1)
+        {}
+        const language = value[0..end];
+        // The first variable that is set decides, even when it selects a
+        // non-East-Asian locale and therefore has to override LANG.
+        return std.mem.eql(u8, language, "ja") or
+            std.mem.eql(u8, language, "ko") or
+            std.mem.eql(u8, language, "zh");
+    }
+    return false;
 }
 
 /// Resets the terminal to it's original state. If an allocator is
@@ -1957,4 +1991,56 @@ test "clearProgramStatus: clears one record tree or every record" {
     writer.clearRetainingCapacity();
     try vx.clearProgramStatus(&writer.writer, "deploy/us-east");
     try std.testing.expectEqualStrings("\x1b]7501;state=clear:id=deploy/us-east\x1b\\", writer.written());
+}
+
+test "ambiguous width follows the locale until the terminal answers" {
+    const testing = std.testing;
+
+    const Case = struct { env: []const [2][]const u8, expect_wide: bool };
+    const cases = [_]Case{
+        .{ .env = &.{}, .expect_wide = false },
+        .{ .env = &.{.{ "LANG", "ja_JP.UTF-8" }}, .expect_wide = true },
+        .{ .env = &.{.{ "LANG", "ko_KR.UTF-8" }}, .expect_wide = true },
+        .{ .env = &.{.{ "LANG", "zh_CN.UTF-8" }}, .expect_wide = true },
+        .{ .env = &.{.{ "LANG", "en_US.UTF-8" }}, .expect_wide = false },
+        .{ .env = &.{.{ "LANG", "C" }}, .expect_wide = false },
+        // LC_ALL wins over LANG, and LC_CTYPE over LANG when LC_ALL is unset.
+        .{
+            .env = &.{ .{ "LC_ALL", "en_US.UTF-8" }, .{ "LANG", "ja_JP.UTF-8" } },
+            .expect_wide = false,
+        },
+        .{
+            .env = &.{ .{ "LC_CTYPE", "zh_TW.UTF-8" }, .{ "LANG", "en_US.UTF-8" } },
+            .expect_wide = true,
+        },
+        .{ .env = &.{.{ "LANG", "zh_Hant_TW.UTF-8" }}, .expect_wide = true },
+        .{ .env = &.{.{ "LANG", "POSIX" }}, .expect_wide = false },
+        .{ .env = &.{.{ "LANG", "en_US.UTF-8@euro" }}, .expect_wide = false },
+        // LC_ALL=C overrides an East Asian LANG instead of falling through.
+        .{
+            .env = &.{ .{ "LC_ALL", "C" }, .{ "LANG", "ja_JP.UTF-8" } },
+            .expect_wide = false,
+        },
+        // An empty LC_ALL is the same as unset, so LANG decides.
+        .{
+            .env = &.{ .{ "LC_ALL", "" }, .{ "LANG", "ja_JP.UTF-8" } },
+            .expect_wide = true,
+        },
+    };
+
+    for (cases) |case| {
+        // A map built from scratch, so the locale variables of the machine
+        // running the tests cannot leak into the fixture.
+        var env = std.process.Environ.Map.init(testing.allocator);
+        defer env.deinit();
+        for (case.env) |kv| try env.put(kv[0], kv[1]);
+
+        var deinit_writer: std.Io.Writer.Allocating = .init(testing.allocator);
+        defer deinit_writer.deinit();
+        var vx = try Vaxis.init(testing.io, testing.allocator, &env, .{});
+        defer vx.deinit(testing.allocator, &deinit_writer.writer);
+
+        const expected: gwidth.Method = if (case.expect_wide) .wcwidth_wide else .wcwidth;
+        try testing.expectEqual(expected, vx.caps.unicode);
+    }
 }

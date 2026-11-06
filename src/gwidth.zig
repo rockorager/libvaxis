@@ -7,11 +7,15 @@ const uucode = @import("uucode");
 pub const Method = enum {
     unicode,
     wcwidth,
+    /// wcwidth, but East Asian Ambiguous characters occupy two columns. Use this
+    /// when the terminal follows an East Asian locale; xterm and other wcwidth
+    /// implementations do the same when LC_CTYPE is ja, ko or zh.
+    wcwidth_wide,
     no_zwj,
 };
 
 /// Calculate width from east asian width property and Unicode properties
-fn eawToWidth(cp: u21, eaw: uucode.types.EastAsianWidth) i16 {
+fn eawToWidth(cp: u21, eaw: uucode.types.EastAsianWidth, ambiguous_wide: bool) i16 {
     // Based on wcwidth implementation
     // Control characters
     if (cp == 0) return 0;
@@ -36,11 +40,11 @@ fn eawToWidth(cp: u21, eaw: uucode.types.EastAsianWidth) i16 {
     if (cp >= 0xfe00 and cp <= 0xfe0f) return 0; // variation selectors
     if (cp >= 0xe0100 and cp <= 0xe01ef) return 0; // Plane-14 variation selectors
 
-    // East Asian Width: fullwidth or wide = 2
-    // ambiguous in East Asian context = 2, otherwise 1
-    // halfwidth, narrow, or neutral = 1
+    // East Asian Width: fullwidth or wide = 2, halfwidth, narrow or neutral = 1.
+    // Ambiguous is 1 unless the caller asked for the East Asian convention.
     return switch (eaw) {
         .fullwidth, .wide => 2,
+        .ambiguous => if (ambiguous_wide) 2 else 1,
         else => 1,
     };
 }
@@ -87,7 +91,7 @@ pub fn gwidth(str: []const u8, method: Method) u16 {
                     }
 
                     const eaw = uucode.get(.east_asian_width, cp);
-                    const w = eawToWidth(cp, eaw);
+                    const w = eawToWidth(cp, eaw, false);
                     // Take max of non-zero widths
                     if (w > 0 and w > width) width = w;
                 }
@@ -106,7 +110,8 @@ pub fn gwidth(str: []const u8, method: Method) u16 {
 
             return total;
         },
-        .wcwidth => {
+        .wcwidth, .wcwidth_wide => {
+            const ambiguous_wide = method == .wcwidth_wide;
             var total: u16 = 0;
             var iter = uucode.utf8.Iterator.init(str);
             while (iter.next()) |cp| {
@@ -115,7 +120,7 @@ pub fn gwidth(str: []const u8, method: Method) u16 {
                     0x1f3fb...0x1f3ff => 2,
                     else => blk: {
                         const eaw = uucode.get(.east_asian_width, cp);
-                        break :blk eawToWidth(cp, eaw);
+                        break :blk eawToWidth(cp, eaw, ambiguous_wide);
                     },
                 };
                 total += @intCast(@max(0, w));
@@ -201,4 +206,20 @@ test "gwidth: base letter with combining mark" {
 
 test {
     std.testing.refAllDecls(@This());
+}
+
+test "gwidth: ambiguous width depends on the method" {
+    // U+00A1 INVERTED EXCLAMATION MARK is East Asian Ambiguous.
+    try testing.expectEqual(1, gwidth("\u{00A1}", .wcwidth));
+    try testing.expectEqual(2, gwidth("\u{00A1}", .wcwidth_wide));
+    // Unicode Core leaves ambiguous characters in one column.
+    try testing.expectEqual(1, gwidth("\u{00A1}", .unicode));
+    // Unambiguous widths are the same either way.
+    try testing.expectEqual(2, gwidth("\u{6F22}", .wcwidth));
+    try testing.expectEqual(2, gwidth("\u{6F22}", .wcwidth_wide));
+}
+
+test "gwidth: ambiguous wide still measures narrow characters as one" {
+    try testing.expectEqual(1, gwidth("a", .wcwidth_wide));
+    try testing.expectEqual(0, gwidth("\u{200B}", .wcwidth_wide));
 }

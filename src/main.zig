@@ -90,3 +90,27 @@ pub const logo =
 test "refAllDecls" {
     std.testing.refAllDecls(@This());
 }
+
+// Widget test blocks are not collected by the test root, so the widget-level
+// tests that matter for width handling live here until that is fixed.
+test "widgets: TextView measures with its configured method" {
+    const testing = std.testing;
+    var buffer: widgets.TextView.Buffer = .{ .width_method = .wcwidth_wide };
+    defer buffer.deinit(testing.allocator);
+
+    // U+00A1 is East Asian Ambiguous. update() clears before it measures, so the
+    // method has to survive the clear.
+    try buffer.update(testing.allocator, .{ .bytes = "\u{00A1}" });
+    try testing.expectEqual(@as(usize, 2), buffer.cols);
+}
+
+test "widgets: View passes its width method to its screen" {
+    const testing = std.testing;
+    var view = try widgets.View.init(testing.allocator, .{
+        .width = 4,
+        .height = 2,
+        .width_method = .wcwidth_wide,
+    });
+    defer view.deinit();
+    try testing.expectEqual(gwidth.Method.wcwidth_wide, view.screen.width_method);
+}

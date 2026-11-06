@@ -787,3 +787,26 @@ test "failed paste enqueue frees its allocation" {
 test {
     std.testing.refAllDecls(@This());
 }
+
+test "the Unicode Core answer overrides a wide ambiguous locale" {
+    const testing = std.testing;
+    // Built from scratch so the locale variables of the machine running the
+    // tests cannot override the fixture.
+    var env = std.process.Environ.Map.init(testing.allocator);
+    defer env.deinit();
+    try env.put("LANG", "ja_JP.UTF-8");
+    var tty = try Tty.init(testing.io, &.{});
+    defer tty.deinit();
+    var vx = try vaxis.init(testing.io, testing.allocator, &env, .{});
+    defer vx.deinit(testing.allocator, tty.writer());
+    try testing.expectEqual(vaxis.gwidth.Method.wcwidth_wide, vx.caps.unicode);
+
+    var loop: Loop(vaxis.Event) = .init(testing.io, &tty, &vx);
+    var parser: Parser = .{};
+    var cache: GraphemeCache = .{};
+    // The terminal answers the mode 2027 query with "set".
+    const result = try parser.parse("\x1b[?2027;1$y", null);
+    try handleEventGeneric(&loop, &vx, &cache, vaxis.Event, result.event.?, null);
+    try testing.expectEqual(vaxis.gwidth.Method.unicode, vx.caps.unicode);
+    try testing.expectEqual(vaxis.gwidth.Method.unicode, vx.screen.width_method);
+}
