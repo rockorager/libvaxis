@@ -37,8 +37,10 @@ fn eawToWidth(cp: u21, eaw: uucode.types.EastAsianWidth) i16 {
     if (cp >= 0xe0100 and cp <= 0xe01ef) return 0; // Plane-14 variation selectors
 
     // East Asian Width: fullwidth or wide = 2
-    // ambiguous in East Asian context = 2, otherwise 1
-    // halfwidth, narrow, or neutral = 1
+    // ambiguous, halfwidth, narrow, or neutral = 1
+    // Ambiguous is 1 in every locale, as glibc's wcwidth also gives it. A
+    // terminal can be configured to draw ambiguous characters two columns
+    // wide, but nothing in the environment reports that setting.
     return switch (eaw) {
         .fullwidth, .wide => 2,
         else => 1,
