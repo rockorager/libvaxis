@@ -130,9 +130,26 @@ pub fn deinit(self: *Vaxis, alloc: ?std.mem.Allocator, tty: *std.Io.Writer) void
     self.resetState(tty) catch {};
 
     if (alloc) |a| {
-        if (self.state.prev_cursor_secondary.ptr != self.screen.cursor_secondary.ptr)
-            a.free(self.state.prev_cursor_secondary);
-        a.free(self.screen.cursor_secondary);
+        // A render moves the screen's list into state, and a reset drops the
+        // screen reference while state keeps it. Either way an allocation can
+        // end up reachable from more than one of these snapshots, so free every
+        // distinct allocation once instead of assuming which pair aliases.
+        const snapshots = [_][]const Cursor{
+            self.state.prev_cursor_secondary,
+            self.state.cursor_secondary,
+            self.screen.cursor_secondary,
+        };
+        for (snapshots, 0..) |cursors, i| {
+            if (cursors.len == 0) continue;
+            var owned = true;
+            for (snapshots[0..i]) |earlier| {
+                if (earlier.len != 0 and earlier.ptr == cursors.ptr) {
+                    owned = false;
+                    break;
+                }
+            }
+            if (owned) a.free(cursors);
+        }
         self.screen.deinit(a);
         self.screen_last.deinit(a);
     }
@@ -414,7 +431,7 @@ pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
         (self.screen.cursor.row != self.state.cursor.row or
             self.screen.cursor.col != self.state.cursor.col);
     const cursor_secondary_changed = self.screen.cursor_vis and
-        std.meta.eql(self.screen.cursor_secondary, self.state.cursor_secondary);
+        !std.meta.eql(self.screen.cursor_secondary, self.state.cursor_secondary);
     const needs_render = self.refresh or
         cursor_vis_changed or
         cursor_shape_changed or
@@ -843,10 +860,14 @@ pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
         try tty.print(ctlseqs.reset_secondary_cursors, .{});
         for (self.screen.cursor_secondary) |cur|
             try tty.print(ctlseqs.show_secondary_cursor, .{ cur.row + 1, cur.col + 1 });
-        if (cursor_secondary_changed) {
-            self.state.prev_cursor_secondary = self.state.cursor_secondary;
-            self.state.cursor_secondary = self.screen.cursor_secondary;
-        }
+    }
+    // Track secondary cursors whenever the cursor is visible, even on a terminal
+    // that cannot draw them. Keeping the bookkeeping inside the capability gate
+    // meant the comparison never cleared once the lists differed, so every frame
+    // forced a render and an idle frame never went quiet.
+    if (cursor_secondary_changed) {
+        self.state.prev_cursor_secondary = self.state.cursor_secondary;
+        self.state.cursor_secondary = self.screen.cursor_secondary;
     }
     self.screen_last.cursor_vis = self.screen.cursor_vis;
     if (self.screen.mouse_shape != self.screen_last.mouse_shape) {
@@ -1707,6 +1728,43 @@ test "render: no output when no changes" {
     try std.testing.expectEqual(@as(usize, 0), output.len);
 }
 
+test "render: no output when nothing changed and the cursor is visible" {
+    const io = std.testing.io;
+    var env_map = try std.testing.environ.createMap(std.testing.allocator);
+    defer env_map.deinit();
+    var vx = try Vaxis.init(io, std.testing.allocator, &env_map, .{});
+    var deinit_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer deinit_writer.deinit();
+    defer vx.deinit(std.testing.allocator, &deinit_writer.writer);
+
+    var setup_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer setup_writer.deinit();
+    try vx.enterAltScreen(&setup_writer.writer);
+    try vx.resize(
+        std.testing.allocator,
+        &setup_writer.writer,
+        .{ .rows = 3, .cols = 3, .x_pixel = 0, .y_pixel = 0 },
+    );
+
+    // First frame: real content, so we expect output.
+    const win = vx.window();
+    win.clear();
+    win.showCursor(0, 0);
+    var first_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer first_writer.deinit();
+    try vx.render(&first_writer.writer);
+    try std.testing.expect(first_writer.written().len > 0);
+
+    // Second frame: identical content, cursor still visible at the same spot.
+    var second_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer second_writer.deinit();
+    try vx.render(&second_writer.writer);
+    const output = second_writer.written();
+    if (output.len != 0)
+        std.debug.print("idle frame emitted {d} bytes: {s}\n", .{ output.len, output });
+    try std.testing.expectEqual(@as(usize, 0), output.len);
+}
+
 test "resize: hides the cursor when the frame is left empty" {
     var env_map = try std.testing.environ.createMap(std.testing.allocator);
     defer env_map.deinit();
@@ -1957,4 +2015,70 @@ test "clearProgramStatus: clears one record tree or every record" {
     writer.clearRetainingCapacity();
     try vx.clearProgramStatus(&writer.writer, "deploy/us-east");
     try std.testing.expectEqualStrings("\x1b]7501;state=clear:id=deploy/us-east\x1b\\", writer.written());
+}
+
+test "render: an unsupported secondary cursor still lets an idle frame go quiet" {
+    const io = std.testing.io;
+    var env_map = try std.testing.environ.createMap(std.testing.allocator);
+    defer env_map.deinit();
+    var vx = try Vaxis.init(io, std.testing.allocator, &env_map, .{});
+    var deinit_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer deinit_writer.deinit();
+    defer vx.deinit(std.testing.allocator, &deinit_writer.writer);
+
+    var setup_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer setup_writer.deinit();
+    try vx.enterAltScreen(&setup_writer.writer);
+    try vx.resize(
+        std.testing.allocator,
+        &setup_writer.writer,
+        .{ .rows = 3, .cols = 3, .x_pixel = 0, .y_pixel = 0 },
+    );
+
+    // There is no setter yet, so reach past the API to model what an app with
+    // secondary cursors will do once one exists. This terminal does not
+    // advertise multi_cursor support, so nothing is drawn for them.
+    const win = vx.window();
+    win.clear();
+    win.showCursor(0, 0);
+    vx.screen.cursor_secondary = try std.testing.allocator.dupe(
+        Screen.Cursor,
+        &.{.{ .row = 1, .col = 1 }},
+    );
+
+    var first_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer first_writer.deinit();
+    try vx.render(&first_writer.writer);
+    try std.testing.expect(first_writer.written().len > 0);
+
+    // The change is recorded even though the terminal cannot draw it, so the
+    // next frame has to be silent.
+    var second_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer second_writer.deinit();
+    try vx.render(&second_writer.writer);
+    try std.testing.expectEqual(@as(usize, 0), second_writer.written().len);
+}
+
+test "secondary cursors: reset then deinit releases the snapshot" {
+    // The testing allocator fails this test if any cursor snapshot leaks.
+    const io = std.testing.io;
+    var env_map = try std.testing.environ.createMap(std.testing.allocator);
+    defer env_map.deinit();
+    var vx = try Vaxis.init(io, std.testing.allocator, &env_map, .{});
+    var deinit_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer deinit_writer.deinit();
+    defer vx.deinit(std.testing.allocator, &deinit_writer.writer);
+
+    var w: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer w.deinit();
+    try vx.enterAltScreen(&w.writer);
+    try vx.resize(std.testing.allocator, &w.writer, .{ .rows = 3, .cols = 3, .x_pixel = 0, .y_pixel = 0 });
+
+    try vx.addTerminalSecondaryCursor(std.testing.allocator, 1, 1);
+    vx.window().showCursor(0, 0);
+    try vx.render(&w.writer);
+
+    // The render moved the allocation into state.cursor_secondary. Resetting
+    // drops the screen reference, so deinit is the only owner left.
+    try vx.resetAllTerminalSecondaryCursors(std.testing.allocator);
 }
