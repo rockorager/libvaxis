@@ -101,7 +101,7 @@ pub fn parse(self: *Parser, input: []const u8, paste_allocator: ?std.mem.Allocat
     if (input[0] == 0x1b and input.len > 1) {
         switch (input[1]) {
             0x4F => return parseSs3(input),
-            0x50 => return skipUntilST(input), // DCS
+            0x50 => return parseDcs(input), // DCS
             0x58 => return skipUntilST(input), // SOS
             0x5B => return parseCsi(input, &self.buf, self.cursor_position_requests), // CSI
             0x5D => return parseOsc(input, paste_allocator),
@@ -254,6 +254,60 @@ inline fn parseApc(input: []const u8) Result {
             .n = sequence.len,
         },
     }
+}
+
+const Framed = struct {
+    /// Exclusive end of what the caller should consume, including the terminator.
+    consumed: usize,
+    /// Exclusive end of the string body, i.e. the index of the terminator.
+    body_end: usize,
+    /// False when the string ran into a bare ESC instead of a real terminator.
+    terminated: bool,
+};
+
+/// Find the terminator of a string sequence. Returns null only when the bytes
+/// so far could still become a terminated string, so the caller waits for more
+/// input. A bare ESC that does not begin an ST ends the string without
+/// terminating it: we consume up to that ESC and report it unterminated, rather
+/// than swallowing the sequence that really starts there or waiting for bytes
+/// that will never arrive.
+///
+/// `allow_bel` is true for OSC, which xterm permits to end with BEL, and false
+/// for DCS, which ECMA-48 terminates with ST only.
+fn frameString(input: []const u8, start: usize, allow_bel: bool) ?Framed {
+    var i = start;
+    while (i < input.len) : (i += 1) {
+        if (allow_bel and input[i] == 0x07)
+            return .{ .consumed = i + 1, .body_end = i, .terminated = true };
+        if (input[i] == 0x1b) {
+            // We need the byte after ESC to know whether this is an ST.
+            if (i + 1 >= input.len) return null;
+            if (input[i + 1] == '\\')
+                return .{ .consumed = i + 2, .body_end = i, .terminated = true };
+            return .{ .consumed = i, .body_end = i, .terminated = false };
+        }
+    }
+    return null;
+}
+
+/// Parse a DCS (Device Control String). Terminals send the replies we actually
+/// want here: XTVERSION is `ESC P > | <identity> ST`. Anything else is consumed
+/// without an event so the reader stays in sync with the byte stream.
+inline fn parseDcs(input: []const u8) Result {
+    if (input.len < 3) return .{ .event = null, .n = 0 };
+    const framed = frameString(input, 2, false) orelse return .{ .event = null, .n = 0 };
+    const consumed = framed.consumed;
+    if (!framed.terminated) return .{ .event = null, .n = consumed };
+    const body = input[2..framed.body_end];
+
+    // XTVERSION reply: DCS > | <terminal identity> ST. The identity borrows the
+    // caller's input: it is short, it arrives once at startup, and requiring an
+    // allocator here meant the reply was dropped whenever the application did not
+    // enable the optional clipboard allocator. Consumers must copy it.
+    if (body.len >= 3 and body[0] == '>' and body[1] == '|')
+        return .{ .event = .{ .terminal_version = body[2..] }, .n = consumed };
+
+    return .{ .event = null, .n = consumed };
 }
 
 /// Skips sequences until we see an ST (String Terminator, ESC \)
@@ -1736,4 +1790,66 @@ test "parse: kitty: text as codepoints longer than the text buffer" {
     const input = codepointsInput(40);
     const result = try parser.parse(input, null);
     try testing.expectEqual(input.len, result.n);
+}
+
+test "parse: dcs xtversion reply" {
+    const input = "\x1bP>|kitty(v0.42.2)\x1b\\";
+    var parser: Parser = .{};
+    const result = try parser.parse(input, null);
+    try testing.expectEqual(input.len, result.n);
+    switch (result.event.?) {
+        .terminal_version => |text| try testing.expectEqualStrings("kitty(v0.42.2)", text),
+        else => return error.TestUnexpectedResult,
+    }
+}
+
+test "parse: dcs is not terminated by BEL" {
+    // ECMA-48 terminates a DCS with ST only. A BEL is body content, so this
+    // sequence is still incomplete and we wait rather than emit a truncated
+    // identity. OSC is the sequence family that BEL is allowed to end.
+    const input = "\x1bP>|WezTerm\x07";
+    var parser: Parser = .{};
+    const partial = try parser.parse(input, null);
+    try testing.expectEqual(@as(usize, 0), partial.n);
+    try testing.expectEqual(@as(?Event, null), partial.event);
+}
+
+test "parse: dcs xtversion borrows the input and needs no allocator" {
+    const input = "\x1bP>|kitty(v0.42.2)\x1b\\";
+    var parser: Parser = .{};
+    const result = try parser.parse(input, null);
+    const text = result.event.?.terminal_version;
+    try testing.expectEqualStrings("kitty(v0.42.2)", text);
+    // A view into the caller's buffer, not a copy, so the reply survives an
+    // application that never enabled the optional clipboard allocator.
+    try testing.expectEqual(@intFromPtr(&input[4]), @intFromPtr(text.ptr));
+}
+
+test "parse: unknown dcs is consumed without event" {
+    // A DECRQSS reply, which we do not ask for but must not misparse
+    const input = "\x1bP1$r0 q\x1b\\";
+    var parser: Parser = .{};
+    const result = try parser.parse(input, null);
+    try testing.expectEqual(input.len, result.n);
+    try testing.expectEqual(@as(?Event, null), result.event);
+}
+
+test "parse: truncated dcs waits for more input" {
+    const input = "\x1bP>|kitty(v0.42.2)\x1b\\";
+    var parser: Parser = .{};
+    const partial = try parser.parse(input[0 .. input.len - 1], null);
+    try testing.expectEqual(@as(usize, 0), partial.n);
+    try testing.expectEqual(@as(?Event, null), partial.event);
+}
+
+test "parse: unterminated dcs does not swallow the next sequence" {
+    var parser: Parser = .{};
+    // A DCS abandoned mid-string, followed by a real kitty keyboard reply. We
+    // must stop at the bare ESC so the reply that starts there still parses.
+    const input = "\x1bP>|oops\x1b[?u";
+    const result = try parser.parse(input, null);
+    try testing.expectEqual(@as(usize, 8), result.n);
+    try testing.expectEqual(@as(?Event, null), result.event);
+    const next = try parser.parse(input[8..], null);
+    try testing.expectEqual(@as(?Event, .cap_kitty_keyboard), next.event);
 }

@@ -19,6 +19,10 @@ pub const Event = union(enum) {
     winsize: Winsize,
     /// Cursor position report, with zero-based row and column.
     cursor_position: @import("Screen.zig").Cursor,
+    /// The terminal's identification from the XTVERSION reply. Borrows the
+    /// parser's input and is valid only until the next parse, so consumers must
+    /// copy it. vaxis handles this event internally and never posts it.
+    terminal_version: []const u8,
 
     // these are delivered as discovered terminal capabilities
     cap_kitty_keyboard,

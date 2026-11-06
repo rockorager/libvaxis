@@ -41,6 +41,10 @@ pub const Capabilities = struct {
     multi_cursor: bool = false,
     /// The terminal answered the Program Status Protocol (OSC 7501) query
     program_status: bool = false,
+    /// The terminal's self-reported identification from the XTVERSION reply,
+    /// stored inline. vaxis reads XTVERSION but had nowhere to keep the answer.
+    terminal_version_len: u8 = 0,
+    terminal_version_buf: [128]u8 = undefined,
 };
 
 pub const Options = struct {
@@ -412,6 +416,21 @@ pub fn enableDetectedFeatures(self: *Vaxis, tty: *std.Io.Writer) !void {
 // the next render call will refresh the entire screen
 pub fn queueRefresh(self: *Vaxis) void {
     self.refresh = true;
+}
+
+/// The terminal's self-reported identification from the XTVERSION reply, or an
+/// empty slice when the terminal did not answer.
+pub fn terminalVersion(self: *const Vaxis) []const u8 {
+    return self.caps.terminal_version_buf[0..self.caps.terminal_version_len];
+}
+
+/// Record an XTVERSION reply. Identifications longer than the inline buffer are
+/// truncated rather than rejected; they are only ever used for diagnostics and
+/// for working around a terminal's known quirks.
+pub fn setTerminalVersion(self: *Vaxis, identity: []const u8) void {
+    const n = @min(identity.len, self.caps.terminal_version_buf.len);
+    @memcpy(self.caps.terminal_version_buf[0..n], identity[0..n]);
+    self.caps.terminal_version_len = @intCast(n);
 }
 
 /// draws the screen to the terminal

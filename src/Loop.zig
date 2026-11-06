@@ -299,6 +299,14 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
             if (paste_allocator) |allocator| allocator.free(text);
             return;
         },
+        .terminal_version => |identity| {
+            // Stored on Vaxis.caps rather than forwarded: capability bookkeeping
+            // is internal, and handling it here keeps it off the per-platform
+            // switches so no backend can drop it. The slice borrows the input,
+            // so there is nothing to release.
+            vx.setTerminalVersion(identity);
+            return;
+        },
         else => {},
     }
     switch (builtin.os.tag) {
@@ -442,7 +450,7 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                         return self.postEvent(.{ .color_report = report });
                     }
                 },
-                .cursor_position, .paste_start, .paste_end, .paste => unreachable, // handled above on all platforms
+                .cursor_position, .paste_start, .paste_end, .paste, .terminal_version => unreachable, // handled above on all platforms
                 .color_scheme => |scheme| {
                     if (@hasField(Event, "color_scheme")) {
                         return self.postEvent(.{ .color_scheme = scheme });
@@ -786,4 +794,32 @@ test "failed paste enqueue frees its allocation" {
 
 test {
     std.testing.refAllDecls(@This());
+}
+
+test "terminal version is stored on caps and its payload is released" {
+    const testing = std.testing;
+    var env = try testing.environ.createMap(testing.allocator);
+    defer env.deinit();
+    var tty = try Tty.init(testing.io, &.{});
+    defer tty.deinit();
+    var vx = try vaxis.init(testing.io, testing.allocator, &env, .{});
+    defer vx.deinit(testing.allocator, tty.writer());
+    var loop: Loop(vaxis.Event) = .init(testing.io, &tty, &vx);
+    var cache: GraphemeCache = .{};
+
+    // The payload borrows the input, so the handler must still work for a
+    // caller that supplied no allocator at all.
+    const identity = "kitty(0.42.2)";
+    try handleEventGeneric(
+        &loop,
+        &vx,
+        &cache,
+        vaxis.Event,
+        @as(vaxis.Event, .{ .terminal_version = identity }),
+        testing.allocator,
+    );
+
+    try testing.expectEqualStrings("kitty(0.42.2)", vx.terminalVersion());
+    // Capability bookkeeping stays internal; it is not posted to the app queue.
+    try testing.expectEqual(@as(?vaxis.Event, null), try loop.tryEvent());
 }
