@@ -478,7 +478,7 @@ pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
 
     var i: usize = 0;
     while (i < self.screen.buf.len) {
-        const cell = self.screen.buf[i];
+        const cell = &self.screen.buf[i];
         const w: u16 = blk: {
             if (cell.char.width != 0) break :blk cell.char.width;
 
@@ -506,7 +506,7 @@ pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
         }
         // If cell is the same as our last frame, we don't need to do
         // anything
-        const last = self.screen_last.buf[i];
+        const last = &self.screen_last.buf[i];
         if ((!self.refresh and
             last.eql(cell) and
             !last.skipped and
@@ -530,7 +530,7 @@ pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
             link = cell.link;
         }
         // Set this cell in the last frame
-        self.screen_last.writeCell(col, row, cell);
+        self.screen_last.writeCell(col, row, cell.*);
 
         // If we support scaled text, we set the flags now
         if (self.caps.scaled_text and cell.scale.scale > 1) {
@@ -1402,7 +1402,7 @@ pub fn prettyPrint(self: *Vaxis, tty: *std.Io.Writer) !void {
 
     var i: u16 = 0;
     while (i < self.screen.buf.len) {
-        const cell = self.screen.buf[i];
+        const cell = &self.screen.buf[i];
         const w = blk: {
             if (cell.char.width != 0) break :blk cell.char.width;
 
