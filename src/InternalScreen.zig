@@ -24,7 +24,7 @@ pub const InternalCell = struct {
 
     scale: Cell.Scale = .{},
 
-    pub fn eql(self: InternalCell, cell: Cell) bool {
+    pub fn eql(self: *const InternalCell, cell: *const Cell) bool {
 
         // fastpath when both cells are default
         if (self.default and cell.default) return true;
