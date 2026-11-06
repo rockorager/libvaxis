@@ -79,6 +79,10 @@ query_futex: atomic.Value(u32) = atomic.Value(u32).init(0),
 /// is used because we do explicit cursor position reports in the queries, which interfere with F3
 /// key encoding. This can be used as a flag to determine how we should evaluate this sequence
 queries_done: atomic.Value(bool) = atomic.Value(bool).init(true),
+/// Cursor position reports still owed to the capability probes. The probes are
+/// answered with CPR, so they are registered as real requests; this counter says
+/// which probe an arriving report belongs to.
+probe_cpr_pending: u3 = 0,
 
 /// Outstanding application cursor position queries and their idle deadline.
 /// Shared with the input parser.
@@ -317,6 +321,20 @@ pub fn queryTerminalSend(vx: *Vaxis, tty: *std.Io.Writer) !void {
         return error.CursorPositionQueriesPending;
     vx.queries_done.store(false, .unordered);
 
+    // Register the two probe reports as cursor position requests. Without this
+    // the parser cannot tell them from a legacy F3 keypress, and the old code
+    // guessed from the shift/alt modifier bits, which a real Shift+F3 during the
+    // probe window also produces.
+    vx.probe_cpr_pending = 2;
+    vx.cursor_position_requests.request();
+    vx.cursor_position_requests.request();
+    errdefer {
+        while (vx.probe_cpr_pending > 0) {
+            vx.probe_cpr_pending -= 1;
+            _ = vx.cursor_position_requests.consume();
+        }
+    }
+
     // TODO: re-enable this
     // const colorterm = std.posix.getenv("COLORTERM") orelse "";
     // if (std.mem.eql(u8, colorterm, "truecolor") or
@@ -337,19 +355,16 @@ pub fn queryTerminalSend(vx: *Vaxis, tty: *std.Io.Writer) !void {
         ctlseqs.decrqm_color_scheme ++
         ctlseqs.in_band_resize_set ++
 
-        // Explicit width query. We send the cursor home, then do an explicit width command, then
-        // query the position. If the parsed value is an F3 with shift, we support explicit width.
-        // The returned response will be something like \x1b[1;2R...which when parsed as a Key is a
-        // shift + F3 (the row is ignored). We only care if the column has moved from 1->2, which is
-        // why we see a Shift modifier
+        // Explicit width probe. Go home, set the width of a space to 1 column,
+        // then ask where the cursor ended up. The text lives inside the OSC 66
+        // string, so a terminal that does not implement it swallows the whole
+        // sequence and the cursor stays on column 1; a terminal that does
+        // renders the space and reports column 2.
         ctlseqs.home ++
         ctlseqs.explicit_width_query ++
         ctlseqs.cursor_position_request ++
-        // Explicit width query. We send the cursor home, then do an scaled text command, then
-        // query the position. If the parsed value is an F3 with al, we support scaled text.
-        // The returned response will be something like \x1b[1;3R...which when parsed as a Key is a
-        // alt + F3 (the row is ignored). We only care if the column has moved from 1->3, which is
-        // why we see a Shift modifier
+        // Scaled text probe, same shape: a supported terminal draws the space
+        // two columns wide and reports column 3.
         ctlseqs.home ++
         ctlseqs.scaled_text_query ++
         ctlseqs.multi_cursor_query ++
