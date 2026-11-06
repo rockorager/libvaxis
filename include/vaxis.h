@@ -93,6 +93,7 @@ typedef enum VAXIS_ENUM_TYPED {
 
   VAXIS_EVENT_CURSOR_POSITION = 21,
   VAXIS_EVENT_CAP_PROGRAM_STATUS = 22, /* OSC 7501 program status */
+  VAXIS_EVENT_TERMINAL_VERSION = 23, /* XTVERSION reply (DCS > | ...) */
 
   /* Sentinel to pin the enum to int width; never produced. */
   VAXIS_EVENT_TYPE_MAX_VALUE = VAXIS_ENUM_MAX_VALUE,
@@ -562,6 +563,9 @@ uint8_t vaxis_event_mouse_type(const vaxis_event *event);
 
 /* Paste accessor (VAXIS_EVENT_PASTE). */
 vaxis_string vaxis_event_paste_text(const vaxis_event *event);
+
+/* Terminal identification accessor (VAXIS_EVENT_TERMINAL_VERSION). */
+vaxis_string vaxis_event_terminal_version(const vaxis_event *event);
 
 /* Color report accessors (VAXIS_EVENT_COLOR_REPORT). `index` is only
  * meaningful when the kind is VAXIS_COLOR_INDEX. */

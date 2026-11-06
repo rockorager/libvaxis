@@ -133,6 +133,7 @@ pub const EventType = enum(c_int) {
     cap_multi_cursor = 20,
     cursor_position = 21,
     cap_program_status = 22,
+    terminal_version = 23,
 };
 
 comptime {
@@ -964,6 +965,7 @@ fn applyRuntimeEvent(vx: *Vaxis, e: *const CEvent) void {
         .cap_color_scheme_updates => vx.caps.color_scheme_updates = true,
         .cap_multi_cursor => vx.caps.multi_cursor = true,
         .cap_program_status => vx.caps.program_status = true,
+        .terminal_version => vx.setTerminalVersion(e.terminal_version),
         .cap_da1 => {
             std.Io.futexWake(vx.io, std.atomic.Value(u32), &vx.query_futex, 10);
             vx.queries_done.store(true, .unordered);
@@ -1121,6 +1123,7 @@ const CEvent = struct {
     color_scheme: Color.Scheme = .dark,
     winsize: Winsize = .{ .rows = 0, .cols = 0, .x_pixel = 0, .y_pixel = 0 },
     cursor_position: Screen.Cursor = .{},
+    terminal_version: []const u8 = "",
 };
 
 /// vaxis_parser. Owns the current event and everything it points at
@@ -1129,6 +1132,7 @@ const CParser = struct {
     parser: Parser,
     event: CEvent,
     text_buf: [256]u8,
+    version_buf: [128]u8 = undefined,
     paste: ?[]const u8,
 };
 
@@ -1280,6 +1284,12 @@ pub fn event_paste_text(event: ?*const CEvent) callconv(.c) CString {
     return .init(e.paste);
 }
 
+pub fn event_terminal_version(event: ?*const CEvent) callconv(.c) CString {
+    const e = event orelse return .empty;
+    if (e.type != .terminal_version) return .empty;
+    return .init(e.terminal_version);
+}
+
 pub fn event_color_report_kind(event: ?*const CEvent) callconv(.c) u8 {
     const e = event orelse return 0;
     if (e.type != .color_report) return 0;
@@ -1372,6 +1382,14 @@ fn convertEvent(p: *CParser, event: vaxis.Event) void {
         .color_scheme => |scheme| p.event.color_scheme = scheme,
         .winsize => |winsize| p.event.winsize = winsize,
         .cursor_position => |position| p.event.cursor_position = position,
+        .terminal_version => |text| {
+            // The parser's slice borrows its input buffer, which the caller may
+            // reuse as soon as parse returns, so copy it like key text.
+            var n = @min(text.len, p.version_buf.len);
+            while (n < text.len and n > 0 and text[n] & 0xC0 == 0x80) n -= 1;
+            @memcpy(p.version_buf[0..n], text[0..n]);
+            p.event.terminal_version = p.version_buf[0..n];
+        },
         else => {},
     }
 }
@@ -1848,4 +1866,19 @@ test "c api: null arguments" {
     try testing.expectEqual(@as(u32, 0), event_key_codepoint(null));
     try testing.expectEqual(@as(?[*]const u8, null), event_key_text(null).ptr);
     try testing.expect(!event_key_matches(null, 'a', 0));
+}
+
+test "c api: xtversion event without an allocator" {
+    const parser = parser_new() orelse return error.OutOfMemory;
+    defer parser_free(parser);
+
+    // The C parser never takes an allocator for parsing, so this is the path a
+    // default application uses: the reply must still arrive.
+    var event: ?*const CEvent = null;
+    var n: usize = 0;
+    try testing.expectEqual(.ok, parseBytes(parser, "\x1bP>|kitty(0.42.2)\x1b\\", &event, &n));
+    try testing.expectEqual(n, "\x1bP>|kitty(0.42.2)\x1b\\".len);
+    try testing.expectEqual(EventType.terminal_version, event_get_type(event));
+    // Copied into the parser, because the parsed slice only borrows its input.
+    try testing.expectEqualStrings("kitty(0.42.2)", event.?.terminal_version);
 }
