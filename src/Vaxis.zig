@@ -8,6 +8,7 @@ const Image = @import("Image.zig");
 const InternalScreen = @import("InternalScreen.zig");
 const Key = @import("Key.zig");
 const Mouse = @import("Mouse.zig");
+const CursorPositionRequests = @import("Parser.zig").CursorPositionRequests;
 const Screen = @import("Screen.zig");
 const Cursor = Screen.Cursor;
 const unicode = @import("unicode.zig");
@@ -75,18 +76,18 @@ refresh: bool = false,
 /// futex times out
 query_futex: atomic.Value(u32) = atomic.Value(u32).init(0),
 
+/// Serialises opening the capability query window (queryTerminalSend) and
+/// closing it (finishQueries), which run on different threads: the reader
+/// thread closes it on DA1, the queryTerminal caller on timeout.
+query_mutex: std.Io.Mutex = .init,
+
 /// If Queries were sent, we set this to false. We reset to true when all queries are complete, by
-/// calling finishQueries. While queries are pending, cursor position reports (or the legacy F3
-/// keys they parse as) are credited to the capability probes.
+/// calling finishQueries.
 queries_done: atomic.Value(bool) = atomic.Value(bool).init(true),
-/// Cursor position reports still owed to the capability probes. The probes are
-/// answered with CPR, so they are registered as real requests; this counter says
-/// which probe an arriving report belongs to.
-probe_cpr_pending: u3 = 0,
 
 /// Outstanding application cursor position queries and their idle deadline.
 /// Shared with the input parser.
-cursor_position_requests: @import("Parser.zig").CursorPositionRequests,
+cursor_position_requests: CursorPositionRequests,
 
 // images
 next_img_id: u32 = 1,
@@ -299,7 +300,7 @@ pub fn exitAltScreen(self: *Vaxis, tty: *std.Io.Writer) !void {
 /// Event loops can wake up this futex when cap_da1 is received
 pub fn queryTerminal(self: *Vaxis, tty: *std.Io.Writer, timeout: std.Io.Duration) !void {
     try self.queryTerminalSend(tty);
-    try std.Io.futexWaitTimeout(
+    const waited = std.Io.futexWaitTimeout(
         self.io,
         u32,
         &self.query_futex.raw,
@@ -311,37 +312,62 @@ pub fn queryTerminal(self: *Vaxis, tty: *std.Io.Writer, timeout: std.Io.Duration
             },
         },
     );
+    // Close the window whatever the wait returned, so a cancelled or failed
+    // wait cannot leave the probe requests outstanding.
     self.finishQueries();
+    try waited;
     try self.enableDetectedFeatures(tty);
 }
 
-/// Close the capability query window. Probe reports that have not arrived by
-/// now are cancelled, so they cannot block the next queryTerminalSend or be
-/// credited against a later application query. Event loops call this when
-/// cap_da1 is received; queryTerminal calls it when its timeout expires.
+/// Close the capability query window and apply what the capability probes
+/// reported. Probe reports that have not arrived by now are cancelled, so they
+/// cannot block the next queryTerminalSend or be taken for a later
+/// application query. Event loops, including custom ones, must call this when
+/// cap_da1 is received; queryTerminal calls it when its wait ends. Calling it
+/// again, or with no queries sent, does nothing.
 pub fn finishQueries(vx: *Vaxis) void {
-    if (vx.queries_done.load(.unordered)) return;
-    while (vx.probe_cpr_pending > 0) : (vx.probe_cpr_pending -= 1)
-        _ = vx.cursor_position_requests.consume();
+    // Held across the capability writes, so a concurrent caller (DA1 on the
+    // reader thread racing the queryTerminal timeout) cannot return, and go
+    // on to enableDetectedFeatures, before they are done.
+    vx.query_mutex.lockUncancelable(vx.io);
+    defer vx.query_mutex.unlock(vx.io);
+    if (vx.cursor_position_requests.closeProbes()) |cols| vx.applyProbeColumns(cols);
     vx.queries_done.store(true, .unordered);
+}
+
+/// Both probes move the cursor home first, so only the reported column
+/// matters. A terminal without OSC 66 swallows the payload and reports
+/// column 0.
+fn applyProbeColumns(vx: *Vaxis, cols: [CursorPositionRequests.probe_count]?u16) void {
+    // Explicit width 1 leaves the cursor on the second column.
+    if (cols[0] == 1) {
+        log.info("explicit width capability detected", .{});
+        vx.caps.explicit_width = true;
+        vx.caps.unicode = .unicode;
+        vx.screen.width_method = .unicode;
+    }
+    // Scaled text at scale 2 leaves it on the third.
+    if (cols[1] == 2) {
+        log.info("scaled text capability detected", .{});
+        vx.caps.scaled_text = true;
+    }
 }
 
 /// write queries to the terminal to determine capabilities. This function
 /// is only for use with a custom main loop. Call Vaxis.queryTerminal() if
 /// you are using Loop.run()
 pub fn queryTerminalSend(vx: *Vaxis, tty: *std.Io.Writer) !void {
-    // Capability probes use CPR too, so they must not overlap application queries.
-    if (vx.cursor_position_requests.pending() != 0)
-        return error.CursorPositionQueriesPending;
-    vx.queries_done.store(false, .unordered);
-
     // Register the two probe reports as cursor position requests, so the parser
-    // delivers them as reports rather than as legacy F3 keypresses. A report
-    // that still parses as F3 (its request expired, or the parser was not given
-    // cursor_position_requests) is credited by handleEventGeneric as well.
-    vx.probe_cpr_pending = 2;
-    vx.cursor_position_requests.request();
-    vx.cursor_position_requests.request();
+    // claims them as probe answers rather than delivering them as reports or
+    // legacy F3 keypresses. Capability probes use CPR too, so this fails while
+    // application queries are outstanding. Opening under query_mutex keeps a
+    // concurrent finishQueries (a duplicate DA1) entirely before or after it.
+    {
+        vx.query_mutex.lockUncancelable(vx.io);
+        defer vx.query_mutex.unlock(vx.io);
+        try vx.cursor_position_requests.openProbes();
+        vx.queries_done.store(false, .unordered);
+    }
     errdefer vx.finishQueries();
 
     // TODO: re-enable this
@@ -1401,8 +1427,7 @@ pub fn addTerminalSecondaryCursor(self: *Vaxis, alloc: std.mem.Allocator, y: u16
 /// started. While a request is pending, legacy F3 sequences that look like reports
 /// are ambiguous; late replies cannot be distinguished from keys or newer replies.
 pub fn queryCursorPosition(self: *Vaxis, tty: *std.Io.Writer) !void {
-    if (!self.queries_done.load(.unordered)) return error.TerminalQueriesPending;
-    self.cursor_position_requests.request();
+    try self.cursor_position_requests.requestApplication();
     tty.writeAll(ctlseqs.cursor_position_request) catch |err| {
         _ = self.cursor_position_requests.consume();
         return err;
