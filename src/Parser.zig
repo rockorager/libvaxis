@@ -20,11 +20,38 @@ pub const Result = struct {
 
 /// Shared cursor query state. The count and idle deadline are updated together
 /// because requests and responses are handled on different threads.
+///
+/// It also owns the capability probe window. The two capability probes are
+/// answered with cursor position reports, so while the window is open the
+/// oldest requests are the probes, and every report is classified here, under
+/// the same lock that the window is opened and closed with.
+///
+/// Invariant at every unlock: `count >= probes_owed`.
 pub const CursorPositionRequests = struct {
     io: std.Io,
     mutex: std.Io.Mutex = .init,
     count: usize = 0,
     last_request_at: std.Io.Timestamp = .zero,
+    /// Open from openProbes until closeProbes.
+    probe_window: bool = false,
+    /// Probe reports still expected in this window.
+    probes_owed: u2 = 0,
+    /// The 0-based column each probe reported, in the order the probes were
+    /// written; null when no report arrived.
+    probe_cols: [probe_count]?u16 = @splat(null),
+
+    /// Number of capability probes answered with a cursor position report.
+    pub const probe_count = 2;
+
+    /// What a cursor position report answers.
+    pub const Claim = enum {
+        /// Nothing was outstanding: the sequence is not a report.
+        none,
+        /// An application query.
+        application,
+        /// A capability probe; its column has been recorded.
+        probe,
+    };
 
     pub fn request(self: *CursorPositionRequests) void {
         self.mutex.lockUncancelable(self.io);
@@ -35,12 +62,26 @@ pub const CursorPositionRequests = struct {
         self.last_request_at = now;
     }
 
-    /// Consume a report, or cancel a request whose write failed.
+    /// Register one application request. Refused while the probe window is
+    /// open, so an application request is never registered ahead of the
+    /// probes.
+    pub fn requestApplication(self: *CursorPositionRequests) error{TerminalQueriesPending}!void {
+        self.mutex.lockUncancelable(self.io);
+        defer self.mutex.unlock(self.io);
+        if (self.probe_window) return error.TerminalQueriesPending;
+        const now = std.Io.Timestamp.now(self.io, .awake);
+        self.expire(now);
+        self.count += 1;
+        self.last_request_at = now;
+    }
+
+    /// Cancel an application request whose write failed. A probe request is
+    /// never taken: it is only answered by claim or cancelled by closeProbes.
     pub fn consume(self: *CursorPositionRequests) bool {
         self.mutex.lockUncancelable(self.io);
         defer self.mutex.unlock(self.io);
         self.expire(std.Io.Timestamp.now(self.io, .awake));
-        if (self.count == 0) return false;
+        if (self.count <= self.probes_owed) return false;
         self.count -= 1;
         return true;
     }
@@ -52,7 +93,57 @@ pub const CursorPositionRequests = struct {
         return self.count;
     }
 
+    /// Open the capability probe window with every probe report owed.
+    pub fn openProbes(self: *CursorPositionRequests) error{ TerminalQueriesPending, CursorPositionQueriesPending }!void {
+        self.mutex.lockUncancelable(self.io);
+        defer self.mutex.unlock(self.io);
+        const now = std.Io.Timestamp.now(self.io, .awake);
+        self.expire(now);
+        // Once every probe has answered the count is zero, but the recorded
+        // columns are not applied until the window closes.
+        if (self.probe_window) return error.TerminalQueriesPending;
+        if (self.count != 0) return error.CursorPositionQueriesPending;
+        self.count = probe_count;
+        self.probes_owed = probe_count;
+        self.probe_cols = @splat(null);
+        self.probe_window = true;
+        self.last_request_at = now;
+    }
+
+    /// Classify a well-formed report and consume the request it answers.
+    /// Terminals answer in the order the requests were written, and the probes
+    /// are the oldest requests while the window is open, so the first reports
+    /// are the probes.
+    pub fn claim(self: *CursorPositionRequests, col: u16) Claim {
+        self.mutex.lockUncancelable(self.io);
+        defer self.mutex.unlock(self.io);
+        self.expire(std.Io.Timestamp.now(self.io, .awake));
+        if (self.count == 0) return .none;
+        self.count -= 1;
+        if (self.probes_owed == 0) return .application;
+        self.probe_cols[probe_count - self.probes_owed] = col;
+        self.probes_owed -= 1;
+        return .probe;
+    }
+
+    /// Close the probe window, cancelling the probe reports still owed. Only
+    /// the first call after openProbes returns the recorded columns; later
+    /// calls return null.
+    pub fn closeProbes(self: *CursorPositionRequests) ?[probe_count]?u16 {
+        self.mutex.lockUncancelable(self.io);
+        defer self.mutex.unlock(self.io);
+        if (!self.probe_window) return null;
+        std.debug.assert(self.count >= self.probes_owed);
+        self.count -= self.probes_owed;
+        self.probes_owed = 0;
+        self.probe_window = false;
+        return self.probe_cols;
+    }
+
     fn expire(self: *CursorPositionRequests, now: std.Io.Timestamp) void {
+        // The probe window has its own end (DA1, the query timeout, or
+        // finishQueries), so a slow terminal's answer is still claimed.
+        if (self.probe_window) return;
         if (self.last_request_at.durationTo(now).toNanoseconds() >= std.time.ns_per_s)
             self.count = 0;
     }
@@ -85,7 +176,9 @@ const State = enum {
 // text-as-codepoints
 buf: [128]u8 = undefined,
 
-/// Share Vaxis.cursor_position_requests when using a custom event loop.
+/// Share Vaxis.cursor_position_requests when using a custom event loop. It is
+/// needed both for cursor position reports and for the explicit width and
+/// scaled text capability probes, whose answers are consumed here.
 /// Without pending requests, CSI R sequences retain their F3 key meaning.
 cursor_position_requests: ?*CursorPositionRequests = null,
 
@@ -473,7 +566,6 @@ inline fn parseCsi(input: []const u8, text_buf: []u8, cursor_position_requests: 
     const final = sequence[sequence.len - 1];
     if (final == 'R') report: {
         const pending = cursor_position_requests orelse break :report;
-        if (pending.pending() == 0) break :report;
         var fields = std.mem.splitScalar(u8, sequence[2 .. sequence.len - 1], ';');
         const row_buf = fields.next().?;
         const col_buf = fields.next() orelse break :report;
@@ -485,10 +577,15 @@ inline fn parseCsi(input: []const u8, text_buf: []u8, cursor_position_requests: 
         const row = std.fmt.parseInt(u16, row_buf, 10) catch break :report;
         const col = std.fmt.parseInt(u16, col_buf, 10) catch break :report;
         if (row == 0 or col == 0) break :report;
-        if (pending.consume()) return .{
-            .event = .{ .cursor_position = .{ .row = row - 1, .col = col - 1 } },
-            .n = sequence.len,
-        };
+        switch (pending.claim(col - 1)) {
+            .none => break :report,
+            // Recorded for Vaxis.finishQueries; the application never sees it.
+            .probe => return null_event,
+            .application => return .{
+                .event = .{ .cursor_position = .{ .row = row - 1, .col = col - 1 } },
+                .n = sequence.len,
+            },
+        }
     }
     switch (final) {
         'A', 'B', 'C', 'D', 'E', 'F', 'H', 'P', 'Q', 'R', 'S' => {
@@ -1424,6 +1521,129 @@ test "parse: expired cursor requests restore F3 and new requests start fresh" {
     const report = try parser.parse("\x1b[1;2R", null);
     try testing.expectEqual(@as(u16, 1), report.event.?.cursor_position.col);
     try testing.expectEqual(@as(usize, 0), pending.pending());
+}
+
+test "cursor requests: openProbes refuses an open window or outstanding requests" {
+    var pending: CursorPositionRequests = .{ .io = testing.io };
+    pending.request();
+    try testing.expectError(error.CursorPositionQueriesPending, pending.openProbes());
+    try testing.expect(pending.consume());
+
+    try pending.openProbes();
+    try testing.expectEqual(@as(usize, 2), pending.pending());
+    // Both probes answered: nothing is outstanding, but the columns are not
+    // applied yet, so a second window must not replace them.
+    try testing.expectEqual(CursorPositionRequests.Claim.probe, pending.claim(1));
+    try testing.expectEqual(CursorPositionRequests.Claim.probe, pending.claim(2));
+    try testing.expectEqual(@as(usize, 0), pending.pending());
+    try testing.expectError(error.TerminalQueriesPending, pending.openProbes());
+    try testing.expectEqual([2]?u16{ 1, 2 }, pending.closeProbes().?);
+    try pending.openProbes();
+}
+
+test "cursor requests: requestApplication refuses while probes are open" {
+    var pending: CursorPositionRequests = .{ .io = testing.io };
+    try pending.openProbes();
+    try testing.expectError(error.TerminalQueriesPending, pending.requestApplication());
+    try testing.expectEqual(@as(usize, 2), pending.pending());
+    _ = pending.closeProbes();
+    try pending.requestApplication();
+    try testing.expectEqual(@as(usize, 1), pending.pending());
+}
+
+test "cursor requests: probe reports are recorded in wire order, then application reports" {
+    var pending: CursorPositionRequests = .{ .io = testing.io };
+    try pending.openProbes();
+    // A request registered behind the probes, as only request() can do.
+    pending.request();
+    try testing.expectEqual(CursorPositionRequests.Claim.probe, pending.claim(0));
+    try testing.expectEqual(CursorPositionRequests.Claim.probe, pending.claim(2));
+    try testing.expectEqual(CursorPositionRequests.Claim.application, pending.claim(9));
+    try testing.expectEqual(CursorPositionRequests.Claim.none, pending.claim(9));
+    try testing.expectEqual([2]?u16{ 0, 2 }, pending.closeProbes().?);
+}
+
+test "cursor requests: probe requests do not expire while the window is open" {
+    var pending: CursorPositionRequests = .{ .io = testing.io };
+    try pending.openProbes();
+    pending.last_request_at = pending.last_request_at.subDuration(.fromSeconds(5));
+    try testing.expectEqual(@as(usize, 2), pending.pending());
+    try testing.expectEqual(CursorPositionRequests.Claim.probe, pending.claim(1));
+    // Once the window closes, the usual expiry applies again.
+    try testing.expectEqual([2]?u16{ 1, null }, pending.closeProbes().?);
+    pending.request();
+    pending.last_request_at = pending.last_request_at.subDuration(.fromSeconds(2));
+    try testing.expectEqual(@as(usize, 0), pending.pending());
+}
+
+test "cursor requests: closeProbes cancels owed probes once" {
+    var pending: CursorPositionRequests = .{ .io = testing.io };
+    try testing.expectEqual(@as(?[2]?u16, null), pending.closeProbes());
+    try pending.openProbes();
+    try testing.expectEqual(CursorPositionRequests.Claim.probe, pending.claim(1));
+    try testing.expectEqual([2]?u16{ 1, null }, pending.closeProbes().?);
+    try testing.expectEqual(@as(usize, 0), pending.pending());
+    try testing.expectEqual(@as(?[2]?u16, null), pending.closeProbes());
+    try testing.expectEqual(@as(usize, 0), pending.pending());
+}
+
+test "cursor requests: a report after the window closes is not claimed" {
+    var pending: CursorPositionRequests = .{ .io = testing.io };
+    var parser: Parser = .{ .cursor_position_requests = &pending };
+    try pending.openProbes();
+    _ = pending.closeProbes();
+    // The answer to a cancelled probe is an ordinary legacy key again.
+    const late = try parser.parse("\x1b[1;2R", null);
+    try testing.expectEqual(Key.f3, late.event.?.key_press.codepoint);
+    try testing.expectEqual(@as(usize, 0), pending.count);
+}
+
+test "cursor requests: consume never takes a probe request" {
+    var pending: CursorPositionRequests = .{ .io = testing.io };
+    try pending.openProbes();
+    try testing.expect(!pending.consume());
+    try testing.expectEqual(@as(usize, 2), pending.pending());
+    pending.request();
+    try testing.expect(pending.consume());
+    try testing.expect(!pending.consume());
+    try testing.expectEqual(@as(usize, 2), pending.pending());
+    try testing.expectEqual([2]?u16{ null, null }, pending.closeProbes().?);
+    try testing.expectEqual(@as(usize, 0), pending.pending());
+}
+
+test "parse: a probe report is consumed without an event" {
+    var pending: CursorPositionRequests = .{ .io = testing.io };
+    var parser: Parser = .{ .cursor_position_requests = &pending };
+    try pending.openProbes();
+    const input = "\x1b[1;2R";
+    const result = try parser.parse(input ++ "x", null);
+    try testing.expectEqual(@as(?Event, null), result.event);
+    try testing.expectEqual(input.len, result.n);
+    // A real F3 is not a report and is left alone.
+    const f3 = try parser.parse("\x1bOR", null);
+    try testing.expectEqual(Key.f3, f3.event.?.key_press.codepoint);
+    try testing.expectEqual(@as(usize, 1), pending.pending());
+    try testing.expectEqual([2]?u16{ 1, null }, pending.closeProbes().?);
+}
+
+test "cursor requests: concurrent claims and close never underflow" {
+    var pending: CursorPositionRequests = .{ .io = testing.io };
+    var stop: std.atomic.Value(bool) = .init(false);
+    const Claimer = struct {
+        fn run(requests: *CursorPositionRequests, done: *std.atomic.Value(bool)) void {
+            while (!done.load(.acquire)) _ = requests.claim(1);
+        }
+    };
+    const thread = try std.Thread.spawn(.{}, Claimer.run, .{ &pending, &stop });
+    for (0..5000) |_| {
+        try pending.openProbes();
+        _ = pending.closeProbes();
+    }
+    stop.store(true, .release);
+    thread.join();
+    try testing.expectEqual(@as(usize, 0), pending.pending());
+    try testing.expect(!pending.probe_window);
+    try testing.expectEqual(@as(u2, 0), pending.probes_owed);
 }
 
 test "parse(csi): kitty multi cursor" {
