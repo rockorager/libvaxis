@@ -239,6 +239,9 @@ pub fn resize(
         break :blk .{ .screen = screen, .screen_last = screen_last };
     };
 
+    // The new screen starts without secondary cursors, so release the old
+    // screen's list before it is replaced.
+    try self.resetAllTerminalSecondaryCursors(alloc);
     self.screen.deinit(alloc);
     self.screen_last.deinit(alloc);
     self.screen = replacements.screen;
@@ -2121,4 +2124,36 @@ test "secondary cursors: reset then deinit releases the snapshot" {
     // The render moved the allocation into state.cursor_secondary. Resetting
     // drops the screen reference, so deinit is the only owner left.
     try vx.resetAllTerminalSecondaryCursors(std.testing.allocator);
+}
+
+test "secondary cursors: resize releases the replaced screen's cursors" {
+    // The testing allocator fails this test if any cursor snapshot leaks.
+    const io = std.testing.io;
+    var env_map = try std.testing.environ.createMap(std.testing.allocator);
+    defer env_map.deinit();
+    var vx = try Vaxis.init(io, std.testing.allocator, &env_map, .{});
+    var deinit_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer deinit_writer.deinit();
+    defer vx.deinit(std.testing.allocator, &deinit_writer.writer);
+
+    var w: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer w.deinit();
+    try vx.enterAltScreen(&w.writer);
+    const size: Winsize = .{ .rows = 3, .cols = 3, .x_pixel = 0, .y_pixel = 0 };
+    try vx.resize(std.testing.allocator, &w.writer, size);
+
+    // Two rendered frames leave the older list in prev_cursor_secondary. The
+    // first frame after the resize must not overwrite it unreleased.
+    for (0..2) |_| {
+        try vx.addTerminalSecondaryCursor(std.testing.allocator, 1, 1);
+        vx.window().showCursor(0, 0);
+        try vx.render(&w.writer);
+    }
+    try vx.resize(std.testing.allocator, &w.writer, size);
+    vx.window().showCursor(0, 0);
+    try vx.render(&w.writer);
+
+    // A list that was never rendered is owned by the screen alone.
+    try vx.addTerminalSecondaryCursor(std.testing.allocator, 2, 2);
+    try vx.resize(std.testing.allocator, &w.writer, size);
 }
