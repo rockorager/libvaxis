@@ -45,20 +45,18 @@ pub fn init(io: std.Io, alloc: std.mem.Allocator, env_map: *std.process.Environ.
     return Vaxis.init(io, alloc, env_map, opts);
 }
 
-pub const Panic = struct {
-    pub const call = panic_handler;
-    pub const sentinelMismatch = std.debug.FormattedPanic.sentinelMismatch;
-    pub const unwrapError = std.debug.FormattedPanic.unwrapError;
-    pub const outOfBounds = std.debug.FormattedPanic.outOfBounds;
-    pub const startGreaterThanEnd = std.debug.FormattedPanic.startGreaterThanEnd;
-    pub const inactiveUnionField = std.debug.FormattedPanic.inactiveUnionField;
-    pub const messages = std.debug.FormattedPanic.messages;
-};
+/// A panic namespace that restores the terminal before the default handler
+/// runs. Install it with `pub const panic = vaxis.Panic;` in the root file.
+pub const Panic = std.debug.FullPanic(recoverThenPanic);
 
 /// Resets terminal state on a panic, then calls the default zig panic handler
 pub fn panic_handler(msg: []const u8, _: ?*std.builtin.StackTrace, ret_addr: ?usize) noreturn {
+    recoverThenPanic(msg, ret_addr);
+}
+
+fn recoverThenPanic(msg: []const u8, first_trace_addr: ?usize) noreturn {
     recover();
-    std.debug.defaultPanic(msg, ret_addr);
+    std.debug.defaultPanic(msg, first_trace_addr);
 }
 
 /// Resets the terminal state using the global tty instance. Use this only to recover during a panic
@@ -89,4 +87,7 @@ pub const logo =
 
 test "refAllDecls" {
     std.testing.refAllDecls(@This());
+    // Panic is only analysed when an application installs it, so reference its
+    // members here to catch a mismatch with the std.debug panic interface.
+    std.testing.refAllDecls(Panic);
 }
