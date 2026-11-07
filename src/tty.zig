@@ -66,7 +66,7 @@ pub const PosixTty = struct {
         // Set the termios of the tty
         const termios = try makeRaw(f.handle);
         errdefer {
-            posix.tcsetattr(f.handle, .FLUSH, termios) catch {};
+            tcsetattr(f.handle, .FLUSH, termios) catch {};
             f.close(io);
         }
 
@@ -92,7 +92,7 @@ pub const PosixTty = struct {
     pub fn deinit(self: PosixTty) void {
         resetSignalHandler();
         stopSignalThread();
-        posix.tcsetattr(self.fd.handle, .FLUSH, self.termios) catch |err| {
+        tcsetattr(self.fd.handle, .FLUSH, self.termios) catch |err| {
             std.log.err("couldn't restore terminal: {}", .{err});
         };
         if (builtin.os.tag != .macos) // closing /dev/tty may block indefinitely on macos
@@ -252,9 +252,41 @@ pub const PosixTty = struct {
         }
     }
 
+    /// Reads the terminal attributes. On Linux `posix.termios` is the kernel's
+    /// struct even when libc is linked, but `posix.tcgetattr` then calls the C
+    /// library, whose struct termios is larger (60 bytes against 44 with glibc
+    /// on x86_64) and overruns it. The ioctl fills the kernel struct exactly.
+    fn tcgetattr(fd: posix.fd_t) posix.TermiosGetError!posix.termios {
+        if (builtin.os.tag != .linux) return posix.tcgetattr(fd);
+        while (true) {
+            var term: posix.termios = undefined;
+            switch (std.os.linux.errno(std.os.linux.tcgetattr(fd, &term))) {
+                .SUCCESS => return term,
+                .INTR => continue,
+                .NOTTY => return error.NotATerminal,
+                else => |err| return posix.unexpectedErrno(err),
+            }
+        }
+    }
+
+    /// Sets the terminal attributes. See `tcgetattr` for why Linux uses the
+    /// ioctl rather than the C library.
+    fn tcsetattr(fd: posix.fd_t, action: posix.TCSA, term: posix.termios) posix.TermiosSetError!void {
+        if (builtin.os.tag != .linux) return posix.tcsetattr(fd, action, term);
+        while (true) {
+            switch (std.os.linux.errno(std.os.linux.tcsetattr(fd, action, &term))) {
+                .SUCCESS => return,
+                .INTR => continue,
+                .NOTTY => return error.NotATerminal,
+                .IO => return error.ProcessOrphaned,
+                else => |err| return posix.unexpectedErrno(err),
+            }
+        }
+    }
+
     /// makeRaw enters the raw state for the terminal.
     pub fn makeRaw(fd: posix.fd_t) !posix.termios {
-        const state = try posix.tcgetattr(fd);
+        const state = try tcgetattr(fd);
         var raw = state;
         // see termios(3)
         raw.iflag.IGNBRK = false;
@@ -279,7 +311,7 @@ pub const PosixTty = struct {
 
         raw.cc[@backingInt(posix.V.MIN)] = 1;
         raw.cc[@backingInt(posix.V.TIME)] = 0;
-        try posix.tcsetattr(fd, .FLUSH, raw);
+        try tcsetattr(fd, .FLUSH, raw);
         return state;
     }
 
