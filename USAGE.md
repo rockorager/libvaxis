@@ -31,14 +31,26 @@ Cursor queries return `error.TerminalQueriesPending` during capability discovery
 Conversely, capability discovery returns `error.CursorPositionQueriesPending`
 while cursor queries are outstanding, because both use the same report sequence.
 
+Capability discovery uses cursor position reports itself, to detect explicit
+width and scaled text (OSC 66). Those reports are consumed by the parser and are
+never delivered as `cursor_position` events. Their requests do not expire while
+discovery runs: they end when discovery finishes, on DA1 or on the
+`queryTerminal` timeout.
+
 `vaxis.Loop` connects the parser to the counter automatically. For a custom event
-loop, initialize the parser with a pointer to your stable Vaxis instance:
+loop, initialize the parser with a pointer to your stable Vaxis instance. This is
+also what lets discovery detect explicit width and scaled text; without it their
+reports parse as F3 key presses:
 
 ```zig
 var parser: vaxis.Parser = .{
     .cursor_position_requests = &vx.cursor_position_requests,
 };
 ```
+
+When a custom loop receives `cap_da1`, it must call `vx.finishQueries()` before
+`vx.enableDetectedFeatures(...)`. That applies what the probes reported and ends
+discovery, so cursor queries work again.
 
 ## Custom Event Loops
 
@@ -141,7 +153,7 @@ pub fn TtyWatcher(comptime Userdata: type) type {
                 .callback = callback,
                 .ud = userdata,
                 .vx = vaxis,
-                .parser = .{ .grapheme_data = &vaxis.unicode.width_data.g_data },
+                .parser = .{ .cursor_position_requests = &vaxis.cursor_position_requests },
             };
 
             self.file.read(
@@ -287,6 +299,7 @@ pub fn TtyWatcher(comptime Userdata: type) type {
                         self.vx.caps.color_scheme_updates = true;
                     },
                     .cap_da1 => {
+                        self.vx.finishQueries();
                         self.vx.enableDetectedFeatures(self.tty.writer()) catch |err| {
                             log.err("couldn't enable features: {}", .{err});
                         };
@@ -450,7 +463,7 @@ pub fn LoopWithModules(T: type, aio: type, coro: type) type {
             }
 
             var parser: vaxis.Parser = .{
-                .grapheme_data = &vx.unicode.width_data.g_data,
+                .cursor_position_requests = &vx.cursor_position_requests,
             };
 
             const file: std.fs.File = .{ .handle = tty.fd };
