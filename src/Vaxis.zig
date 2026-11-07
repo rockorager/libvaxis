@@ -2078,16 +2078,12 @@ test "render: an unsupported secondary cursor still lets an idle frame go quiet"
         .{ .rows = 3, .cols = 3, .x_pixel = 0, .y_pixel = 0 },
     );
 
-    // There is no setter yet, so reach past the API to model what an app with
-    // secondary cursors will do once one exists. This terminal does not
-    // advertise multi_cursor support, so nothing is drawn for them.
+    // This terminal does not advertise multi_cursor support, so nothing is
+    // drawn for the secondary cursor.
     const win = vx.window();
     win.clear();
     win.showCursor(0, 0);
-    vx.screen.cursor_secondary = try std.testing.allocator.dupe(
-        Screen.Cursor,
-        &.{.{ .row = 1, .col = 1 }},
-    );
+    try vx.addTerminalSecondaryCursor(std.testing.allocator, 1, 1);
 
     var first_writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
     defer first_writer.deinit();
