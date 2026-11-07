@@ -7,13 +7,13 @@ if [[ -s /etc/resolv.conf ]] && [[ -n "$(tail -c 1 /etc/resolv.conf)" ]]; then
 fi
 
 # Match the Zig version used by CI.
-zig_version=0.17.0
+zig_version=0.17.1
 zig_dir="/opt/zig-x86_64-linux-$zig_version"
 if [[ ! -x "$zig_dir/zig" ]]; then
     archive="$(mktemp)"
     trap 'rm -f "$archive"' EXIT
     curl -fsSL "https://ziglang.org/download/$zig_version/zig-x86_64-linux-$zig_version.tar.xz" -o "$archive"
-    echo "1cbe9df9f27e6b78d14ccbca43b6703a404ef79ef1c463de901d7f088d4e2026  $archive" | sha256sum -c -
+    echo "3581863e3cbcfd0fce0efc682ce7e9e93da96668a977791d356a26d2a7e9b17a  $archive" | sha256sum -c -
     sudo tar -xJf "$archive" -C /opt
 fi
 sudo ln -sfn "$zig_dir/zig" /usr/local/bin/zig
