@@ -274,46 +274,58 @@ fn malformedInput(err: anyerror) bool {
     };
 }
 
+/// Whether an arriving cursor position report belongs to a capability probe.
+fn probeReportPending(vx: *Vaxis) bool {
+    return vx.probe_cpr_pending > 0 and !vx.queries_done.load(.unordered);
+}
+
+/// Credit a cursor position report to the capability probe it answers.
+/// Reports are attributed by arrival order. Both probes are written in one
+/// buffer, and terminals answer control sequences in order, so this is the
+/// ordering the wire provides.
+fn creditProbeReport(vx: *Vaxis, col: u16) void {
+    const probe: u3 = vx.probe_cpr_pending;
+    vx.probe_cpr_pending -= 1;
+    // Both probes go home first, so only the column matters. The text sits
+    // inside the OSC 66 string, so a terminal that does not implement it
+    // swallows the payload and reports column 0.
+    switch (probe) {
+        // Explicit width 1 leaves the cursor on the second column.
+        2 => if (col == 1) {
+            log.info("explicit width capability detected", .{});
+            vx.caps.explicit_width = true;
+            vx.caps.unicode = .unicode;
+            vx.screen.width_method = .unicode;
+        },
+        // Scaled text at scale 2 leaves it on the third.
+        1 => if (col == 2) {
+            log.info("scaled text capability detected", .{});
+            vx.caps.scaled_text = true;
+        },
+        else => {},
+    }
+}
+
 // Use return on the self.postEvent's so it can either return error union or void
 pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Event: type, event: anytype, paste_allocator: ?std.mem.Allocator) !void {
     switch (event) {
-        .cursor_position => {
+        .cursor_position => |report| {
             // Only claim the report while the query window is open. If a probe
             // counter ever outlived its window, an application report must still
             // reach the application rather than being swallowed here.
-            if (vx.probe_cpr_pending > 0 and !vx.queries_done.load(.unordered)) {
-                // The parser consumed the request when it recognised the report,
-                // so only the countdown is left to update here. Reports arrive in
-                // the order the probes were sent.
-                // Reports are attributed by arrival order. Both probes are
-                // written in one buffer, and terminals answer control sequences
-                // in order, so this is the ordering the wire provides.
-                const probe: u3 = vx.probe_cpr_pending;
-                vx.probe_cpr_pending -= 1;
-                // Both probes go home first, so only the column matters. The text
-                // sits inside the OSC 66 string, so a terminal that does not
-                // implement it swallows the payload and reports column 0.
-                switch (probe) {
-                    // Explicit width 1 leaves the cursor on the second column.
-                    2 => if (event.cursor_position.col == 1) {
-                        log.info("explicit width capability detected", .{});
-                        vx.caps.explicit_width = true;
-                        vx.caps.unicode = .unicode;
-                        vx.screen.width_method = .unicode;
-                    },
-                    // Scaled text at scale 2 leaves it on the third.
-                    1 => if (event.cursor_position.col == 2) {
-                        log.info("scaled text capability detected", .{});
-                        vx.caps.scaled_text = true;
-                    },
-                    else => {},
-                }
-                return;
-            }
+            if (probeReportPending(vx)) return creditProbeReport(vx, report.col);
             if (@hasField(Event, "cursor_position")) {
                 return self.postEvent(.{ .cursor_position = event.cursor_position });
             }
             return;
+        },
+        .key_press => |key| {
+            // A probe report the parser did not claim, because its request
+            // expired before a slow terminal answered or the parser was not
+            // given Vaxis.cursor_position_requests, parses as a legacy F3:
+            // CSI row ; col R, whose modifier bits are the 0-based column.
+            if (key.codepoint == vaxis.Key.f3 and probeReportPending(vx))
+                return creditProbeReport(vx, @as(u8, @bitCast(key.mods)));
         },
         .paste_start => {
             if (@hasField(Event, "paste_start")) return self.postEvent(.paste_start);
@@ -350,28 +362,6 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                     }
                 },
                 .key_press => |key| {
-                    // Check for a cursor position response for our explicit width query. This will
-                    // always be an F3 key with shift = true, and we must be looking for queries
-                    if (key.codepoint == vaxis.Key.f3 and
-                        key.mods.shift and
-                        !vx.queries_done.load(.unordered))
-                    {
-                        log.info("explicit width capability detected", .{});
-                        vx.caps.explicit_width = true;
-                        vx.caps.unicode = .unicode;
-                        vx.screen.width_method = .unicode;
-                        return;
-                    }
-                    // Check for a cursor position response for our scaled text query. This will
-                    // always be an F3 key with alt = true, and we must be looking for queries
-                    if (key.codepoint == vaxis.Key.f3 and
-                        key.mods.alt and
-                        !vx.queries_done.load(.unordered))
-                    {
-                        log.info("scaled text capability detected", .{});
-                        vx.caps.scaled_text = true;
-                        return;
-                    }
                     if (@hasField(Event, "key_press")) {
                         // HACK: yuck. there has to be a better way
                         var mut_key = key;
@@ -392,19 +382,10 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                     }
                 },
                 .cap_da1 => {
-                    // DA1 closes the query window, and is sent after both
-                    // probes, so any probe report that has not arrived by now
-                    // never will. Drain on the transition only: a duplicate DA1
-                    // must not consume a request the application registered
-                    // afterwards.
-                    if (!vx.queries_done.load(.unordered)) {
-                        while (vx.probe_cpr_pending > 0) {
-                            vx.probe_cpr_pending -= 1;
-                            _ = vx.cursor_position_requests.consume();
-                        }
-                    }
+                    // DA1 is sent after both probes, so any probe report that
+                    // has not arrived by now never will.
+                    vx.finishQueries();
                     std.Io.futexWake(vx.io, std.atomic.Value(u32), &vx.query_futex, 10);
-                    vx.queries_done.store(true, .unordered);
                 },
                 .mouse => |mouse| {
                     if (@hasField(Event, "mouse")) {
@@ -513,19 +494,10 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                     vx.caps.program_status = true;
                 },
                 .cap_da1 => {
-                    // DA1 closes the query window, and is sent after both
-                    // probes, so any probe report that has not arrived by now
-                    // never will. Drain on the transition only: a duplicate DA1
-                    // must not consume a request the application registered
-                    // afterwards.
-                    if (!vx.queries_done.load(.unordered)) {
-                        while (vx.probe_cpr_pending > 0) {
-                            vx.probe_cpr_pending -= 1;
-                            _ = vx.cursor_position_requests.consume();
-                        }
-                    }
+                    // DA1 is sent after both probes, so any probe report that
+                    // has not arrived by now never will.
+                    vx.finishQueries();
                     std.Io.futexWake(vx.io, std.atomic.Value(u32), &vx.query_futex, 10);
-                    vx.queries_done.store(true, .unordered);
                 },
                 .winsize => |winsize| {
                     vx.state.in_band_resize = true;
@@ -667,6 +639,55 @@ test "a probe report that never arrives is cancelled when the query window close
     var writer: std.Io.Writer.Allocating = .init(testing.allocator);
     defer writer.deinit();
     try vx.queryCursorPosition(&writer.writer);
+}
+
+test "probe reports that arrive after their requests expire are still credited" {
+    const testing = std.testing;
+    var env = try testing.environ.createMap(testing.allocator);
+    defer env.deinit();
+    var tty = try Tty.init(testing.io, &.{});
+    defer tty.deinit();
+    var vx = try vaxis.init(testing.io, testing.allocator, &env, .{});
+    defer vx.deinit(testing.allocator, tty.writer());
+    const Event = union(enum) {
+        cursor_position: vaxis.Screen.Cursor,
+        key_press: vaxis.Key,
+    };
+    var loop: Loop(Event) = .init(testing.io, &tty, &vx);
+    var parser: Parser = .{ .cursor_position_requests = &vx.cursor_position_requests };
+    var cache: GraphemeCache = .{};
+
+    try vx.queryTerminalSend(tty.writer());
+    // The terminal takes longer than a second to answer, so the requests have
+    // expired and both reports parse as Shift+F3 and Alt+F3.
+    vx.cursor_position_requests.last_request_at = vx.cursor_position_requests.last_request_at.subDuration(.fromMilliseconds(1500));
+    for ([_][]const u8{ "\x1b[1;2R", "\x1b[1;3R" }) |input| {
+        const report = try parser.parse(input, null);
+        try testing.expectEqual(vaxis.Key.f3, report.event.?.key_press.codepoint);
+        try handleEventGeneric(&loop, &vx, &cache, Event, report.event.?, null);
+    }
+
+    try testing.expect(vx.caps.explicit_width);
+    try testing.expect(vx.caps.scaled_text);
+    try testing.expectEqual(@as(?Event, null), try loop.tryEvent());
+}
+
+test "a query timeout cancels the probe reports it was waiting for" {
+    const testing = std.testing;
+    var env = try testing.environ.createMap(testing.allocator);
+    defer env.deinit();
+    var tty = try Tty.init(testing.io, &.{});
+    defer tty.deinit();
+    var vx = try vaxis.init(testing.io, testing.allocator, &env, .{});
+    defer vx.deinit(testing.allocator, tty.writer());
+
+    // Nothing answers, so the query times out instead of closing on DA1.
+    try vx.queryTerminal(tty.writer(), .fromMilliseconds(1));
+    try testing.expectEqual(@as(usize, 0), vx.cursor_position_requests.pending());
+
+    // Within the second the stale requests would have lived, querying again
+    // must work rather than fail with CursorPositionQueriesPending.
+    try vx.queryTerminalSend(tty.writer());
 }
 
 test "program status reply sets the capability" {
