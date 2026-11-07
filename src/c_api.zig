@@ -938,7 +938,7 @@ pub fn runtime_query_terminal_send(runtime: ?*CRuntime) callconv(.c) Result {
 }
 pub fn runtime_query_terminal_finish(runtime: ?*CRuntime) callconv(.c) Result {
     const r = runtime orelse return .err_invalid;
-    r.vx.?.queries_done.store(true, .unordered);
+    r.vx.?.finishQueries();
     r.vx.?.enableDetectedFeatures(r.tty.tty.?.writer()) catch return .err_io;
     return .ok;
 }
@@ -967,8 +967,8 @@ fn applyRuntimeEvent(vx: *Vaxis, e: *const CEvent) void {
         .cap_program_status => vx.caps.program_status = true,
         .terminal_version => vx.setTerminalVersion(e.terminal_version),
         .cap_da1 => {
+            vx.finishQueries();
             std.Io.futexWake(vx.io, std.atomic.Value(u32), &vx.query_futex, 10);
-            vx.queries_done.store(true, .unordered);
         },
         .winsize => {
             vx.state.in_band_resize = true;

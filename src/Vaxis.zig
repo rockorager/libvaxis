@@ -75,9 +75,9 @@ refresh: bool = false,
 /// futex times out
 query_futex: atomic.Value(u32) = atomic.Value(u32).init(0),
 
-/// If Queries were sent, we set this to false. We reset to true when all queries are complete. This
-/// is used because we do explicit cursor position reports in the queries, which interfere with F3
-/// key encoding. This can be used as a flag to determine how we should evaluate this sequence
+/// If Queries were sent, we set this to false. We reset to true when all queries are complete, by
+/// calling finishQueries. While queries are pending, cursor position reports (or the legacy F3
+/// keys they parse as) are credited to the capability probes.
 queries_done: atomic.Value(bool) = atomic.Value(bool).init(true),
 /// Cursor position reports still owed to the capability probes. The probes are
 /// answered with CPR, so they are registered as real requests; this counter says
@@ -308,8 +308,19 @@ pub fn queryTerminal(self: *Vaxis, tty: *std.Io.Writer, timeout: std.Io.Duration
             },
         },
     );
-    self.queries_done.store(true, .unordered);
+    self.finishQueries();
     try self.enableDetectedFeatures(tty);
+}
+
+/// Close the capability query window. Probe reports that have not arrived by
+/// now are cancelled, so they cannot block the next queryTerminalSend or be
+/// credited against a later application query. Event loops call this when
+/// cap_da1 is received; queryTerminal calls it when its timeout expires.
+pub fn finishQueries(vx: *Vaxis) void {
+    if (vx.queries_done.load(.unordered)) return;
+    while (vx.probe_cpr_pending > 0) : (vx.probe_cpr_pending -= 1)
+        _ = vx.cursor_position_requests.consume();
+    vx.queries_done.store(true, .unordered);
 }
 
 /// write queries to the terminal to determine capabilities. This function
@@ -321,19 +332,14 @@ pub fn queryTerminalSend(vx: *Vaxis, tty: *std.Io.Writer) !void {
         return error.CursorPositionQueriesPending;
     vx.queries_done.store(false, .unordered);
 
-    // Register the two probe reports as cursor position requests. Without this
-    // the parser cannot tell them from a legacy F3 keypress, and the old code
-    // guessed from the shift/alt modifier bits, which a real Shift+F3 during the
-    // probe window also produces.
+    // Register the two probe reports as cursor position requests, so the parser
+    // delivers them as reports rather than as legacy F3 keypresses. A report
+    // that still parses as F3 (its request expired, or the parser was not given
+    // cursor_position_requests) is credited by handleEventGeneric as well.
     vx.probe_cpr_pending = 2;
     vx.cursor_position_requests.request();
     vx.cursor_position_requests.request();
-    errdefer {
-        while (vx.probe_cpr_pending > 0) {
-            vx.probe_cpr_pending -= 1;
-            _ = vx.cursor_position_requests.consume();
-        }
-    }
+    errdefer vx.finishQueries();
 
     // TODO: re-enable this
     // const colorterm = std.posix.getenv("COLORTERM") orelse "";
