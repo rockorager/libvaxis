@@ -95,6 +95,12 @@ pub fn main(init: std.process.Init) !void {
                     vx.queueRefresh();
                 } else if (key.matches(vaxis.Key.enter, .{}) or key.matches('j', .{ .ctrl = true })) {
                     text_input.clearAndFree();
+                } else if (key.matches('p', .{ .ctrl = true })) {
+                    if (text_input.cell_mask == null) {
+                        text_input.cell_mask = '*';
+                    } else {
+                        text_input.cell_mask = null;
+                    }
                 } else {
                     try text_input.update(.{ .key_press = key });
                 }
