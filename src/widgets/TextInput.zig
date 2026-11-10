@@ -26,9 +26,10 @@ prev_cursor_col: u16 = 0,
 prev_cursor_idx: u16 = 0,
 /// approximate distance from an edge before we scroll
 scroll_offset: u16 = 4,
-/// the character to draw for each grapheme in `buf`. Null will draw the grapheme from `buf`.
-/// used for sensitive content
-cell_mask: ?u8 = null,
+/// the grapheme to draw in place of each grapheme in `buf`, such as "*" or "•", for
+/// sensitive content. Null draws the contents of `buf`. Cells reference these bytes until
+/// the next render, so they must outlive it; a string literal does.
+cell_mask: ?[]const u8 = null,
 
 pub fn init(alloc: std.mem.Allocator) TextInput {
     return TextInput{
@@ -112,7 +113,7 @@ pub fn widthToCursor(self: *TextInput, win: Window) u16 {
         if (i < self.draw_offset) {
             continue;
         }
-        const g = grapheme.bytes(first_half);
+        const g = self.cell_mask orelse grapheme.bytes(first_half);
         width += win.gwidth(g);
     }
     return width;
@@ -174,7 +175,7 @@ pub fn drawWithStyle(self: *TextInput, win: Window, style: Cell.Style) void {
             i += 1;
             continue;
         }
-        const g = grapheme.bytes(first_half);
+        const g = self.cell_mask orelse grapheme.bytes(first_half);
         const w = win.gwidth(g);
         if (col + w >= win.width) {
             win.writeCell(win.width - 1, 0, .{
@@ -183,23 +184,13 @@ pub fn drawWithStyle(self: *TextInput, win: Window, style: Cell.Style) void {
             });
             break;
         }
-        if (self.cell_mask) |mask| {
-            win.writeCell(col, 0, .{
-                .char = .{
-                    .grapheme = &.{ mask },
-                    .width = 1
-                },
-                .style = style,
-            });
-        } else {
-            win.writeCell(col, 0, .{
-                .char = .{
-                    .grapheme = g,
-                    .width = @intCast(w),
-                },
-                .style = style,
-            });
-        }
+        win.writeCell(col, 0, .{
+            .char = .{
+                .grapheme = g,
+                .width = @intCast(w),
+            },
+            .style = style,
+        });
         col += w;
         i += 1;
         if (i == cursor_idx) self.prev_cursor_col = col;
@@ -211,7 +202,7 @@ pub fn drawWithStyle(self: *TextInput, win: Window, style: Cell.Style) void {
             i += 1;
             continue;
         }
-        const g = grapheme.bytes(second_half);
+        const g = self.cell_mask orelse grapheme.bytes(second_half);
         const w = win.gwidth(g);
         if (col + w > win.width) {
             win.writeCell(win.width - 1, 0, .{
@@ -220,23 +211,13 @@ pub fn drawWithStyle(self: *TextInput, win: Window, style: Cell.Style) void {
             });
             break;
         }
-        if (self.cell_mask) |mask| {
-            win.writeCell(col, 0, .{
-                .char = .{
-                    .grapheme = &.{ mask },
-                    .width = 1
-                },
-                .style = style,
-            });
-        } else {
-            win.writeCell(col, 0, .{
-                .char = .{
-                    .grapheme = g,
-                    .width = @intCast(w),
-                },
-                .style = style,
-            });
-        }
+        win.writeCell(col, 0, .{
+            .char = .{
+                .grapheme = g,
+                .width = @intCast(w),
+            },
+            .style = style,
+        });
         col += w;
         i += 1;
         if (i == cursor_idx) self.prev_cursor_col = col;

@@ -97,7 +97,7 @@ pub fn main(init: std.process.Init) !void {
                     text_input.clearAndFree();
                 } else if (key.matches('p', .{ .ctrl = true })) {
                     if (text_input.cell_mask == null) {
-                        text_input.cell_mask = '*';
+                        text_input.cell_mask = "•";
                     } else {
                         text_input.cell_mask = null;
                     }
