@@ -182,7 +182,13 @@ fn dispatchEvents(
     // Bound the batch so continuously arriving input cannot starve frames
     // or timers. tryEvent releases the queue mutex before handlers run.
     for (0..loop.queue.buf.len) |_| {
-        const event = try loop.tryEvent() orelse break;
+        const event = (loop.tryEvent() catch |err| switch (err) {
+            error.EndOfStream => {
+                ctx.quit = true;
+                return;
+            },
+            else => return err,
+        }) orelse break;
         defer resetEventState(ctx);
         switch (event) {
             .key_press => {
@@ -809,6 +815,46 @@ test "event dispatch unlocks before handlers and yields a continuously replenish
     });
     try app.checkTimers(&ctx);
     try testing.expectEqual(1, test_widget.ticks);
+}
+
+test "terminal EOF quits but other input errors and callback EOF propagate" {
+    const testing = std.testing;
+    var app: App = .{
+        .io = testing.io,
+        .allocator = testing.allocator,
+        .tty = undefined,
+        .vx = undefined,
+        .timers = .empty,
+        .wants_focus = null,
+    };
+    defer app.timers.deinit(testing.allocator);
+    var loop: EventLoop = .init(testing.io, &app.tty, &app.vx);
+    const text: vxfw.Text = .{ .text = "" };
+    var widget = text.widget();
+    widget.eventHandler = struct {
+        fn event(_: *anyopaque, _: *vxfw.EventContext, _: vxfw.Event) !void {
+            return error.EndOfStream;
+        }
+    }.event;
+    var mouse = MouseHandler.init(widget);
+    defer mouse.deinit(testing.allocator);
+    var focus = FocusHandler.init(testing.allocator, widget);
+    defer focus.deinit(testing.allocator);
+    try focus.path_to_focused.append(testing.allocator, widget);
+    var ctx: vxfw.EventContext = .{ .io = testing.io, .alloc = testing.allocator, .cmds = .empty };
+    defer ctx.cmds.deinit(testing.allocator);
+    loop.queue.close(error.EndOfStream);
+    try app.dispatchEvents(&loop, &ctx, &mouse, &focus);
+    try testing.expect(ctx.quit);
+    ctx.quit = false;
+    loop.queue.reopen();
+    loop.queue.close(error.InputOutput);
+    try testing.expectError(error.InputOutput, app.dispatchEvents(&loop, &ctx, &mouse, &focus));
+    try testing.expect(!ctx.quit);
+    loop.queue.reopen();
+    try loop.postEvent(.{ .key_press = .{ .codepoint = 'x' } });
+    try testing.expectError(error.EndOfStream, app.dispatchEvents(&loop, &ctx, &mouse, &focus));
+    try testing.expect(!ctx.quit);
 }
 
 test "timer consume does not leak to the next event" {

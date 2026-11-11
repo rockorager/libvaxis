@@ -140,7 +140,7 @@ pub fn Loop(comptime T: type) type {
         }
 
         fn inputFailed(self: *Self, err: anyerror) void {
-            if (err != error.Canceled and err != error.Closed)
+            if (err != error.Canceled and err != error.Closed and err != error.EndOfStream)
                 log.warn("input stopped: {s}", .{@errorName(err)});
             self.queue.close(if (err == error.Canceled) error.Closed else err);
         }
