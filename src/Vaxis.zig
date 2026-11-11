@@ -483,7 +483,9 @@ pub fn setTerminalVersion(self: *Vaxis, identity: []const u8) void {
     self.caps.terminal_version_len = @intCast(n);
 }
 
-/// draws the screen to the terminal
+/// Draws the screen to the terminal.
+/// On error the output may be partial and the cached terminal state wrong.
+/// Rendering again, with or without queueRefresh, does not recover it.
 pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
     defer self.refresh = false;
     assert(self.screen.buf.len == @as(usize, @intCast(self.screen.width)) * self.screen.height); // correct size
@@ -616,7 +618,7 @@ pub fn render(self: *Vaxis, tty: *std.Io.Writer) !void {
             link = cell.link;
         }
         // Set this cell in the last frame
-        self.screen_last.writeCell(col, row, cell.*);
+        try self.screen_last.writeCell(col, row, cell.*);
 
         // If we support scaled text, we set the flags now
         if (self.caps.scaled_text and cell.scale.scale > 1) {
@@ -1777,6 +1779,32 @@ test "queryCursorPosition: failed write does not leave a pending request" {
     try vx.queryCursorPosition(&writer.writer);
     try std.testing.expectError(error.WriteFailed, vx.queryCursorPosition(&failing));
     try std.testing.expectEqual(@as(usize, 1), vx.cursor_position_requests.pending());
+}
+
+test "render: propagates cell allocation failures" {
+    var env_map = try std.testing.environ.createMap(std.testing.allocator);
+    defer env_map.deinit();
+    const large = testRepeat("a", 4096);
+    const cells = [_]Cell{
+        .{ .char = .{ .grapheme = large, .width = 1 } },
+        .{ .link = .{ .uri = large } },
+        .{ .link = .{ .params = large } },
+    };
+    for (cells) |cell| {
+        var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{});
+        const allocator = failing.allocator();
+        var vx = try Vaxis.init(std.testing.io, allocator, &env_map, .{});
+        var writer: std.Io.Writer.Allocating = .init(std.testing.allocator);
+        defer writer.deinit();
+        defer vx.deinit(allocator, &writer.writer);
+        try vx.resize(allocator, &writer.writer, .{ .rows = 1, .cols = 1, .x_pixel = 0, .y_pixel = 0 });
+        vx.screen.writeCell(0, 0, cell);
+
+        failing.fail_index = failing.alloc_index;
+        failing.resize_fail_index = failing.resize_index;
+        try std.testing.expectError(error.OutOfMemory, vx.render(&writer.writer));
+        try std.testing.expect(failing.has_induced_failure);
+    }
 }
 
 test "render: no output when no changes" {
