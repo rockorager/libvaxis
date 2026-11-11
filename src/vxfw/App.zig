@@ -225,8 +225,8 @@ fn doLayout(
             .height = @intCast(vx.screen.height),
         },
         .cell_size = .{
-            .width = vx.screen.width_pix / vx.screen.width,
-            .height = vx.screen.height_pix / vx.screen.height,
+            .width = if (vx.screen.width == 0) 0 else vx.screen.width_pix / vx.screen.width,
+            .height = if (vx.screen.height == 0) 0 else vx.screen.height_pix / vx.screen.height,
         },
     };
     return widget.draw(draw_context);
@@ -947,6 +947,40 @@ test "MouseHandler: negative coordinates leave the hovered widget" {
     try testing.expectEqual(2, test_widget.mouse_events);
     try testing.expectEqual(2, test_widget.mouse_enters);
     try testing.expectEqual(2, test_widget.mouse_leaves);
+}
+
+test "App layout returns from zero width and zero height" {
+    const Probe = struct {
+        cells: vxfw.Size = .{},
+
+        fn draw(raw: *anyopaque, ctx: vxfw.DrawContext) Allocator.Error!vxfw.Surface {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            self.cells = ctx.cell_size;
+            return vxfw.Surface.init(ctx.arena, .{ .userdata = self, .drawFn = draw }, ctx.max.size());
+        }
+    };
+    var app: App = undefined;
+    // Layout reads only screen geometry; this test needs no terminal custody.
+    app.vx.screen = .{ .width_pix = 800, .height_pix = 240 };
+    var probe: Probe = .{};
+    const widget: Widget = .{ .userdata = &probe, .drawFn = Probe.draw };
+    for ([_]vxfw.Size{ .{ .width = 0, .height = 1 }, .{ .width = 1, .height = 0 } }) |empty| {
+        var arena: std.heap.ArenaAllocator = .init(std.testing.allocator);
+        defer arena.deinit();
+        app.vx.screen.width = empty.width;
+        app.vx.screen.height = empty.height;
+        const hidden = try app.doLayout(widget, &arena);
+        try std.testing.expectEqual(empty, hidden.size);
+        try std.testing.expectEqual(@as(usize, 0), hidden.buffer.len);
+        try std.testing.expectEqual(@as(u16, if (empty.width == 0) 0 else 800), probe.cells.width);
+        try std.testing.expectEqual(@as(u16, if (empty.height == 0) 0 else 240), probe.cells.height);
+        app.vx.screen.width = 80;
+        app.vx.screen.height = 24;
+        const visible = try app.doLayout(widget, &arena);
+        try std.testing.expectEqual(vxfw.Size{ .width = 80, .height = 24 }, visible.size);
+        try std.testing.expectEqual(@as(usize, 1920), visible.buffer.len);
+        try std.testing.expectEqual(vxfw.Size{ .width = 10, .height = 10 }, probe.cells);
+    }
 }
 
 test {
