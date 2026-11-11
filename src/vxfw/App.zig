@@ -28,10 +28,12 @@ pub const Options = struct {
 /// object on the heap. Call destroy when the app is complete to reset terminal state and release
 /// resources
 pub fn init(io: std.Io, allocator: Allocator, env_map: *std.process.Environ.Map, buffer: []u8) !App {
+    var tty = try vaxis.Tty.init(io, buffer);
+    errdefer tty.deinit();
     return .{
         .io = io,
         .allocator = allocator,
-        .tty = try vaxis.Tty.init(io, buffer),
+        .tty = tty,
         .vx = try vaxis.init(io, allocator, env_map, .{
             .system_clipboard_allocator = allocator,
             .kitty_keyboard_flags = .{
@@ -861,6 +863,15 @@ test "timer consume does not leak to the next event" {
     try testing.expect(ctx.redraw);
     try testing.expect(!ctx.consume_event);
     try testing.expectEqual(vxfw.EventContext.Phase.capturing, ctx.phase);
+}
+
+test "init releases the terminal when Vaxis fails to initialize" {
+    var env = try std.testing.environ.createMap(std.testing.allocator);
+    defer env.deinit();
+    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
+    // The test terminal allocates from the testing allocator, which reports
+    // it as a leak if init fails without releasing it.
+    try std.testing.expectError(error.OutOfMemory, App.init(std.testing.io, failing.allocator(), &env, &.{}));
 }
 
 test "MouseHandler: negative coordinates leave the hovered widget" {
