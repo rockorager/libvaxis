@@ -128,11 +128,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
         try self.dispatchEvents(&loop, &ctx, &mouse_handler, &focus_handler);
 
         // If we have a focus change, handle that event before we layout
-        if (self.wants_focus) |wants_focus| {
-            try focus_handler.focusWidget(&ctx, wants_focus);
-            try self.handleCommand(&ctx.cmds);
-            self.wants_focus = null;
-        }
+        try self.updateFocus(&ctx, &focus_handler);
 
         // Check if we should quit
         if (ctx.quit) return;
@@ -152,11 +148,7 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
             // Check if any hover or mouse effects changed
             try mouse_handler.updateMouse(self, surface, &ctx);
             // Our focus may have changed. Handle that here
-            if (self.wants_focus) |wants_focus| {
-                try focus_handler.focusWidget(&ctx, wants_focus);
-                try self.handleCommand(&ctx.cmds);
-                self.wants_focus = null;
-            }
+            try self.updateFocus(&ctx, &focus_handler);
 
             assert(ctx.cmds.items.len == 0);
             if (!ctx.redraw) break :blk surface;
@@ -169,6 +161,14 @@ pub fn run(self: *App, widget: vxfw.Widget, opts: Options) anyerror!void {
         // Update the focus handler list
         try focus_handler.update(self.allocator, surface);
         try self.render(surface, focus_handler.focused_widget);
+    }
+}
+
+fn updateFocus(self: *App, ctx: *vxfw.EventContext, handler: *FocusHandler) anyerror!void {
+    while (self.wants_focus) |widget| {
+        self.wants_focus = null;
+        try handler.focusWidget(ctx, widget);
+        try self.handleCommand(&ctx.cmds);
     }
 }
 
@@ -634,6 +634,47 @@ const FocusHandler = struct {
         }
     }
 };
+
+test "a focus request made while handling focus_in is applied" {
+    const testing = std.testing;
+    const Node = struct {
+        child: ?*@This() = null,
+
+        fn widget(self: *@This()) Widget {
+            return .{ .userdata = self, .eventHandler = handle, .drawFn = draw };
+        }
+
+        // A container hands the focus it receives to its child.
+        fn handle(raw: *anyopaque, ctx: *vxfw.EventContext, event: vxfw.Event) anyerror!void {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            if (event == .focus_in) if (self.child) |child| try ctx.requestFocus(child.widget());
+        }
+
+        fn draw(_: *anyopaque, _: vxfw.DrawContext) Allocator.Error!vxfw.Surface {
+            unreachable;
+        }
+    };
+    var app: App = .{
+        .io = testing.io,
+        .allocator = testing.allocator,
+        .tty = undefined,
+        .vx = undefined,
+        .timers = .empty,
+        .wants_focus = null,
+    };
+    var leaf: Node = .{};
+    var screen: Node = .{ .child = &leaf };
+    var root: Node = .{};
+    var focus = FocusHandler.init(testing.allocator, root.widget());
+    defer focus.deinit(testing.allocator);
+    var ctx: vxfw.EventContext = .{ .io = testing.io, .alloc = testing.allocator, .cmds = .empty };
+    defer ctx.cmds.deinit(testing.allocator);
+
+    app.wants_focus = screen.widget();
+    try app.updateFocus(&ctx, &focus);
+    try testing.expect(focus.focused_widget.eql(leaf.widget()));
+    try testing.expectEqual(@as(?Widget, null), app.wants_focus);
+}
 
 test "FocusHandler: removed focus falls back to root without calling the removed widget" {
     const testing = std.testing;
