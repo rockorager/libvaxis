@@ -7,6 +7,7 @@ pub const Winsize = @import("main.zig").Winsize;
 pub const Event = union(enum) {
     key_press: Key,
     key_release: Key,
+    invalid_key,
     mouse: Mouse,
     mouse_leave,
     focus_in,

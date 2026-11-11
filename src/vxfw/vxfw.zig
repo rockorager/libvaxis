@@ -37,6 +37,7 @@ pub const UserEvent = struct {
 pub const Event = union(enum) {
     key_press: vaxis.Key,
     key_release: vaxis.Key,
+    invalid_key,
     mouse: vaxis.Mouse,
     focus_in, // window has gained focus
     focus_out, // window has lost focus

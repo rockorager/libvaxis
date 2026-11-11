@@ -277,6 +277,10 @@ fn malformedInput(err: anyerror) bool {
 // Use return on the self.postEvent's so it can either return error union or void
 pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Event: type, event: anytype, paste_allocator: ?std.mem.Allocator) !void {
     switch (event) {
+        .invalid_key => {
+            if (@hasField(Event, "invalid_key")) return self.postEvent(.invalid_key);
+            return;
+        },
         .cursor_position => {
             // Capability probe answers never get here: the parser claims them
             // under the request lock, so every report is an application's.
@@ -410,7 +414,7 @@ pub fn handleEventGeneric(self: anytype, vx: *Vaxis, cache: *GraphemeCache, Even
                         return self.postEvent(.{ .color_report = report });
                     }
                 },
-                .cursor_position, .paste_start, .paste_end, .paste, .terminal_version => unreachable, // handled above on all platforms
+                .invalid_key, .cursor_position, .paste_start, .paste_end, .paste, .terminal_version => unreachable, // handled above on all platforms
                 .color_scheme => |scheme| {
                     if (@hasField(Event, "color_scheme")) {
                         return self.postEvent(.{ .color_scheme = scheme });
@@ -706,6 +710,28 @@ test "paste dispatch preserves boundaries and transfers or frees clipboard text"
         try handleEventGeneric(&keys, &vx, &cache, KeyEvent, event, testing.allocator);
     }
     try testing.expectEqual(@as(?KeyEvent, null), try keys.tryEvent());
+}
+
+test "an invalid key reaches the queue before the key that follows it" {
+    const testing = std.testing;
+    const AppEvent = vaxis.vxfw.Event;
+    var env = try testing.environ.createMap(testing.allocator);
+    defer env.deinit();
+    var tty = try Tty.init(testing.io, &.{});
+    defer tty.deinit();
+    var vx = try vaxis.init(testing.io, testing.allocator, &env, .{});
+    defer vx.deinit(testing.allocator, tty.writer());
+    var loop: Loop(AppEvent) = .init(testing.io, &tty, &vx);
+    var cache: GraphemeCache = .{};
+    var parser: vaxis.Parser = .{};
+    const bytes = "\x1b[13;0u\r";
+    const invalid = try parser.parse(bytes, null);
+    try handleEventGeneric(&loop, &vx, &cache, AppEvent, invalid.event.?, null);
+    const following = try parser.parse(bytes[invalid.n..], null);
+    try handleEventGeneric(&loop, &vx, &cache, AppEvent, following.event.?, null);
+    try testing.expectEqual(AppEvent.invalid_key, (try loop.tryEvent()).?);
+    try testing.expectEqual(vaxis.Key.enter, (try loop.tryEvent()).?.key_press.codepoint);
+    try testing.expectEqual(@as(?AppEvent, null), try loop.tryEvent());
 }
 
 test "read retries back off, cap attempts, and reject permanent errors" {

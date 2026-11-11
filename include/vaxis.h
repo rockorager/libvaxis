@@ -94,6 +94,7 @@ typedef enum VAXIS_ENUM_TYPED {
   VAXIS_EVENT_CURSOR_POSITION = 21,
   VAXIS_EVENT_CAP_PROGRAM_STATUS = 22, /* OSC 7501 program status */
   VAXIS_EVENT_TERMINAL_VERSION = 23, /* XTVERSION reply (DCS > | ...) */
+  VAXIS_EVENT_INVALID_KEY = 24, /* key sequence with malformed fields */
 
   /* Sentinel to pin the enum to int width; never produced. */
   VAXIS_EVENT_TYPE_MAX_VALUE = VAXIS_ENUM_MAX_VALUE,
@@ -524,6 +525,8 @@ void vaxis_parser_free(vaxis_parser *parser);
  *   should cap the buffer.
  * - *event == NULL, *consumed > 0: an unknown, ignored, or malformed
  *   sequence; skip those bytes and continue.
+ * - VAXIS_EVENT_INVALID_KEY: a key sequence with malformed fields. The
+ *   bytes were consumed; it is never the key it resembles.
  *
  * A lone ESC byte parses as an escape key press: wait briefly for more
  * input before parsing a buffer that ends in ESC.

@@ -134,6 +134,7 @@ pub const EventType = enum(c_int) {
     cursor_position = 21,
     cap_program_status = 22,
     terminal_version = 23,
+    invalid_key = 24,
 };
 
 comptime {
@@ -1696,6 +1697,22 @@ test "c api: plain keypress with text" {
     try testing.expectEqualStrings("a", text.ptr.?[0..text.len]);
     try testing.expect(event_key_matches(event, 'a', 0));
     try testing.expect(!event_key_matches(event, 'b', 0));
+}
+
+test "c api: an invalid key is not Enter" {
+    const parser = parser_new() orelse return error.OutOfMemory;
+    defer parser_free(parser);
+    var event: ?*const CEvent = null;
+    var n: usize = 0;
+    const bytes = "\x1b[13;0u\r";
+    try testing.expectEqual(.ok, parseBytes(parser, bytes, &event, &n));
+    try testing.expectEqual(@as(usize, 7), n);
+    try testing.expectEqual(EventType.invalid_key, event_get_type(event));
+    try testing.expect(!event_key_matches(event, Key.enter, 0));
+    try testing.expectEqual(.ok, parseBytes(parser, bytes[n..], &event, &n));
+    try testing.expectEqual(@as(usize, 1), n);
+    try testing.expectEqual(EventType.key_press, event_get_type(event));
+    try testing.expect(event_key_matches(event, Key.enter, 0));
 }
 
 test "c api: kitty shift+a" {
