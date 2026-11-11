@@ -5,7 +5,7 @@ const Cell = @import("Cell.zig");
 const Shape = @import("Mouse.zig").Shape;
 const Image = @import("Image.zig");
 const Winsize = @import("main.zig").Winsize;
-const Method = @import("gwidth.zig").Method;
+const Method = @import("gwidth").Method;
 
 const Screen = @This();
 pub const Cursor = struct { row: u16 = 0, col: u16 = 0 };

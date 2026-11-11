@@ -4,8 +4,8 @@ const Screen = @import("Screen.zig");
 const Cell = @import("Cell.zig");
 const Mouse = @import("Mouse.zig");
 const Segment = @import("Cell.zig").Segment;
-const unicode = @import("unicode.zig");
-const gw = @import("gwidth.zig");
+const unicode = @import("unicode");
+const gw = @import("gwidth");
 
 const Window = @This();
 

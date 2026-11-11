@@ -100,7 +100,7 @@ everyone shares one table (or set of tables, based on your `uucode`
 configuration).
 
 Pass `.external_uucode = true` to the libvaxis dependency and wire your
-`uucode` module into the `vaxis` module yourself:
+`uucode` module into the `vaxis`, `unicode`, and `gwidth` modules yourself:
 
 ```zig
     const uucode = b.dependency("uucode", .{
@@ -121,10 +121,16 @@ Pass `.external_uucode = true` to the libvaxis dependency and wire your
         .external_uucode = true,
     });
     vaxis.module("vaxis").addImport("uucode", uucode.module("uucode"));
+    vaxis.module("unicode").addImport("uucode", uucode.module("uucode"));
+    vaxis.module("gwidth").addImport("uucode", uucode.module("uucode"));
 
     exe.root_module.addImport("vaxis", vaxis.module("vaxis"));
     exe.root_module.addImport("uucode", uucode.module("uucode"));
 ```
+
+The `unicode` and `gwidth` modules also work without the terminal runtime.
+Import `vaxis.module("unicode")` and `vaxis.module("gwidth")` in your build to
+share their value types with `vaxis.unicode` and `vaxis.gwidth`.
 
 ### vxfw (Vaxis framework)
 

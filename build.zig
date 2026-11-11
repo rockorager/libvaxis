@@ -39,11 +39,25 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    const unicode_mod = b.addModule("unicode", .{
+        .root_source_file = b.path("src/unicode.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const gwidth_mod = b.addModule("gwidth", .{
+        .root_source_file = b.path("src/gwidth.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    vaxis_mod.addImport("unicode", unicode_mod);
+    vaxis_mod.addImport("gwidth", gwidth_mod);
     if (uucode_mod) |mod| {
         vaxis_mod.addImport("uucode", mod);
+        unicode_mod.addImport("uucode", mod);
+        gwidth_mod.addImport("uucode", mod);
     } else {
         // External uucode mode: consumer wires up their own uucode module on
-        // the vaxis module. Skip examples, bench, tests, and docs steps since
+        // all three modules. Skip examples, bench, tests, and docs steps since
         // they all depend on uucode being available here.
         return;
     }
@@ -192,9 +206,30 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .imports = &.{
                 .{ .name = "uucode", .module = uucode_mod.? },
+                .{ .name = "unicode", .module = unicode_mod },
+                .{ .name = "gwidth", .module = gwidth_mod },
             },
         }),
     });
+
+    for ([_]*std.Build.Module{ unicode_mod, gwidth_mod }) |mod| {
+        const pure_tests = b.addTest(.{ .root_module = mod, .use_llvm = use_llvm });
+        tests_step.dependOn(&b.addRunArtifact(pure_tests).step);
+    }
+    const module_tests = b.addTest(.{
+        .use_llvm = use_llvm,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/testing/modules.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "vaxis", .module = vaxis_mod },
+                .{ .name = "unicode", .module = unicode_mod },
+                .{ .name = "gwidth", .module = gwidth_mod },
+            },
+        }),
+    });
+    tests_step.dependOn(&b.addRunArtifact(module_tests).step);
 
     // Let's make sure that all of the examples compile and can run any tests
     // that they may have defined.

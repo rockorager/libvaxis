@@ -4,7 +4,7 @@ const assert = std.debug.assert;
 const Key = @import("../Key.zig");
 const Cell = @import("../Cell.zig");
 const Window = @import("../Window.zig");
-const unicode = @import("../unicode.zig");
+const unicode = @import("unicode");
 
 const TextInput = @This();
 

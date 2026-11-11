@@ -22,11 +22,11 @@ pub const AllocatingScreen = @import("InternalScreen.zig");
 pub const Parser = @import("Parser.zig");
 pub const Window = @import("Window.zig");
 pub const widgets = @import("widgets.zig");
-pub const gwidth = @import("gwidth.zig");
+pub const gwidth = @import("gwidth");
 pub const ctlseqs = @import("ctlseqs.zig");
 pub const GraphemeCache = @import("GraphemeCache.zig");
 pub const Event = @import("event.zig").Event;
-pub const unicode = @import("unicode.zig");
+pub const unicode = @import("unicode");
 
 pub const vxfw = @import("vxfw/vxfw.zig");
 

@@ -5,11 +5,11 @@ const mem = std.mem;
 
 const View = @This();
 
-const gw = @import("../gwidth.zig");
+const gw = @import("gwidth");
 
 const Screen = @import("../Screen.zig");
 const Window = @import("../Window.zig");
-const unicode = @import("../unicode.zig");
+const unicode = @import("unicode");
 const Cell = @import("../Cell.zig");
 
 /// View Allocator

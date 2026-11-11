@@ -11,7 +11,7 @@ const Mouse = @import("Mouse.zig");
 const CursorPositionRequests = @import("Parser.zig").CursorPositionRequests;
 const Screen = @import("Screen.zig");
 const Cursor = Screen.Cursor;
-const unicode = @import("unicode.zig");
+const unicode = @import("unicode");
 const Window = @import("Window.zig");
 
 const Hyperlink = Cell.Hyperlink;
@@ -21,7 +21,7 @@ const Style = Cell.Style;
 const Winsize = @import("main.zig").Winsize;
 
 const ctlseqs = @import("ctlseqs.zig");
-const gwidth = @import("gwidth.zig");
+const gwidth = @import("gwidth");
 
 const assert = std.debug.assert;
 
