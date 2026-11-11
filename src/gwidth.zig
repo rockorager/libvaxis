@@ -103,7 +103,7 @@ pub fn gwidth(str: []const u8, method: Method) u16 {
                     width = @max(2, width);
                 }
 
-                total += @max(0, width);
+                total +|= @max(0, width);
             }
 
             return total;
@@ -120,7 +120,7 @@ pub fn gwidth(str: []const u8, method: Method) u16 {
                         break :blk eawToWidth(cp, eaw);
                     },
                 };
-                total += @intCast(@max(0, w));
+                total +|= @intCast(@max(0, w));
             }
             return total;
         },
@@ -128,7 +128,7 @@ pub fn gwidth(str: []const u8, method: Method) u16 {
             var iter = std.mem.splitSequence(u8, str, "\u{200D}");
             var result: u16 = 0;
             while (iter.next()) |s| {
-                result += gwidth(s, .unicode);
+                result +|= gwidth(s, .unicode);
             }
             return result;
         },
@@ -199,6 +199,21 @@ test "gwidth: base letter with combining mark" {
     // 'a' + combining acute accent (NFD form)
     // Should be width 1 (combining mark is zero-width)
     try testing.expectEqual(1, gwidth("á", .unicode));
+}
+
+test "gwidth: long strings saturate without wrapping" {
+    const ascii = try testing.allocator.alloc(u8, 65_537);
+    defer testing.allocator.free(ascii);
+    @memset(ascii, 'a');
+    for ([_]Method{ .unicode, .wcwidth, .no_zwj }) |method| {
+        try testing.expectEqual(@as(u16, 65_534), gwidth(ascii[0..65_534], method));
+        try testing.expectEqual(@as(u16, 65_535), gwidth(ascii[0..65_535], method));
+        try testing.expectEqual(@as(u16, 65_535), gwidth(ascii, method));
+    }
+    const joined = try testing.allocator.alloc(u8, 4 * 65_536);
+    defer testing.allocator.free(joined);
+    for (0..65_536) |i| @memcpy(joined[i * 4 ..][0..4], "a\u{200D}");
+    try testing.expectEqual(@as(u16, 65_535), gwidth(joined, .no_zwj));
 }
 
 test {
