@@ -215,6 +215,46 @@ pub fn parse(self: *Parser, input: []const u8, paste_allocator: ?std.mem.Allocat
     } else return parseGround(input);
 }
 
+/// How the UTF-8 character at the start of the input reads.
+const Utf8Start = union(enum) {
+    /// A whole character of this many bytes.
+    whole: usize,
+    /// The valid start of a character the input ends inside: the rest is
+    /// still arriving.
+    partial,
+    /// A malformed character of this many bytes, Unicode's maximal subpart:
+    /// the lead byte and the bytes after it that could still continue it. The
+    /// byte that broke the character, such as Enter, is not part of it.
+    malformed: usize,
+};
+
+fn utf8Start(input: []const u8) Utf8Start {
+    const lead = input[0];
+    const len: usize = switch (lead) {
+        0x00...0x7F => return .{ .whole = 1 },
+        0xC2...0xDF => 2,
+        0xE0...0xEF => 3,
+        0xF0...0xF4 => 4,
+        // A continuation byte, an overlong two-byte lead (C0, C1), or a lead
+        // past U+10FFFF.
+        else => return .{ .malformed = 1 },
+    };
+    for (1..len) |i| {
+        if (i == input.len) return .partial;
+        // The second byte's range depends on the lead: no overlong forms,
+        // surrogates or scalars past U+10FFFF.
+        const low: u8, const high: u8 = if (i > 1) .{ 0x80, 0xBF } else switch (lead) {
+            0xE0 => .{ 0xA0, 0xBF },
+            0xED => .{ 0x80, 0x9F },
+            0xF0 => .{ 0x90, 0xBF },
+            0xF4 => .{ 0x80, 0x8F },
+            else => .{ 0x80, 0xBF },
+        };
+        if (input[i] < low or input[i] > high) return .{ .malformed = i };
+    }
+    return .{ .whole = len };
+}
+
 /// Parse ground state
 inline fn parseGround(input: []const u8) !Result {
     std.debug.assert(input.len > 0);
@@ -243,6 +283,15 @@ inline fn parseGround(input: []const u8) !Result {
         },
         0x7F => .{ .codepoint = Key.backspace },
         else => blk: {
+            switch (utf8Start(input)) {
+                .whole => {},
+                // Wait for the rest rather than emit a part of a character.
+                .partial => return .{ .event = null, .n = 0 },
+                .malformed => |len| {
+                    n = len;
+                    break :blk .{ .codepoint = 0xFFFD, .text = input[0..n] };
+                },
+            }
             var iter = uucode.utf8.Iterator.init(input);
             // return null if we don't have a valid codepoint
             const first_cp = iter.next() orelse return error.InvalidUTF8;
@@ -1308,6 +1357,61 @@ test "parse: single codepoint with more in buffer" {
 
     try testing.expectEqual(4, result.n);
     try testing.expectEqualDeep(expected_event, result.event);
+}
+
+test "parse: a malformed character covers only its maximal subpart" {
+    const alloc = testing.allocator_instance.allocator();
+    var parser: Parser = .{};
+    // A lead byte whose character the next byte breaks is one replacement
+    // key; the byte that broke it, here Enter, is read on its own.
+    const broken = try parser.parse("\xc3\r", alloc);
+    try testing.expectEqual(1, broken.n);
+    try testing.expectEqual(0xFFFD, broken.event.?.key_press.codepoint);
+    try testing.expectEqualStrings("\xc3", broken.event.?.key_press.text.?);
+    const enter = try parser.parse("\r", alloc);
+    try testing.expectEqual(@as(?Event, .{ .key_press = .{ .codepoint = Key.enter } }), enter.event);
+    // The valid prefix of a three-byte character stays in the replacement.
+    const prefix = try parser.parse("\xe2\x82(", alloc);
+    try testing.expectEqual(2, prefix.n);
+    // A second byte outside its lead's range ends the subpart at the lead.
+    const surrogate = try parser.parse("\xed\xa0\x80", alloc);
+    try testing.expectEqual(1, surrogate.n);
+}
+
+test "parse: a character split across reads waits for the rest" {
+    const alloc = testing.allocator_instance.allocator();
+    var parser: Parser = .{};
+    // A valid prefix at the end of the input is a character still arriving,
+    // never a key: emitting it would cut the character in two.
+    for ([_][]const u8{ "\xe4", "\xe4\xb8", "\xf0\x9f", "\xf0\x9f\x98" }) |prefix| {
+        const waiting = try parser.parse(prefix, alloc);
+        try testing.expectEqual(0, waiting.n);
+        try testing.expectEqual(@as(?Event, null), waiting.event);
+    }
+    const whole = try parser.parse("\xe4\xb8\xadZ", alloc);
+    try testing.expectEqual(3, whole.n);
+    try testing.expectEqual(0x4E2D, whole.event.?.key_press.codepoint);
+    try testing.expectEqualStrings("\xe4\xb8\xad", whole.event.?.key_press.text.?);
+}
+
+test "utf8Start: whole exactly when the standard library decodes the character" {
+    // Every lead and second byte, with valid continuation bytes after them.
+    for (0..256) |lead| for (0..256) |second| {
+        const bytes = [4]u8{ @intCast(lead), @intCast(second), 0x80, 0x80 };
+        const len = std.unicode.utf8ByteSequenceLength(bytes[0]) catch 1;
+        const valid = std.unicode.utf8ValidateSlice(bytes[0..len]);
+        switch (utf8Start(&bytes)) {
+            .whole => |n| {
+                try testing.expect(valid);
+                try testing.expectEqual(len, n);
+            },
+            .malformed => |n| {
+                try testing.expect(!valid);
+                try testing.expectEqual(1, n);
+            },
+            .partial => return error.TestUnexpectedResult,
+        }
+    };
 }
 
 test "parse: multiple codepoint grapheme" {
