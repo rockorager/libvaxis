@@ -755,6 +755,7 @@ inline fn parseCsi(input: []const u8, text_buf: []u8, cursor_position_requests: 
                     21 => Key.f10,
                     23 => Key.f11,
                     24 => Key.f12,
+                    27 => return parseModifiedKey(&field_iter, sequence.len),
                     200 => return .{ .event = .paste_start, .n = sequence.len },
                     201 => return .{ .event = .paste_end, .n = sequence.len },
                     57427 => Key.kp_begin,
@@ -1000,6 +1001,29 @@ inline fn parseParam(comptime T: type, buf: []const u8, default: ?T) ?T {
     return std.fmt.parseInt(T, buf, 10) catch return null;
 }
 
+/// xterm modifyOtherKeys, CSI 27 ; modifier ; code ~, which tmux (extended
+/// keys in its default xterm format), xterm and Ghostty's legacy tables send.
+/// The modifier is 1 + (Shift 1 | Alt 2 | Ctrl 4 | Super 8), the low bits of
+/// Kitty's mask, and the code is the key's codepoint. It is a press with no
+/// associated text. A malformed sequence is ignored, as other unknown keys.
+fn parseModifiedKey(fields: *std.mem.SplitIterator(u8, .scalar), n: usize) Result {
+    const null_event: Result = .{ .event = null, .n = n };
+    const modifier_buf = fields.next() orelse return null_event;
+    const code_buf = fields.next() orelse return null_event;
+    if (fields.next() != null) return null_event;
+    const modifier = parseParam(u8, modifier_buf, null) orelse return null_event;
+    if (modifier < 1 or modifier > 16) return null_event;
+    const code = parseParam(u21, code_buf, null) orelse return null_event;
+    if (!std.unicode.utf8ValidCodepoint(code)) return null_event;
+    return .{
+        .event = .{ .key_press = .{
+            .codepoint = code,
+            .mods = @bitCast(@as(u8, modifier - 1)),
+        } },
+        .n = n,
+    };
+}
+
 /// Parse a mouse event
 inline fn parseMouse(input: []const u8, full_input: []const u8) Result {
     const null_event: Result = .{ .event = null, .n = input.len };
@@ -1167,6 +1191,28 @@ test "parse: xterm key up" {
 
         try testing.expectEqual(3, result.n);
         try testing.expectEqual(expected_event, result.event);
+    }
+}
+
+test "parse: xterm modifyOtherKeys" {
+    var parser: Parser = .{};
+    // Shift-Enter and Ctrl-Alt-c, as tmux and xterm send them.
+    const shift_enter = try parser.parse("\x1b[27;2;13~", null);
+    try testing.expectEqual(10, shift_enter.n);
+    try testing.expectEqual(@as(?Event, .{ .key_press = .{ .codepoint = Key.enter, .mods = .{ .shift = true } } }), shift_enter.event);
+    const ctrl_alt_c = try parser.parse("\x1b[27;7;99~", null);
+    try testing.expectEqual(@as(?Event, .{ .key_press = .{ .codepoint = 'c', .mods = .{ .alt = true, .ctrl = true } } }), ctrl_alt_c.event);
+    const super_tab = try parser.parse("\x1b[27;9;9~", null);
+    try testing.expectEqual(@as(?Event, .{ .key_press = .{ .codepoint = Key.tab, .mods = .{ .super = true } } }), super_tab.event);
+    // CSI 27 ~ alone and malformed fields are consumed as unknown, never a key.
+    for ([_][]const u8{
+        "\x1b[27~",        "\x1b[27;0;13~",    "\x1b[27;17;13~",
+        "\x1b[27;1~",      "\x1b[27;1;55296~", "\x1b[27;1;1114112~",
+        "\x1b[27;1;13;1~", "\x1b[27;;13~",     "\x1b[27;2;~",
+    }) |bytes| {
+        const result = try parser.parse(bytes, null);
+        try testing.expectEqual(@as(?Event, null), result.event);
+        try testing.expectEqual(bytes.len, result.n);
     }
 }
 
