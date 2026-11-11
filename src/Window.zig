@@ -352,7 +352,8 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
             outer: for (segments, 0..) |segment, segment_index| {
                 var line_iter: LineIterator = .{ .buf = segment.text };
                 while (line_iter.next()) |line| {
-                    if (row >= self.height) {
+                    // Whitespace left after a soft wrap off the last row is skipped, not overflow.
+                    if (row >= self.height and !soft_wrapped) {
                         overflow = true;
                         break :outer;
                     }
@@ -367,7 +368,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
                     }
                     var iter: WhitespaceTokenizer = .{ .buf = line };
                     while (iter.next()) |token| {
-                        if (row >= self.height) {
+                        if (row >= self.height and !soft_wrapped) {
                             overflow = true;
                             break :outer;
                         }
@@ -379,6 +380,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
                                     if (col >= self.width) {
                                         col = 0;
                                         row += 1;
+                                        soft_wrapped = true;
                                         break;
                                     }
                                     if (opts.commit) {
@@ -398,11 +400,12 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
                                 if (!in_word) {
                                     // Style boundaries do not start a new word.
                                     var width = self.gwidth(word);
-                                    if (word.ptr + word.len == segment.text.ptr + segment.text.len) {
+                                    // A line that ends in a break does not continue into the next segment.
+                                    if (!line_iter.has_break and word.ptr + word.len == segment.text.ptr + segment.text.len) {
                                         for (segments[segment_index + 1 ..]) |next| {
                                             const end = wordLen(next.text);
                                             width +|= self.gwidth(next.text[0..end]);
-                                            if (end != next.text.len) break;
+                                            if (end != next.text.len or width > self.width) break;
                                         }
                                     }
                                     if (@as(u32, width) + col > self.width and width <= self.width) {
@@ -966,6 +969,41 @@ test "print: a full-width word wraps as one word across style boundaries" {
     }
     try std.testing.expect(screen.readCell(1, 1).?.style.bold);
     try std.testing.expect(!screen.readCell(3, 1).?.style.bold);
+}
+
+test "print: word wrap skips soft-wrap whitespace and looks ahead only within a line" {
+    var screen = try Screen.init(std.testing.allocator, .{ .cols = 5, .rows = 3, .x_pixel = 0, .y_pixel = 0 });
+    defer screen.deinit(std.testing.allocator);
+    screen.width_method = .unicode;
+    // Whitespace after a full last row is dropped, not overflow; a word still overflows.
+    const one_row: Window = .{ .width = 4, .height = 1, .screen = &screen, .x_off = 0, .y_off = 0, .parent_x_off = 0, .parent_y_off = 0 };
+    const cases = [_]struct { []const Segment, bool }{
+        .{ &.{.{ .text = "abcd " }}, false },
+        .{ &.{ .{ .text = "abcd" }, .{ .text = " " } }, false },
+        .{ &.{.{ .text = "abcd e" }}, true },
+    };
+    for (cases) |case| {
+        screen.clear();
+        const result = one_row.print(case[0], .{ .wrap = .word });
+        try std.testing.expectEqual(PrintResult{ .row = 1, .col = 0, .overflow = case[1] }, result);
+        for ("abcd", 0..) |_, col| {
+            try std.testing.expectEqualStrings("abcd"[col..][0..1], screen.readCell(@intCast(col), 0).?.char.grapheme);
+        }
+    }
+    // Whitespace that reaches the edge itself wraps softly too.
+    try std.testing.expectEqual(PrintResult{ .row = 1, .col = 0, .overflow = false }, one_row.print(&.{ .{ .text = "abc  " }, .{ .text = " " } }, .{ .wrap = .word }));
+    try std.testing.expectEqual(PrintResult{ .row = 1, .col = 0, .overflow = true }, one_row.print(&.{ .{ .text = "abc  " }, .{ .text = "e" } }, .{ .wrap = .word }));
+    // "cd" ends its segment on a line after a break, so "ef" starts a new row and is not part of it.
+    screen.clear();
+    const win: Window = .{ .width = 5, .height = 3, .screen = &screen, .x_off = 0, .y_off = 0, .parent_x_off = 0, .parent_y_off = 0 };
+    const result = win.print(&.{ .{ .text = "ab\nx cd" }, .{ .text = "ef" } }, .{ .wrap = .word });
+    try std.testing.expectEqual(PrintResult{ .row = 2, .col = 2, .overflow = false }, result);
+    try std.testing.expectEqualStrings("b", screen.readCell(1, 0).?.char.grapheme);
+    try std.testing.expectEqualStrings("x", screen.readCell(0, 1).?.char.grapheme);
+    try std.testing.expectEqualStrings("c", screen.readCell(2, 1).?.char.grapheme);
+    try std.testing.expectEqualStrings("d", screen.readCell(3, 1).?.char.grapheme);
+    try std.testing.expectEqualStrings("e", screen.readCell(0, 2).?.char.grapheme);
+    try std.testing.expectEqualStrings("f", screen.readCell(1, 2).?.char.grapheme);
 }
 
 test "print: coordinate boundaries wrap wide clusters and clip beyond the window" {
