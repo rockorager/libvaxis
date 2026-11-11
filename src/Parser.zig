@@ -943,7 +943,9 @@ inline fn parseMouse(input: []const u8, full_input: []const u8) Result {
     var px: i16 = undefined;
     var py: i16 = undefined;
     var xterm: bool = undefined;
-    if (input.len == 3 and (input[2] == 'M') and full_input.len >= 6) {
+    if (input.len == 3 and input[2] == 'M') {
+        // An X10 report's three bytes follow the sequence; wait for them.
+        if (full_input.len < 6) return .{ .event = null, .n = 0 };
         xterm = true;
         button_mask = full_input[3] - 32;
         px = full_input[4] - 32;
@@ -1803,6 +1805,20 @@ test "parse(csi): xterm mouse" {
 
     try testing.expectEqual(expected.n, result.n);
     try testing.expectEqual(expected.event, result.event);
+}
+
+test "parse: an X10 mouse report waits for its three bytes" {
+    const alloc = testing.allocator_instance.allocator();
+    var parser: Parser = .{};
+    // Its button and position bytes have not all arrived: none is text.
+    for ([_][]const u8{ "\x1b[M", "\x1b[M ", "\x1b[M i" }) |partial| {
+        const result = try parser.parse(partial, alloc);
+        try testing.expectEqual(0, result.n);
+        try testing.expectEqual(@as(?Event, null), result.event);
+    }
+    const whole = try parser.parse("\x1b[M isZ", alloc);
+    try testing.expectEqual(6, whole.n);
+    try testing.expect(whole.event.? == .mouse);
 }
 
 test "parse: disambiguate shift + space" {
