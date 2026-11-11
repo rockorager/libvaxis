@@ -288,10 +288,18 @@ pub const PrintResult = struct {
 /// prints segments to the window. returns true if the text overflowed with the
 /// given wrap strategy and size.
 pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintResult {
-    var row = opts.row_offset;
+    if (self.width == 0 or opts.row_offset >= self.height) return .{
+        .row = @min(opts.row_offset, self.height),
+        .col = @min(opts.col_offset, self.width),
+        .overflow = blk: {
+            for (segments) |segment| if (segment.text.len != 0) break :blk true;
+            break :blk false;
+        },
+    };
+    var row: u32 = opts.row_offset;
     switch (opts.wrap) {
         .grapheme => {
-            var col: u16 = opts.col_offset;
+            var col: u32 = opts.col_offset;
             const overflow: bool = blk: for (segments) |segment| {
                 var iter = unicode.graphemeIterator(segment.text);
                 while (iter.next()) |grapheme| {
@@ -308,7 +316,13 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
                     }
                     const w = self.gwidth(s);
                     if (w == 0) continue;
-                    if (opts.commit) self.writeCell(col, row, .{
+                    // A wide grapheme that would cross the edge starts the next row.
+                    if (col != 0 and col + w > self.width) {
+                        row += 1;
+                        col = 0;
+                        if (row >= self.height) break :blk true;
+                    }
+                    if (opts.commit) self.writeCell(@intCast(col), @intCast(row), .{
                         .char = .{
                             .grapheme = s,
                             .width = @intCast(w),
@@ -325,30 +339,41 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
                 col = 0;
             }
             return .{
-                .row = row,
-                .col = col,
+                .row = @intCast(@min(row, self.height)),
+                .col = @intCast(@min(col, self.width)),
                 .overflow = overflow,
             };
         },
         .word => {
-            var col: u16 = opts.col_offset;
+            var col: u32 = opts.col_offset;
             var overflow: bool = false;
             var soft_wrapped: bool = false;
-            outer: for (segments) |segment| {
+            var in_word: bool = false;
+            outer: for (segments, 0..) |segment, segment_index| {
                 var line_iter: LineIterator = .{ .buf = segment.text };
                 while (line_iter.next()) |line| {
+                    if (row >= self.height) {
+                        overflow = true;
+                        break :outer;
+                    }
                     defer {
                         // We only set soft_wrapped to false if a segment actually contains a linebreak
                         if (line_iter.has_break) {
                             soft_wrapped = false;
-                            row += 1;
+                            in_word = false;
+                            row = @min(row + 1, self.height);
                             col = 0;
                         }
                     }
                     var iter: WhitespaceTokenizer = .{ .buf = line };
                     while (iter.next()) |token| {
+                        if (row >= self.height) {
+                            overflow = true;
+                            break :outer;
+                        }
                         switch (token) {
                             .whitespace => |len| {
+                                in_word = false;
                                 if (soft_wrapped) continue;
                                 for (0..len) |_| {
                                     if (col >= self.width) {
@@ -357,7 +382,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
                                         break;
                                     }
                                     if (opts.commit) {
-                                        self.writeCell(col, row, .{
+                                        self.writeCell(@intCast(col), @intCast(row), .{
                                             .char = .{
                                                 .grapheme = " ",
                                                 .width = 1,
@@ -370,11 +395,22 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
                                 }
                             },
                             .word => |word| {
-                                const width = self.gwidth(word);
-                                if (width + col > self.width and width < self.width) {
-                                    row += 1;
-                                    col = 0;
+                                if (!in_word) {
+                                    // Style boundaries do not start a new word.
+                                    var width = self.gwidth(word);
+                                    if (word.ptr + word.len == segment.text.ptr + segment.text.len) {
+                                        for (segments[segment_index + 1 ..]) |next| {
+                                            const end = wordLen(next.text);
+                                            width +|= self.gwidth(next.text[0..end]);
+                                            if (end != next.text.len) break;
+                                        }
+                                    }
+                                    if (@as(u32, width) + col > self.width and width <= self.width) {
+                                        row += 1;
+                                        col = 0;
+                                    }
                                 }
+                                in_word = true;
 
                                 var grapheme_iterator = unicode.graphemeIterator(word);
                                 while (grapheme_iterator.next()) |grapheme| {
@@ -385,7 +421,15 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
                                     }
                                     const s = grapheme.bytes(word);
                                     const w = self.gwidth(s);
-                                    if (opts.commit) self.writeCell(col, row, .{
+                                    if (col != 0 and col + w > self.width) {
+                                        row += 1;
+                                        col = 0;
+                                        if (row >= self.height) {
+                                            overflow = true;
+                                            break :outer;
+                                        }
+                                    }
+                                    if (opts.commit) self.writeCell(@intCast(col), @intCast(row), .{
                                         .char = .{
                                             .grapheme = s,
                                             .width = @intCast(w),
@@ -407,8 +451,8 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
             }
             return .{
                 // remove last row counter
-                .row = row,
-                .col = col,
+                .row = @intCast(@min(row, self.height)),
+                .col = @intCast(@min(col, self.width)),
                 .overflow = overflow,
             };
         },
@@ -422,7 +466,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
                     if (std.mem.eql(u8, s, "\n")) break :blk true;
                     const w = self.gwidth(s);
                     if (w == 0) continue;
-                    if (opts.commit) self.writeCell(col, row, .{
+                    if (opts.commit) self.writeCell(col, @intCast(row), .{
                         .char = .{
                             .grapheme = s,
                             .width = @intCast(w),
@@ -434,7 +478,7 @@ pub fn print(self: Window, segments: []const Segment, opts: PrintOptions) PrintR
                 }
             } else false;
             return .{
-                .row = row,
+                .row = @intCast(row),
                 .col = col,
                 .overflow = overflow,
             };
@@ -872,17 +916,112 @@ const WhitespaceTokenizer = struct {
             },
             .word => {
                 const start = self.index;
-                while (self.index < self.buf.len) : (self.index += 1) {
-                    switch (self.buf[self.index]) {
-                        ' ', '\t' => break,
-                        else => {},
-                    }
-                }
+                self.index += wordLen(self.buf[start..]);
                 return .{ .word = self.buf[start..self.index] };
             },
         }
     }
 };
+
+/// The length of the word that starts `text`: the bytes before its first
+/// space, tab or line break.
+fn wordLen(text: []const u8) usize {
+    return std.mem.indexOfAny(u8, text, " \t\r\n") orelse text.len;
+}
+
+test "print: wide graphemes move intact to the next row" {
+    var screen = try Screen.init(std.testing.allocator, .{ .cols = 4, .rows = 3, .x_pixel = 0, .y_pixel = 0 });
+    defer screen.deinit(std.testing.allocator);
+    screen.width_method = .unicode;
+    const win: Window = .{ .width = 4, .height = 3, .screen = &screen, .x_off = 0, .y_off = 0, .parent_x_off = 0, .parent_y_off = 0 };
+    for ([_]PrintOptions{ .{ .wrap = .grapheme }, .{ .wrap = .word } }) |opts| {
+        screen.clear();
+        const result = win.print(&.{.{ .text = "abc界x" }}, opts);
+        try std.testing.expectEqual(PrintResult{ .row = 1, .col = 3, .overflow = false }, result);
+        try std.testing.expectEqualStrings("c", screen.readCell(2, 0).?.char.grapheme);
+        try std.testing.expectEqualStrings(" ", screen.readCell(3, 0).?.char.grapheme);
+        try std.testing.expectEqualStrings("界", screen.readCell(0, 1).?.char.grapheme);
+        try std.testing.expectEqualStrings("x", screen.readCell(2, 1).?.char.grapheme);
+    }
+}
+
+test "print: a full-width word wraps as one word across style boundaries" {
+    var screen = try Screen.init(std.testing.allocator, .{ .cols = 4, .rows = 3, .x_pixel = 0, .y_pixel = 0 });
+    defer screen.deinit(std.testing.allocator);
+    screen.width_method = .unicode;
+    const win: Window = .{ .width = 4, .height = 3, .screen = &screen, .x_off = 0, .y_off = 0, .parent_x_off = 0, .parent_y_off = 0 };
+    const cases = [_][]const Segment{
+        &.{.{ .text = "a bcde" }},
+        &.{ .{ .text = "a b" }, .{ .text = "cd", .style = .{ .bold = true } }, .{ .text = "e" } },
+    };
+    for (cases) |segments| {
+        screen.clear();
+        const result = win.print(segments, .{ .wrap = .word });
+        try std.testing.expectEqual(PrintResult{ .row = 2, .col = 0, .overflow = false }, result);
+        try std.testing.expectEqualStrings("a", screen.readCell(0, 0).?.char.grapheme);
+        try std.testing.expectEqualStrings(" ", screen.readCell(2, 0).?.char.grapheme);
+        for ("bcde", 0..) |_, col| {
+            try std.testing.expectEqualStrings("bcde"[col..][0..1], screen.readCell(@intCast(col), 1).?.char.grapheme);
+        }
+    }
+    try std.testing.expect(screen.readCell(1, 1).?.style.bold);
+    try std.testing.expect(!screen.readCell(3, 1).?.style.bold);
+}
+
+test "print: coordinate boundaries wrap wide clusters and clip beyond the window" {
+    var screen: Screen = .{ .width_method = .unicode };
+    var win: Window = .{ .width = 65_535, .height = 2, .screen = &screen, .x_off = 0, .y_off = 0, .parent_x_off = 0, .parent_y_off = 0 };
+    for ([_]PrintOptions{ .{ .wrap = .grapheme }, .{ .wrap = .word } }) |mode| {
+        var opts = mode;
+        opts.commit = false;
+        opts.col_offset = 65_534;
+        const wrapped = win.print(&.{.{ .text = "界" }}, opts);
+        try std.testing.expectEqual(PrintResult{ .row = 1, .col = 2, .overflow = false }, wrapped);
+        opts.row_offset = 1;
+        const clipped = win.print(&.{.{ .text = "界" }}, opts);
+        try std.testing.expectEqual(PrintResult{ .row = 2, .col = 0, .overflow = true }, clipped);
+        opts.row_offset = 65_535;
+        opts.col_offset = 65_535;
+        const outside = win.print(&.{.{ .text = "x" }}, opts);
+        try std.testing.expectEqual(PrintResult{ .row = 2, .col = 65_535, .overflow = true }, outside);
+    }
+    win.height = 65_535;
+    for ([_]PrintOptions{ .{ .wrap = .grapheme }, .{ .wrap = .word } }) |mode| {
+        var opts = mode;
+        opts.commit = false;
+        opts.col_offset = 65_534;
+        opts.row_offset = 65_534;
+        try std.testing.expectEqual(PrintResult{ .row = 65_535, .col = 0, .overflow = false }, win.print(&.{.{ .text = "x" }}, opts));
+        try std.testing.expectEqual(PrintResult{ .row = 65_535, .col = 0, .overflow = true }, win.print(&.{.{ .text = "x\n\nx" }}, opts));
+    }
+}
+
+test "print: coordinate boundaries split a long word at a wide cluster" {
+    const text = try std.testing.allocator.alloc(u8, 65_538);
+    defer std.testing.allocator.free(text);
+    @memset(text[0..65_534], 'a');
+    @memcpy(text[65_534..], "界z");
+    var screen: Screen = .{ .width_method = .unicode };
+    const win: Window = .{ .width = 65_535, .height = 2, .screen = &screen, .x_off = 0, .y_off = 0, .parent_x_off = 0, .parent_y_off = 0 };
+    for ([_]PrintOptions{ .{ .wrap = .grapheme }, .{ .wrap = .word } }) |mode| {
+        var opts = mode;
+        opts.commit = false;
+        try std.testing.expectEqual(PrintResult{ .row = 1, .col = 3, .overflow = false }, win.print(&.{.{ .text = text }}, opts));
+    }
+}
+
+test "print: coordinate boundaries on empty windows" {
+    var screen: Screen = .{ .width_method = .unicode };
+    for ([_][2]u16{ .{ 0, 1 }, .{ 1, 0 }, .{ 0, 0 } }) |size| {
+        const win: Window = .{ .width = size[0], .height = size[1], .screen = &screen, .x_off = 0, .y_off = 0, .parent_x_off = 0, .parent_y_off = 0 };
+        for ([_]PrintOptions{ .{ .wrap = .grapheme }, .{ .wrap = .word }, .{ .wrap = .none } }) |mode| {
+            var opts = mode;
+            opts.commit = false;
+            try std.testing.expectEqual(PrintResult{ .row = 0, .col = 0, .overflow = false }, win.print(&.{.{ .text = "" }}, opts));
+            try std.testing.expectEqual(PrintResult{ .row = 0, .col = 0, .overflow = true }, win.print(&.{.{ .text = "界" }}, opts));
+        }
+    }
+}
 
 test "refAllDecls" {
     std.testing.refAllDecls(@This());
