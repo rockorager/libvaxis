@@ -682,7 +682,6 @@ inline fn parseCsi(input: []const u8, text_buf: []u8, cursor_position_requests: 
             // skip the first field
             _ = field_iter.next(); //
 
-            var is_release: bool = false;
             var key: Key = .{
                 .codepoint = switch (final) {
                     'A' => Key.up,
@@ -700,32 +699,7 @@ inline fn parseCsi(input: []const u8, text_buf: []u8, cursor_position_requests: 
                 },
             };
 
-            field2: {
-                // modifier_mask:event_type
-                const field_buf = field_iter.next() orelse break :field2;
-                var param_iter = std.mem.splitScalar(u8, field_buf, ':');
-                const modifier_buf = param_iter.next() orelse unreachable;
-                const modifier_mask = parseParam(u8, modifier_buf, 1) orelse return null_event;
-                key.mods = @bitCast(modifier_mask -| 1);
-
-                if (param_iter.next()) |event_type_buf| {
-                    is_release = std.mem.eql(u8, event_type_buf, "3");
-                }
-            }
-
-            field3: {
-                // text_as_codepoint[:text_as_codepoint]
-                const field_buf = field_iter.next() orelse break :field3;
-                var param_iter = std.mem.splitScalar(u8, field_buf, ':');
-                var total: usize = 0;
-                while (param_iter.next()) |cp_buf| {
-                    const cp = parseParam(u21, cp_buf, null) orelse return null_event;
-                    const len = std.unicode.utf8CodepointSequenceLength(cp) catch return null_event;
-                    if (total + len > text_buf.len) return null_event;
-                    total += std.unicode.utf8Encode(cp, text_buf[total..]) catch return null_event;
-                }
-                key.text = text_buf[0..total];
-            }
+            const is_release = parseKeyFields(&field_iter, &key, text_buf) orelse return null_event;
 
             const event: Event = if (is_release) .{ .key_release = key } else .{ .key_press = key };
             return .{
@@ -781,33 +755,7 @@ inline fn parseCsi(input: []const u8, text_buf: []u8, cursor_position_requests: 
                 },
             };
 
-            var is_release: bool = false;
-            field2: {
-                // modifier_mask:event_type
-                const field_buf = field_iter.next() orelse break :field2;
-                var param_iter = std.mem.splitScalar(u8, field_buf, ':');
-                const modifier_buf = param_iter.next() orelse unreachable;
-                const modifier_mask = parseParam(u8, modifier_buf, 1) orelse return null_event;
-                key.mods = @bitCast(modifier_mask -| 1);
-
-                if (param_iter.next()) |event_type_buf| {
-                    is_release = std.mem.eql(u8, event_type_buf, "3");
-                }
-            }
-
-            field3: {
-                // text_as_codepoint[:text_as_codepoint]
-                const field_buf = field_iter.next() orelse break :field3;
-                var param_iter = std.mem.splitScalar(u8, field_buf, ':');
-                var total: usize = 0;
-                while (param_iter.next()) |cp_buf| {
-                    const cp = parseParam(u21, cp_buf, null) orelse return null_event;
-                    const len = std.unicode.utf8CodepointSequenceLength(cp) catch return null_event;
-                    if (total + len > text_buf.len) return null_event;
-                    total += std.unicode.utf8Encode(cp, text_buf[total..]) catch return null_event;
-                }
-                key.text = text_buf[0..total];
-            }
+            const is_release = parseKeyFields(&field_iter, &key, text_buf) orelse return null_event;
 
             const event: Event = if (is_release) .{ .key_release = key } else .{ .key_press = key };
             return .{
@@ -906,44 +854,17 @@ inline fn parseCsi(input: []const u8, text_buf: []u8, cursor_position_requests: 
                 const field_buf = field_iter.next() orelse unreachable; // There will always be at least one field
                 var param_iter = std.mem.splitScalar(u8, field_buf, ':');
                 const codepoint_buf = param_iter.next() orelse unreachable;
-                key.codepoint = parseParam(u21, codepoint_buf, null) orelse return null_event;
+                key.codepoint = parseScalar(codepoint_buf) orelse return null_event;
 
                 if (param_iter.next()) |shifted_cp_buf| {
-                    key.shifted_codepoint = parseParam(u21, shifted_cp_buf, null);
+                    key.shifted_codepoint = parseScalar(shifted_cp_buf);
                 }
                 if (param_iter.next()) |base_layout_buf| {
-                    key.base_layout_codepoint = parseParam(u21, base_layout_buf, null);
+                    key.base_layout_codepoint = parseScalar(base_layout_buf);
                 }
             }
 
-            var is_release: bool = false;
-
-            field2: {
-                // modifier_mask:event_type
-                const field_buf = field_iter.next() orelse break :field2;
-                var param_iter = std.mem.splitScalar(u8, field_buf, ':');
-                const modifier_buf = param_iter.next() orelse unreachable;
-                const modifier_mask = parseParam(u8, modifier_buf, 1) orelse return null_event;
-                key.mods = @bitCast(modifier_mask -| 1);
-
-                if (param_iter.next()) |event_type_buf| {
-                    is_release = std.mem.eql(u8, event_type_buf, "3");
-                }
-            }
-
-            field3: {
-                // text_as_codepoint[:text_as_codepoint]
-                const field_buf = field_iter.next() orelse break :field3;
-                var param_iter = std.mem.splitScalar(u8, field_buf, ':');
-                var total: usize = 0;
-                while (param_iter.next()) |cp_buf| {
-                    const cp = parseParam(u21, cp_buf, null) orelse return null_event;
-                    const len = std.unicode.utf8CodepointSequenceLength(cp) catch return null_event;
-                    if (total + len > text_buf.len) return null_event;
-                    total += std.unicode.utf8Encode(cp, text_buf[total..]) catch return null_event;
-                }
-                key.text = text_buf[0..total];
-            }
+            const is_release = parseKeyFields(&field_iter, &key, text_buf) orelse return null_event;
 
             {
                 // We check if we have *only* shift, no text, and a printable character. This can
@@ -1019,6 +940,41 @@ inline fn parseParam(comptime T: type, buf: []const u8, default: ?T) ?T {
     return std.fmt.parseInt(T, buf, 10) catch return null;
 }
 
+/// Reads the modifier_mask:event_type and text_as_codepoint[:text_as_codepoint]
+/// fields that follow a key's number into `key`, as the CSI u, CSI ~ and CSI 1
+/// letter keys share them. Returns whether the event is a release, or null
+/// when a field cannot be parsed.
+fn parseKeyFields(fields: *std.mem.SplitIterator(u8, .scalar), key: *Key, text_buf: []u8) ?bool {
+    var is_release = false;
+    if (fields.next()) |field_buf| {
+        var param_iter = std.mem.splitScalar(u8, field_buf, ':');
+        const modifier_buf = param_iter.next() orelse unreachable;
+        const modifier_mask = parseParam(u8, modifier_buf, 1) orelse return null;
+        key.mods = @bitCast(modifier_mask -| 1);
+        if (param_iter.next()) |event_type_buf| {
+            is_release = std.mem.eql(u8, event_type_buf, "3");
+        }
+    }
+    if (fields.next()) |field_buf| {
+        var param_iter = std.mem.splitScalar(u8, field_buf, ':');
+        var total: usize = 0;
+        while (param_iter.next()) |cp_buf| {
+            const cp = parseParam(u21, cp_buf, null) orelse return null;
+            const len = std.unicode.utf8CodepointSequenceLength(cp) catch return null;
+            if (total + len > text_buf.len) return null;
+            total += std.unicode.utf8Encode(cp, text_buf[total..]) catch return null;
+        }
+        key.text = text_buf[0..total];
+    }
+    return is_release;
+}
+
+/// A decimal Unicode scalar value: no surrogate, nothing past U+10FFFF.
+fn parseScalar(buf: []const u8) ?u21 {
+    const cp = parseParam(u21, buf, null) orelse return null;
+    return if (std.unicode.utf8ValidCodepoint(cp)) cp else null;
+}
+
 /// xterm modifyOtherKeys, CSI 27 ; modifier ; code ~, which tmux (extended
 /// keys in its default xterm format), xterm and Ghostty's legacy tables send.
 /// The modifier is 1 + (Shift 1 | Alt 2 | Ctrl 4 | Super 8), the low bits of
@@ -1031,8 +987,7 @@ fn parseModifiedKey(fields: *std.mem.SplitIterator(u8, .scalar), n: usize) Resul
     if (fields.next() != null) return null_event;
     const modifier = parseParam(u8, modifier_buf, null) orelse return null_event;
     if (modifier < 1 or modifier > 16) return null_event;
-    const code = parseParam(u21, code_buf, null) orelse return null_event;
-    if (!std.unicode.utf8ValidCodepoint(code)) return null_event;
+    const code = parseScalar(code_buf) orelse return null_event;
     return .{
         .event = .{ .key_press = .{
             .codepoint = code,
@@ -1255,6 +1210,19 @@ test "parse: xterm modifyOtherKeys" {
         try testing.expectEqual(@as(?Event, null), result.event);
         try testing.expectEqual(bytes.len, result.n);
     }
+}
+
+test "parse: kitty key codepoints must be Unicode scalars" {
+    var parser: Parser = .{};
+    // A surrogate or a value past U+10FFFF is no key: consume it as unknown.
+    for ([_][]const u8{ "\x1b[55296u", "\x1b[1114112u", "\x1b[57343;2u" }) |bytes| {
+        const result = try parser.parse(bytes, null);
+        try testing.expectEqual(@as(?Event, null), result.event);
+        try testing.expectEqual(bytes.len, result.n);
+    }
+    // Shifted and base layout codepoints that are not scalars are absent.
+    const result = try parser.parse("\x1b[97:55296:1114112u", null);
+    try testing.expectEqual(@as(?Event, .{ .key_press = .{ .codepoint = 'a' } }), result.event);
 }
 
 test "parse: xterm shift+up" {
