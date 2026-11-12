@@ -93,20 +93,29 @@ pub fn writeCell(
     }
     const i = (@as(usize, @intCast(row)) * self.width) + col;
     assert(i < self.buf.len);
-    self.buf[i].char.clearRetainingCapacity();
-    self.buf[i].char.appendSlice(self.arena.allocator(), cell.char.grapheme) catch |err| {
+    setBytes(&self.buf[i].char, self.arena.allocator(), cell.char.grapheme) catch |err| {
         log.warn("couldn't write grapheme: {t}", .{err});
     };
-    self.buf[i].uri.clearRetainingCapacity();
-    self.buf[i].uri.appendSlice(self.arena.allocator(), cell.link.uri) catch |err| {
+    setBytes(&self.buf[i].uri, self.arena.allocator(), cell.link.uri) catch |err| {
         log.warn("couldn't write uri: {t}", .{err});
     };
-    self.buf[i].uri_id.clearRetainingCapacity();
-    self.buf[i].uri_id.appendSlice(self.arena.allocator(), cell.link.params) catch |err| {
+    setBytes(&self.buf[i].uri_id, self.arena.allocator(), cell.link.params) catch |err| {
         log.warn("couldn't write uri_id: {t}", .{err});
     };
     self.buf[i].style = cell.style;
     self.buf[i].default = cell.default;
+}
+
+/// Replaces a cached cell string. The list grows to a power of two, not by
+/// ArrayList's policy, which adds a cache line: the arena never frees the old
+/// block, so each cell that outgrew its first byte held ~64 unused bytes. On
+/// error the string is left empty, which no frame matches, so the cell redraws.
+fn setBytes(list: *std.ArrayList(u8), arena: std.mem.Allocator, bytes: []const u8) std.mem.Allocator.Error!void {
+    list.clearRetainingCapacity();
+    if (bytes.len > list.capacity) {
+        try list.ensureTotalCapacityPrecise(arena, std.math.ceilPowerOfTwo(usize, bytes.len) catch bytes.len);
+    }
+    list.appendSliceAssumeCapacity(bytes);
 }
 
 pub fn readCell(self: *InternalScreen, col: u16, row: u16) ?Cell {
